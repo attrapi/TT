@@ -2890,48 +2890,10 @@ let TAREAS = [
     fecha_reporte:'2026-04-29', fecha_limite:'2026-05-05', avance:100, estatus:'Atendida',
     observaciones:'Reporte entregado.', validado_por:'Ing. Adrián Tavares', fecha_validacion:'2026-05-06 09:30', comentarios_director:'Buen reporte. Considerar incluir gráfica de avance comparativo.' },
 
-  // SPAC - Subdirección de Procesos Administrativos de Construcción
-  { id:'SPAC-001', subdireccion:'SPAC', responsable:'MARIO', titulo:'Formalización contrato segmento 15A1 Saltillo–N. Laredo',
-    descripcion:'Cierre de formalización del contrato LO-09-D00-009D00999-I-3-2026 correspondiente a 8.854 km del segmento 15 A1, Zona Metropolitana de Monterrey.',
-    tipo:'Contratación', proyecto:'Saltillo–N. Laredo', prioridad:'Alta',
-    fecha_reporte:'2026-04-25', fecha_limite:'2026-05-10', avance:85, estatus:'En Proceso',
-    observaciones:'Pendiente firma del contratista. Anexos completos.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SPAC-002', subdireccion:'SPAC', responsable:'MARIO', titulo:'Acto de fallo segmento 15A2 Saltillo–N. Laredo',
-    descripcion:'Coordinación del acto de fallo de la licitación LO-09-D00-009D00999-I-21-2026 programado para 17/04/2026.',
-    tipo:'Contratación', proyecto:'Saltillo–N. Laredo', prioridad:'Alta',
-    fecha_reporte:'2026-04-15', fecha_limite:'2026-04-17', avance:100, estatus:'Atendida',
-    observaciones:'Fallo emitido a favor de empresa adjudicada.', validado_por:'Ing. Adrián Tavares', fecha_validacion:'2026-04-17 14:32', comentarios_director:'Proceder con la formalización del contrato en los plazos LOPSRM.' },
-
-  { id:'SPAC-003', subdireccion:'SPAC', responsable:'MARIO', titulo:'Junta de aclaraciones edificios auxiliares Tramo II',
-    descripcion:'Atender junta de aclaraciones del procedimiento LO-09-D00-009D00999-I-1-2026 para edificios auxiliares Querétaro-Irapuato.',
-    tipo:'Reunión', proyecto:'Querétaro–Irapuato', prioridad:'Media',
-    fecha_reporte:'2026-05-02', fecha_limite:'2026-05-18', avance:50, estatus:'En Proceso',
-    observaciones:'Preguntas recibidas en plataforma CompraNet.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SPAC-004', subdireccion:'SPAC', responsable:'MARIO', titulo:'Preparación bases licitación segmento 15B',
-    descripcion:'Elaboración de bases técnicas y administrativas para licitación de 30.75 km segmento 15B ZMM.',
-    tipo:'Documento', proyecto:'Saltillo–N. Laredo', prioridad:'Alta',
-    fecha_reporte:'2026-05-04', fecha_limite:'2026-05-30', avance:30, estatus:'En Proceso',
-    observaciones:'Anteproyecto en revisión técnica.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SPAC-005', subdireccion:'SPAC', responsable:'MARIO', titulo:'Visita al sitio licitación Estaciones N. Laredo',
-    descripcion:'Coordinar visita al sitio para procedimiento LO-09-D00-009D00999-I-39-2026 (estaciones General Escobedo, Salinas Victoria, Villaldama, Lampazos, Anáhuac, Nuevo Laredo).',
-    tipo:'Reunión', proyecto:'Saltillo–N. Laredo', prioridad:'Media',
-    fecha_reporte:'2026-05-01', fecha_limite:'2026-05-15', avance:65, estatus:'En Proceso',
-    observaciones:'Logística confirmada. Lista de asistentes en proceso.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SPAC-006', subdireccion:'SPAC', responsable:'MARIO', titulo:'Análisis de costos sistemas ferroviarios Saltillo–N. Laredo',
-    descripcion:'Revisión de propuestas económicas del procedimiento de sistemas ferroviarios LO-09-D00-009D00999-I-9-2026.',
-    tipo:'Documento', proyecto:'Saltillo–N. Laredo', prioridad:'Alta',
-    fecha_reporte:'2026-05-03', fecha_limite:'2026-05-12', avance:70, estatus:'En Proceso',
-    observaciones:'Tres propuestas en evaluación. Cuadro comparativo en elaboración.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SPAC-007', subdireccion:'SPAC', responsable:'MARIO', titulo:'Informe semanal procedimientos en proceso',
-    descripcion:'Reporte ejecutivo de los 9 procedimientos de contratación actualmente en proceso para Saltillo–N. Laredo y Querétaro–Irapuato.',
-    tipo:'Documento', proyecto:'Otro', prioridad:'Baja',
-    fecha_reporte:'2026-05-06', fecha_limite:'2026-05-07', avance:95, estatus:'En Proceso',
-    observaciones:'Listo para entrega.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
+  // SPAC — Subdirección de Procesos Administrativos de Construcción
+  // Las tareas de SPAC se cargan en tiempo real desde el Google Sheet publicado
+  // (ver sincronizarSPAC más abajo). No se mantienen tareas demo aquí para
+  // evitar que reaparezcan al refrescar y se mezclen con la captura real.
 
   // ENLACE — Enlace administrativo del Director
   { id:'ENLACE-001', subdireccion:'ENLACE', responsable:'SAMANTA', titulo:'Compilación de acuerdos del Comité Directivo abril 2026',
@@ -2969,8 +2931,170 @@ let TAREAS = [
 const BITACORA = [
   { fecha:'2026-05-06 09:30', usuario:'adrian.tavares@attrapi.gob.mx', accion:'atender', id_tarea:'SGOI-006', estatus_anterior:'En Proceso', estatus_nuevo:'Atendida' },
   { fecha:'2026-05-02 10:15', usuario:'adrian.tavares@attrapi.gob.mx', accion:'atender', id_tarea:'SA-002', estatus_anterior:'En Proceso', estatus_nuevo:'Atendida' },
-  { fecha:'2026-04-17 14:32', usuario:'adrian.tavares@attrapi.gob.mx', accion:'atender', id_tarea:'SPAC-002', estatus_anterior:'En Proceso', estatus_nuevo:'Atendida' },
 ];
+
+// ============== SINCRONIZACIÓN SPAC (Google Sheets) ==============
+// La Subdirección de Procesos Administrativos de Construcción captura sus
+// pendientes en una hoja de Google publicada como CSV. La app la consulta
+// cada SPAC_INTERVALO_MS para reflejar los cambios en "tiempo real". Nota:
+// Google republica la hoja con una latencia propia de ~1–5 min, así que el
+// refresco visible depende de ese ciclo además del polling.
+const SPAC_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT29iVfy-sRmruO9ejOiXwwqK3Hu740bguROLCrN4YYVTFM_XD94XuRM4895XnCbw/pub?gid=434371899&single=true&output=csv';
+const SPAC_INTERVALO_MS = 30000;
+let SPAC_TIMER = null;
+let SPAC_ULTIMA_SYNC = null;
+
+// Parser CSV: soporta campos entre comillas con comas, saltos de línea y
+// comillas escapadas (""). Suficiente para lo que publica Google Sheets.
+function parsearCSV(texto) {
+  if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);
+  const filas = [];
+  let fila = [];
+  let campo = '';
+  let dentroComillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (dentroComillas) {
+      if (c === '"') {
+        if (texto[i + 1] === '"') { campo += '"'; i++; }
+        else { dentroComillas = false; }
+      } else {
+        campo += c;
+      }
+    } else {
+      if (c === '"') {
+        dentroComillas = true;
+      } else if (c === ',') {
+        fila.push(campo); campo = '';
+      } else if (c === '\r') {
+        // ignorar — el \n decide el fin de fila
+      } else if (c === '\n') {
+        fila.push(campo); filas.push(fila);
+        fila = []; campo = '';
+      } else {
+        campo += c;
+      }
+    }
+  }
+  if (campo.length > 0 || fila.length > 0) {
+    fila.push(campo); filas.push(fila);
+  }
+  return filas;
+}
+
+function fechaSheetANormal(s) {
+  if (!s) return '';
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+}
+
+function normalizarEstatusSheet(s) {
+  const v = (s || '').trim().toLowerCase();
+  if (v === 'atendida' || v === 'atendido' || v === 'concluida' || v === 'concluido') return 'Atendida';
+  return 'En Proceso';
+}
+
+// Localiza el índice de columna por nombre tolerando acentos y mayúsculas.
+function indiceColumna(enc, nombres) {
+  const norm = s => (s || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const objetivos = nombres.map(norm);
+  return enc.findIndex(c => objetivos.includes(norm(c)));
+}
+
+async function sincronizarSPAC() {
+  try {
+    const resp = await fetch(SPAC_CSV_URL + '&_=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const texto = await resp.text();
+    const filas = parsearCSV(texto);
+    if (filas.length < 2) return;
+
+    // El Sheet puede tener filas de título antes de los encabezados reales
+    // (p.ej. "ATTRAPI · TT — ..." en la fila 1). Localizamos la fila cuyo
+    // primer campo sea "ID" para tratarla como encabezado.
+    const filaEnc = filas.findIndex(f => (f[0] || '').trim().toUpperCase() === 'ID');
+    if (filaEnc < 0) {
+      console.warn('Sincronización SPAC: no se encontró fila de encabezados ("ID").');
+      return;
+    }
+
+    const enc = filas[filaEnc];
+    const idxId       = indiceColumna(enc, ['ID']);
+    const idxResp     = indiceColumna(enc, ['Responsable']);
+    const idxTema     = indiceColumna(enc, ['Tema']);
+    const idxAreas    = indiceColumna(enc, ['Áreas involucradas', 'Areas involucradas']);
+    const idxAcuerdos = indiceColumna(enc, ['Acuerdos realizados']);
+    const idxAccion   = indiceColumna(enc, ['Acción a tomar', 'Accion a tomar']);
+    const idxFecha    = indiceColumna(enc, ['Fecha de atención', 'Fecha de atencion']);
+    const idxEstatus  = indiceColumna(enc, ['Estatus']);
+    const idxUrl      = indiceColumna(enc, ['URL']);
+
+    const get = (fila, idx) => (idx >= 0 && fila[idx] != null) ? String(fila[idx]).trim() : '';
+
+    const nuevas = [];
+    for (let r = filaEnc + 1; r < filas.length; r++) {
+      const fila = filas[r];
+      const tema = get(fila, idxTema);
+      if (!tema) continue;                      // ignorar filas vacías
+      const idDeclarado = get(fila, idxId);
+      // Numeración relativa a los datos: 1, 2, 3... independientemente de
+      // cuántas filas de título tenga el Sheet por arriba.
+      const numFila = r - filaEnc;
+      const id = idDeclarado || 'SPAC-' + String(numFila).padStart(3, '0');
+      const estatus = normalizarEstatusSheet(get(fila, idxEstatus));
+      const fechaNorm = fechaSheetANormal(get(fila, idxFecha));
+      nuevas.push({
+        id,
+        subdireccion: 'SPAC',
+        responsable: get(fila, idxResp),
+        titulo: tema,
+        tema,
+        descripcion: get(fila, idxAcuerdos),
+        areas_involucradas: get(fila, idxAreas),
+        acuerdos_realizados: get(fila, idxAcuerdos),
+        accion_a_tomar: get(fila, idxAccion),
+        tipo: 'Otro',
+        proyecto: 'Otro',
+        prioridad: 'Media',
+        fecha_reporte: '',
+        fecha_atencion: fechaNorm,
+        fecha_limite: fechaNorm,
+        avance: estatus === 'Atendida' ? 100 : 0,
+        estatus,
+        observaciones: get(fila, idxAccion),
+        url: get(fila, idxUrl),
+        validado_por: '',
+        fecha_validacion: '',
+        comentarios_director: '',
+        fuente: 'sheet'
+      });
+    }
+
+    // Reemplaza SOLO el bloque SPAC; deja intactas SA, SGOI y ENLACE.
+    const otras = TAREAS.filter(t => t.subdireccion !== 'SPAC');
+    TAREAS.length = 0;
+    TAREAS.push(...otras, ...nuevas);
+
+    SPAC_ULTIMA_SYNC = new Date();
+
+    if (usuarioActual) {
+      renderizar();
+      if (vistaActiva === 'calendario') renderizarCalendario();
+      if (vistaActiva === 'carga') renderizarCarga();
+      if (vistaActiva === 'bitacora') renderizarBitacora();
+    }
+  } catch (err) {
+    console.warn('Sincronización SPAC fallida:', err);
+  }
+}
+
+function iniciarSincronizacionSPAC() {
+  if (SPAC_TIMER) return;
+  sincronizarSPAC();
+  SPAC_TIMER = setInterval(sincronizarSPAC, SPAC_INTERVALO_MS);
+}
 
 // ============== ESTADO ==============
 
@@ -4450,6 +4574,10 @@ function escapeHtml(s) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarModal();
 });
+
+// Arranca el polling de la hoja SPAC apenas carga la página, para que las
+// tareas estén listas cuando el usuario entre y se vayan refrescando solas.
+iniciarSincronizacionSPAC();
 </script>
 
 </body>
