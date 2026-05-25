@@ -3836,13 +3836,19 @@ function crearTarjeta(t) {
     ` : ''}
   `;
 
-  // Sello de quién finalizó / validó la tarea.
-  if (t.estatus === 'Atendida' && (t.finalizado_por || t.validado_por)) {
-    const quien = t.finalizado_por || t.validado_por;
-    const cuando = t.fecha_finalizacion || t.fecha_validacion;
-    html += `<div class="tarjeta-validada-info">Finalizada por ${quien}${cuando ? '<br>' + cuando : ''}${t.validada ? '<br>✓ Validada por ' + (t.validado_por || '—') : ''}</div>`;
-  } else if (t.estatus === 'Archivada' && (t.validado_por || t.fecha_validacion)) {
-    html += `<div class="tarjeta-validada-info">✓ Validada por ${t.validado_por || '—'}${t.fecha_validacion ? '<br>' + t.fecha_validacion : ''}</div>`;
+  // Sello al pie: quién finalizó (el RESPONSABLE que viene del Excel, no el
+  // usuario que pulsó el botón) y, una vez validada, quién la validó.
+  if (t.estatus === 'Atendida' || t.estatus === 'Archivada') {
+    let sello = '';
+    if (t.responsable) {
+      sello += 'Finalizada por ' + escapeHtml(t.responsable);
+      if (t.fecha_finalizacion) sello += '<br>' + t.fecha_finalizacion;
+    }
+    if ((t.validada || t.estatus === 'Archivada') && t.validado_por) {
+      sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
+      if (t.fecha_validacion) sello += '<br>' + t.fecha_validacion;
+    }
+    if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
   }
 
   // Acciones de la tarjeta como píldoras (misma forma para todas; el color
@@ -4156,12 +4162,14 @@ function abrirDetalle(t) {
         ` : ''}
       </dl>
 
-      ${t.validado_por ? `
+      ${(t.estatus === 'Atendida' || t.estatus === 'Archivada') ? `
         <div class="modal-seccion">
-          <div class="modal-seccion-titulo">Atendida por</div>
+          <div class="modal-seccion-titulo">Validación</div>
           <div class="modal-comentarios">
-            <strong>${escapeHtml(t.validado_por)}</strong><br>
-            <span class="modal-fecha-mono">${t.fecha_validacion}</span>
+            ${t.responsable ? '<strong>Finalizada por:</strong> ' + escapeHtml(t.responsable) + '<br>' : ''}
+            ${((t.validada || t.estatus === 'Archivada') && t.validado_por)
+              ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? '<br><span class="modal-fecha-mono">' + t.fecha_validacion + '</span>' : '')
+              : '<em>Pendiente de validación</em>'}
             ${t.comentarios_director ? '<br><br><strong>Comentarios:</strong> ' + escapeHtml(t.comentarios_director) : ''}
           </div>
         </div>
