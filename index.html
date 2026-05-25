@@ -1416,6 +1416,35 @@
 
   .btn-nuevo:hover { background: var(--guinda-oscuro); }
 
+  /* Botón "Actualizar" — alternativa al F5 del navegador, que de otro modo
+     regresa al usuario a la pantalla de selección de perfil. Estilo
+     secundario (outlined) para no competir con "+ Nueva Tarea". */
+  .btn-actualizar {
+    background: white;
+    color: var(--guinda);
+    border: 1px solid var(--guinda);
+    padding: 8px 14px;
+    border-radius: 2px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn-actualizar:hover { background: var(--guinda); color: white; }
+  .btn-actualizar:disabled { opacity: 0.6; cursor: wait; }
+  .btn-actualizar svg { width: 14px; height: 14px; }
+  .btn-actualizar.sincronizando svg {
+    animation: spin-actualizar 0.8s linear infinite;
+  }
+  @keyframes spin-actualizar {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
   /* === TABLERO === */
   .tablero {
     max-width: 1400px;
@@ -2649,13 +2678,13 @@
             <div class="kpi-valor" id="kpiActivas">0</div>
             <div class="kpi-label">En Proceso</div>
           </div>
+          <div class="kpi kpi-verde">
+            <div class="kpi-valor" id="kpiSemana">0</div>
+            <div class="kpi-label">Atendidas</div>
+          </div>
           <div class="kpi kpi-rojo">
             <div class="kpi-valor" id="kpiHoy">0</div>
             <div class="kpi-label">Vencidas</div>
-          </div>
-          <div class="kpi kpi-grafito">
-            <div class="kpi-valor" id="kpiSemana">0</div>
-            <div class="kpi-label">Atendidas</div>
           </div>
         </div>
         <!-- Gráfica de queso (donut) — solo Director. Distribución de tareas
@@ -2714,6 +2743,10 @@
     <button class="chip" data-prio="Baja" onclick="filtrarPrioridad('Baja')">Baja <span class="chip-dias">&gt; 7 días</span></button>
 
     <div class="filtros-spacer"></div>
+    <button class="btn-actualizar" id="btnActualizar" onclick="actualizarDatos()" title="Vuelve a leer la información del Google Sheet (alternativa a F5, que regresaría a la pantalla de inicio).">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+      Actualizar
+    </button>
     <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevaTarea()">+ Nueva Tarea</button>
   </div>
 
@@ -3087,6 +3120,27 @@ async function sincronizarSPAC() {
     }
   } catch (err) {
     console.warn('Sincronización SPAC fallida:', err);
+  }
+}
+
+// Botón "Actualizar" en la barra de filtros. Al recargar la página con F5
+// se pierde la sesión y el usuario regresa a la pantalla de selección de
+// perfil; este botón evita ese rebote: vuelve a leer el Sheet publicado
+// (que es la fuente "viva" de las tareas SPAC) y re-renderiza la vista
+// actual sin tocar la sesión.
+async function actualizarDatos() {
+  const btn = document.getElementById('btnActualizar');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('sincronizando');
+  try {
+    await sincronizarSPAC();
+    toast('Información actualizada', 'ok');
+  } catch (err) {
+    toast('No se pudo actualizar', 'error');
+  } finally {
+    btn.classList.remove('sincronizando');
+    btn.disabled = false;
   }
 }
 
