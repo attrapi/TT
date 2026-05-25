@@ -3033,117 +3033,13 @@ const USUARIOS = {
   cap_spac: { email: 'capturista.spac@attrapi.gob.mx', nombre: 'MARIO', rol: 'Capturista', subdireccion: 'SPAC', iniciales: 'MA' }
 };
 
-let TAREAS = [
-  // SA - Subdirección de Archivo
-  { id:'SA-001', subdireccion:'SA', responsable:'AMANDA', titulo:'Transferencia primaria expediente 2024 obras inducidas',
-    descripcion:'Coordinar la transferencia primaria al Archivo de Concentración de los expedientes correspondientes a obras inducidas del ejercicio 2024, incluyendo la elaboración de inventario, foliación y cotejo.',
-    tipo:'Trámite', proyecto:'Archivo institucional', prioridad:'Alta',
-    fecha_reporte:'2026-05-02', fecha_limite:'2026-05-15', avance:35, estatus:'En Proceso',
-    observaciones:'Pendiente confirmación de bodega para resguardo intermedio.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
+// Sin datos de ejemplo: TODA la información viva entra desde los dos Google
+// Sheets de SPAC (Jefaturas + Subdirección) vía sincronizarSPAC. SA, SGOI y
+// ENLACE conservan su tab/perfil pero arrancan vacíos hasta que tengan su
+// propia fuente de datos real.
+let TAREAS = [];
 
-  { id:'SA-002', subdireccion:'SA', responsable:'AMANDA', titulo:'Inventario bodega central abril 2026',
-    descripcion:'Levantamiento de inventario físico de las cajas resguardadas en la bodega central, con captura en sistema HSC.',
-    tipo:'Documento', proyecto:'Archivo institucional', prioridad:'Media',
-    fecha_reporte:'2026-04-28', fecha_limite:'2026-05-05', avance:100, estatus:'Atendida',
-    observaciones:'Concluida. Inventario subido a HSC.', validado_por:'Ing. Adrián Tavares', fecha_validacion:'2026-05-02 10:15', comentarios_director:'Excelente trabajo, sigan con el ritmo.' },
-
-  { id:'SA-003', subdireccion:'SA', responsable:'AMANDA', titulo:'Solicitud de baja documental ejercicios 2018-2019',
-    descripcion:'Elaborar dictamen de valoración para baja documental de expedientes administrativos correspondientes a los ejercicios 2018 y 2019, conforme a Ley General de Archivos.',
-    tipo:'Trámite', proyecto:'Archivo institucional', prioridad:'Media',
-    fecha_reporte:'2026-04-30', fecha_limite:'2026-06-30', avance:60, estatus:'En Proceso',
-    observaciones:'Dictamen elaborado, pendiente revisión jurídica.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SA-004', subdireccion:'SA', responsable:'AMANDA', titulo:'Capacitación servidores públicos en ordenación documental',
-    descripcion:'Programar y ejecutar capacitación al personal de la DPAC en materia de ordenación documental conforme al Cuadro General de Clasificación Archivística.',
-    tipo:'Reunión', proyecto:'Archivo institucional', prioridad:'Baja',
-    fecha_reporte:'2026-05-04', fecha_limite:'2026-05-30', avance:20, estatus:'En Proceso',
-    observaciones:'Material en preparación.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SA-005', subdireccion:'SA', responsable:'AMANDA', titulo:'Cuadro de clasificación archivística 2026',
-    descripcion:'Revisión y actualización del Cuadro General de Clasificación Archivística para incorporar series documentales nuevas.',
-    tipo:'Documento', proyecto:'Archivo institucional', prioridad:'Alta',
-    fecha_reporte:'2026-05-05', fecha_limite:'2026-05-12', avance:80, estatus:'En Proceso',
-    observaciones:'Listo para validación. Se agregaron 12 nuevas series.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  // SGOI - Subdirección de Gestión de Obras Inducidas
-  { id:'SGOI-001', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Reubicación líneas CFE km 42+300 Tramo II Querétaro-Irapuato',
-    descripcion:'Coordinar con CFE División Bajío la reubicación de líneas de transmisión de 115 kV en el km 42+300, antes del inicio de obra civil.',
-    tipo:'Liberación', proyecto:'Querétaro–Irapuato', prioridad:'Alta',
-    fecha_reporte:'2026-04-25', fecha_limite:'2026-05-22', avance:55, estatus:'En Proceso',
-    observaciones:'CFE confirma viabilidad. Falta firma de convenio.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SGOI-002', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Liberación derecho de vía Salinas Victoria, NL',
-    descripcion:'Gestión de liberación de derecho de vía en zona urbana de Salinas Victoria para construcción de la estación ferroviaria del Tren Saltillo–Nuevo Laredo.',
-    tipo:'Liberación', proyecto:'Saltillo–N. Laredo', prioridad:'Alta',
-    fecha_reporte:'2026-04-20', fecha_limite:'2026-05-10', avance:90, estatus:'En Proceso',
-    observaciones:'Pendiente firma del último predio (3 de 47 totales).', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SGOI-003', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Coordinación con INAH Anáhuac Coahuila',
-    descripcion:'Atender solicitud del INAH para inspección arqueológica preventiva en zona de obra próxima a estación Anáhuac.',
-    tipo:'Reunión', proyecto:'Saltillo–N. Laredo', prioridad:'Media',
-    fecha_reporte:'2026-05-01', fecha_limite:'2026-05-25', avance:40, estatus:'En Proceso',
-    observaciones:'Visita programada para 18/mayo.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SGOI-004', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Reubicación ductos PEMEX km 78+450',
-    descripcion:'Acuerdo con PEMEX Logística para reubicación de ducto de productos refinados.',
-    tipo:'Liberación', proyecto:'Querétaro–Irapuato', prioridad:'Alta',
-    fecha_reporte:'2026-05-03', fecha_limite:'2026-06-15', avance:25, estatus:'En Proceso',
-    observaciones:'En espera de propuesta técnica de PEMEX.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SGOI-005', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Convenio municipal General Escobedo',
-    descripcion:'Suscripción de convenio de colaboración con el Municipio de General Escobedo para uso de vialidades durante obra.',
-    tipo:'Documento', proyecto:'Saltillo–N. Laredo', prioridad:'Media',
-    fecha_reporte:'2026-05-05', fecha_limite:'2026-05-20', avance:75, estatus:'En Proceso',
-    observaciones:'Revisión final por área jurídica del municipio.', validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'SGOI-006', subdireccion:'SGOI', responsable:'FABIOLA', titulo:'Reporte mensual obras inducidas abril 2026',
-    descripcion:'Informe consolidado mensual de avance en gestión de obras inducidas para los dos tramos.',
-    tipo:'Documento', proyecto:'Otro', prioridad:'Baja',
-    fecha_reporte:'2026-04-29', fecha_limite:'2026-05-05', avance:100, estatus:'Atendida',
-    observaciones:'Reporte entregado.', validado_por:'Ing. Adrián Tavares', fecha_validacion:'2026-05-06 09:30', comentarios_director:'Buen reporte. Considerar incluir gráfica de avance comparativo.' },
-
-  // SPAC — Subdirección de Procesos Administrativos de Construcción
-  // Las tareas de SPAC se cargan en tiempo real desde el Google Sheet publicado
-  // (ver sincronizarSPAC más abajo). No se mantienen tareas demo aquí para
-  // evitar que reaparezcan al refrescar y se mezclen con la captura real.
-
-  // ENLACE — Enlace administrativo del Director
-  { id:'ENLACE-001', subdireccion:'ENLACE', responsable:'SAMANTA', titulo:'Compilación de acuerdos del Comité Directivo abril 2026',
-    descripcion:'Compilar y dar seguimiento a los acuerdos generados en el Comité Directivo del mes de abril, validados por las tres subdirecciones.',
-    tipo:'Reunión', proyecto:'Coordinación interna', prioridad:'Alta',
-    fecha_reporte:'2026-04-30', fecha_limite:'2026-05-15', avance:50, estatus:'En Proceso',
-    observaciones:'Minuta circulada. Pendiente confirmación de seguimiento por SGOI.',
-    areas_involucradas:'Enlace Director, Tres subdirecciones',
-    acuerdos_realizados:'Minuta circulada y validada por las tres subdirecciones',
-    accion_a_tomar:'Dar seguimiento semanal a compromisos pendientes',
-    url:'https://drive.google.com/drive/folders/EJEMPLO',
-    validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'ENLACE-002', subdireccion:'ENLACE', responsable:'SAMANTA', titulo:'Agenda de Director General mayo 2026',
-    descripcion:'Coordinación de agenda mensual del Director General con asistentes, materiales y logística.',
-    tipo:'Reunión', proyecto:'Coordinación interna', prioridad:'Alta',
-    fecha_reporte:'2026-05-01', fecha_limite:'2026-05-07', avance:80, estatus:'En Proceso',
-    observaciones:'Agenda lista, faltan dos confirmaciones.',
-    areas_involucradas:'Enlace Director, Oficina del DG',
-    acuerdos_realizados:'Agenda confirmada con asistentes y materiales preparados',
-    accion_a_tomar:'Coordinar logística de cada reunión',
-    validado_por:'', fecha_validacion:'', comentarios_director:'' },
-
-  { id:'ENLACE-003', subdireccion:'ENLACE', responsable:'SAMANTA', titulo:'Reporte ejecutivo cierre de abril 2026',
-    descripcion:'Consolidar KPIs y pendientes de las tres subdirecciones para presentación ejecutiva al Director Tavares.',
-    tipo:'Documento', proyecto:'Coordinación interna', prioridad:'Media',
-    fecha_reporte:'2026-04-25', fecha_limite:'2026-04-30', avance:100, estatus:'Atendida',
-    observaciones:'Entregado en sesión semanal del 30 de abril.',
-    areas_involucradas:'Enlace Director, Tres subdirecciones',
-    acuerdos_realizados:'KPIs y pendientes consolidados de las tres subdirecciones',
-    accion_a_tomar:'Presentar al Director Tavares en sesión semanal',
-    validado_por:'Ing. Adrián Tavares', fecha_validacion:'2026-04-30 18:15', comentarios_director:'Excelente trabajo, mantener formato.' },
-];
-
-const BITACORA = [
-  { fecha:'2026-05-06 09:30', usuario:'adrian.tavares@attrapi.gob.mx', accion:'atender', id_tarea:'SGOI-006', estatus_anterior:'En Proceso', estatus_nuevo:'Atendida' },
-  { fecha:'2026-05-02 10:15', usuario:'adrian.tavares@attrapi.gob.mx', accion:'atender', id_tarea:'SA-002', estatus_anterior:'En Proceso', estatus_nuevo:'Atendida' },
-];
+const BITACORA = [];
 
 // ============== SINCRONIZACIÓN SPAC (Google Sheets) ==============
 // La Subdirección de Procesos Administrativos de Construcción trabaja con DOS
