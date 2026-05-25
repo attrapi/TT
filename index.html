@@ -1891,6 +1891,38 @@
     cursor: not-allowed;
   }
 
+  /* === Píldoras de acción de la tarjeta ===
+     Misma forma (redondeada, compacta) para Finalizar / Validar / Atendida /
+     Archivar; el color distingue la acción. Sustituyen a los botones de caja
+     completa para que el avance se sienta homogéneo. */
+  .tarjeta-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btn-pildora {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 15px;
+    border: none;
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s, filter 0.15s;
+  }
+  .btn-pildora svg { width: 13px; height: 13px; flex: none; }
+  .btn-pildora-ok { background: var(--verde); color: #fff; }
+  .btn-pildora-ok:hover { background: #166534; }
+  .btn-pildora-archivar { background: var(--grafito); color: #fff; }
+  .btn-pildora-archivar:hover { filter: brightness(1.15); }
+  .btn-pildora-off { background: var(--grafito); color: #fff; opacity: 0.4; cursor: not-allowed; }
+
   .btn-liberar {
     width: 100%;
     background: var(--grafito);
@@ -3917,32 +3949,37 @@ function crearTarjeta(t) {
     html += `<div class="tarjeta-validada-info">✓ Validada por ${t.validado_por || '—'}${t.fecha_validacion ? '<br>' + t.fecha_validacion : ''}</div>`;
   }
 
+  // Acciones de la tarjeta como píldoras (misma forma para todas; el color
+  // marca la acción). Íconos reutilizados:
+  const icoCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+  const icoCaja  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>';
+
+  // El subdirector "dueño" de una tarea de subdirección (no de jefatura): él la
+  // finaliza pero NO la valida (eso lo hace el Director).
+  const esDuenoSub = usuarioActual && usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === t.subdireccion && t.nivel !== 'jefatura';
+
+  let pills = '';
   if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
     // Identificadas: Finalizar la envía a "Por validar". Las tareas de
     // Jefatura NO llevan este botón (se finalizan en el Excel).
-    html += `<button class="btn-validar" onclick="event.stopPropagation(); finalizar('${t.id}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-      Finalizar
-    </button>`;
+    pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizar('${t.id}')">${icoCheck} Finalizar</button>`;
   } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
     // Por validar: actúa quien valida (Director para subdirección; Subdirector
     // para jefatura). Primero Validar; eso habilita Archivar.
     if (!t.validada) {
-      html += `<button class="btn-validar" onclick="event.stopPropagation(); validar('${t.id}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        Validar
-      </button>
-      <button class="btn-validar btn-archivar-disabled" disabled title="Primero valida la tarea para poder archivarla.">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
-        Archivar
-      </button>`;
+      pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
+      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para poder archivarla.">${icoCaja} Archivar</button>`;
     } else {
-      html += `<button class="btn-validar" style="background: var(--grafito);" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea a Gestión › Validadas.">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
-        Archivar
-      </button>`;
+      pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea a Gestión › Validadas.">${icoCaja} Archivar</button>`;
     }
+  } else if (t.estatus === 'Atendida' && t.validada && esDuenoSub) {
+    // El subdirector dueño, una vez que el Director validó, la pasa a
+    // "Atendida": sale de Por validar y se archiva en su histórico.
+    pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mover a Atendidas.">${icoCheck} Atendida</button>`;
   }
+
+  if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
 
   card.innerHTML = html;
   return card;
@@ -4063,9 +4100,10 @@ function validar(idTarea) {
   toast('Tarea ' + idTarea + ' validada', 'ok');
 }
 
-// El Director archiva una tarea ya validada: sale del tablero y aparece en
-// Gestión › Validadas. Capturistas hacen lo mismo escribiendo "Archivada" en
-// la columna Estatus del Sheet/Excel.
+// Archiva una tarea ya validada. La hace el Director (a Gestión › Validadas)
+// o el subdirector dueño tras la validación (a su columna Atendidas). En
+// ambos casos pasa a Archivada. Capturistas también pueden escribir
+// "Archivada" en la columna Estatus del Sheet/Excel.
 function archivar(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
@@ -4074,10 +4112,13 @@ function archivar(idTarea) {
     return;
   }
   if (!t.validada) {
-    toast('Primero valida la tarea para poder archivarla', 'error');
+    toast('Primero hay que validar la tarea', 'error');
     return;
   }
-  if (!confirm('¿Archivar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nSe moverá a Gestión › Validadas y saldrá del tablero.')) return;
+  // El destino se llama distinto según el rol: el subdirector la pasa a
+  // "Atendidas"; el Director, a "Validadas".
+  const destino = usuarioActual.rol === 'Director' ? 'Validadas' : 'Atendidas';
+  if (!confirm('¿Pasar la tarea ' + idTarea + ' a ' + destino + '?\n\n"' + t.titulo + '"\n\nSaldrá de "Por validar".')) return;
 
   const stamp = ahoraStamp();
   t.estatus = 'Archivada';
@@ -4094,7 +4135,7 @@ function archivar(idTarea) {
   cerrarModal();
   renderizar();
   if (vistaActiva === 'validadas') renderizarValidadas();
-  toast('Tarea ' + idTarea + ' archivada · Validadas', 'ok');
+  toast('Tarea ' + idTarea + ' → ' + destino, 'ok');
 }
 
 // ============== MODAL ==============
@@ -4149,6 +4190,19 @@ function abrirDetalle(t) {
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
         ${btnValidar}
         ${btnArchivar}
+      </div>
+    `;
+  } else if (t.estatus === 'Atendida' && t.validada
+             && usuarioActual.rol === 'Capturista'
+             && usuarioActual.subdireccion === t.subdireccion && t.nivel !== 'jefatura') {
+    // Subdirector dueño: tras la validación del Director, puede pasarla a
+    // "Atendida" (sale de Por validar y se archiva en su histórico).
+    acciones = `
+      <div class="modal-acciones">
+        ${btnIcs}
+        <div style="flex:1"></div>
+        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+        <button class="btn-modal btn-modal-primario" onclick="archivar('${t.id}')">✓ Atendida</button>
       </div>
     `;
   } else {
