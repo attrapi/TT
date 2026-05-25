@@ -317,22 +317,21 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    background: var(--crema);
-    border: 1px solid var(--linea);
-    border-radius: 10px;
-    overflow: hidden;
-    padding: 8px 8px 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    background: transparent;
+    border: none;
+    padding: 0;
   }
+  /* Encabezado de grupo en color institucional (guinda pleno). */
   .sidebar-grupo-titulo {
-    font-size: 9.5px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--guinda);
-    padding: 2px 4px 6px;
-    margin: 0;
-    border-bottom: 1px solid var(--linea);
+    color: white;
+    background: var(--guinda);
+    padding: 7px 12px;
+    margin: 0 0 2px;
+    border-radius: 6px;
   }
   /* Cada item es una "subcard": fondo propio, borde sutil y esquinas
      redondeadas, para que el panel izquierdo se lea ordenado y profesional. */
@@ -422,15 +421,10 @@
     color: white;
   }
 
-  /* Marcador circular de color para cada subdirección. */
-  .sub-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    border: 1px solid rgba(0,0,0,0.12);
-    margin-top: 4px;   /* alinea el punto con la primera línea del texto */
-  }
+  /* Los puntos de color se ocultan: el panel se ve más limpio y el texto
+     aprovecha todo el ancho. La identidad de color se conserva en el estado
+     activo (franja izquierda y fondo tenue). */
+  .sub-dot { display: none; }
   /* En items de subdirección activos, el dot conserva su color y agregamos
      una franja izquierda con el color de la sub en lugar del guinda genérico. */
   .sidebar-sub.activa[data-sub="SA"]::before     { background: var(--sub-sa); }
