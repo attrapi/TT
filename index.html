@@ -3998,10 +3998,11 @@ function cambiarTab(sub) {
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 
-  // Si el usuario está en una vista que no responde al filtro de subdirección
-  // (Bitácora, Carga, Reportes) y hace clic en una subdirección, no daría
-  // feedback visible. Lo mandamos al Tablero filtrado para que vea su clic.
-  const vistasSinFiltroSub = ['bitacora', 'carga', 'reportes'];
+  // Si el usuario está en una vista de Gestión (Bitácora, Carga, Reportes,
+  // Validadas) y hace clic en una subdirección, lo mandamos al Tablero
+  // filtrado para que el clic tenga feedback visible (si no, parecería que
+  // "no abre" porque seguiría viendo la vista de Gestión).
+  const vistasSinFiltroSub = ['bitacora', 'carga', 'reportes', 'validadas'];
   if (vistasSinFiltroSub.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
