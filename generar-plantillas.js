@@ -108,10 +108,10 @@ function aplicarEstilos(ws, colorMain, colorTenue, columnas, frozenCols = 0, pri
       ws.getCell(r, colEstatus).dataValidation = {
         type: 'list',
         allowBlank: false,
-        formulae: ['"En Proceso,Atendida"'],
+        formulae: ['"En Proceso,Atendida,Archivada"'],
         showErrorMessage: true,
         errorTitle: 'Estatus inválido',
-        error: 'Selecciona En Proceso o Atendida',
+        error: 'Selecciona En Proceso, Atendida o Archivada',
       };
     }
   }

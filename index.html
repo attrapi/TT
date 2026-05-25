@@ -549,6 +549,8 @@
   .bitacora-accion.liberar  { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.devolver { background: #FEE2E2; color: var(--rojo); }
   .bitacora-accion.crear    { background: var(--azul-tenue); color: var(--azul); }
+  .bitacora-accion.archivar { background: var(--grafito-tenue); color: var(--grafito); }
+  .bitacora-accion.atender  { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-tarea {
     display: flex;
     align-items: center;
@@ -1003,6 +1005,26 @@
     flex: 1;
   }
 
+  /* Chip pequeño "Vencidas" — ya no merece un círculo grande porque cada
+     tarjeta ya muestra su propio señalador "vencida"; aquí solo damos el
+     conteo global como pista al usuario. Se oculta cuando el conteo es 0. */
+  .kpi-vencidas-chip {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #FEE2E2;
+    color: var(--rojo);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+  }
+  .kpi-vencidas-chip.oculto { display: none; }
+  .kpi-vencidas-chip-num { font-size: 13px; }
+
   /* === Gráfica de queso (donut) === */
   .kpi-pie-wrap {
     display: flex;
@@ -1016,14 +1038,16 @@
     --p1: 0;   /* % en proceso (no vencidas) */
     --p2: 0;   /* % vencidas */
     --p3: 0;   /* % atendidas */
+    --p4: 0;   /* % archivadas */
     width: 110px;
     height: 110px;
     border-radius: 50%;
     background:
       conic-gradient(
-        var(--ambar) 0% calc(var(--p1) * 1%),
-        var(--rojo)  calc(var(--p1) * 1%) calc((var(--p1) + var(--p2)) * 1%),
-        var(--verde) calc((var(--p1) + var(--p2)) * 1%) 100%
+        var(--ambar)   0% calc(var(--p1) * 1%),
+        var(--rojo)    calc(var(--p1) * 1%) calc((var(--p1) + var(--p2)) * 1%),
+        var(--verde)   calc((var(--p1) + var(--p2)) * 1%) calc((var(--p1) + var(--p2) + var(--p3)) * 1%),
+        var(--grafito) calc((var(--p1) + var(--p2) + var(--p3)) * 1%) 100%
       );
     position: relative;
     flex-shrink: 0;
@@ -1451,7 +1475,7 @@
     margin: 24px auto 48px;
     padding: 0 32px;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
   }
 
@@ -1519,6 +1543,18 @@
   .col-atendida .col-marca   { background: var(--verde); }
   .col-atendida .col-titulo  { color: var(--verde); }
   .col-atendida .col-conteo  { color: var(--verde); }
+
+  /* Columna "Archivada": tareas ya cerradas y movidas al histórico
+     (capturista las marcó así en el Sheet o el Director presionó Archivar
+     en la app). Color grafito para diferenciarlas visualmente de las
+     atendidas, sin compita por atención. */
+  .col-archivada .col-header {
+    background: var(--grafito-tenue);
+    border-bottom-color: var(--grafito);
+  }
+  .col-archivada .col-marca   { background: var(--grafito); }
+  .col-archivada .col-titulo  { color: var(--grafito); }
+  .col-archivada .col-conteo  { color: var(--grafito); }
 
   .col-cuerpo {
     padding: 14px;
@@ -1948,6 +1984,7 @@
   }
   .modal-estatus-proceso { background: var(--ambar-tenue); color: var(--ambar); }
   .modal-estatus-atendida { background: var(--verde-tenue); color: var(--verde); }
+  .modal-estatus-archivada { background: var(--grafito-tenue); color: var(--grafito); }
   .modal-fecha-mono {
     font-family: 'SF Mono', Consolas, monospace;
     font-size: 12px;
@@ -2673,27 +2710,36 @@
     <div class="kpi-card">
       <div class="kpis-grupo-titulo" id="kpisGrupoTitulo">Resumen general</div>
       <div class="kpi-cuerpo">
-        <div class="kpis-fila">
-          <div class="kpi kpi-ambar">
-            <div class="kpi-valor" id="kpiActivas">0</div>
-            <div class="kpi-label">En Proceso</div>
+        <div style="display:flex; flex-direction:column; flex:1;">
+          <div class="kpis-fila">
+            <div class="kpi kpi-ambar">
+              <div class="kpi-valor" id="kpiActivas">0</div>
+              <div class="kpi-label">En Proceso</div>
+            </div>
+            <div class="kpi kpi-verde">
+              <div class="kpi-valor" id="kpiSemana">0</div>
+              <div class="kpi-label">Atendidas</div>
+            </div>
+            <div class="kpi kpi-grafito">
+              <div class="kpi-valor" id="kpiArchivadas">0</div>
+              <div class="kpi-label">Archivadas</div>
+            </div>
           </div>
-          <div class="kpi kpi-verde">
-            <div class="kpi-valor" id="kpiSemana">0</div>
-            <div class="kpi-label">Atendidas</div>
-          </div>
-          <div class="kpi kpi-rojo">
-            <div class="kpi-valor" id="kpiHoy">0</div>
-            <div class="kpi-label">Vencidas</div>
+          <!-- Vencidas no merece círculo grande: cada tarjeta ya lleva su
+               señalador "vencida". Aquí solo el conteo como pista global. -->
+          <div class="kpi-vencidas-chip oculto" id="kpiVencidasChip">
+            <span>Vencidas</span>
+            <span class="kpi-vencidas-chip-num" id="kpiHoy">0</span>
           </div>
         </div>
         <!-- Gráfica de queso (donut) — solo Director. Distribución de tareas
-             entre En Proceso (sin vencer), Vencidas y Atendidas. -->
+             entre En Proceso (sin vencer), Vencidas, Atendidas y Archivadas. -->
         <div class="kpi-pie-wrap" id="kpiPieWrap">
           <div class="kpi-pie" id="kpiPie">
             <span class="kpi-pie-pct" id="kpiPiePctProceso"></span>
             <span class="kpi-pie-pct" id="kpiPiePctVencidas"></span>
             <span class="kpi-pie-pct" id="kpiPiePctAtendidas"></span>
+            <span class="kpi-pie-pct" id="kpiPiePctArchivadas"></span>
             <div class="kpi-pie-centro">
               <span class="kpi-pie-total" id="kpiPieTotal">0</span>
               <span class="kpi-pie-total-label">Tareas</span>
@@ -2703,6 +2749,7 @@
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>En Proceso</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--rojo)"></span><span>Vencidas</span><span class="kpi-pie-val" id="kpiPieVencidas">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span>Atendidas</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--grafito)"></span><span>Archivadas</span><span class="kpi-pie-val" id="kpiPieArchivadas">0</span></div>
           </div>
         </div>
       </div>
@@ -3024,6 +3071,10 @@ function fechaSheetANormal(s) {
 
 function normalizarEstatusSheet(s) {
   const v = (s || '').trim().toLowerCase();
+  // El capturista puede escribir "archivada"/"archivado" en la columna
+  // Estatus del Sheet para mover una tarea ya cerrada al histórico, sin
+  // que siga apareciendo en la columna "Atendida" del tablero.
+  if (v === 'archivada' || v === 'archivado') return 'Archivada';
   if (v === 'atendida' || v === 'atendido' || v === 'concluida' || v === 'concluido') return 'Atendida';
   return 'En Proceso';
 }
@@ -3277,75 +3328,83 @@ function actualizarKPIs() {
   };
 
   const pieWrap = document.getElementById('kpiPieWrap');
+  const vencidasChip = document.getElementById('kpiVencidasChip');
+
+  // Helper común: muestra/oculta el chip pequeño de Vencidas según el conteo.
+  const pintarVencidasChip = n => {
+    if (!vencidasChip) return;
+    document.getElementById('kpiHoy').textContent = n;
+    vencidasChip.classList.toggle('oculto', n === 0);
+  };
 
   if (usuarioActual.rol === 'Capturista') {
     const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
     const atendidas = visible.filter(t => t.estatus === 'Atendida').length;
-    const total = visible.length;
+    const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
     const vencidasCap = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
 
     setLabel('kpiActivas', 'En Proceso');
-    setLabel('kpiHoy', 'Vencidas');
     setLabel('kpiSemana', 'Atendidas');
+    setLabel('kpiArchivadas', 'Archivadas');
 
     document.getElementById('kpiActivas').textContent = enProcesos;
-    document.getElementById('kpiHoy').textContent = vencidasCap;
     document.getElementById('kpiSemana').textContent = atendidas;
+    document.getElementById('kpiArchivadas').textContent = archivadas;
+    pintarVencidasChip(vencidasCap);
     if (pieWrap) pieWrap.style.display = 'none'; // pie solo para Director
     return;
   }
 
   // KPIs del Director
   setLabel('kpiActivas', 'En Proceso');
-  setLabel('kpiHoy', 'Vencidas');
   setLabel('kpiSemana', 'Atendidas');
+  setLabel('kpiArchivadas', 'Archivadas');
 
   const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
   const vencidas = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
   const atendidas = visible.filter(t => t.estatus === 'Atendida').length;
+  const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
 
   document.getElementById('kpiActivas').textContent = enProcesos;
-  document.getElementById('kpiHoy').textContent = vencidas;
   document.getElementById('kpiSemana').textContent = atendidas;
+  document.getElementById('kpiArchivadas').textContent = archivadas;
+  pintarVencidasChip(vencidas);
 
-  // Actualiza el queso (donut): En Proceso (no vencidas) | Vencidas | Atendidas
+  // Donut: En Proceso (no vencidas) | Vencidas | Atendidas | Archivadas
   if (pieWrap) {
     pieWrap.style.display = '';
     const enProcesoNoVencidas = enProcesos - vencidas;
-    const totalDonut = enProcesoNoVencidas + vencidas + atendidas;
+    const totalDonut = enProcesoNoVencidas + vencidas + atendidas + archivadas;
     const pie = document.getElementById('kpiPie');
     const pctProc = document.getElementById('kpiPiePctProceso');
     const pctVenc = document.getElementById('kpiPiePctVencidas');
     const pctAten = document.getElementById('kpiPiePctAtendidas');
+    const pctArch = document.getElementById('kpiPiePctArchivadas');
 
     if (totalDonut === 0) {
       pie.classList.add('vacio');
       pie.style.setProperty('--p1', 0);
       pie.style.setProperty('--p2', 0);
       pie.style.setProperty('--p3', 0);
+      pie.style.setProperty('--p4', 0);
       pctProc.classList.add('oculto');
       pctVenc.classList.add('oculto');
       pctAten.classList.add('oculto');
+      pctArch.classList.add('oculto');
     } else {
       pie.classList.remove('vacio');
       const p1 = (enProcesoNoVencidas / totalDonut) * 100;
       const p2 = (vencidas / totalDonut) * 100;
       const p3 = (atendidas / totalDonut) * 100;
+      const p4 = (archivadas / totalDonut) * 100;
       pie.style.setProperty('--p1', p1.toFixed(2));
       pie.style.setProperty('--p2', p2.toFixed(2));
       pie.style.setProperty('--p3', p3.toFixed(2));
+      pie.style.setProperty('--p4', p4.toFixed(2));
 
-      // Posicionar etiquetas de porcentaje en el centro angular de cada
-      // rebanada. El donut mide ~110px, el anillo coloreado va de 18% a
-      // 50% del radio — ponemos las etiquetas a 41% (centro del anillo).
-      // Convertimos % de circunferencia a ángulo en radianes (0 = arriba).
-      const RADIO = 41; // % del contenedor — sobre el anillo coloreado
+      const RADIO = 41; // centro del anillo coloreado
       const posicionarLabel = (lbl, pct, midPct) => {
-        if (pct < 4) {
-          // Slice muy pequeño: ocultamos para no encimar
-          lbl.classList.add('oculto');
-          return;
-        }
+        if (pct < 4) { lbl.classList.add('oculto'); return; }
         lbl.classList.remove('oculto');
         const angRad = (midPct * 3.6 - 90) * Math.PI / 180;
         const x = 50 + Math.cos(angRad) * RADIO;
@@ -3357,11 +3416,13 @@ function actualizarKPIs() {
       posicionarLabel(pctProc, p1, p1 / 2);
       posicionarLabel(pctVenc, p2, p1 + p2 / 2);
       posicionarLabel(pctAten, p3, p1 + p2 + p3 / 2);
+      posicionarLabel(pctArch, p4, p1 + p2 + p3 + p4 / 2);
     }
     document.getElementById('kpiPieTotal').textContent = totalDonut;
     document.getElementById('kpiPieProceso').textContent = enProcesoNoVencidas;
     document.getElementById('kpiPieVencidas').textContent = vencidas;
     document.getElementById('kpiPieAtendidas').textContent = atendidas;
+    document.getElementById('kpiPieArchivadas').textContent = archivadas;
   }
 
   // Pendientes "En Proceso" por subdirección (siempre sobre el universo total, ignorando filtros)
@@ -3402,8 +3463,8 @@ function actualizarConteosTabs() {
 
 function renderizarTablero() {
   const lista = obtenerTareasFiltradas();
-  const cols = ['En Proceso', 'Atendida'];
-  const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida' };
+  const cols = ['En Proceso', 'Atendida', 'Archivada'];
+  const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
 
@@ -3438,8 +3499,8 @@ function crearTarjeta(t) {
   card.setAttribute('data-sub', t.subdireccion);
   card.onclick = () => abrirDetalle(t);
 
-  const vencida   = esVencida(t.fecha_limite) && t.estatus !== 'Atendida';
-  const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus !== 'Atendida';
+  const vencida   = esVencida(t.fecha_limite) && t.estatus === 'En Proceso';
+  const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso';
   if (venceEsteDia) card.classList.add('vence-hoy');
 
   // Campos del nuevo modelo de tarjeta. Los datos viven en TAREAS con sus
@@ -3490,6 +3551,15 @@ function crearTarjeta(t) {
     html += `<button class="btn-validar" onclick="event.stopPropagation(); validar('${t.id}')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
       Marcar como Atendida
+    </button>`;
+  }
+
+  // Sólo el Director puede archivar desde la app (capturistas lo hacen
+  // escribiendo "Archivada" en la columna Estatus del Sheet/Excel).
+  if (usuarioActual.rol === 'Director' && t.estatus === 'Atendida') {
+    html += `<button class="btn-validar" style="background: var(--grafito);" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea al histórico (columna Archivada).">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+      Archivar
     </button>`;
   }
 
@@ -3558,6 +3628,41 @@ function validar(idTarea, comentarios) {
   toast('Tarea ' + idTarea + ' marcada como Atendida', 'ok');
 }
 
+// El Director archiva una tarea ya Atendida desde la app. Capturistas hacen
+// lo mismo escribiendo "Archivada" en la columna Estatus del Sheet/Excel; en
+// ambos casos la tarea sale del flujo activo y queda en la columna histórica.
+function archivar(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (t.estatus !== 'Atendida') {
+    toast('Solo se pueden archivar tareas Atendidas', 'error');
+    return;
+  }
+  if (!confirm('¿Archivar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nSe moverá al histórico y dejará de aparecer entre las atendidas.')) return;
+
+  const ahora = new Date();
+  const stamp = ahora.getFullYear() + '-' +
+    String(ahora.getMonth()+1).padStart(2,'0') + '-' +
+    String(ahora.getDate()).padStart(2,'0') + ' ' +
+    String(ahora.getHours()).padStart(2,'0') + ':' +
+    String(ahora.getMinutes()).padStart(2,'0');
+
+  t.estatus = 'Archivada';
+
+  BITACORA.unshift({
+    fecha: stamp,
+    usuario: usuarioActual.email,
+    accion: 'archivar',
+    id_tarea: idTarea,
+    estatus_anterior: 'Atendida',
+    estatus_nuevo: 'Archivada'
+  });
+
+  cerrarModal();
+  renderizar();
+  toast('Tarea ' + idTarea + ' archivada', 'ok');
+}
+
 // ============== MODAL ==============
 
 function abrirDetalle(t) {
@@ -3588,6 +3693,15 @@ function abrirDetalle(t) {
         <button class="btn-modal btn-modal-primario" onclick="validarConComentarios()">✓ Marcar como Atendida</button>
       </div>
     `;
+  } else if (usuarioActual.rol === 'Director' && t.estatus === 'Atendida') {
+    acciones = `
+      <div class="modal-acciones">
+        ${btnIcs}
+        <div style="flex:1"></div>
+        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+        <button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Archivar</button>
+      </div>
+    `;
   } else {
     acciones = `<div class="modal-acciones">${btnIcs}<div style="flex:1"></div><button class="btn-modal" onclick="cerrarModal()">Cerrar</button></div>`;
   }
@@ -3598,8 +3712,8 @@ function abrirDetalle(t) {
   const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
   const fechaAt = t.fecha_atencion || t.fecha_limite;
-  const vencida = esVencida(fechaAt) && t.estatus !== 'Atendida';
-  const venceEsteDia = venceHoy(fechaAt) && t.estatus !== 'Atendida';
+  const vencida = esVencida(fechaAt) && t.estatus === 'En Proceso';
+  const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso';
 
   modal.innerHTML = `
     <div class="modal-header">
@@ -3607,7 +3721,7 @@ function abrirDetalle(t) {
         <div class="modal-id">${t.id} · ${t.subdireccion}</div>
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
-          <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : 'proceso'}">${t.estatus}</span>
+          <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${t.estatus}</span>
           <span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}">Prioridad ${prioridadDe(t)}</span>
           ${venceEsteDia ? '<span class="vence-hoy-chip" style="margin: 0;">⏰ Ocurriendo hoy</span>' : ''}
         </div>
@@ -3852,7 +3966,7 @@ function renderizarCalendario() {
     let eventosHtml = '';
     const visibles = eventos.slice(0, 3);
     visibles.forEach(t => {
-      const vencida = esVencida(t.fecha_limite) && t.estatus !== 'Atendida';
+      const vencida = esVencida(t.fecha_limite) && t.estatus === 'En Proceso';
       const claseEv = 'cal-evento sub-' + t.subdireccion + (vencida ? ' vencida' : '');
       const titulo = (t.id + ' · ' + t.titulo).replace(/"/g, '&quot;');
       eventosHtml += `<div class="${claseEv}" onclick="abrirDetalle(TAREAS.find(x=>x.id==='${t.id}'))" title="${titulo}">${t.titulo}</div>`;
@@ -3873,7 +3987,7 @@ function mostrarDiaCompleto(iso) {
   const fechaTxt = fecha.getDate() + ' de ' + MESES_LARGOS[fecha.getMonth()] + ' de ' + fecha.getFullYear();
 
   let items = lista.map(t => {
-    const vencida = esVencida(t.fecha_limite) && t.estatus !== 'Atendida';
+    const vencida = esVencida(t.fecha_limite) && t.estatus === 'En Proceso';
     return `<div class="cal-evento sub-${t.subdireccion}${vencida ? ' vencida' : ''}" style="margin-bottom:6px;padding:8px 10px;font-size:12px;" onclick="cerrarModal();abrirDetalle(TAREAS.find(x=>x.id==='${t.id}'))"><strong>${t.id}</strong> · ${t.titulo}</div>`;
   }).join('');
 
@@ -3922,7 +4036,7 @@ function enviarRecordatorio(idTarea, canal) {
     const prio = prioridadDe(t);
     const prioEmoji = prio === 'Alta' ? '🔴' : (prio === 'Media' ? '🟡' : '🟢');
     const estatusEmoji = t.estatus === 'Atendida' ? '✅' : '🟠';
-    const venceEsteDia = venceHoy(t.fecha_atencion || t.fecha_limite) && t.estatus !== 'Atendida';
+    const venceEsteDia = venceHoy(t.fecha_atencion || t.fecha_limite) && t.estatus === 'En Proceso';
 
     const lineas = [
       '📌 *RECORDATORIO TT · ' + t.id + '*',
@@ -4256,6 +4370,7 @@ function procesarExcel(input) {
 const ACCION_LABEL = {
   crear:    'Creada',
   atender:  'Atendida',
+  archivar: 'Archivada',
   validar:  'Validada',  // legado
   liberar:  'Liberada',  // legado
   devolver: 'Devuelta'
@@ -4416,10 +4531,12 @@ function exportarPDF(sub) {
     const vencida = t.estatus === 'En Proceso' && esVencida(t.fecha_limite);
     const c = COLOR_SUB[t.subdireccion] || { bg: '#F3F4F6', fg: '#374151' };
     const subPill = `<span class="sub-pill" style="background:${c.bg};color:${c.fg};">${t.subdireccion}</span>`;
-    const estatusClase = t.estatus === 'Atendida' ? 'estatus-atendida' : (vencida ? 'estatus-vencida' : 'estatus-proceso');
+    const estatusClase = t.estatus === 'Archivada'
+      ? 'estatus-archivada'
+      : (t.estatus === 'Atendida' ? 'estatus-atendida' : (vencida ? 'estatus-vencida' : 'estatus-proceso'));
     // Cuando vence, mostramos sólo "Vencida" (rojo) en lugar de
     // "En Proceso (vencida)" — más corto, no se encima con la fecha.
-    const estatusTexto = t.estatus === 'Atendida' ? 'Atendida' : (vencida ? 'Vencida' : 'En Proceso');
+    const estatusTexto = t.estatus === 'Archivada' ? 'Archivada' : (t.estatus === 'Atendida' ? 'Atendida' : (vencida ? 'Vencida' : 'En Proceso'));
     return `
       <tr>
         <td class="col-id">${t.id}</td>
@@ -4508,6 +4625,7 @@ function exportarPDF(sub) {
   .estatus-proceso { background: #FEF3C7; color: #B45309; }
   .estatus-atendida { background: #DCFCE7; color: #15803D; }
   .estatus-vencida { background: #FEE2E2; color: #B91C1C; }
+  .estatus-archivada { background: #F3F4F6; color: #374151; }
 
   /* Evitar que una fila se corte entre páginas */
   tbody tr { break-inside: avoid; page-break-inside: avoid; }
