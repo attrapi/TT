@@ -482,6 +482,33 @@
   .app-main[data-vista="reportes"] #cargaWrap { display: none; }
   .app-main[data-vista="reportes"] #reportesWrap { display: block; }
 
+  /* Validadas (Gestión): histórico de tareas validadas/archivadas. Oculta
+     por defecto y sólo visible en su propia vista. */
+  #validadasWrap { display: none; }
+  .app-main[data-vista="validadas"] .kpis,
+  .app-main[data-vista="validadas"] .tabs-wrap,
+  .app-main[data-vista="validadas"] .filtros,
+  .app-main[data-vista="validadas"] #tablero,
+  .app-main[data-vista="validadas"] #calendarioWrap,
+  .app-main[data-vista="validadas"] #bitacoraWrap,
+  .app-main[data-vista="validadas"] #cargaWrap,
+  .app-main[data-vista="validadas"] #reportesWrap { display: none; }
+  .app-main[data-vista="validadas"] #validadasWrap { display: block; }
+
+  .validadas-wrap { padding: 8px 24px 40px; }
+  .validadas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .validadas-vacio {
+    color: var(--texto-suave, #6b7280);
+    font-size: 14px;
+    padding: 24px;
+    text-align: center;
+  }
+
   /* === BITÁCORA (auditoría) === */
   .bitacora-wrap {
     max-width: 1200px;
@@ -1856,6 +1883,14 @@
 
   .btn-validar:hover { background: #166534; }
 
+  /* Archivar deshabilitado: aparece mientras la tarea no esté validada. */
+  .btn-archivar-disabled,
+  .btn-archivar-disabled:hover {
+    background: var(--grafito);
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
   .btn-liberar {
     width: 100%;
     background: var(--grafito);
@@ -2681,7 +2716,7 @@
       </button>
 
       <div class="sidebar-grupo" id="sidebarGrupoSubs">
-        <div class="sidebar-grupo-titulo">Subdirecciones</div>
+        <div class="sidebar-grupo-titulo" id="sidebarTituloSubs">Subdirecciones</div>
         <button class="sidebar-item sidebar-sub activa" data-sub="TODAS" onclick="cambiarTab('TODAS')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
           <span class="sidebar-label">Vista Consolidada</span>
@@ -2709,6 +2744,22 @@
         </button>
       </div>
 
+      <!-- Jefaturas que dependen de SPAC. Sólo visible para el Subdirector de
+           SPAC; el Director no ve estas tareas. -->
+      <div class="sidebar-grupo" id="sidebarGrupoJefaturas" style="display:none">
+        <div class="sidebar-grupo-titulo">Jefaturas</div>
+        <button class="sidebar-item sidebar-jef" data-jef="PROCEDIMIENTOS" onclick="cambiarJefatura('PROCEDIMIENTOS')">
+          <span class="sub-dot" style="background: var(--sub-spac)"></span>
+          <span class="sidebar-label">Jefatura de Departamento de Procedimientos de Construcción</span>
+          <span class="sidebar-conteo" id="contJEF_PROCEDIMIENTOS">0</span>
+        </button>
+        <button class="sidebar-item sidebar-jef" data-jef="MANUALES" onclick="cambiarJefatura('MANUALES')">
+          <span class="sub-dot" style="background: var(--sub-spac)"></span>
+          <span class="sidebar-label">Jefatura de Departamento de Implementación de Manuales Administrativos</span>
+          <span class="sidebar-conteo" id="contJEF_MANUALES">0</span>
+        </button>
+      </div>
+
       <div class="sidebar-grupo">
         <div class="sidebar-grupo-titulo">Vistas</div>
         <button class="sidebar-item activa" data-vista="tablero" onclick="cambiarVista('tablero')">
@@ -2723,6 +2774,11 @@
 
       <div class="sidebar-grupo" id="sidebarGrupoDirector">
         <div class="sidebar-grupo-titulo">Gestión</div>
+        <button class="sidebar-item" data-vista="validadas" onclick="cambiarVista('validadas')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="sidebar-label">Validadas</span>
+          <span class="sidebar-conteo" id="sidebarConteoValidadas">0</span>
+        </button>
         <button class="sidebar-item" data-vista="bitacora" onclick="cambiarVista('bitacora')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
           <span class="sidebar-label">Bitácora</span>
@@ -2781,10 +2837,10 @@
             </div>
           </div>
           <div class="kpi-pie-leyenda">
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>En Proceso</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>Identificadas</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--rojo)"></span><span>Vencidas</span><span class="kpi-pie-val" id="kpiPieVencidas">0</span></div>
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span>Atendidas</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--grafito)"></span><span>Archivadas</span><span class="kpi-pie-val" id="kpiPieArchivadas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span>Por validar</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--grafito)"></span><span>Validadas</span><span class="kpi-pie-val" id="kpiPieArchivadas">0</span></div>
           </div>
         </div>
       </div>
@@ -2868,6 +2924,15 @@
   <div class="carga-wrap" id="cargaWrap">
     <div class="carga-titulo">Carga por Responsable</div>
     <div class="carga-grid" id="cargaGrid"></div>
+  </div>
+
+  <!-- Vista: Validadas (histórico de tareas validadas y archivadas por el Director) -->
+  <div class="validadas-wrap" id="validadasWrap">
+    <div class="bitacora-titulo-fila">
+      <h2>Tareas Validadas</h2>
+      <span class="bitacora-meta" id="validadasMeta">0 tareas</span>
+    </div>
+    <div class="validadas-grid" id="validadasGrid"></div>
   </div>
 
   <!-- Vista: Reportes -->
@@ -3049,15 +3114,36 @@ const BITACORA = [
 ];
 
 // ============== SINCRONIZACIÓN SPAC (Google Sheets) ==============
-// La Subdirección de Procesos Administrativos de Construcción captura sus
-// pendientes en una hoja de Google publicada como CSV. La app la consulta
-// cada SPAC_INTERVALO_MS para reflejar los cambios en "tiempo real". Nota:
-// Google republica la hoja con una latencia propia de ~1–5 min, así que el
-// refresco visible depende de ese ciclo además del polling.
-const SPAC_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT29iVfy-sRmruO9ejOiXwwqK3Hu740bguROLCrN4YYVTFM_XD94XuRM4895XnCbw/pub?gid=434371899&single=true&output=csv';
+// La Subdirección de Procesos Administrativos de Construcción trabaja con DOS
+// hojas publicadas como CSV:
+//   • SPAC_JEF_CSV_URL    → tareas de las dos Jefaturas que dependen de SPAC.
+//        Las VALIDA el propio Subdirector (no suben al Director). Llevan una
+//        columna "Jefatura" que indica a cuál pertenece cada tarea.
+//   • SPAC_SUBDIR_CSV_URL → tareas propias de la Subdirección SPAC. Siguen el
+//        flujo normal hacia el Director.
+// La app las consulta cada SPAC_INTERVALO_MS para reflejar los cambios en
+// "tiempo real" (Google republica con ~1–5 min de latencia propia).
+const SPAC_JEF_CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT29iVfy-sRmruO9ejOiXwwqK3Hu740bguROLCrN4YYVTFM_XD94XuRM4895XnCbw/pub?gid=434371899&single=true&output=csv';
+const SPAC_SUBDIR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSH0NrBFffz3hpqAwgTdmFrYclidX-G5Xa5KSnmVwTTN7QBtwli0ofV-l4pNx_foA/pub?gid=434371899&single=true&output=csv';
 const SPAC_INTERVALO_MS = 30000;
 let SPAC_TIMER = null;
 let SPAC_ULTIMA_SYNC = null;
+
+// Códigos de las dos Jefaturas que dependen de SPAC y sus nombres visibles.
+const JEFATURAS_SPAC = {
+  PROCEDIMIENTOS: 'Jefatura de Departamento de Procedimientos de Construcción',
+  MANUALES:       'Jefatura de Departamento de Implementación de Manuales Administrativos'
+};
+
+// Deduce el código de Jefatura a partir del texto de la columna "Jefatura"
+// (o de "Áreas involucradas" como respaldo). Mientras la columna se termina
+// de capturar, "Procesos/Procedimientos de Construcción" cae en PROCEDIMIENTOS.
+function detectarJefatura(valor) {
+  const v = (valor || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/manual/.test(v)) return 'MANUALES';
+  if (/procedimiento|procesos de construc/.test(v)) return 'PROCEDIMIENTOS';
+  return 'PROCEDIMIENTOS';
+}
 
 // Parser CSV: soporta campos entre comillas con comas, saltos de línea y
 // comillas escapadas (""). Suficiente para lo que publica Google Sheets.
@@ -3122,80 +3208,121 @@ function indiceColumna(enc, nombres) {
   return enc.findIndex(c => objetivos.includes(norm(c)));
 }
 
+// Parsea una hoja CSV de SPAC y devuelve sus tareas. `nivel` es 'jefatura' o
+// 'subdireccion': define el prefijo de ID y si se lee la columna "Jefatura".
+function parsearHojaSPAC(texto, nivel) {
+  const filas = parsearCSV(texto);
+  if (filas.length < 2) return [];
+
+  // El Sheet puede tener filas de título antes de los encabezados reales
+  // (p.ej. "ATTRAPI · TT — ..." en la fila 1). Localizamos la fila cuyo
+  // primer campo sea "ID" para tratarla como encabezado.
+  const filaEnc = filas.findIndex(f => (f[0] || '').trim().toUpperCase() === 'ID');
+  if (filaEnc < 0) {
+    console.warn('Sincronización SPAC (' + nivel + '): no se encontró fila de encabezados ("ID").');
+    return [];
+  }
+
+  const enc = filas[filaEnc];
+  const idxResp     = indiceColumna(enc, ['Responsable']);
+  const idxJef      = indiceColumna(enc, ['Jefatura']);
+  const idxTema     = indiceColumna(enc, ['Tema']);
+  const idxAreas    = indiceColumna(enc, ['Áreas involucradas', 'Areas involucradas']);
+  const idxAcuerdos = indiceColumna(enc, ['Acuerdos realizados']);
+  const idxAccion   = indiceColumna(enc, ['Acción a tomar', 'Accion a tomar']);
+  const idxFecha    = indiceColumna(enc, ['Fecha de atención', 'Fecha de atencion']);
+  const idxEstatus  = indiceColumna(enc, ['Estatus']);
+  const idxUrl      = indiceColumna(enc, ['URL']);
+
+  const get = (fila, idx) => (idx >= 0 && fila[idx] != null) ? String(fila[idx]).trim() : '';
+  // Prefijo distinto por hoja para que las dos numeraciones (ambas inician en
+  // 1) no colisionen al unirlas en TAREAS.
+  const prefijo = nivel === 'jefatura' ? 'SPACJ-' : 'SPAC-';
+
+  const out = [];
+  for (let r = filaEnc + 1; r < filas.length; r++) {
+    const fila = filas[r];
+    const tema = get(fila, idxTema);
+    if (!tema) continue;                      // ignorar filas vacías
+    // Numeración relativa a los datos: 1, 2, 3... independientemente de
+    // cuántas filas de título tenga el Sheet por arriba.
+    const numFila = r - filaEnc;
+    const id = prefijo + String(numFila).padStart(3, '0');
+    const estatus = normalizarEstatusSheet(get(fila, idxEstatus));
+    // Tareas permanentes: el capturista escribe "PERMANENTE" (o "permanente")
+    // en la columna Fecha. No tienen fecha límite ni cuentan como vencidas.
+    const fechaRaw = get(fila, idxFecha);
+    const esPermanente = /^permanente$/i.test(fechaRaw.trim());
+    const fechaNorm = esPermanente ? '' : fechaSheetANormal(fechaRaw);
+    const jefatura = nivel === 'jefatura'
+      ? detectarJefatura(get(fila, idxJef) || get(fila, idxAreas))
+      : '';
+    out.push({
+      id,
+      subdireccion: 'SPAC',
+      nivel,                                  // 'jefatura' | 'subdireccion'
+      jefatura,                               // código sólo para nivel jefatura
+      responsable: get(fila, idxResp),
+      titulo: tema,
+      tema,
+      descripcion: get(fila, idxAcuerdos),
+      areas_involucradas: get(fila, idxAreas),
+      acuerdos_realizados: get(fila, idxAcuerdos),
+      accion_a_tomar: get(fila, idxAccion),
+      tipo: 'Otro',
+      proyecto: 'Otro',
+      prioridad: 'Media',
+      fecha_reporte: '',
+      fecha_atencion: fechaNorm,
+      fecha_limite: fechaNorm,
+      permanente: esPermanente,
+      avance: estatus === 'Atendida' ? 100 : 0,
+      estatus,
+      observaciones: get(fila, idxAccion),
+      url: get(fila, idxUrl),
+      validado_por: '',
+      fecha_validacion: '',
+      comentarios_director: '',
+      fuente: 'sheet'
+    });
+  }
+  return out;
+}
+
 async function sincronizarSPAC() {
   try {
-    const resp = await fetch(SPAC_CSV_URL + '&_=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const texto = await resp.text();
-    const filas = parsearCSV(texto);
-    if (filas.length < 2) return;
+    const pedir = async url => {
+      const resp = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.text();
+    };
+    const [textoJef, textoSub] = await Promise.all([
+      pedir(SPAC_JEF_CSV_URL),
+      pedir(SPAC_SUBDIR_CSV_URL)
+    ]);
 
-    // El Sheet puede tener filas de título antes de los encabezados reales
-    // (p.ej. "ATTRAPI · TT — ..." en la fila 1). Localizamos la fila cuyo
-    // primer campo sea "ID" para tratarla como encabezado.
-    const filaEnc = filas.findIndex(f => (f[0] || '').trim().toUpperCase() === 'ID');
-    if (filaEnc < 0) {
-      console.warn('Sincronización SPAC: no se encontró fila de encabezados ("ID").');
-      return;
-    }
+    const nuevas = [
+      ...parsearHojaSPAC(textoJef, 'jefatura'),
+      ...parsearHojaSPAC(textoSub, 'subdireccion')
+    ];
+    if (nuevas.length === 0) return;
 
-    const enc = filas[filaEnc];
-    const idxId       = indiceColumna(enc, ['ID']);
-    const idxResp     = indiceColumna(enc, ['Responsable']);
-    const idxTema     = indiceColumna(enc, ['Tema']);
-    const idxAreas    = indiceColumna(enc, ['Áreas involucradas', 'Areas involucradas']);
-    const idxAcuerdos = indiceColumna(enc, ['Acuerdos realizados']);
-    const idxAccion   = indiceColumna(enc, ['Acción a tomar', 'Accion a tomar']);
-    const idxFecha    = indiceColumna(enc, ['Fecha de atención', 'Fecha de atencion']);
-    const idxEstatus  = indiceColumna(enc, ['Estatus']);
-    const idxUrl      = indiceColumna(enc, ['URL']);
-
-    const get = (fila, idx) => (idx >= 0 && fila[idx] != null) ? String(fila[idx]).trim() : '';
-
-    const nuevas = [];
-    for (let r = filaEnc + 1; r < filas.length; r++) {
-      const fila = filas[r];
-      const tema = get(fila, idxTema);
-      if (!tema) continue;                      // ignorar filas vacías
-      const idDeclarado = get(fila, idxId);
-      // Numeración relativa a los datos: 1, 2, 3... independientemente de
-      // cuántas filas de título tenga el Sheet por arriba.
-      const numFila = r - filaEnc;
-      const id = idDeclarado || 'SPAC-' + String(numFila).padStart(3, '0');
-      const estatus = normalizarEstatusSheet(get(fila, idxEstatus));
-      // Tareas permanentes: el capturista escribe "PERMANENTE" (o
-      // "permanente") en la columna Fecha. No tienen fecha límite, no
-      // cuentan como vencidas y se muestran con un badge especial.
-      const fechaRaw = get(fila, idxFecha);
-      const esPermanente = /^permanente$/i.test(fechaRaw.trim());
-      const fechaNorm = esPermanente ? '' : fechaSheetANormal(fechaRaw);
-      nuevas.push({
-        id,
-        subdireccion: 'SPAC',
-        responsable: get(fila, idxResp),
-        titulo: tema,
-        tema,
-        descripcion: get(fila, idxAcuerdos),
-        areas_involucradas: get(fila, idxAreas),
-        acuerdos_realizados: get(fila, idxAcuerdos),
-        accion_a_tomar: get(fila, idxAccion),
-        tipo: 'Otro',
-        proyecto: 'Otro',
-        prioridad: 'Media',
-        fecha_reporte: '',
-        fecha_atencion: fechaNorm,
-        fecha_limite: fechaNorm,
-        permanente: esPermanente,
-        avance: estatus === 'Atendida' ? 100 : 0,
-        estatus,
-        observaciones: get(fila, idxAccion),
-        url: get(fila, idxUrl),
-        validado_por: '',
-        fecha_validacion: '',
-        comentarios_director: '',
-        fuente: 'sheet'
-      });
-    }
+    // Conserva el avance y la metadata que el usuario haya generado EN LA APP
+    // (validar/archivar/finalizar) para tareas que siguen existiendo. Sin
+    // esto, cada sync de 30 s regresaría la tarea al estatus de la hoja.
+    const previas = new Map(TAREAS.filter(t => t.subdireccion === 'SPAC').map(t => [t.id, t]));
+    const orden = { 'En Proceso': 0, 'Atendida': 1, 'Archivada': 2 };
+    nuevas.forEach(n => {
+      const p = previas.get(n.id);
+      if (!p) return;
+      n.validada = p.validada;
+      n.validado_por = p.validado_por;
+      n.fecha_validacion = p.fecha_validacion;
+      n.finalizado_por = p.finalizado_por;
+      n.fecha_finalizacion = p.fecha_finalizacion;
+      n.comentarios_director = p.comentarios_director;
+      if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
+    });
 
     // Reemplaza SOLO el bloque SPAC; deja intactas SA, SGOI y ENLACE.
     const otras = TAREAS.filter(t => t.subdireccion !== 'SPAC');
@@ -3209,6 +3336,7 @@ async function sincronizarSPAC() {
       if (vistaActiva === 'calendario') renderizarCalendario();
       if (vistaActiva === 'carga') renderizarCarga();
       if (vistaActiva === 'bitacora') renderizarBitacora();
+      if (vistaActiva === 'validadas') renderizarValidadas();
     }
   } catch (err) {
     console.warn('Sincronización SPAC fallida:', err);
@@ -3246,6 +3374,7 @@ function iniciarSincronizacionSPAC() {
 
 let usuarioActual = null;
 let tabActiva = 'TODAS';
+let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdirección)
 let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
@@ -3272,10 +3401,20 @@ function ingresar(rol) {
   // El Director ve TODO. Los Capturistas SOLO ven su subdirección.
   const subItems = document.querySelectorAll('.sidebar-sub');
   const grupoDir = document.getElementById('sidebarGrupoDirector');
+  const grupoJef = document.getElementById('sidebarGrupoJefaturas');
+  const tituloSubs = document.getElementById('sidebarTituloSubs');
+  // Items de Gestión que son sólo del Director (el de Validadas lo comparten).
+  const itemsSoloDirector = ['bitacora', 'carga', 'reportes']
+    .map(v => document.querySelector('.sidebar-item[data-vista="' + v + '"]'));
+
+  jefaturaActiva = null;
 
   if (usuarioActual.rol === 'Director') {
     subItems.forEach(b => b.style.display = '');
+    tituloSubs.textContent = 'Subdirecciones';
+    grupoJef.style.display = 'none';            // el Director no ve jefaturas
     grupoDir.style.display = '';
+    itemsSoloDirector.forEach(b => { if (b) b.style.display = ''; });
     document.getElementById('kpisSubGrupo').style.display = '';
     document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
     document.getElementById('btnNuevo').style.display = '';
@@ -3283,12 +3422,21 @@ function ingresar(rol) {
     tabActiva = 'TODAS';
 
   } else {
-    // Capturista: solo su subdirección, sin Vista Consolidada ni vistas de gestión
+    // Capturista: solo su subdirección, sin Vista Consolidada.
     subItems.forEach(b => {
       const sub = b.dataset.sub;
       b.style.display = (sub === 'TODAS' || sub !== usuarioActual.subdireccion) ? 'none' : '';
     });
-    grupoDir.style.display = 'none';
+    // El grupo se llama "Subdirección" (singular) en el perfil del subdirector.
+    tituloSubs.textContent = 'Subdirección';
+
+    // Las Jefaturas sólo existen para SPAC (por ahora).
+    grupoJef.style.display = usuarioActual.subdireccion === 'SPAC' ? '' : 'none';
+
+    // Gestión: el subdirector sólo ve "Validadas"; Bitácora/Carga/Reportes son
+    // del Director. Mostramos el grupo pero ocultamos esos tres items.
+    grupoDir.style.display = '';
+    itemsSoloDirector.forEach(b => { if (b) b.style.display = 'none'; });
 
     document.getElementById('kpisSubGrupo').style.display = 'none';
     document.getElementById('kpisGrupoTitulo').textContent = 'Mis tareas';
@@ -3312,6 +3460,7 @@ function salir() {
   document.getElementById('app').classList.remove('activa');
   document.getElementById('pantallaAcceso').style.display = 'flex';
   tabActiva = 'TODAS';
+  jefaturaActiva = null;
   prioridadActiva = 'TODAS';
 }
 
@@ -3320,16 +3469,30 @@ function salir() {
 function obtenerTareasFiltradas() {
   let lista = TAREAS;
 
+  // El Director NO ve las tareas de Jefatura: no suben a él (las valida el
+  // Subdirector). Se excluyen en cualquier vista del Director.
+  if (usuarioActual.rol === 'Director') {
+    lista = lista.filter(t => t.nivel !== 'jefatura');
+  }
+
   // === CONTROL DE ACCESO POR ROL ===
   // Capturistas: SIEMPRE filtrar por su subdirección, sin importar qué tab esté activa.
   // Esto es defensa en profundidad: aunque manipulen el DOM, no ven otras subdirecciones.
   if (usuarioActual.rol === 'Capturista') {
     lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+    // SPAC alterna entre su Subdirección (jefaturaActiva = null) y cada
+    // Jefatura. Otras subdirecciones no tienen tareas de jefatura, así que
+    // este filtro las deja igual.
+    if (jefaturaActiva) {
+      lista = lista.filter(t => t.nivel === 'jefatura' && t.jefatura === jefaturaActiva);
+    } else {
+      lista = lista.filter(t => t.nivel !== 'jefatura');
+    }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica
     lista = lista.filter(t => t.subdireccion === tabActiva);
   }
-  // Director con tab 'TODAS': ve todo
+  // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
 
   if (prioridadActiva !== 'TODAS') {
     // Prioridad calculada por proximidad de fecha (no por el campo estático).
@@ -3337,6 +3500,46 @@ function obtenerTareasFiltradas() {
   }
 
   return lista;
+}
+
+// Etiqueta de estatus dependiente del rol. Internamente las tareas siguen
+// usando 'En Proceso' / 'Atendida' / 'Archivada' (así no se rompe el Sheet,
+// la bitácora ni la lógica), pero al usuario se le muestran nombres del
+// nuevo flujo:
+//   En Proceso  → "Identificadas"  (ambos roles)
+//   Atendida    → "Por validar"    (ambos roles)
+//   Archivada   → "Atendidas"      (subdirector/capturista)
+//                 "Validadas"      (Director)
+function etiquetaEstatus(estatus) {
+  const esDir = usuarioActual && usuarioActual.rol === 'Director';
+  if (estatus === 'En Proceso') return 'Identificadas';
+  if (estatus === 'Atendida')   return 'Por validar';
+  if (estatus === 'Archivada')  return esDir ? 'Validadas' : 'Atendidas';
+  return estatus;
+}
+
+// Quién valida una tarea: las de Jefatura las valida el Subdirector de su
+// subdirección (no suben al Director); todo lo demás lo valida el Director.
+function validadorDe(t) {
+  return t.nivel === 'jefatura' ? 'Subdirector' : 'Director';
+}
+
+// ¿El usuario actual es quien valida esta tarea?
+function usuarioEsValidador(t) {
+  if (!usuarioActual) return false;
+  if (t.nivel === 'jefatura') {
+    // El subdirector (capturista) de la misma subdirección de la jefatura.
+    return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+  }
+  return usuarioActual.rol === 'Director';
+}
+
+// ¿El usuario puede "Finalizar" (avanzar de Identificada a Por validar)?
+// Las tareas de Jefatura se finalizan en el Excel, no dentro del software.
+function usuarioPuedeFinalizar(t) {
+  if (!usuarioActual) return false;
+  if (t.nivel === 'jefatura') return false;
+  return true;
 }
 
 // Ordena tareas por fecha de atención ascendente (la más próxima arriba).
@@ -3384,9 +3587,9 @@ function actualizarKPIs() {
     const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
     const vencidasCap = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
 
-    setLabel('kpiActivas', 'En Proceso');
-    setLabel('kpiSemana', 'Atendidas');
-    setLabel('kpiArchivadas', 'Archivadas');
+    setLabel('kpiActivas', etiquetaEstatus('En Proceso'));
+    setLabel('kpiSemana', etiquetaEstatus('Atendida'));
+    setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));
 
     document.getElementById('kpiActivas').textContent = enProcesos;
     document.getElementById('kpiSemana').textContent = atendidas;
@@ -3397,9 +3600,9 @@ function actualizarKPIs() {
   }
 
   // KPIs del Director
-  setLabel('kpiActivas', 'En Proceso');
-  setLabel('kpiSemana', 'Atendidas');
-  setLabel('kpiArchivadas', 'Archivadas');
+  setLabel('kpiActivas', etiquetaEstatus('En Proceso'));
+  setLabel('kpiSemana', etiquetaEstatus('Atendida'));
+  setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));
 
   const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
   const vencidas = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
@@ -3466,11 +3669,12 @@ function actualizarKPIs() {
     document.getElementById('kpiPieArchivadas').textContent = archivadas;
   }
 
-  // Pendientes "En Proceso" por subdirección (siempre sobre el universo total, ignorando filtros)
-  const pendSA     = TAREAS.filter(t => t.subdireccion === 'SA'     && t.estatus === 'En Proceso').length;
-  const pendSGOI   = TAREAS.filter(t => t.subdireccion === 'SGOI'   && t.estatus === 'En Proceso').length;
-  const pendSPAC   = TAREAS.filter(t => t.subdireccion === 'SPAC'   && t.estatus === 'En Proceso').length;
-  const pendENLACE = TAREAS.filter(t => t.subdireccion === 'ENLACE' && t.estatus === 'En Proceso').length;
+  // Pendientes "En Proceso" por subdirección (universo total, ignorando
+  // filtros). Excluye jefaturas: este panel es del Director, que no las ve.
+  const pendSA     = TAREAS.filter(t => t.subdireccion === 'SA'     && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const pendSGOI   = TAREAS.filter(t => t.subdireccion === 'SGOI'   && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const pendSPAC   = TAREAS.filter(t => t.subdireccion === 'SPAC'   && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const pendENLACE = TAREAS.filter(t => t.subdireccion === 'ENLACE' && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
   document.getElementById('kpiPendSA').textContent = pendSA;
   document.getElementById('kpiPendSGOI').textContent = pendSGOI;
   document.getElementById('kpiPendSPAC').textContent = pendSPAC;
@@ -3481,8 +3685,26 @@ function actualizarConteosTabs() {
   // Los conteos del sidebar muestran tareas EN PROCESO (no total) — para
   // que coincidan con el círculo "Pendientes por subdirección" del panel
   // KPI y reflejen carga de trabajo real, no tareas cerradas.
-  const enProc = sub => TAREAS.filter(t => t.subdireccion === sub && t.estatus === 'En Proceso').length;
-  const totalEnProc = TAREAS.filter(t => t.estatus === 'En Proceso').length;
+  // Conteos a nivel subdirección excluyen las tareas de jefatura (esas se
+  // cuentan aparte en su propia card).
+  const enProc = sub => TAREAS.filter(t => t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const totalEnProc = TAREAS.filter(t => t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const enProcJef = cod => TAREAS.filter(t => t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
+
+  // Conteos de cada Jefatura SPAC (sólo visibles para el Subdirector de SPAC).
+  const cjp = document.getElementById('contJEF_PROCEDIMIENTOS');
+  const cjm = document.getElementById('contJEF_MANUALES');
+  if (cjp) cjp.textContent = enProcJef('PROCEDIMIENTOS');
+  if (cjm) cjm.textContent = enProcJef('MANUALES');
+
+  // Conteo del item Validadas (Gestión): para el Director, todas las
+  // archivadas no-jefatura; para el Subdirector, las de su subdirección.
+  const contVal = document.getElementById('sidebarConteoValidadas');
+  if (contVal) {
+    contVal.textContent = usuarioActual.rol === 'Director'
+      ? TAREAS.filter(t => t.estatus === 'Archivada' && t.nivel !== 'jefatura').length
+      : TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion).length;
+  }
 
   if (usuarioActual.rol === 'Capturista') {
     const subPropia = usuarioActual.subdireccion;
@@ -3504,7 +3726,11 @@ function actualizarConteosTabs() {
 
 function renderizarTablero() {
   const lista = obtenerTareasFiltradas();
-  const cols = ['En Proceso', 'Atendida', 'Archivada'];
+  const esDir = usuarioActual && usuarioActual.rol === 'Director';
+  // El Director ve 2 columnas en su tablero (Identificadas | Por validar);
+  // las validadas/archivadas salen del tablero y viven en Gestión › Validadas.
+  // Subdirectores/capturistas conservan la 3ª columna (Atendidas).
+  const cols = esDir ? ['En Proceso', 'Atendida'] : ['En Proceso', 'Atendida', 'Archivada'];
   const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
@@ -3518,7 +3744,7 @@ function renderizarTablero() {
     col.innerHTML = `
       <div class="col-header">
         <div class="col-marca"></div>
-        <div class="col-titulo">${estatus}</div>
+        <div class="col-titulo">${etiquetaEstatus(estatus)}</div>
         <div class="col-conteo">${tareasCol.length}</div>
       </div>
       <div class="col-cuerpo" id="col-${slugs[estatus]}" data-estatus="${estatus}"></div>
@@ -3526,25 +3752,27 @@ function renderizarTablero() {
     tablero.appendChild(col);
 
     const cuerpo = col.querySelector('.col-cuerpo');
-    // Drop target: subdirectores y Director pueden arrastrar tarjetas
-    // entre las 3 columnas en cualquier dirección. Cada movimiento queda
-    // registrado en la Bitácora.
-    cuerpo.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      cuerpo.classList.add('drop-activo');
-    });
-    cuerpo.addEventListener('dragleave', e => {
-      // Sólo quitamos el highlight cuando el cursor sale del cuerpo,
-      // no cuando entra a una tarjeta hija (relatedTarget chequea eso).
-      if (!cuerpo.contains(e.relatedTarget)) cuerpo.classList.remove('drop-activo');
-    });
-    cuerpo.addEventListener('drop', e => {
-      e.preventDefault();
-      cuerpo.classList.remove('drop-activo');
-      const idTarea = e.dataTransfer.getData('text/plain');
-      if (idTarea) moverTarea(idTarea, estatus);
-    });
+    // Drop target: SÓLO el Director puede arrastrar tarjetas entre columnas
+    // en su panel. Los subdirectores avanzan únicamente con los botones
+    // (Finalizar). Cada movimiento queda registrado en la Bitácora.
+    if (esDir) {
+      cuerpo.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        cuerpo.classList.add('drop-activo');
+      });
+      cuerpo.addEventListener('dragleave', e => {
+        // Sólo quitamos el highlight cuando el cursor sale del cuerpo,
+        // no cuando entra a una tarjeta hija (relatedTarget chequea eso).
+        if (!cuerpo.contains(e.relatedTarget)) cuerpo.classList.remove('drop-activo');
+      });
+      cuerpo.addEventListener('drop', e => {
+        e.preventDefault();
+        cuerpo.classList.remove('drop-activo');
+        const idTarea = e.dataTransfer.getData('text/plain');
+        if (idTarea) moverTarea(idTarea, estatus);
+      });
+    }
 
     if (tareasCol.length === 0) {
       cuerpo.innerHTML = '<div class="vacio">Sin tareas en este estatus</div>';
@@ -3554,11 +3782,10 @@ function renderizarTablero() {
   });
 }
 
-// Mueve una tarea a un estatus distinto vía drag & drop. Es un único punto
-// que cubre las 6 transiciones posibles entre las 3 columnas, registra en
-// bitácora y re-renderiza. Para transiciones "hacia adelante" reutiliza la
-// metadata que ya escriben validar()/archivar(); para "hacia atrás" no
-// borra esa metadata histórica (queda como referencia de cuándo se cerró).
+// Mueve una tarea a un estatus distinto vía drag & drop (sólo el Director).
+// Cubre las transiciones entre columnas, registra en bitácora y re-renderiza.
+// Sella la metadata de finalización/validación según el destino; para
+// transiciones "hacia atrás" no borra esa metadata histórica.
 function moverTarea(idTarea, nuevoEstatus) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || t.estatus === nuevoEstatus) return;
@@ -3573,18 +3800,27 @@ function moverTarea(idTarea, nuevoEstatus) {
 
   t.estatus = nuevoEstatus;
 
-  // Sellar metadata de atención cuando entra a Atendida y aún no la tenía.
-  if (nuevoEstatus === 'Atendida' && !t.fecha_validacion) {
-    t.validado_por = usuarioActual.nombre;
-    t.fecha_validacion = stamp;
+  // Sellar metadata de finalización al entrar a "Por validar" (Atendida).
+  if (nuevoEstatus === 'Atendida' && !t.fecha_finalizacion) {
+    t.finalizado_por = usuarioActual.nombre;
+    t.fecha_finalizacion = stamp;
+  }
+  // Al archivar (Validadas) el Director da por validada la tarea. Arrastrar
+  // hasta esta columna equivale a validar + archivar en un solo gesto.
+  if (nuevoEstatus === 'Archivada') {
+    t.validada = true;
+    if (!t.fecha_validacion) {
+      t.validado_por = usuarioActual.nombre;
+      t.fecha_validacion = stamp;
+    }
   }
   t.avance = nuevoEstatus === 'Atendida' || nuevoEstatus === 'Archivada' ? 100 : 0;
 
-  // La acción en bitácora describe el sentido. atender/archivar para
+  // La acción en bitácora describe el sentido. finalizar/archivar para
   // adelante; reabrir/desarchivar para atrás. Estatus_anterior y nuevo
   // ya dejan claro el movimiento exacto.
   let accion;
-  if (nuevoEstatus === 'Atendida'  && anterior === 'En Proceso') accion = 'atender';
+  if (nuevoEstatus === 'Atendida'  && anterior === 'En Proceso') accion = 'finalizar';
   else if (nuevoEstatus === 'Archivada' && anterior === 'Atendida')   accion = 'archivar';
   else if (nuevoEstatus === 'Atendida'  && anterior === 'Archivada')  accion = 'desarchivar';
   else if (nuevoEstatus === 'En Proceso' && anterior === 'Atendida')  accion = 'reabrir';
@@ -3609,14 +3845,20 @@ function crearTarjeta(t) {
   card.className = 'tarjeta';
   card.setAttribute('data-sub', t.subdireccion);
   card.setAttribute('data-id', t.id);
-  card.draggable = true;          // permite arrastrar entre columnas
   card.onclick = () => abrirDetalle(t);
-  card.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', t.id);
-    e.dataTransfer.effectAllowed = 'move';
-    card.classList.add('arrastrando');
-  });
-  card.addEventListener('dragend', () => card.classList.remove('arrastrando'));
+
+  // Sólo el Director puede arrastrar tarjetas entre columnas en su panel.
+  // Los subdirectores avanzan exclusivamente con el botón Finalizar.
+  const puedeArrastrar = usuarioActual && usuarioActual.rol === 'Director';
+  card.draggable = puedeArrastrar;
+  if (puedeArrastrar) {
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', t.id);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('arrastrando');
+    });
+    card.addEventListener('dragend', () => card.classList.remove('arrastrando'));
+  }
 
   const vencida   = esVencida(t.fecha_limite) && t.estatus === 'En Proceso';
   const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso';
@@ -3634,9 +3876,14 @@ function crearTarjeta(t) {
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
 
+  // Para tareas de jefatura mostramos a qué jefatura pertenece en el id.
+  const etiquetaSub = t.nivel === 'jefatura'
+    ? (t.jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos')
+    : t.subdireccion;
+
   let html = `
     ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}
-    <div class="tarjeta-id">${t.id} · ${t.subdireccion}</div>
+    <div class="tarjeta-id">${t.id} · ${etiquetaSub}</div>
     <dl class="tarjeta-campos">
       <dt>Fecha de atención</dt>
       <dd class="${vencida ? 'campo-fecha-vencida' : ''}">
@@ -3661,24 +3908,40 @@ function crearTarjeta(t) {
     ` : ''}
   `;
 
-  if ((t.estatus === 'Atendida' || t.estatus === 'Archivada') && t.fecha_validacion) {
-    html += `<div class="tarjeta-validada-info">✓ Atendida por ${t.validado_por}<br>${t.fecha_validacion}</div>`;
+  // Sello de quién finalizó / validó la tarea.
+  if (t.estatus === 'Atendida' && (t.finalizado_por || t.validado_por)) {
+    const quien = t.finalizado_por || t.validado_por;
+    const cuando = t.fecha_finalizacion || t.fecha_validacion;
+    html += `<div class="tarjeta-validada-info">Finalizada por ${quien}${cuando ? '<br>' + cuando : ''}${t.validada ? '<br>✓ Validada por ' + (t.validado_por || '—') : ''}</div>`;
+  } else if (t.estatus === 'Archivada' && (t.validado_por || t.fecha_validacion)) {
+    html += `<div class="tarjeta-validada-info">✓ Validada por ${t.validado_por || '—'}${t.fecha_validacion ? '<br>' + t.fecha_validacion : ''}</div>`;
   }
 
-  // Botones de avance de estatus — disponibles para todos los usuarios
-  // logueados. Antes solo el Director podía hacerlo desde la app; los
-  // subdirectores capturistas también gestionan tareas que cargan en
-  // nombre de sus jefes (que no figuran en la plataforma).
-  if (t.estatus === 'En Proceso') {
-    html += `<button class="btn-validar" onclick="event.stopPropagation(); validar('${t.id}')">
+  if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
+    // Identificadas: Finalizar la envía a "Por validar". Las tareas de
+    // Jefatura NO llevan este botón (se finalizan en el Excel).
+    html += `<button class="btn-validar" onclick="event.stopPropagation(); finalizar('${t.id}')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-      Marcar como Atendida
+      Finalizar
     </button>`;
-  } else if (t.estatus === 'Atendida') {
-    html += `<button class="btn-validar" style="background: var(--grafito);" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea al histórico (columna Archivada).">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
-      Archivar
-    </button>`;
+  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
+    // Por validar: actúa quien valida (Director para subdirección; Subdirector
+    // para jefatura). Primero Validar; eso habilita Archivar.
+    if (!t.validada) {
+      html += `<button class="btn-validar" onclick="event.stopPropagation(); validar('${t.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        Validar
+      </button>
+      <button class="btn-validar btn-archivar-disabled" disabled title="Primero valida la tarea para poder archivarla.">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+        Archivar
+      </button>`;
+    } else {
+      html += `<button class="btn-validar" style="background: var(--grafito);" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea a Gestión › Validadas.">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+        Archivar
+      </button>`;
+    }
   }
 
   card.innerHTML = html;
@@ -3689,7 +3952,9 @@ function crearTarjeta(t) {
 
 function cambiarTab(sub) {
   tabActiva = sub;
+  jefaturaActiva = null;   // volver a una subdirección sale del modo Jefatura
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.toggle('activa', b.dataset.sub === sub));
+  document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.remove('activa'));
 
   // Renderiza el tablero con el nuevo filtro (siempre, aunque no esté
   // visible — así al regresar a Tablero ya está al día).
@@ -3705,6 +3970,18 @@ function cambiarTab(sub) {
   }
 }
 
+// Selecciona una de las dos Jefaturas de SPAC: filtra el tablero a sus tareas.
+function cambiarJefatura(codigo) {
+  jefaturaActiva = codigo;
+  // El tab de subdirección deja de estar activo mientras se ve una Jefatura.
+  document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.remove('activa'));
+  document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.toggle('activa', b.dataset.jef === codigo));
+
+  if (vistaActiva !== 'tablero' && vistaActiva !== 'calendario') cambiarVista('tablero');
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
 function filtrarPrioridad(prio) {
   prioridadActiva = prio;
   document.querySelectorAll('.chip').forEach(c => c.classList.toggle('activo', c.dataset.prio === prio));
@@ -3712,30 +3989,39 @@ function filtrarPrioridad(prio) {
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
 
-function validar(idTarea, comentarios) {
+// Sello de fecha/hora "AAAA-MM-DD HH:MM" usado en bitácora y metadata.
+function ahoraStamp() {
+  const a = new Date();
+  return a.getFullYear() + '-' +
+    String(a.getMonth()+1).padStart(2,'0') + '-' +
+    String(a.getDate()).padStart(2,'0') + ' ' +
+    String(a.getHours()).padStart(2,'0') + ':' +
+    String(a.getMinutes()).padStart(2,'0');
+}
+
+// "Finalizar": el subdirector (o el Director) da por terminada una tarea
+// Identificada (En Proceso) y la pasa a "Por validar" (Atendida), donde
+// queda lista para que el Director la valide.
+function finalizar(idTarea, comentarios) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
+  if (t.estatus !== 'En Proceso') return;
 
   if (!comentarios) {
-    if (!confirm('¿Marcar como Atendida la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nEsta acción quedará registrada con su nombre, fecha y hora.')) return;
+    if (!confirm('¿Finalizar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nPasará a "Por validar" para que el Director la revise. Quedará registrada con su nombre, fecha y hora.')) return;
   }
 
-  const ahora = new Date();
-  const stamp = ahora.getFullYear() + '-' +
-    String(ahora.getMonth()+1).padStart(2,'0') + '-' +
-    String(ahora.getDate()).padStart(2,'0') + ' ' +
-    String(ahora.getHours()).padStart(2,'0') + ':' +
-    String(ahora.getMinutes()).padStart(2,'0');
-
+  const stamp = ahoraStamp();
   t.estatus = 'Atendida';
-  t.validado_por = usuarioActual.nombre;
-  t.fecha_validacion = stamp;
+  t.finalizado_por = usuarioActual.nombre;
+  t.fecha_finalizacion = stamp;
+  t.validada = false;
   if (comentarios) t.comentarios_director = comentarios;
 
   BITACORA.unshift({
     fecha: stamp,
     usuario: usuarioActual.email,
-    accion: 'atender',
+    accion: 'finalizar',
     id_tarea: idTarea,
     estatus_anterior: 'En Proceso',
     estatus_nuevo: 'Atendida'
@@ -3743,28 +4029,57 @@ function validar(idTarea, comentarios) {
 
   cerrarModal();
   renderizar();
-  toast('Tarea ' + idTarea + ' marcada como Atendida', 'ok');
+  toast('Tarea ' + idTarea + ' finalizada · enviada a Por validar', 'ok');
 }
 
-// El Director archiva una tarea ya Atendida desde la app. Capturistas hacen
-// lo mismo escribiendo "Archivada" en la columna Estatus del Sheet/Excel; en
-// ambos casos la tarea sale del flujo activo y queda en la columna histórica.
+// "Validar": exclusivo del Director. No cambia el estatus (sigue en
+// "Por validar"/Atendida) pero marca la tarea como validada, lo que habilita
+// el botón Archivar en la tarjeta y en el modal.
+function validar(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (t.estatus !== 'Atendida') {
+    toast('Solo se pueden validar tareas Por validar', 'error');
+    return;
+  }
+  if (!confirm('¿Validar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nQuedará validada y podrá archivarla.')) return;
+
+  const stamp = ahoraStamp();
+  t.validada = true;
+  t.validado_por = usuarioActual.nombre;
+  t.fecha_validacion = stamp;
+
+  BITACORA.unshift({
+    fecha: stamp,
+    usuario: usuarioActual.email,
+    accion: 'validar',
+    id_tarea: idTarea,
+    estatus_anterior: 'Atendida',
+    estatus_nuevo: 'Atendida'
+  });
+
+  cerrarModal();
+  renderizar();
+  toast('Tarea ' + idTarea + ' validada', 'ok');
+}
+
+// El Director archiva una tarea ya validada: sale del tablero y aparece en
+// Gestión › Validadas. Capturistas hacen lo mismo escribiendo "Archivada" en
+// la columna Estatus del Sheet/Excel.
 function archivar(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (t.estatus !== 'Atendida') {
-    toast('Solo se pueden archivar tareas Atendidas', 'error');
+    toast('Solo se pueden archivar tareas Por validar', 'error');
     return;
   }
-  if (!confirm('¿Archivar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nSe moverá al histórico y dejará de aparecer entre las atendidas.')) return;
+  if (!t.validada) {
+    toast('Primero valida la tarea para poder archivarla', 'error');
+    return;
+  }
+  if (!confirm('¿Archivar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nSe moverá a Gestión › Validadas y saldrá del tablero.')) return;
 
-  const ahora = new Date();
-  const stamp = ahora.getFullYear() + '-' +
-    String(ahora.getMonth()+1).padStart(2,'0') + '-' +
-    String(ahora.getDate()).padStart(2,'0') + ' ' +
-    String(ahora.getHours()).padStart(2,'0') + ':' +
-    String(ahora.getMinutes()).padStart(2,'0');
-
+  const stamp = ahoraStamp();
   t.estatus = 'Archivada';
 
   BITACORA.unshift({
@@ -3778,7 +4093,8 @@ function archivar(idTarea) {
 
   cerrarModal();
   renderizar();
-  toast('Tarea ' + idTarea + ' archivada', 'ok');
+  if (vistaActiva === 'validadas') renderizarValidadas();
+  toast('Tarea ' + idTarea + ' archivada · Validadas', 'ok');
 }
 
 // ============== MODAL ==============
@@ -3800,10 +4116,11 @@ function abrirDetalle(t) {
     </button>
   `;
 
+  const esDir = usuarioActual && usuarioActual.rol === 'Director';
   let acciones = '';
-  if (t.estatus === 'En Proceso') {
+  if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
     // El comentario solo lo escribe el Director; capturistas no lo usan.
-    const textArea = usuarioActual.rol === 'Director'
+    const textArea = esDir
       ? '<textarea class="modal-comentar" id="comentariosDirector" placeholder="Comentarios u observaciones (opcional)"></textarea>'
       : '';
     acciones = `
@@ -3812,16 +4129,26 @@ function abrirDetalle(t) {
         ${btnIcs}
         <div style="flex:1"></div>
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal btn-modal-primario" onclick="validarConComentarios()">✓ Marcar como Atendida</button>
+        <button class="btn-modal btn-modal-primario" onclick="finalizarConComentarios()">✓ Finalizar</button>
       </div>
     `;
-  } else if (t.estatus === 'Atendida') {
+  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
+    // Por validar: valida quien corresponde (Director para subdirección;
+    // Subdirector para jefatura) y luego archiva. Archivar deshabilitado
+    // mientras la tarea no esté validada.
+    const btnValidar = t.validada
+      ? ''
+      : `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
+    const btnArchivar = t.validada
+      ? `<button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Archivar</button>`
+      : `<button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Primero valida la tarea.">📦 Archivar</button>`;
     acciones = `
       <div class="modal-acciones">
         ${btnIcs}
         <div style="flex:1"></div>
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Archivar</button>
+        ${btnValidar}
+        ${btnArchivar}
       </div>
     `;
   } else {
@@ -3841,10 +4168,10 @@ function abrirDetalle(t) {
   modal.innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id">${t.id} · ${t.subdireccion}</div>
+        <div class="modal-id">${t.id} · ${t.nivel === 'jefatura' ? (t.jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos') : t.subdireccion}</div>
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
-          <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${t.estatus}</span>
+          <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${etiquetaEstatus(t.estatus)}</span>
           <span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}">Prioridad ${prioridadDe(t)}</span>
           ${venceEsteDia ? '<span class="vence-hoy-chip" style="margin: 0;">⏰ Ocurriendo hoy</span>' : ''}
         </div>
@@ -3909,11 +4236,11 @@ function abrirDetalle(t) {
   document.getElementById('modalFondo').classList.add('activo');
 }
 
-function validarConComentarios() {
+function finalizarConComentarios() {
   // El textarea solo existe para el Director — capturistas no lo ven.
   const txt = document.getElementById('comentariosDirector');
   const comentarios = txt ? txt.value.trim() : '';
-  validar(tareaAbierta.id, comentarios);
+  finalizar(tareaAbierta.id, comentarios);
 }
 
 function cerrarModal() {
@@ -4012,7 +4339,8 @@ function cambiarVista(v) {
     calendario: 'Calendario',
     bitacora:   'Bitácora de Validaciones',
     carga:      'Carga por Responsable',
-    reportes:   'Reportes'
+    reportes:   'Reportes',
+    validadas:  'Tareas Validadas'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -4020,6 +4348,36 @@ function cambiarVista(v) {
   if (v === 'calendario') renderizarCalendario();
   if (v === 'bitacora')   renderizarBitacora();
   if (v === 'carga')      renderizarCarga();
+  if (v === 'validadas')  renderizarValidadas();
+}
+
+// Vista Validadas (Gestión, sólo Director): histórico de tareas archivadas
+// tras la validación. Reutiliza las tarjetas del tablero (que en estado
+// Archivada no muestran botones de acción).
+function renderizarValidadas() {
+  const grid = document.getElementById('validadasGrid');
+  const meta = document.getElementById('validadasMeta');
+  if (!grid) return;
+
+  let lista = TAREAS.filter(t => t.estatus === 'Archivada');
+  if (usuarioActual.rol === 'Director') {
+    // El Director no ve jefaturas; respeta el filtro de subdirección activo.
+    lista = lista.filter(t => t.nivel !== 'jefatura');
+    if (tabActiva && tabActiva !== 'TODAS') lista = lista.filter(t => t.subdireccion === tabActiva);
+  } else {
+    // Subdirector: las validadas de SU subdirección (jefaturas + propias).
+    lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+  }
+  lista = ordenarPorFecha(lista);
+
+  if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
+
+  grid.innerHTML = '';
+  if (lista.length === 0) {
+    grid.innerHTML = '<div class="validadas-vacio">Aún no hay tareas validadas y archivadas.</div>';
+    return;
+  }
+  lista.forEach(t => grid.appendChild(crearTarjeta(t)));
 }
 
 function tituloCapturista() {
@@ -4182,7 +4540,7 @@ function enviarRecordatorio(idTarea, canal) {
       '   ' + fechaTxt,
       '',
       prioEmoji + ' *Prioridad:* ' + prio,
-      estatusEmoji + ' *Estatus:* ' + t.estatus
+      estatusEmoji + ' *Estatus:* ' + etiquetaEstatus(t.estatus)
     );
     if (acuerdos && acuerdos !== '—') {
       lineas.push('', sep, '🤝 *Acuerdos realizados*', acuerdos);
@@ -4210,7 +4568,7 @@ function enviarRecordatorio(idTarea, canal) {
       'Responsable: ' + t.responsable,
       'Áreas involucradas: ' + areas,
       'Fecha de atención: ' + fechaTxt,
-      'Estatus: ' + t.estatus
+      'Estatus: ' + etiquetaEstatus(t.estatus)
     ];
     if (acuerdos && acuerdos !== '—') cuerpoLineas.push('', 'Acuerdos realizados:', acuerdos);
     if (accion && accion !== '—') cuerpoLineas.push('', 'Acción a tomar:', accion);
@@ -4493,13 +4851,14 @@ function procesarExcel(input) {
 
 const ACCION_LABEL = {
   crear:       'Creada',
-  atender:     'Atendida',
+  finalizar:   'Finalizada',
+  validar:     'Validada',
   archivar:    'Archivada',
   desarchivar: 'Desarchivada',
   reabrir:     'Reabierta',
   mover:       'Movida',
-  validar:     'Validada',  // legado
-  liberar:     'Liberada',  // legado
+  atender:     'Finalizada', // legado (antes "atender")
+  liberar:     'Liberada',   // legado
   devolver:    'Devuelta'
 };
 
@@ -4522,6 +4881,8 @@ function renderizarBitacora() {
   `;
   BITACORA.forEach(b => {
     const tarea = TAREAS.find(t => t.id === b.id_tarea);
+    // El Director no ve jefaturas: sus movimientos no entran a esta bitácora.
+    if (tarea && tarea.nivel === 'jefatura') return;
     const sub = tarea ? tarea.subdireccion : '';
     const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
     const accionKey = (b.accion || '').toLowerCase();
@@ -4535,9 +4896,9 @@ function renderizarBitacora() {
         </div>
         <div>
           <div class="bitacora-cambio">
-            <span>${b.estatus_anterior}</span>
+            <span>${etiquetaEstatus(b.estatus_anterior)}</span>
             <span class="bitacora-cambio-arrow">→</span>
-            <span>${b.estatus_nuevo}</span>
+            <span>${etiquetaEstatus(b.estatus_nuevo)}</span>
           </div>
           <div class="bitacora-usuario">${b.usuario}</div>
         </div>
@@ -4554,11 +4915,11 @@ function renderizarBitacora() {
 
 function renderizarCarga() {
   const grid = document.getElementById('cargaGrid');
-  // Universo: todas las tareas del usuario actual (Director ve todo, capturista solo las suyas)
-  let universo = TAREAS;
-  if (usuarioActual.rol === 'Capturista') {
-    universo = TAREAS.filter(t => t.subdireccion === usuarioActual.subdireccion);
-  }
+  // Universo: el Director ve todo MENOS jefaturas (no le reportan a él);
+  // el capturista, solo las de su subdirección.
+  let universo = usuarioActual.rol === 'Capturista'
+    ? TAREAS.filter(t => t.subdireccion === usuarioActual.subdireccion)
+    : TAREAS.filter(t => t.nivel !== 'jefatura');
 
   // Agrupar por responsable
   const porResponsable = {};
@@ -4600,8 +4961,8 @@ function renderizarCarga() {
           ${atendidas  > 0 ? `<div class="carga-bar-seg carga-bar-validada" style="flex:${atendidas}"></div>` : ''}
         </div>
         <div class="carga-detalle">
-          <div class="carga-detalle-row"><span>En Proceso</span><span class="carga-detalle-val">${enProcesos}</span></div>
-          <div class="carga-detalle-row"><span>Atendidas</span><span class="carga-detalle-val">${atendidas}</span></div>
+          <div class="carga-detalle-row"><span>${etiquetaEstatus('En Proceso')}</span><span class="carga-detalle-val">${enProcesos}</span></div>
+          <div class="carga-detalle-row"><span>${etiquetaEstatus('Atendida')}</span><span class="carga-detalle-val">${atendidas}</span></div>
           <div class="carga-detalle-row carga-detalle-vencidas"><span>Vencidas</span><span class="carga-detalle-val">${vencidas}</span></div>
           <div class="carga-detalle-row"><span>Total</span><span class="carga-detalle-val">${total}</span></div>
         </div>
@@ -4635,7 +4996,9 @@ const COLOR_SUB = {
  * @param {'TODAS'|'SA'|'SGOI'|'SPAC'} sub
  */
 function exportarPDF(sub) {
-  const lista = (sub === 'TODAS') ? TAREAS : TAREAS.filter(t => t.subdireccion === sub);
+  // Los reportes son del Director: excluyen las tareas de jefatura.
+  const base = TAREAS.filter(t => t.nivel !== 'jefatura');
+  const lista = (sub === 'TODAS') ? base : base.filter(t => t.subdireccion === sub);
   const ahora = new Date();
   // DD/MM/YYYY — formato del cliente, día primero.
   const fechaTxt = String(ahora.getDate()).padStart(2,'0') + '/' + String(ahora.getMonth()+1).padStart(2,'0') + '/' + ahora.getFullYear();
@@ -4663,7 +5026,7 @@ function exportarPDF(sub) {
       : (t.estatus === 'Atendida' ? 'estatus-atendida' : (vencida ? 'estatus-vencida' : 'estatus-proceso'));
     // Cuando vence, mostramos sólo "Vencida" (rojo) en lugar de
     // "En Proceso (vencida)" — más corto, no se encima con la fecha.
-    const estatusTexto = t.estatus === 'Archivada' ? 'Archivada' : (t.estatus === 'Atendida' ? 'Atendida' : (vencida ? 'Vencida' : 'En Proceso'));
+    const estatusTexto = vencida ? 'Vencida' : etiquetaEstatus(t.estatus);
     return `
       <tr>
         <td class="col-id">${t.id}</td>
@@ -4803,8 +5166,8 @@ function exportarPDF(sub) {
 
   <div class="rep-resumen">
     <div class="rep-kpi"><div class="rep-kpi-valor">${total}</div><div class="rep-kpi-label">Total</div></div>
-    <div class="rep-kpi proceso"><div class="rep-kpi-valor">${enProceso}</div><div class="rep-kpi-label">En Proceso</div></div>
-    <div class="rep-kpi atendida"><div class="rep-kpi-valor">${atendidas}</div><div class="rep-kpi-label">Atendidas</div></div>
+    <div class="rep-kpi proceso"><div class="rep-kpi-valor">${enProceso}</div><div class="rep-kpi-label">${etiquetaEstatus('En Proceso')}</div></div>
+    <div class="rep-kpi atendida"><div class="rep-kpi-valor">${atendidas}</div><div class="rep-kpi-label">${etiquetaEstatus('Atendida')}</div></div>
     <div class="rep-kpi vencida"><div class="rep-kpi-valor">${vencidas}</div><div class="rep-kpi-label">Vencidas</div></div>
   </div>
 
