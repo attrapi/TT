@@ -3841,9 +3841,9 @@ function crearTarjeta(t) {
     // para jefatura). Primero Validar; eso habilita Archivar.
     if (!t.validada) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
-      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para poder archivarla.">${icoCaja} Archivar</button>`;
+      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para enviarla a Validadas.">${icoCaja} Validadas</button>`;
     } else {
-      pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mueve la tarea a Gestión › Validadas.">${icoCaja} Archivar</button>`;
+      pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Envía la tarea a Gestión › Validadas.">${icoCaja} Validadas</button>`;
     }
   } else if (t.estatus === 'Atendida' && t.validada && esDuenoSub) {
     // El subdirector dueño, una vez que el Director validó, la pasa a
@@ -3988,9 +3988,9 @@ function archivar(idTarea) {
     toast('Primero hay que validar la tarea', 'error');
     return;
   }
-  // El destino se llama distinto según el rol: el subdirector la pasa a
-  // "Atendidas"; el Director, a "Validadas".
-  const destino = usuarioActual.rol === 'Director' ? 'Validadas' : 'Atendidas';
+  // Quien valida (Director, o Subdirector en jefatura) la envía a "Validadas";
+  // el subdirector dueño que marca su tarea como "Atendida" la pasa a Atendidas.
+  const destino = usuarioEsValidador(t) ? 'Validadas' : 'Atendidas';
   if (!confirm('¿Pasar la tarea ' + idTarea + ' a ' + destino + '?\n\n"' + t.titulo + '"\n\nSaldrá de "Por validar".')) return;
 
   const stamp = ahoraStamp();
@@ -4065,8 +4065,8 @@ function abrirDetalle(t) {
       ? ''
       : `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
     const btnArchivar = t.validada
-      ? `<button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Archivar</button>`
-      : `<button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Primero valida la tarea.">📦 Archivar</button>`;
+      ? `<button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Validadas</button>`
+      : `<button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Primero valida la tarea.">📦 Validadas</button>`;
     acciones = `
       <div class="modal-acciones">
         ${btnIcs}
