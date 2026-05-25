@@ -3809,6 +3809,9 @@ function crearTarjeta(t) {
     if ((t.validada || t.estatus === 'Archivada') && t.validado_por) {
       sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
       if (t.fecha_validacion) sello += '<br>' + t.fecha_validacion;
+    } else if (t.estatus === 'Atendida') {
+      // Finalizada pero aún sin validar.
+      sello += (sello ? '<br>' : '') + '⏳ Pendiente de validación';
     }
     if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
   }
