@@ -2967,47 +2967,11 @@
     <div class="validadas-grid" id="validadasGrid"></div>
   </div>
 
-  <!-- Vista: Reportes -->
+  <!-- Vista: Reportes (las tarjetas se generan según el rol en renderizarReportes) -->
   <div class="reportes-wrap" id="reportesWrap">
     <div class="reportes-titulo">Reportes</div>
     <div class="reportes-subtitulo">Cada reporte abre una vista imprimible. Desde el diálogo de impresión, elige <em>"Guardar como PDF"</em> en el destino.</div>
-    <div class="reportes-grid">
-      <div class="reporte-card" onclick="exportarPDF('TODAS')">
-        <div class="reporte-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        </div>
-        <div class="reporte-titulo">Vista Consolidada</div>
-        <div class="reporte-desc">Reporte de todas las tareas de las tres subdirecciones, en una sola hoja imprimible.</div>
-      </div>
-      <div class="reporte-card" data-sub="SA" onclick="exportarPDF('SA')">
-        <div class="reporte-icon" style="background: var(--sub-sa-tenue); color: var(--sub-sa);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-        <div class="reporte-titulo">Subdirección de Archivo</div>
-        <div class="reporte-desc">Solo las tareas reportadas por la Subdirección de Archivo (SA).</div>
-      </div>
-      <div class="reporte-card" data-sub="SGOI" onclick="exportarPDF('SGOI')">
-        <div class="reporte-icon" style="background: var(--sub-sgoi-tenue); color: var(--sub-sgoi);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-        <div class="reporte-titulo">Gestión de Obras Inducidas</div>
-        <div class="reporte-desc">Solo las tareas reportadas por la Subdirección de Gestión de Obras Inducidas (SGOI).</div>
-      </div>
-      <div class="reporte-card" data-sub="SPAC" onclick="exportarPDF('SPAC')">
-        <div class="reporte-icon" style="background: var(--sub-spac-tenue); color: var(--sub-spac);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-        <div class="reporte-titulo">Procesos Adm. de Construcción</div>
-        <div class="reporte-desc">Solo las tareas reportadas por la Subdirección de Procesos Administrativos de Construcción (SPAC).</div>
-      </div>
-      <div class="reporte-card" data-sub="ENLACE" onclick="exportarPDF('ENLACE')">
-        <div class="reporte-icon" style="background: var(--sub-enlace-tenue); color: var(--sub-enlace);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-        <div class="reporte-titulo">Enlace del Director</div>
-        <div class="reporte-desc">Tareas de seguimiento y coordinación capturadas por el Enlace administrativo del Director.</div>
-      </div>
-    </div>
+    <div class="reportes-grid" id="reportesGrid"></div>
   </div>
 
     </main>
@@ -3331,9 +3295,6 @@ function ingresar(rol) {
   const grupoDir = document.getElementById('sidebarGrupoDirector');
   const grupoJef = document.getElementById('sidebarGrupoJefaturas');
   const tituloSubs = document.getElementById('sidebarTituloSubs');
-  // Items de Gestión que son sólo del Director (el de Validadas lo comparten).
-  const itemsSoloDirector = ['bitacora', 'carga', 'reportes']
-    .map(v => document.querySelector('.sidebar-item[data-vista="' + v + '"]'));
 
   jefaturaActiva = null;
 
@@ -3342,7 +3303,6 @@ function ingresar(rol) {
     tituloSubs.textContent = 'Subdirecciones';
     grupoJef.style.display = 'none';            // el Director no ve jefaturas
     grupoDir.style.display = '';
-    itemsSoloDirector.forEach(b => { if (b) b.style.display = ''; });
     document.getElementById('kpisSubGrupo').style.display = '';
     document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
     document.getElementById('btnNuevo').style.display = '';
@@ -3361,10 +3321,9 @@ function ingresar(rol) {
     // Las Jefaturas sólo existen para SPAC (por ahora).
     grupoJef.style.display = usuarioActual.subdireccion === 'SPAC' ? '' : 'none';
 
-    // Gestión: el subdirector sólo ve "Validadas"; Bitácora/Carga/Reportes son
-    // del Director. Mostramos el grupo pero ocultamos esos tres items.
+    // Gestión completa también para el subdirector: Validadas, Bitácora,
+    // Carga y Reportes (cada vista ya acota los datos a su subdirección).
     grupoDir.style.display = '';
-    itemsSoloDirector.forEach(b => { if (b) b.style.display = 'none'; });
 
     document.getElementById('kpisSubGrupo').style.display = 'none';
     document.getElementById('kpisGrupoTitulo').textContent = 'Mis tareas';
@@ -3463,11 +3422,14 @@ function usuarioEsValidador(t) {
 }
 
 // ¿El usuario puede "Finalizar" (avanzar de Identificada a Por validar)?
-// Las tareas de Jefatura se finalizan en el Excel, no dentro del software.
+// Solo el SUBDIRECTOR DUEÑO de una tarea de subdirección la finaliza:
+//   • El Director NO finaliza (él valida); ve "Pendiente".
+//   • Las tareas de Jefatura se finalizan en el Excel; el subdirector solo
+//     las valida, no las finaliza.
 function usuarioPuedeFinalizar(t) {
   if (!usuarioActual) return false;
   if (t.nivel === 'jefatura') return false;
-  return true;
+  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
 // Ordena tareas por fecha de atención ascendente (la más próxima arriba).
@@ -3855,6 +3817,7 @@ function crearTarjeta(t) {
   // marca la acción). Íconos reutilizados:
   const icoCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
   const icoCaja  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>';
+  const icoReloj = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
 
   // El subdirector "dueño" de una tarea de subdirección (no de jefatura): él la
   // finaliza pero NO la valida (eso lo hace el Director).
@@ -3863,9 +3826,13 @@ function crearTarjeta(t) {
 
   let pills = '';
   if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
-    // Identificadas: Finalizar la envía a "Por validar". Las tareas de
-    // Jefatura NO llevan este botón (se finalizan en el Excel).
+    // Identificadas: solo el subdirector dueño puede Finalizar (la envía a
+    // "Por validar").
     pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizar('${t.id}')">${icoCheck} Finalizar</button>`;
+  } else if (t.estatus === 'En Proceso') {
+    // Quien no finaliza (Director, o subdirector viendo una jefatura) ve la
+    // tarea como "Pendiente", deshabilitada: aún no la finaliza su dueño.
+    pills += `<button class="btn-pildora btn-pildora-off" disabled title="Pendiente de finalizar por el responsable.">${icoReloj} Pendiente</button>`;
   } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
     // Por validar: actúa quien valida (Director para subdirección; Subdirector
     // para jefatura). Primero Validar; eso habilita Archivar.
@@ -4074,6 +4041,17 @@ function abrirDetalle(t) {
         <div style="flex:1"></div>
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
         <button class="btn-modal btn-modal-primario" onclick="finalizarConComentarios()">✓ Finalizar</button>
+      </div>
+    `;
+  } else if (t.estatus === 'En Proceso') {
+    // Quien no finaliza (Director, o subdirector viendo jefatura) la ve como
+    // "Pendiente", deshabilitada.
+    acciones = `
+      <div class="modal-acciones">
+        ${btnIcs}
+        <div style="flex:1"></div>
+        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+        <button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Pendiente de finalizar por el responsable.">⏳ Pendiente</button>
       </div>
     `;
   } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
@@ -4308,6 +4286,37 @@ function cambiarVista(v) {
   if (v === 'bitacora')   renderizarBitacora();
   if (v === 'carga')      renderizarCarga();
   if (v === 'validadas')  renderizarValidadas();
+  if (v === 'reportes')   renderizarReportes();
+}
+
+// Tarjetas de la vista Reportes según el rol. El Director ve la consolidada y
+// cada subdirección; un subdirector ve su propia subdirección y, en SPAC, sus
+// dos jefaturas.
+function renderizarReportes() {
+  const grid = document.getElementById('reportesGrid');
+  if (!grid) return;
+  const icoGrid = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+  const icoDoc  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  const card = (onclick, estilo, icono, titulo, desc) =>
+    `<div class="reporte-card" onclick="${onclick}"><div class="reporte-icon" style="${estilo}">${icono}</div><div class="reporte-titulo">${titulo}</div><div class="reporte-desc">${desc}</div></div>`;
+  const estiloSub = sub => `background: var(--sub-${sub.toLowerCase()}-tenue); color: var(--sub-${sub.toLowerCase()});`;
+
+  let cards = '';
+  if (usuarioActual.rol === 'Director') {
+    cards += card("exportarPDF('TODAS')", '', icoGrid, 'Vista Consolidada', 'Todas las tareas de las tres subdirecciones, en una sola hoja imprimible.');
+    cards += card("exportarPDF('SA')",   estiloSub('SA'),   icoDoc, 'Subdirección de Archivo', 'Solo las tareas reportadas por la Subdirección de Archivo (SA).');
+    cards += card("exportarPDF('SGOI')", estiloSub('SGOI'), icoDoc, 'Gestión de Obras Inducidas', 'Solo las tareas de la Subdirección de Gestión de Obras Inducidas (SGOI).');
+    cards += card("exportarPDF('SPAC')", estiloSub('SPAC'), icoDoc, 'Procesos Adm. de Construcción', 'Solo las tareas de la Subdirección de Procesos Administrativos de Construcción (SPAC).');
+    cards += card("exportarPDF('ENLACE')", estiloSub('ENLACE'), icoDoc, 'Enlace del Director', 'Tareas de seguimiento y coordinación del Enlace administrativo del Director.');
+  } else {
+    const sub = usuarioActual.subdireccion;
+    cards += card(`exportarPDF('${sub}')`, estiloSub(sub), icoDoc, NOMBRE_SUB[sub] || sub, 'Tareas propias de su subdirección.');
+    if (sub === 'SPAC') {
+      cards += card("exportarPDF('SPAC','PROCEDIMIENTOS')", estiloSub('SPAC'), icoDoc, 'Jef. de Procedimientos de Construcción', 'Tareas de la Jefatura de Departamento de Procedimientos de Construcción.');
+      cards += card("exportarPDF('SPAC','MANUALES')", estiloSub('SPAC'), icoDoc, 'Jef. de Implementación de Manuales', 'Tareas de la Jefatura de Departamento de Implementación de Manuales Administrativos.');
+    }
+  }
+  grid.innerHTML = cards;
 }
 
 // Vista Validadas (Gestión, sólo Director): histórico de tareas archivadas
@@ -4840,8 +4849,13 @@ function renderizarBitacora() {
   `;
   BITACORA.forEach(b => {
     const tarea = TAREAS.find(t => t.id === b.id_tarea);
-    // El Director no ve jefaturas: sus movimientos no entran a esta bitácora.
-    if (tarea && tarea.nivel === 'jefatura') return;
+    if (usuarioActual.rol === 'Director') {
+      // El Director no ve jefaturas: sus movimientos no entran a esta bitácora.
+      if (tarea && tarea.nivel === 'jefatura') return;
+    } else {
+      // El subdirector solo ve los movimientos de su subdirección.
+      if (!tarea || tarea.subdireccion !== usuarioActual.subdireccion) return;
+    }
     const sub = tarea ? tarea.subdireccion : '';
     const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
     const accionKey = (b.accion || '').toLowerCase();
@@ -4954,10 +4968,24 @@ const COLOR_SUB = {
  *
  * @param {'TODAS'|'SA'|'SGOI'|'SPAC'} sub
  */
-function exportarPDF(sub) {
-  // Los reportes son del Director: excluyen las tareas de jefatura.
-  const base = TAREAS.filter(t => t.nivel !== 'jefatura');
-  const lista = (sub === 'TODAS') ? base : base.filter(t => t.subdireccion === sub);
+function exportarPDF(sub, jefatura) {
+  // Reporte de Jefatura (lo usa el Subdirector de SPAC): solo las tareas de
+  // esa jefatura. Reporte normal: por subdirección, excluyendo jefaturas.
+  let lista, nombreReporte, headerSub, mostrarSub;
+  if (jefatura) {
+    lista = TAREAS.filter(t => t.nivel === 'jefatura' && t.jefatura === jefatura && t.subdireccion === sub);
+    nombreReporte = JEFATURAS_SPAC[jefatura] || 'Jefatura';
+    const etiq = jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos';
+    const cj = COLOR_SUB[sub] || { bg: '#F3F4F6', fg: '#374151' };
+    headerSub = `<span class="rep-sub-pill" style="background:${cj.bg};color:${cj.fg};">${etiq}</span>`;
+    mostrarSub = false;
+  } else {
+    const base = TAREAS.filter(t => t.nivel !== 'jefatura');
+    lista = (sub === 'TODAS') ? base : base.filter(t => t.subdireccion === sub);
+    nombreReporte = NOMBRE_SUB[sub];
+    headerSub = (sub === 'TODAS') ? '' : `<span class="rep-sub-pill" style="background:${(COLOR_SUB[sub]||{}).bg};color:${(COLOR_SUB[sub]||{}).fg};">${sub}</span>`;
+    mostrarSub = (sub === 'TODAS');
+  }
   const ahora = new Date();
   // DD/MM/YYYY — formato del cliente, día primero.
   const fechaTxt = String(ahora.getDate()).padStart(2,'0') + '/' + String(ahora.getMonth()+1).padStart(2,'0') + '/' + ahora.getFullYear();
@@ -4967,8 +4995,6 @@ function exportarPDF(sub) {
   const enProceso = lista.filter(t => t.estatus === 'En Proceso').length;
   const atendidas = lista.filter(t => t.estatus === 'Atendida').length;
   const vencidas  = lista.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
-
-  const mostrarSub = (sub === 'TODAS');
 
   // Filas, ordenadas por subdirección y luego por fecha límite
   const ordenadas = [...lista].sort((a, b) => {
@@ -5000,13 +5026,11 @@ function exportarPDF(sub) {
     `;
   }).join('');
 
-  const headerSub = (sub === 'TODAS') ? '' : `<span class="rep-sub-pill" style="background:${(COLOR_SUB[sub]||{}).bg};color:${(COLOR_SUB[sub]||{}).fg};">${sub}</span>`;
-
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Reporte TT — ${NOMBRE_SUB[sub]}</title>
+<title>Reporte TT — ${nombreReporte}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   /* Carta vertical con márgenes amplios. Defensa en profundidad:
@@ -5119,7 +5143,7 @@ function exportarPDF(sub) {
     </div>
     <div class="rep-info">
       <div class="rep-info-titulo">Reporte de Tareas ${headerSub}</div>
-      <div class="rep-info-sub">${NOMBRE_SUB[sub]} · Generado ${fechaTxt} ${horaTxt}</div>
+      <div class="rep-info-sub">${nombreReporte} · Generado ${fechaTxt} ${horaTxt}</div>
     </div>
   </div>
 
@@ -5160,7 +5184,7 @@ function exportarPDF(sub) {
 
   <div class="rep-pie">
     <div>ATTRAPI · Agencia de Trenes y Transporte Público Integrado</div>
-    <div>${NOMBRE_SUB[sub]} · ${fechaTxt}</div>
+    <div>${nombreReporte} · ${fechaTxt}</div>
   </div>
 
   </div><!-- /rep-pagina -->
