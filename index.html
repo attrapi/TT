@@ -316,77 +316,81 @@
   .sidebar-grupo {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    background: white;
-    border: 1px solid var(--guinda);
-    border-radius: 8px;
+    gap: 6px;
+    background: var(--crema);
+    border: 1px solid var(--linea);
+    border-radius: 10px;
     overflow: hidden;
-    padding: 6px 6px 8px;
+    padding: 8px 8px 10px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
   .sidebar-grupo-titulo {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: white;
-    background: var(--guinda);
-    padding: 7px 12px;
-    /* Negativo para que el header llegue a los bordes del card a pesar del
-       padding interno del grupo. */
-    margin: -6px -6px 8px -6px;
+    color: var(--guinda);
+    padding: 2px 4px 6px;
+    margin: 0;
+    border-bottom: 1px solid var(--linea);
   }
+  /* Cada item es una "subcard": fondo propio, borde sutil y esquinas
+     redondeadas, para que el panel izquierdo se lea ordenado y profesional. */
   .sidebar-item {
-    background: none;
-    border: none;
+    background: white;
+    border: 1px solid var(--linea);
     text-align: left;
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
-    padding: 9px 12px;
-    border-radius: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
     cursor: pointer;
     font-family: var(--sans);
     font-size: 12.5px;
     font-weight: 500;
-    line-height: 1.3;
+    line-height: 1.35;
     color: var(--tinta-suave);
-    transition: background 0.14s, color 0.14s;
+    transition: background 0.14s, color 0.14s, border-color 0.14s, box-shadow 0.14s;
     position: relative;
-    /* Permite que las etiquetas largas hagan wrap en 2 líneas. La etiqueta
-       (texto) es el único hijo flex que crece y se queda con el espacio
-       restante después del icono y el conteo. */
-    text-wrap: pretty;
   }
-  /* La etiqueta de texto va entre icono y conteo. La envolvemos en un
-     contenedor implícito vía un wrapper para forzar el flex-grow correcto. */
+  /* La etiqueta (texto) es el hijo flex que crece y se queda con el espacio
+     restante después del icono y el conteo; envuelve en varias líneas. */
   .sidebar-item > svg + .sidebar-label,
   .sidebar-item > .sub-dot + .sidebar-label { flex: 1; min-width: 0; }
-  .sidebar-label { word-break: break-word; }
+  .sidebar-label {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
   .sidebar-item svg {
     width: 18px;
     height: 18px;
     flex-shrink: 0;
     opacity: 0.78;
+    margin-top: 1px;
   }
   .sidebar-item:hover {
     background: var(--crema);
     color: var(--tinta);
+    border-color: var(--guinda);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   }
   .sidebar-item.activa {
     background: var(--guinda-tenue);
     color: var(--guinda);
+    border-color: var(--guinda);
     font-weight: 600;
   }
   .sidebar-item.activa svg { opacity: 1; }
-  /* Indicador activo: barrita izquierda dentro del card. */
+  /* Indicador activo: barrita izquierda dentro del subcard. */
   .sidebar-item.activa::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 6px;
-    bottom: 6px;
+    top: 8px;
+    bottom: 8px;
     width: 3px;
     background: var(--guinda);
     border-radius: 0 3px 3px 0;
@@ -425,6 +429,7 @@
     border-radius: 50%;
     flex-shrink: 0;
     border: 1px solid rgba(0,0,0,0.12);
+    margin-top: 4px;   /* alinea el punto con la primera línea del texto */
   }
   /* En items de subdirección activos, el dot conserva su color y agregamos
      una franja izquierda con el color de la sub en lugar del guinda genérico. */
@@ -2792,18 +2797,6 @@
         </button>
       </div>
 
-      <div class="sidebar-grupo">
-        <div class="sidebar-grupo-titulo">Vistas</div>
-        <button class="sidebar-item activa" data-vista="tablero" onclick="cambiarVista('tablero')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span class="sidebar-label">Tablero</span>
-        </button>
-        <button class="sidebar-item" data-vista="calendario" onclick="cambiarVista('calendario')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span class="sidebar-label">Calendario</span>
-        </button>
-      </div>
-
       <div class="sidebar-grupo" id="sidebarGrupoDirector">
         <div class="sidebar-grupo-titulo">Gestión</div>
         <button class="sidebar-item" data-vista="validadas" onclick="cambiarVista('validadas')">
@@ -3213,6 +3206,7 @@ async function sincronizarSPAC() {
       n.finalizado_por = p.finalizado_por;
       n.fecha_finalizacion = p.fecha_finalizacion;
       n.comentarios_director = p.comentarios_director;
+      n.en_validadas = p.en_validadas;
       if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
     });
 
@@ -3496,8 +3490,10 @@ function actualizarKPIs() {
 
   const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
   const vencidas = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
-  const atendidas = visible.filter(t => t.estatus === 'Atendida').length;
-  const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
+  // Por validar = Atendida que el Director aún no envió a Validadas.
+  const atendidas = visible.filter(t => t.estatus === 'Atendida' && !t.en_validadas).length;
+  // Validadas = archivadas o ya enviadas a Validadas por el Director.
+  const archivadas = visible.filter(t => t.estatus === 'Archivada' || t.en_validadas).length;
 
   document.getElementById('kpiActivas').textContent = enProcesos;
   document.getElementById('kpiSemana').textContent = atendidas;
@@ -3592,7 +3588,7 @@ function actualizarConteosTabs() {
   const contVal = document.getElementById('sidebarConteoValidadas');
   if (contVal) {
     contVal.textContent = usuarioActual.rol === 'Director'
-      ? TAREAS.filter(t => t.estatus === 'Archivada' && t.nivel !== 'jefatura').length
+      ? TAREAS.filter(t => t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada')).length
       : TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion).length;
   }
 
@@ -3626,8 +3622,14 @@ function renderizarTablero() {
   tablero.innerHTML = '';
 
   cols.forEach(estatus => {
-    // Ordenadas por fecha ascendente — las próximas arriba.
-    const tareasCol = ordenarPorFecha(lista.filter(t => t.estatus === estatus));
+    // Ordenadas por fecha ascendente — las próximas arriba. Para el Director,
+    // las tareas que ya envió a Validadas (en_validadas) salen de su columna
+    // "Por validar" aunque su estatus interno siga en Atendida (eso permite
+    // que el subdirector las siga viendo como Por validar hasta que él las
+    // pase a sus Atendidas).
+    const tareasCol = ordenarPorFecha(
+      lista.filter(t => t.estatus === estatus && !(esDir && t.en_validadas))
+    );
     const col = document.createElement('div');
     col.className = 'columna col-' + slugs[estatus];
 
@@ -3836,9 +3838,10 @@ function crearTarjeta(t) {
     // Quien no finaliza (Director, o subdirector viendo una jefatura) ve la
     // tarea como "Pendiente", deshabilitada: aún no la finaliza su dueño.
     pills += `<button class="btn-pildora btn-pildora-off" disabled title="Pendiente de finalizar por el responsable.">${icoReloj} Pendiente</button>`;
-  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
+  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t) && !t.en_validadas) {
     // Por validar: actúa quien valida (Director para subdirección; Subdirector
-    // para jefatura). Primero Validar; eso habilita Archivar.
+    // para jefatura). Primero Validar; eso habilita Archivar. Si ya la envió a
+    // Validadas (en_validadas), no se muestran botones (queda en su histórico).
     if (!t.validada) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
       pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para enviarla a Validadas.">${icoCaja} Validadas</button>`;
@@ -3994,7 +3997,16 @@ function archivar(idTarea) {
   if (!confirm('¿Pasar la tarea ' + idTarea + ' a ' + destino + '?\n\n"' + t.titulo + '"\n\nSaldrá de "Por validar".')) return;
 
   const stamp = ahoraStamp();
-  t.estatus = 'Archivada';
+  // DESACOPLE: cuando el DIRECTOR archiva una tarea de subdirección, solo la
+  // marca como enviada a SUS Validadas (en_validadas), sin cambiar el estatus
+  // interno. Así el subdirector la sigue viendo en "Por validar" y debe pasarla
+  // él mismo a sus Atendidas. En cualquier otro caso (subdirector dueño que la
+  // marca Atendida, o jefatura) sí pasa a estatus Archivada.
+  if (usuarioActual.rol === 'Director' && t.nivel !== 'jefatura') {
+    t.en_validadas = true;
+  } else {
+    t.estatus = 'Archivada';
+  }
 
   BITACORA.unshift({
     fecha: stamp,
@@ -4002,7 +4014,7 @@ function archivar(idTarea) {
     accion: 'archivar',
     id_tarea: idTarea,
     estatus_anterior: 'Atendida',
-    estatus_nuevo: 'Archivada'
+    estatus_nuevo: destino
   });
 
   cerrarModal();
@@ -4057,7 +4069,7 @@ function abrirDetalle(t) {
         <button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Pendiente de finalizar por el responsable.">⏳ Pendiente</button>
       </div>
     `;
-  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t)) {
+  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t) && !t.en_validadas) {
     // Por validar: valida quien corresponde (Director para subdirección;
     // Subdirector para jefatura) y luego archiva. Archivar deshabilitado
     // mientras la tarea no esté validada.
@@ -4330,14 +4342,15 @@ function renderizarValidadas() {
   const meta = document.getElementById('validadasMeta');
   if (!grid) return;
 
-  let lista = TAREAS.filter(t => t.estatus === 'Archivada');
+  let lista;
   if (usuarioActual.rol === 'Director') {
-    // El Director no ve jefaturas; respeta el filtro de subdirección activo.
-    lista = lista.filter(t => t.nivel !== 'jefatura');
+    // El Director ve lo que ÉL envió a Validadas (en_validadas) más cualquier
+    // tarea ya archivada. No ve jefaturas. Respeta el filtro de subdirección.
+    lista = TAREAS.filter(t => t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada'));
     if (tabActiva && tabActiva !== 'TODAS') lista = lista.filter(t => t.subdireccion === tabActiva);
   } else {
-    // Subdirector: las validadas de SU subdirección (jefaturas + propias).
-    lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+    // Subdirector: las archivadas de SU subdirección (jefaturas + propias).
+    lista = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion);
   }
   lista = ordenarPorFecha(lista);
 
