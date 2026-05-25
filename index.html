@@ -301,9 +301,10 @@
     background: var(--crema);
     border-right: 1px solid var(--linea);
     position: sticky;
-    top: 0;
+    /* Justo debajo del header fijo (72px de alto + 4px de borde). */
+    top: 76px;
     align-self: start;
-    height: 100vh;
+    height: calc(100vh - 76px);
     overflow-y: auto;
     padding: 16px 12px;
     display: flex;
@@ -798,6 +799,10 @@
     color: white;
     padding: 0;
     border-bottom: 4px solid var(--guinda-oscuro);
+    /* Header fijo: se mantiene visible al hacer scroll en cualquier perfil. */
+    position: sticky;
+    top: 0;
+    z-index: 50;
   }
 
   /* Layout en 3 columnas: título pegado a la izquierda (auto) | marca al
@@ -1939,6 +1944,29 @@
 
   .btn-liberar:hover { background: #1F2937; }
 
+  /* Botón flotante "ir arriba": fijo en el extremo derecho, regresa el scroll
+     al inicio. Vive dentro de .app, así sólo aparece con sesión iniciada. */
+  .btn-arriba {
+    position: fixed;
+    right: 16px;
+    bottom: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--guinda);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    z-index: 90;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .btn-arriba:hover { background: var(--guinda-oscuro); transform: translateY(-2px); }
+  .btn-arriba svg { width: 22px; height: 22px; }
+
   /* === MODAL DETALLE === */
   .modal-fondo {
     display: none;
@@ -2963,6 +2991,11 @@
 
     </main>
   </div>
+
+  <!-- Botón flotante: regresa el scroll hasta arriba -->
+  <button class="btn-arriba" id="btnArriba" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Ir arriba" aria-label="Ir arriba">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
 </div>
 
 <!-- ========== MODAL ========== -->
