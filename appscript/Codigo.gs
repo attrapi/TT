@@ -238,7 +238,60 @@ function crearTarea(token, datos) {
   set('url', datos.url || '');
 
   hoja.appendRow(fila);
+  agregarAreas_(datos.areas);   // registra áreas nuevas (las escritas en "Otra")
   return { ok: true };
+}
+
+// ====================== ÁREAS (catálogo) =================================
+// Lista base de áreas + las extra que se vayan agregando (hoja "Areas").
+var AREAS_BASE = [
+  'Dirección de Procesos Administrativos de Construcción',
+  'Subdirección de Procesos Administrativos de Construcción',
+  'Subdirección de Archivo',
+  'Subdirección de Gestión de Obras Inducidas',
+  'Jefatura de Departamento de Procedimientos de Construcción',
+  'Jefatura de Departamento de Implementación de Manuales Administrativos',
+  'Enlace del Director'
+];
+
+function obtenerAreas(token) {
+  if (!sesionValida_(token)) return { ok: false, areas: AREAS_BASE.slice() };
+  var todas = AREAS_BASE.slice();
+  leerAreasExtra_().forEach(function (a) { if (todas.indexOf(a) < 0) todas.push(a); });
+  return { ok: true, areas: todas };
+}
+
+function leerAreasExtra_() {
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.HOJA_USUARIOS_ID);
+    var hoja = ss.getSheetByName('Areas');
+    if (!hoja) return [];
+    var vals = hoja.getDataRange().getValues();
+    var out = [];
+    for (var r = 0; r < vals.length; r++) {
+      var a = String(vals[r][0] || '').trim();
+      if (a && norm_(a) !== 'area' && norm_(a) !== 'areas') out.push(a);
+    }
+    return out;
+  } catch (e) { return []; }
+}
+
+// Agrega a la hoja "Areas" las áreas que no existan aún (base ni extras).
+function agregarAreas_(areasStr) {
+  if (!areasStr) return;
+  var nuevas = String(areasStr).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!nuevas.length) return;
+  var conocidas = AREAS_BASE.concat(leerAreasExtra_()).map(norm_);
+  var porAgregar = [];
+  nuevas.forEach(function (a) {
+    var n = norm_(a);
+    if (conocidas.indexOf(n) < 0 && porAgregar.map(norm_).indexOf(n) < 0) porAgregar.push(a);
+  });
+  if (!porAgregar.length) return;
+  var ss = SpreadsheetApp.openById(CONFIG.HOJA_USUARIOS_ID);
+  var hoja = ss.getSheetByName('Areas');
+  if (!hoja) { hoja = ss.insertSheet('Areas'); hoja.appendRow(['Area']); }
+  porAgregar.forEach(function (a) { hoja.appendRow([a]); });
 }
 
 // Carpeta de Drive según la subdirección de quien sube. Si esa subdirección
