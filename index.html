@@ -1517,6 +1517,19 @@
     gap: 6px;
     transition: all 0.15s;
   }
+  .filtros-buscar {
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: var(--sans);
+    min-width: 220px;
+    background: #fff;
+    color: var(--tinta);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .filtros-buscar:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+
   .btn-actualizar:hover { background: var(--guinda); color: white; }
   .btn-actualizar:disabled { opacity: 0.6; cursor: wait; }
   .btn-actualizar svg { width: 14px; height: 14px; }
@@ -3061,6 +3074,7 @@
     <button class="chip" data-prio="Baja" onclick="filtrarPrioridad('Baja')">Baja <span class="chip-dias">&gt; 7 días</span></button>
 
     <div class="filtros-spacer"></div>
+    <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
     <button class="btn-actualizar" id="btnActualizar" onclick="actualizarDatos()" title="Vuelve a leer la información del Google Sheet (alternativa a F5, que regresaría a la pantalla de inicio).">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
       Actualizar
@@ -3431,6 +3445,7 @@ let vistaActiva = 'tablero';
 let calMesActual = new Date();
 let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Script)
 let validadasFiltro = null;  // null=todas | 'subdireccion' | 'jefatura' (vista Validadas)
+let busquedaActiva = '';     // texto del buscador de la barra de filtros
 
 // ¿La app está siendo servida por Google Apps Script? (entonces hay login real)
 function enAppScript() {
@@ -3776,7 +3791,22 @@ function obtenerTareasFiltradas() {
     lista = lista.filter(t => prioridadDe(t) === prioridadActiva);
   }
 
+  // Buscador: filtra por tema, responsable, ID y áreas.
+  if (busquedaActiva) {
+    lista = lista.filter(t => {
+      const txt = ((t.tema || t.titulo || '') + ' ' + (t.responsable || '') + ' ' + (t.id || '') + ' ' + (t.areas_involucradas || '')).toLowerCase();
+      return txt.indexOf(busquedaActiva) >= 0;
+    });
+  }
+
   return lista;
+}
+
+// Buscador de la barra de filtros.
+function filtrarBuscar(texto) {
+  busquedaActiva = (texto || '').trim().toLowerCase();
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
 }
 
 // Etiqueta de estatus dependiente del rol. Internamente las tareas siguen
