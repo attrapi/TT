@@ -1965,6 +1965,19 @@
   .dropzone:hover { border-color: var(--guinda); color: var(--tinta); }
   .dz-activo { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); }
 
+  /* Multi-selección de áreas (casillas tipo chip) en Nueva tarea. */
+  .areas-multi { display: flex; flex-wrap: wrap; gap: 8px; }
+  .area-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--linea); border-radius: 999px;
+    padding: 6px 13px; font-size: 12.5px; cursor: pointer;
+    background: #fff; color: var(--tinta-suave);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .area-chip:hover { border-color: var(--guinda); }
+  .area-chip input { margin: 0; accent-color: var(--guinda); }
+  .area-chip:has(input:checked) { background: var(--guinda-tenue); border-color: var(--guinda); color: var(--guinda); font-weight: 600; }
+
   .btn-liberar {
     width: 100%;
     background: var(--grafito);
@@ -5026,6 +5039,18 @@ function enviarRecordatorio(idTarea, canal) {
 
 // ============== FORMULARIO NUEVA TAREA ==============
 
+// Lista fija de áreas para el formulario de nueva tarea (multi-selección).
+// Edita este arreglo para agregar o quitar áreas; así no hay inconsistencias.
+const AREAS_DISPONIBLES = [
+  'Dirección de Procesos Administrativos de Construcción',
+  'Subdirección de Procesos Administrativos de Construcción',
+  'Subdirección de Archivo',
+  'Subdirección de Gestión de Obras Inducidas',
+  'Jefatura de Departamento de Procedimientos de Construcción',
+  'Jefatura de Departamento de Implementación de Manuales Administrativos',
+  'Enlace del Director'
+];
+
 function abrirNuevaTarea() {
   const esCapturista = usuarioActual.rol === 'Capturista';
   const subFija = esCapturista ? usuarioActual.subdireccion : '';
@@ -5075,7 +5100,10 @@ function abrirNuevaTarea() {
 
           <div class="form-campo full">
             <label>Áreas involucradas</label>
-            <input type="text" id="nt_areas" maxlength="300" placeholder="Áreas o subdirecciones involucradas">
+            <div class="areas-multi" id="nt_areas">
+              ${AREAS_DISPONIBLES.map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}">${escapeHtml(a)}</label>`).join('')}
+            </div>
+            <div class="form-hint">Marca todas las que apliquen (lista fija para mantener los datos consistentes).</div>
           </div>
 
           <div class="form-campo full">
@@ -5160,7 +5188,7 @@ function guardarNuevaTarea() {
   const sub = document.getElementById('nt_sub').value;
   const responsable = document.getElementById('nt_responsable').value.trim();
   const tema = document.getElementById('nt_tema').value.trim();
-  const areas = document.getElementById('nt_areas').value.trim();
+  const areas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value).join(', ');
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
   const accion = document.getElementById('nt_accion').value.trim();
   const fecha = document.getElementById('nt_fecha').value;
