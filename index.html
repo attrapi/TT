@@ -3336,7 +3336,7 @@ function parsearHojaSPAC(texto, nivel) {
   const get = (fila, idx) => (idx >= 0 && fila[idx] != null) ? String(fila[idx]).trim() : '';
   // Prefijo distinto por hoja para que las dos numeraciones (ambas inician en
   // 1) no colisionen al unirlas en TAREAS.
-  const prefijo = nivel === 'jefatura' ? 'SPACJ-' : 'SPAC-';
+  const prefijo = nivel === 'jefatura' ? 'JSPAC-' : 'SPAC-';
 
   const out = [];
   for (let r = filaEnc + 1; r < filas.length; r++) {

@@ -227,7 +227,7 @@ function crearTarea(token, datos) {
   var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
-  set('id', siguienteIdSheet_(valores, e, esJef ? 'SPACJ-' : 'SPAC-'));   // ID FIJO
+  set('id', siguienteIdSheet_(valores, e, esJef ? 'JSPAC-' : 'SPAC-'));   // ID FIJO
   set('responsable', datos.responsable || '');
   if (esJef) set('jefatura', datos.jefatura || '');
   set('tema', datos.tema || '');
@@ -275,7 +275,7 @@ function localizarFila_(valores, e, id) {
 // migrar las tareas existentes). Después, crear/editar/eliminar usan ese ID.
 function asignarIds() {
   var hechos = 0;
-  [{ id: CONFIG.HOJA_JEFATURAS_ID, pest: CONFIG.HOJA_JEFATURAS_PEST, pre: 'SPACJ-' },
+  [{ id: CONFIG.HOJA_JEFATURAS_ID, pest: CONFIG.HOJA_JEFATURAS_PEST, pre: 'JSPAC-' },
    { id: CONFIG.HOJA_SUBDIR_ID, pest: CONFIG.HOJA_SUBDIR_PEST, pre: 'SPAC-' }].forEach(function (h) {
     var ss = SpreadsheetApp.openById(h.id);
     var hoja = ss.getSheetByName(h.pest);
@@ -292,7 +292,7 @@ function asignarIds() {
     }
     for (var r2 = e + 1; r2 < vals.length; r2++) {
       if (!String(vals[r2][iTema] || '').trim()) continue;
-      if (/^SPACJ?-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
+      if (/^(?:JSPAC|SPACJ|SPAC)-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
       max++;
       hoja.getRange(r2 + 1, 1).setValue(h.pre + String(max).padStart(3, '0'));
       hechos++;
@@ -302,13 +302,69 @@ function asignarIds() {
   return { ok: true, asignados: hechos };
 }
 
+// Migra los IDs de jefatura al nuevo prefijo JSPAC-### y limpia sufijos viejos
+// (p. ej. "SPACJ-001.jef.procedimientos" -> "JSPAC-001"). Conserva el número
+// cuando existe. Reajusta también las hojas Estados y Bitacora para no perder el
+// avance ni el historial. Córrela UNA vez después de actualizar el código.
+function migrarIdsJefatura() {
+  var ss = SpreadsheetApp.openById(CONFIG.HOJA_JEFATURAS_ID);
+  var hoja = ss.getSheetByName(CONFIG.HOJA_JEFATURAS_PEST);
+  if (!hoja) return { ok: false, error: 'No existe la hoja de jefaturas.' };
+  var vals = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < vals.length; i++) { if (norm_(vals[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja de jefaturas.' };
+  var iTema = vals[e].map(norm_).indexOf('tema');
+
+  var mapa = {}, usados = {}, max = 0;
+  // Calcula el número máximo ya presente (para asignar los faltantes después).
+  for (var r = e + 1; r < vals.length; r++) {
+    var mm0 = String(vals[r][0] || '').trim().match(/-0*(\d+)/);
+    if (mm0) { var n0 = parseInt(mm0[1], 10); if (!isNaN(n0) && n0 > max) max = n0; }
+  }
+  var cambios = 0;
+  for (var r2 = e + 1; r2 < vals.length; r2++) {
+    if (iTema >= 0 && !String(vals[r2][iTema] || '').trim()) continue;   // fila vacía
+    var oldId = String(vals[r2][0] || '').trim();
+    var mm = oldId.match(/-0*(\d+)/);
+    var num;
+    if (mm && !usados[parseInt(mm[1], 10)]) num = parseInt(mm[1], 10);
+    else num = ++max;
+    usados[num] = true;
+    if (num > max) max = num;
+    var newId = 'JSPAC-' + String(num).padStart(3, '0');
+    if (oldId === newId) continue;                 // ya está bien
+    hoja.getRange(r2 + 1, 1).setValue(newId);
+    if (oldId) mapa[oldId] = newId;                // para reajustar Estados/Bitacora
+    cambios++;
+  }
+
+  var renEstados = renombrarEnHoja_(hojaEstados_(false), 0, mapa);    // col ID
+  var renBitacora = renombrarEnHoja_(hojaBitacora_(false), 3, mapa);  // col IdTarea
+  Logger.log('✅ Migración JSPAC: IDs=' + cambios + ', Estados=' + renEstados + ', Bitacora=' + renBitacora);
+  return { ok: true, ids: cambios, estados: renEstados, bitacora: renBitacora };
+}
+
+// Reemplaza, en la columna `colIdx` (0-based) de `hoja`, los valores presentes
+// en `mapa` (viejo -> nuevo). Devuelve cuántas celdas cambió.
+function renombrarEnHoja_(hoja, colIdx, mapa) {
+  if (!hoja) return 0;
+  var datos = hoja.getDataRange().getValues();
+  var n = 0;
+  for (var r = 1; r < datos.length; r++) {
+    var v = String(datos[r][colIdx] || '').trim();
+    if (mapa[v]) { hoja.getRange(r + 1, colIdx + 1).setValue(mapa[v]); n++; }
+  }
+  return n;
+}
+
 // Actualiza (edita) una tarea existente. Mismos permisos que eliminar.
 function actualizarTarea(token, id, datos) {
   var sesion = sesionValida_(token);
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   datos = datos || {};
   id = String(id || '').trim();
-  var esJef = id.indexOf('SPACJ-') === 0;
+  var esJef = id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
   var esSub = id.indexOf('SPAC-') === 0 && !esJef;
   if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
   if (!(sesion.rol === 'Capturista' && sesion.subdireccion === 'SPAC')) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
@@ -353,7 +409,7 @@ function eliminarTarea(token, id) {
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   id = String(id || '').trim();
 
-  var esJef = id.indexOf('SPACJ-') === 0;
+  var esJef = id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
   var esSub = id.indexOf('SPAC-') === 0 && !esJef;
   if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
 
@@ -669,15 +725,16 @@ function parsearHoja_(filas, nivel) {
       iAreas = find('areas'), iAcu = col('acuerdos realizados'), iAcc = find('accion'),
       iFecha = find('fecha'), iEst = col('estatus'), iUrl = col('url');
 
-  var out = [], prefijo = nivel === 'jefatura' ? 'SPACJ-' : 'SPAC-';
+  var out = [], prefijo = nivel === 'jefatura' ? 'JSPAC-' : 'SPAC-';
   for (var r = e + 1; r < filas.length; r++) {
     var f = filas[r];
     var tema = String(f[iTema] || '').trim();
     if (!tema) continue;
-    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / SPACJ-###);
-    // si está vacío o es un número suelto, usa el posicional como respaldo.
+    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / JSPAC-###,
+    // o el viejo SPACJ-###); si está vacío o es un número suelto, usa el
+    // posicional como respaldo.
     var idCell = String(f[0] || '').trim();
-    var id = /^SPACJ?-\d+/i.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
+    var id = /^(?:JSPAC|SPACJ|SPAC)-\d+/i.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
     var est = normEstatus_(f[iEst]);
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
