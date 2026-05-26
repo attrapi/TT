@@ -1926,6 +1926,9 @@
   .btn-pildora-archivar { background: var(--grafito); color: #fff; }
   .btn-pildora-archivar:hover { filter: brightness(1.15); }
   .btn-pildora-off { background: var(--grafito); color: #fff; opacity: 0.4; cursor: not-allowed; }
+  /* Reabrir: píldora secundaria (contorno), menos protagónica que las acciones. */
+  .btn-pildora-reabrir { background: #fff; color: var(--tinta-suave); border: 1px solid var(--linea); }
+  .btn-pildora-reabrir:hover { background: var(--crema); color: var(--tinta); border-color: var(--guinda); }
 
   .btn-liberar {
     width: 100%;
@@ -3732,6 +3735,16 @@ function usuarioPuedeFinalizar(t) {
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
+// ¿El usuario puede "Reabrir" (regresar a Identificadas)? Solo cuando la tarea
+// ya salió de Identificadas, y solo quien la gestiona: el Director (tareas no
+// jefatura) o el subdirector de esa subdirección.
+function usuarioPuedeReabrir(t) {
+  if (!usuarioActual) return false;
+  if (t.estatus === 'En Proceso') return false;   // ya está en Identificadas
+  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
+  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+}
+
 // Ordena tareas por fecha de atención ascendente (la más próxima arriba).
 // Las que no tienen fecha caen al final.
 function ordenarPorFecha(lista) {
@@ -4129,6 +4142,7 @@ function crearTarjeta(t) {
   const icoCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
   const icoCaja  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>';
   const icoReloj = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
+  const icoReabrir = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-6.5L1 10"/></svg>';
 
   // El subdirector "dueño" de una tarea de subdirección (no de jefatura): él la
   // finaliza pero NO la valida (eso lo hace el Director).
@@ -4158,6 +4172,12 @@ function crearTarjeta(t) {
     // El subdirector dueño, una vez que el Director validó, la envía a sus
     // Validadas (Gestión); sale de "Para validar".
     pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Enviar a Gestión › Validadas.">${icoCaja} Validadas</button>`;
+  }
+
+  // Reabrir: disponible para quien gestiona la tarea, una vez que salió de
+  // Identificadas. La regresa a Identificadas y limpia el avance.
+  if (usuarioPuedeReabrir(t)) {
+    pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Regresar a Identificadas.">${icoReabrir} Reabrir</button>`;
   }
 
   if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
@@ -4329,6 +4349,39 @@ function archivar(idTarea) {
   renderizar();
   if (vistaActiva === 'validadas') renderizarValidadas();
   toast('Tarea ' + idTarea + ' → ' + destino, 'ok');
+}
+
+// Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
+// (validación/finalización). Queda guardado en la hoja Estados.
+function reabrir(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!confirm('¿Reabrir la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nVolverá a "Identificadas" y se borrará su avance (validación).')) return;
+
+  const anterior = t.estatus;
+  t.estatus = 'En Proceso';
+  t.validada = false;
+  t.en_validadas = false;
+  t.finalizado_por = '';
+  t.fecha_finalizacion = '';
+  t.validado_por = '';
+  t.fecha_validacion = '';
+  t.avance = 0;
+
+  BITACORA.unshift({
+    fecha: ahoraStamp(),
+    usuario: usuarioActual.email,
+    accion: 'reabrir',
+    id_tarea: idTarea,
+    estatus_anterior: anterior,
+    estatus_nuevo: 'En Proceso'
+  });
+
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  if (vistaActiva === 'validadas') renderizarValidadas();
+  toast('Tarea ' + idTarea + ' reabierta · Identificadas', 'ok');
 }
 
 // ============== MODAL ==============
