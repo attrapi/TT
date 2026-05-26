@@ -30,6 +30,10 @@ const CONFIG = {
   // URL pública de tu index.html (GitHub Pages):
   APP_HTML_URL:         'https://attrapi.github.io/TT/index.html',
 
+  // Pestaña donde se guardan los avances (Finalizar/Validar/Validadas). Vive
+  // en el MISMO archivo que Usuarios y se crea sola en el primer guardado.
+  HOJA_ESTADOS_PEST:    'Estados',
+
   HORAS_SESION: 8
 };
 // ==========================================================================
@@ -127,7 +131,108 @@ function obtenerTareas(token) {
   if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida. Vuelve a iniciar sesión.' };
   var jef = parsearHoja_(leerHoja_(CONFIG.HOJA_JEFATURAS_ID, CONFIG.HOJA_JEFATURAS_PEST), 'jefatura');
   var sub = parsearHoja_(leerHoja_(CONFIG.HOJA_SUBDIR_ID,    CONFIG.HOJA_SUBDIR_PEST),    'subdireccion');
-  return { ok: true, tareas: jef.concat(sub) };
+  var tareas = jef.concat(sub);
+  aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
+  return { ok: true, tareas: tareas };
+}
+
+// ====================== ESTADOS (guardar avances) =========================
+// La hoja Estados vive en el mismo archivo que Usuarios.
+function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
+function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn'];
+
+function hojaEstados_(crear) {
+  var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
+  var hoja = ss.getSheetByName(estadosPestana_());
+  if (!hoja && crear) {
+    hoja = ss.insertSheet(estadosPestana_());
+    hoja.appendRow(ESTADOS_HEADERS);
+  }
+  return hoja;
+}
+
+// Guarda (o actualiza) el avance de una tarea. `e` trae el estado actual.
+function guardarEstado(token, id, e) {
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  e = e || {};
+  var hoja = hojaEstados_(true);
+  var datos = hoja.getDataRange().getValues();
+  if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
+    hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
+  }
+  var fila = [
+    id,
+    e.estatus || '',
+    e.validada ? 'Si' : '',
+    e.en_validadas ? 'Si' : '',
+    e.finalizado_por || '',
+    e.fecha_finalizacion || '',
+    e.validado_por || '',
+    e.fecha_validacion || '',
+    sesion.nombre || sesion.email || '',
+    ahoraStamp_()
+  ];
+  var rowIndex = -1;
+  for (var r = 1; r < datos.length; r++) {
+    if (String(datos[r][0]).trim() === String(id).trim()) { rowIndex = r + 1; break; }
+  }
+  if (rowIndex > 0) hoja.getRange(rowIndex, 1, 1, fila.length).setValues([fila]);
+  else hoja.appendRow(fila);
+  return { ok: true };
+}
+
+// Lee la hoja Estados como mapa { id: {estado} }.
+function leerEstados_() {
+  try {
+    var hoja = hojaEstados_(false);
+    if (!hoja) return {};
+    var datos = hoja.getDataRange().getValues();
+    if (datos.length < 2) return {};
+    var enc = datos[0].map(norm_);
+    var iId = enc.indexOf('id'), iEst = enc.indexOf('estatus'), iVal = enc.indexOf('validada'),
+        iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
+        iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion');
+    var map = {};
+    for (var r = 1; r < datos.length; r++) {
+      var f = datos[r], id = String(f[iId] || '').trim();
+      if (!id) continue;
+      map[id] = {
+        estatus: String(f[iEst] || '').trim(),
+        validada: norm_(f[iVal]) === 'si',
+        en_validadas: norm_(f[iEnV]) === 'si',
+        finalizado_por: String(f[iFp] || '').trim(),
+        fecha_finalizacion: String(f[iFf] || '').trim(),
+        validado_por: String(f[iVp] || '').trim(),
+        fecha_validacion: String(f[iFv] || '').trim()
+      };
+    }
+    return map;
+  } catch (err) { return {}; }
+}
+
+// Aplica los avances guardados sobre las tareas recién leídas de las hojas.
+function aplicarEstados_(tareas) {
+  var estados = leerEstados_();
+  tareas.forEach(function (t) {
+    var e = estados[t.id];
+    if (!e) return;
+    if (e.estatus) t.estatus = e.estatus;
+    t.validada = e.validada;
+    t.en_validadas = e.en_validadas;
+    if (e.finalizado_por) t.finalizado_por = e.finalizado_por;
+    if (e.fecha_finalizacion) t.fecha_finalizacion = e.fecha_finalizacion;
+    if (e.validado_por) t.validado_por = e.validado_por;
+    if (e.fecha_validacion) t.fecha_validacion = e.fecha_validacion;
+    t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
+  });
+}
+
+function ahoraStamp_() {
+  var a = new Date();
+  return a.getFullYear() + '-' + String(a.getMonth() + 1).padStart(2, '0') + '-' + String(a.getDate()).padStart(2, '0') +
+    ' ' + String(a.getHours()).padStart(2, '0') + ':' + String(a.getMinutes()).padStart(2, '0');
 }
 
 // ============================== HELPERS ===================================

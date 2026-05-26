@@ -3596,6 +3596,23 @@ function iniciarSesionApp(ev) {
     .iniciarSesion(usuario, contrasena);
 }
 
+// Guarda el avance de una tarea en el servidor (hoja Estados). Solo aplica en
+// modo Apps Script; en demo no hace nada. "Dispara y olvida" (avisa si falla).
+function persistirEstado(t) {
+  if (!enAppScript() || !SESION_TOKEN || !t) return;
+  google.script.run
+    .withFailureHandler(function (e) { toast('No se pudo guardar el avance: ' + (e && e.message ? e.message : e), 'error'); })
+    .guardarEstado(SESION_TOKEN, t.id, {
+      estatus: t.estatus,
+      validada: !!t.validada,
+      en_validadas: !!t.en_validadas,
+      finalizado_por: t.finalizado_por || '',
+      fecha_finalizacion: t.fecha_finalizacion || '',
+      validado_por: t.validado_por || '',
+      fecha_validacion: t.fecha_validacion || ''
+    });
+}
+
 // Trae las tareas desde el servidor (hojas privadas). Si preservar=true,
 // conserva el avance hecho en la app (validar/archivar/finalizar) por id.
 function cargarTareasAppScript(preservar) {
@@ -4015,6 +4032,7 @@ function moverTarea(idTarea, nuevoEstatus) {
     estatus_nuevo: nuevoEstatus
   });
 
+  persistirEstado(t);
   renderizar();
   toast('Tarea ' + idTarea + ': ' + anterior + ' → ' + nuevoEstatus, 'ok');
 }
@@ -4228,6 +4246,7 @@ function finalizar(idTarea, comentarios) {
   });
 
   cerrarModal();
+  persistirEstado(t);
   renderizar();
   toast('Tarea ' + idTarea + ' finalizada · enviada a Por validar', 'ok');
 }
@@ -4259,6 +4278,7 @@ function validar(idTarea) {
   });
 
   cerrarModal();
+  persistirEstado(t);
   renderizar();
   toast('Tarea ' + idTarea + ' validada', 'ok');
 }
@@ -4305,6 +4325,7 @@ function archivar(idTarea) {
   });
 
   cerrarModal();
+  persistirEstado(t);
   renderizar();
   if (vistaActiva === 'validadas') renderizarValidadas();
   toast('Tarea ' + idTarea + ' → ' + destino, 'ok');
