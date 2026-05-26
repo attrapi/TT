@@ -2674,13 +2674,36 @@
     .kpi-valor { width: 60px; height: 60px; font-size: 22px; }
   }
 
-  /* Formulario de login (modo Apps Script) */
-  .acceso-login { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
-  .acceso-login label { font-size: 12px; font-weight: 600; color: var(--tinta-suave); margin-top: 6px; }
-  .acceso-login input { padding: 10px 12px; border: 1px solid var(--linea); border-radius: 8px; font-size: 14px; font-family: var(--sans); }
-  .acceso-login input:focus { outline: none; border-color: var(--guinda); }
-  .acceso-login-error { color: var(--rojo); font-size: 12px; min-height: 16px; }
-  .acceso-login-btn { margin-top: 8px; background: var(--guinda); color: white; border: none; padding: 11px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+  /* Formulario de login (modo Apps Script) — mismo lenguaje visual que la
+     tarjeta de acceso. */
+  .acceso-login { display: flex; flex-direction: column; }
+  .acceso-login-sub { margin-bottom: 18px; }
+  .acceso-login label { margin-top: 14px; margin-bottom: 6px; }
+  .acceso-login input {
+    padding: 11px 13px;
+    border: 1px solid var(--linea);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--sans);
+    background: #fff;
+    color: var(--tinta);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .acceso-login input:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .acceso-login-error { color: var(--rojo); font-size: 12.5px; min-height: 18px; margin-top: 8px; }
+  .acceso-login-btn {
+    margin-top: 6px;
+    background: var(--guinda);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
   .acceso-login-btn:hover { background: var(--guinda-oscuro); }
   .acceso-login-btn:disabled { opacity: .6; cursor: default; }
 </style>
@@ -2707,10 +2730,12 @@
     <div class="acceso-form">
       <!-- Login real (solo cuando la app se sirve desde Apps Script) -->
       <form class="acceso-login" id="loginAppScript" style="display:none" onsubmit="iniciarSesionApp(event)">
+        <h1>Iniciar sesión</h1>
+        <p class="acceso-desc acceso-login-sub">Acceso para personal autorizado de ATTRAPI.</p>
         <label for="loginUsuario">Usuario</label>
-        <input type="text" id="loginUsuario" autocomplete="username" autocapitalize="off" required>
+        <input type="text" id="loginUsuario" autocomplete="username" autocapitalize="off" placeholder="tu usuario" required>
         <label for="loginContrasena">Contraseña</label>
-        <input type="password" id="loginContrasena" autocomplete="current-password" required>
+        <input type="password" id="loginContrasena" autocomplete="current-password" placeholder="••••••••" required>
         <div class="acceso-login-error" id="loginError"></div>
         <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
       </form>
