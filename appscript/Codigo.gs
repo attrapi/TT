@@ -55,8 +55,12 @@ function guardarConfiguracion() {
 //    permisos, incluido Drive (necesario para subir adjuntos). Acepta en el
 //    diálogo. De paso verifica que la carpeta de Drive sea accesible.
 function autorizar() {
-  var carpeta = DriveApp.getFolderById(CONFIG.DRIVE_CARPETA_ID);   // fuerza el permiso de Drive
-  Logger.log('✅ Autorizado. Carpeta de adjuntos: "' + carpeta.getName() + '"');
+  var carpeta = DriveApp.getFolderById(CONFIG.DRIVE_CARPETA_ID);
+  // Crea y borra un archivo de prueba: esto OBLIGA a pedir el permiso de
+  // ESCRITURA en Drive (subir archivos), no solo lectura.
+  var prueba = carpeta.createFile('tt_prueba_permiso.txt', 'ok', 'text/plain');
+  prueba.setTrashed(true);
+  Logger.log('✅ Autorizado (lectura y escritura). Carpeta de adjuntos: "' + carpeta.getName() + '"');
 }
 
 // CONFIG se arma leyendo las Propiedades del script (lo que guardaste arriba).
