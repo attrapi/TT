@@ -3695,14 +3695,13 @@ function obtenerTareasFiltradas() {
 // la bitácora ni la lógica), pero al usuario se le muestran nombres del
 // nuevo flujo:
 //   En Proceso  → "Identificadas"  (ambos roles)
-//   Atendida    → "Por validar"    (ambos roles)
-//   Archivada   → "Atendidas"      (subdirector/capturista)
-//                 "Validadas"      (Director)
+//   Atendida    → "Por validar"    (Director) / "Para validar" (subdirector)
+//   Archivada   → "Validadas"      (ambos roles; va a Gestión › Validadas)
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (estatus === 'En Proceso') return 'Identificadas';
   if (estatus === 'Atendida')   return esDir ? 'Por validar' : 'Para validar';
-  if (estatus === 'Archivada')  return esDir ? 'Validadas' : 'Atendidas';
+  if (estatus === 'Archivada')  return 'Validadas';
   return estatus;
 }
 
@@ -3920,10 +3919,9 @@ function actualizarConteosTabs() {
 function renderizarTablero() {
   const lista = obtenerTareasFiltradas();
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  // El Director ve 2 columnas en su tablero (Identificadas | Por validar);
-  // las validadas/archivadas salen del tablero y viven en Gestión › Validadas.
-  // Subdirectores/capturistas conservan la 3ª columna (Atendidas).
-  const cols = esDir ? ['En Proceso', 'Atendida'] : ['En Proceso', 'Atendida', 'Archivada'];
+  // Todos ven 2 columnas (Identificadas | Por/Para validar). Lo validado o
+  // archivado sale del tablero y vive en Gestión › Validadas.
+  const cols = ['En Proceso', 'Atendida'];
   const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
@@ -4157,9 +4155,9 @@ function crearTarjeta(t) {
       pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Envía la tarea a Gestión › Validadas.">${icoCaja} Validadas</button>`;
     }
   } else if (t.estatus === 'Atendida' && t.validada && esDuenoSub) {
-    // El subdirector dueño, una vez que el Director validó, la pasa a
-    // "Atendida": sale de Por validar y se archiva en su histórico.
-    pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); archivar('${t.id}')" title="Mover a Atendidas.">${icoCheck} Atendida</button>`;
+    // El subdirector dueño, una vez que el Director validó, la envía a sus
+    // Validadas (Gestión); sale de "Para validar".
+    pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Enviar a Gestión › Validadas.">${icoCaja} Validadas</button>`;
   }
 
   if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
@@ -4301,10 +4299,9 @@ function archivar(idTarea) {
     toast('Primero hay que validar la tarea', 'error');
     return;
   }
-  // Quien valida (Director, o Subdirector en jefatura) la envía a "Validadas";
-  // el subdirector dueño que marca su tarea como "Atendida" la pasa a Atendidas.
-  const destino = usuarioEsValidador(t) ? 'Validadas' : 'Atendidas';
-  if (!confirm('¿Pasar la tarea ' + idTarea + ' a ' + destino + '?\n\n"' + t.titulo + '"\n\nSaldrá de "Por validar".')) return;
+  // Todo lo archivado va a "Validadas" (Gestión); ya no existe la columna Atendidas.
+  const destino = 'Validadas';
+  if (!confirm('¿Enviar la tarea ' + idTarea + ' a ' + destino + '?\n\n"' + t.titulo + '"\n\nSaldrá de "Para validar".')) return;
 
   const stamp = ahoraStamp();
   // DESACOPLE: cuando el DIRECTOR archiva una tarea de subdirección, solo la
@@ -4402,14 +4399,14 @@ function abrirDetalle(t) {
   } else if (t.estatus === 'Atendida' && t.validada
              && usuarioActual.rol === 'Capturista'
              && usuarioActual.subdireccion === t.subdireccion && t.nivel !== 'jefatura') {
-    // Subdirector dueño: tras la validación del Director, puede pasarla a
-    // "Atendida" (sale de Por validar y se archiva en su histórico).
+    // Subdirector dueño: tras la validación del Director, la envía a sus
+    // Validadas (Gestión); sale de "Para validar".
     acciones = `
       <div class="modal-acciones">
         ${btnIcs}
         <div style="flex:1"></div>
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal btn-modal-primario" onclick="archivar('${t.id}')">✓ Atendida</button>
+        <button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Validadas</button>
       </div>
     `;
   } else {
