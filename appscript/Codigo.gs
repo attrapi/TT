@@ -35,7 +35,7 @@ function guardarConfiguracion() {
     HOJA_ESTADOS_PEST:    'Estados',
     // Carpeta de Drive donde se suben los adjuntos arrastrados (debe ser
     // accesible por esta cuenta). ID que va en la URL de la carpeta.
-    DRIVE_CARPETA_ID:     '1eG1a2hO1zs5DIdUUJxRGmRlmA3EFPDiq',
+    DRIVE_CARPETA_ID:     '1kF3hbcJMnFSceeAv8MXiYzNSA4yYhz2q',   // carpeta DPAC
     HORAS_SESION:         '8'
   };
   // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
