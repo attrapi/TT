@@ -3883,8 +3883,16 @@ function sinAcentos(s) {
 }
 
 // ¿La tarea coincide con el término (ya normalizado sin acentos)?
+// Busca en: tema, responsable, ID, áreas, acuerdos realizados y acción a tomar.
 function coincideBusqueda(t, termino) {
-  const txt = sinAcentos((t.tema || t.titulo || '') + ' ' + (t.responsable || '') + ' ' + (t.id || '') + ' ' + (t.areas_involucradas || ''));
+  const txt = sinAcentos([
+    t.tema || t.titulo || '',
+    t.responsable || '',
+    t.id || '',
+    t.areas_involucradas || '',
+    t.acuerdos_realizados || t.observaciones || '',
+    t.accion_a_tomar || t.descripcion || ''
+  ].join(' '));
   return txt.indexOf(termino) >= 0;
 }
 
