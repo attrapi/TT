@@ -67,10 +67,15 @@ function iniciarSesion(usuario, contrasena) {
     if (iAct >= 0 && norm_(f[iAct]) === 'no') return { ok: false, error: 'Usuario inactivo.' };
     if (String(f[iPass]) !== contrasena) return { ok: false, error: 'Usuario o contraseña incorrectos.' };
 
+    // Internamente solo existen 'Director' y 'Capturista'. Aceptamos los
+    // términos humanos (Subdirector, Subdirección, etc.) y los mapeamos:
+    // todo lo que no sea Director cuenta como Capturista (la pantalla mostrará
+    // "Subdirector" o "Enlace" según la subdirección).
+    var rol = (norm_(f[iRol]) === 'director') ? 'Director' : 'Capturista';
     var datos = {
       email: usuario,
       nombre: String(f[iNom] || '').trim(),
-      rol: String(f[iRol] || 'Capturista').trim(),
+      rol: rol,
       subdireccion: String(f[iSub] || '').trim().toUpperCase(),
       jefatura: iJef >= 0 ? String(f[iJef] || '').trim() : ''
     };
