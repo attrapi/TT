@@ -3435,7 +3435,7 @@ function aplicarSesion() {
   document.getElementById('app').classList.add('activa');
 
   document.getElementById('userAvatar').textContent = usuarioActual.iniciales;
-  document.getElementById('userNombre').textContent = usuarioActual.nombre;
+  document.getElementById('userNombre').textContent = formatearNombre(usuarioActual.nombre);
   // Etiqueta visual del rol que ve el usuario en el header. La lógica
   // interna sigue usando usuarioActual.rol = 'Director' / 'Capturista',
   // pero aquí mostramos un cargo más representativo.
@@ -3544,6 +3544,12 @@ function inicialesDe(nombre) {
   return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
 }
 
+// Normaliza el nombre para mostrarlo: convierte "Ing," → "Ing." (coma tras un
+// título → punto). Aplica a todos los usuarios, presentes y futuros.
+function formatearNombre(nombre) {
+  return String(nombre || '').replace(/\b(ing|lic|mtra?|mtro|dr|dra|arq|profa?|c)\s*,/gi, '$1.');
+}
+
 // Lista de usuarios cargada del servidor para las tarjetas, y el usuario
 // elegido (su "usuario" de login).
 let LOGIN_USUARIOS = [];
@@ -3560,7 +3566,7 @@ function cargarTarjetasLogin() {
         return '<button type="button" class="acceso-rol" onclick="seleccionarUsuarioLogin(' + i + ')">' +
           '<div class="acceso-rol-icon" style="' + estiloIconoLogin(u) + '">' + inicialesDe(u.nombre) + '</div>' +
           '<div class="acceso-rol-info">' +
-            '<div class="acceso-rol-nombre">' + escapeHtml(u.nombre || u.usuario) + '</div>' +
+            '<div class="acceso-rol-nombre">' + escapeHtml(formatearNombre(u.nombre || u.usuario)) + '</div>' +
             '<div class="acceso-rol-cargo">' + escapeHtml(cargoLogin(u)) + '</div>' +
           '</div></button>';
       }).join('');
@@ -3593,7 +3599,7 @@ function seleccionarUsuarioLogin(i) {
   document.getElementById('loginPaso2').style.display = '';
   document.getElementById('loginUsuarioManual').style.display = 'none';
   document.getElementById('loginUsuarioManualLbl').style.display = 'none';
-  document.getElementById('loginNombreSel').textContent = u.nombre || u.usuario;
+  document.getElementById('loginNombreSel').textContent = formatearNombre(u.nombre || u.usuario);
   document.getElementById('loginError').textContent = '';
   const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   const p = document.getElementById('loginContrasena'); p.value = ''; p.focus();
@@ -3647,7 +3653,7 @@ function iniciarSesionApp(ev) {
       const u = res.usuario;
       usuarioActual = {
         email: u.email,
-        nombre: u.nombre,
+        nombre: formatearNombre(u.nombre),
         rol: u.rol,                       // 'Director' o 'Capturista'
         subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
         jefatura: u.jefatura || '',
