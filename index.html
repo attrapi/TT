@@ -581,6 +581,7 @@
   .bitacora-accion.desarchivar { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.reabrir     { background: var(--ambar-tenue); color: var(--ambar); }
   .bitacora-accion.mover       { background: var(--grafito-tenue); color: var(--grafito); }
+  .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; }
   .bitacora-tarea {
     display: flex;
     align-items: center;
@@ -1923,6 +1924,17 @@
     color: var(--verde);
     font-style: italic;
   }
+  /* Aviso de devolución (tarea regresada con comentario). */
+  .tarjeta-devuelta-info {
+    margin-top: 10px;
+    padding: 7px 9px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #9a3412;
+    line-height: 1.4;
+  }
 
   .btn-validar {
     width: 100%;
@@ -1989,6 +2001,9 @@
   /* Reabrir: ámbar (mismo color que "Reabierta" en la Bitácora). */
   .btn-pildora-reabrir { background: var(--ambar); color: #fff; }
   .btn-pildora-reabrir:hover { filter: brightness(1.1); }
+  /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
+  .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+  .btn-pildora-devolver:hover { background: #ffedd5; }
 
   /* Zona para arrastrar adjuntos en el formulario de nueva tarea. */
   .dropzone {
@@ -3720,6 +3735,7 @@ function iniciarSesionApp(ev) {
       aplicarSesion();
       cargarTareasAppScript(false);       // primera carga de datos desde el servidor
       cargarAreas();                      // catálogo de áreas (base + agregadas)
+      cargarBitacora();                   // historial persistido
     })
     .withFailureHandler(function (e) {
       err.textContent = 'Error de conexión: ' + (e && e.message ? e.message : e);
@@ -3728,8 +3744,39 @@ function iniciarSesionApp(ev) {
     .iniciarSesion(usuario, contrasena);
 }
 
-// Guarda el avance de una tarea en el servidor (hoja Estados). Solo aplica en
-// modo Apps Script; en demo no hace nada. "Dispara y olvida" (avisa si falla).
+// Registra un movimiento en la bitácora (en memoria) y lo persiste en el Sheet
+// (hoja Bitacora) cuando hay sesión de Apps Script. "Dispara y olvida".
+// entrada: { accion, id_tarea, estatus_anterior, estatus_nuevo, comentario? }
+function registrarEnBitacora(entrada) {
+  const e = {
+    fecha: ahoraStamp(),
+    usuario: usuarioActual ? usuarioActual.email : '',
+    accion: entrada.accion || '',
+    id_tarea: entrada.id_tarea || '',
+    estatus_anterior: entrada.estatus_anterior || '',
+    estatus_nuevo: entrada.estatus_nuevo || '',
+    comentario: entrada.comentario || ''
+  };
+  BITACORA.unshift(e);
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run.withFailureHandler(function () {}).registrarBitacora(SESION_TOKEN, e);
+  }
+}
+
+// Carga la bitácora persistida desde el servidor (al iniciar sesión).
+function cargarBitacora() {
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && res.bitacora) {
+        BITACORA.length = 0;
+        res.bitacora.forEach(function (b) { BITACORA.push(b); });
+        if (vistaActiva === 'bitacora') renderizarBitacora();
+      }
+    })
+    .obtenerBitacora(SESION_TOKEN);
+}
+
 function persistirEstado(t) {
   if (!enAppScript() || !SESION_TOKEN || !t) return;
   google.script.run
@@ -3741,7 +3788,8 @@ function persistirEstado(t) {
       finalizado_por: t.finalizado_por || '',
       fecha_finalizacion: t.fecha_finalizacion || '',
       validado_por: t.validado_por || '',
-      fecha_validacion: t.fecha_validacion || ''
+      fecha_validacion: t.fecha_validacion || '',
+      comentario_devolucion: t.comentario_devolucion || ''
     });
 }
 
@@ -3765,6 +3813,7 @@ function cargarTareasAppScript(preservar) {
           n.finalizado_por = p.finalizado_por;
           n.fecha_finalizacion = p.fecha_finalizacion;
           n.comentarios_director = p.comentarios_director;
+          n.comentario_devolucion = p.comentario_devolucion;
           n.en_validadas = p.en_validadas;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
@@ -4202,14 +4251,7 @@ function moverTarea(idTarea, nuevoEstatus) {
   else if (nuevoEstatus === 'En Proceso' && anterior === 'Archivada') accion = 'reabrir';
   else accion = 'mover';
 
-  BITACORA.unshift({
-    fecha: stamp,
-    usuario: usuarioActual.email,
-    accion,
-    id_tarea: idTarea,
-    estatus_anterior: anterior,
-    estatus_nuevo: nuevoEstatus
-  });
+  registrarEnBitacora({ accion: accion, id_tarea: idTarea, estatus_anterior: anterior, estatus_nuevo: nuevoEstatus });
 
   persistirEstado(t);
   renderizar();
@@ -4292,6 +4334,12 @@ function crearTarjeta(t) {
     ` : ''}
   `;
 
+  // Aviso de devolución: si la tarea fue regresada al responsable con un
+  // comentario, lo mostramos mientras siga en Identificadas (En Proceso).
+  if (t.estatus === 'En Proceso' && t.comentario_devolucion) {
+    html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
+  }
+
   // Sello al pie: quién finalizó (el RESPONSABLE que viene del Excel, no el
   // usuario que pulsó el botón) y, una vez validada, quién la validó.
   if (t.estatus === 'Atendida' || t.estatus === 'Archivada') {
@@ -4316,6 +4364,7 @@ function crearTarjeta(t) {
   const icoCaja  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>';
   const icoReloj = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
   const icoReabrir = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-6.5L1 10"/></svg>';
+  const icoDevolver = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
 
   // El subdirector "dueño" de una tarea de subdirección (no de jefatura): él la
   // finaliza pero NO la valida (eso lo hace el Director).
@@ -4337,6 +4386,7 @@ function crearTarjeta(t) {
     // Validadas (en_validadas), no se muestran botones (queda en su histórico).
     if (!t.validada) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
+      pills += `<button class="btn-pildora btn-pildora-devolver" onclick="event.stopPropagation(); devolver('${t.id}')" title="Regresar al responsable con un comentario.">${icoDevolver} Devolver</button>`;
       pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para enviarla a Validadas.">${icoCaja} Validadas</button>`;
     } else {
       pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Envía la tarea a Gestión › Validadas.">${icoCaja} Validadas</button>`;
@@ -4428,16 +4478,10 @@ function finalizar(idTarea, comentarios) {
   t.finalizado_por = usuarioActual.nombre;
   t.fecha_finalizacion = stamp;
   t.validada = false;
+  t.comentario_devolucion = '';   // ya se atendió la devolución
   if (comentarios) t.comentarios_director = comentarios;
 
-  BITACORA.unshift({
-    fecha: stamp,
-    usuario: usuarioActual.email,
-    accion: 'finalizar',
-    id_tarea: idTarea,
-    estatus_anterior: 'En Proceso',
-    estatus_nuevo: 'Atendida'
-  });
+  registrarEnBitacora({ accion: 'finalizar', id_tarea: idTarea, estatus_anterior: 'En Proceso', estatus_nuevo: 'Atendida' });
 
   cerrarModal();
   persistirEstado(t);
@@ -4462,14 +4506,7 @@ function validar(idTarea) {
   t.validado_por = usuarioActual.nombre;
   t.fecha_validacion = stamp;
 
-  BITACORA.unshift({
-    fecha: stamp,
-    usuario: usuarioActual.email,
-    accion: 'validar',
-    id_tarea: idTarea,
-    estatus_anterior: 'Atendida',
-    estatus_nuevo: 'Atendida'
-  });
+  registrarEnBitacora({ accion: 'validar', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Atendida' });
 
   cerrarModal();
   persistirEstado(t);
@@ -4508,20 +4545,41 @@ function archivar(idTarea) {
     t.estatus = 'Archivada';
   }
 
-  BITACORA.unshift({
-    fecha: stamp,
-    usuario: usuarioActual.email,
-    accion: 'archivar',
-    id_tarea: idTarea,
-    estatus_anterior: 'Atendida',
-    estatus_nuevo: destino
-  });
+  registrarEnBitacora({ accion: 'archivar', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: destino });
 
   cerrarModal();
   persistirEstado(t);
   renderizar();
   if (vistaActiva === 'validadas') renderizarValidadas();
   toast('Tarea ' + idTarea + ' → ' + destino, 'ok');
+}
+
+// Devolver: el validador regresa la tarea a "Identificadas" con un comentario
+// (rechazo / corrección). El comentario queda en el historial.
+function devolver(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (t.estatus !== 'Atendida' || !usuarioEsValidador(t)) { toast('Solo se puede devolver una tarea Por validar.', 'error'); return; }
+  const comentario = prompt('Motivo / comentario de la devolución (lo verá el responsable):', '');
+  if (comentario === null) return;             // canceló
+  if (!comentario.trim()) { toast('Escribe un comentario para devolver.', 'error'); return; }
+
+  t.estatus = 'En Proceso';
+  t.validada = false;
+  t.en_validadas = false;
+  t.finalizado_por = '';
+  t.fecha_finalizacion = '';
+  t.validado_por = '';
+  t.fecha_validacion = '';
+  t.comentario_devolucion = comentario.trim();
+  t.avance = 0;
+
+  registrarEnBitacora({ accion: 'devolver', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'En Proceso', comentario: comentario.trim() });
+
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  toast('Tarea ' + idTarea + ' devuelta a Identificadas', 'ok');
 }
 
 // Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
@@ -4541,14 +4599,7 @@ function reabrir(idTarea) {
   t.fecha_validacion = '';
   t.avance = 0;
 
-  BITACORA.unshift({
-    fecha: ahoraStamp(),
-    usuario: usuarioActual.email,
-    accion: 'reabrir',
-    id_tarea: idTarea,
-    estatus_anterior: anterior,
-    estatus_nuevo: 'En Proceso'
-  });
+  registrarEnBitacora({ accion: 'reabrir', id_tarea: idTarea, estatus_anterior: anterior, estatus_nuevo: 'En Proceso' });
 
   cerrarModal();
   persistirEstado(t);
@@ -4641,6 +4692,9 @@ function abrirDetalle(t) {
     const btnValidar = t.validada
       ? ''
       : `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
+    const btnDevolver = t.validada
+      ? ''
+      : `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`;
     const btnArchivar = t.validada
       ? `<button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Validadas</button>`
       : `<button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Primero valida la tarea.">📦 Validadas</button>`;
@@ -4649,6 +4703,7 @@ function abrirDetalle(t) {
         ${btnIcs}
         <div style="flex:1"></div>
         <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+        ${btnDevolver}
         ${btnValidar}
         ${btnArchivar}
       </div>
@@ -4720,6 +4775,15 @@ function abrirDetalle(t) {
         ` : ''}
       </dl>
 
+      ${(t.estatus === 'En Proceso' && t.comentario_devolucion) ? `
+        <div class="modal-seccion">
+          <div class="modal-seccion-titulo">Devuelta para corrección</div>
+          <div class="modal-comentarios" style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px; border-radius:8px;">
+            ↩ ${escapeHtml(t.comentario_devolucion)}
+          </div>
+        </div>
+      ` : ''}
+
       ${(t.estatus === 'Atendida' || t.estatus === 'Archivada') ? `
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Validación</div>
@@ -4740,7 +4804,7 @@ function abrirDetalle(t) {
             ${bitacoraTarea.map(b => `
               <div class="bitacora-item">
                 <span class="bitacora-fecha">${b.fecha}</span>
-                <span><strong>${b.accion}</strong> · ${b.usuario.split('@')[0]} · ${b.estatus_anterior} → ${b.estatus_nuevo}</span>
+                <span><strong>${b.accion}</strong> · ${(b.usuario || '').split('@')[0]} · ${b.estatus_anterior} → ${b.estatus_nuevo}${b.comentario ? '<br><span class="bitacora-comentario">“' + escapeHtml(b.comentario) + '”</span>' : ''}</span>
               </div>
             `).join('')}
           </div>
@@ -5387,7 +5451,7 @@ function guardarNuevaTarea() {
         url: url, validado_por: '', fecha_validacion: '', comentarios_director: ''
       };
       TAREAS.push(nueva);
-      BITACORA.unshift({ fecha: ahoraStamp(), usuario: usuarioActual.email, accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
+      registrarEnBitacora({ accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
       cerrarModal(); renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
@@ -5608,6 +5672,7 @@ function renderizarBitacora() {
             <span>${etiquetaEstatus(b.estatus_nuevo)}</span>
           </div>
           <div class="bitacora-usuario">${b.usuario}</div>
+          ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
         </div>
       </div>
     `;

@@ -470,7 +470,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -491,6 +491,10 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
+  } else if (datos[0].map(norm_).indexOf('comentario') === -1) {
+    // Hoja creada antes de agregar la columna Comentario: repara el encabezado.
+    hoja.getRange(1, 1, 1, ESTADOS_HEADERS.length).setValues([ESTADOS_HEADERS]);
+    datos[0] = ESTADOS_HEADERS;
   }
   var fila = [
     id,
@@ -502,7 +506,8 @@ function guardarEstado(token, id, e) {
     e.validado_por || '',
     e.fecha_validacion || '',
     sesion.nombre || sesion.email || '',
-    ahoraStamp_()
+    ahoraStamp_(),
+    e.comentario_devolucion || ''
   ];
   var rowIndex = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -523,7 +528,7 @@ function leerEstados_() {
     var enc = datos[0].map(norm_);
     var iId = enc.indexOf('id'), iEst = enc.indexOf('estatus'), iVal = enc.indexOf('validada'),
         iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
-        iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion');
+        iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -535,7 +540,8 @@ function leerEstados_() {
         finalizado_por: String(f[iFp] || '').trim(),
         fecha_finalizacion: String(f[iFf] || '').trim(),
         validado_por: String(f[iVp] || '').trim(),
-        fecha_validacion: String(f[iFv] || '').trim()
+        fecha_validacion: String(f[iFv] || '').trim(),
+        comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : ''
       };
     }
     return map;
@@ -555,6 +561,7 @@ function aplicarEstados_(tareas) {
     if (e.fecha_finalizacion) t.fecha_finalizacion = e.fecha_finalizacion;
     if (e.validado_por) t.validado_por = e.validado_por;
     if (e.fecha_validacion) t.fecha_validacion = e.fecha_validacion;
+    t.comentario_devolucion = e.comentario_devolucion || '';
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
 }
@@ -563,6 +570,53 @@ function ahoraStamp_() {
   var a = new Date();
   return a.getFullYear() + '-' + String(a.getMonth() + 1).padStart(2, '0') + '-' + String(a.getDate()).padStart(2, '0') +
     ' ' + String(a.getHours()).padStart(2, '0') + ':' + String(a.getMinutes()).padStart(2, '0');
+}
+
+// ====================== BITÁCORA (persistente) ===========================
+// Vive en el mismo archivo que Usuarios, pestaña "Bitacora".
+var BITACORA_HEADERS = ['Fecha', 'Usuario', 'Accion', 'IdTarea', 'EstatusAnterior', 'EstatusNuevo', 'Comentario'];
+
+function hojaBitacora_(crear) {
+  var ss = SpreadsheetApp.openById(CONFIG.HOJA_USUARIOS_ID);
+  var hoja = ss.getSheetByName('Bitacora');
+  if (!hoja && crear) { hoja = ss.insertSheet('Bitacora'); hoja.appendRow(BITACORA_HEADERS); }
+  return hoja;
+}
+
+// Agrega un movimiento a la bitácora.
+function registrarBitacora(token, ent) {
+  if (!sesionValida_(token)) return { ok: false };
+  ent = ent || {};
+  var hoja = hojaBitacora_(true);
+  hoja.appendRow([
+    ent.fecha || ahoraStamp_(), ent.usuario || '', ent.accion || '', ent.id_tarea || '',
+    ent.estatus_anterior || '', ent.estatus_nuevo || '', ent.comentario || ''
+  ]);
+  return { ok: true };
+}
+
+// Devuelve la bitácora (más reciente primero) para la vista y el historial.
+function obtenerBitacora(token) {
+  if (!sesionValida_(token)) return { ok: false, bitacora: [] };
+  var hoja = hojaBitacora_(false);
+  if (!hoja) return { ok: true, bitacora: [] };
+  var datos = hoja.getDataRange().getValues();
+  if (datos.length < 2) return { ok: true, bitacora: [] };
+  var enc = datos[0].map(norm_);
+  var iF = enc.indexOf('fecha'), iU = enc.indexOf('usuario'), iA = enc.indexOf('accion'),
+      iId = enc.indexOf('idtarea'), iEa = enc.indexOf('estatusanterior'), iEn = enc.indexOf('estatusnuevo'),
+      iC = enc.indexOf('comentario');
+  var out = [];
+  for (var r = 1; r < datos.length; r++) {
+    var f = datos[r];
+    if (!String(f[iF] || '').trim() && !String(f[iId] || '').trim()) continue;
+    out.push({
+      fecha: String(f[iF] || ''), usuario: String(f[iU] || ''), accion: String(f[iA] || ''),
+      id_tarea: String(f[iId] || ''), estatus_anterior: String(f[iEa] || ''),
+      estatus_nuevo: String(f[iEn] || ''), comentario: String(iC >= 0 ? f[iC] || '' : '')
+    });
+  }
+  return { ok: true, bitacora: out.reverse() };   // más reciente primero
 }
 
 // ============================== HELPERS ===================================
