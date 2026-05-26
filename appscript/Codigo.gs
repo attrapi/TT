@@ -21,7 +21,7 @@
 //    re-pegar este código las veces que quieras y los IDs NO se borran.
 //    Solo vuelve a correrla si quieres CAMBIAR algún dato.
 function guardarConfiguracion() {
-  PropertiesService.getScriptProperties().setProperties({
+  var valores = {
     HOJA_JEFATURAS_ID:    'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_JEFATURAS',
     HOJA_JEFATURAS_PEST:  'Jefaturas',   // nombre exacto de la pestaña
 
@@ -37,8 +37,18 @@ function guardarConfiguracion() {
     // accesible por esta cuenta). ID que va en la URL de la carpeta.
     DRIVE_CARPETA_ID:     '1eG1a2hO1zs5DIdUUJxRGmRlmA3EFPDiq',
     HORAS_SESION:         '8'
+  };
+  // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
+  // configuración ya existente. Así re-correr esta función es seguro.
+  var p = PropertiesService.getScriptProperties();
+  var aplicados = [];
+  Object.keys(valores).forEach(function (k) {
+    var v = String(valores[k]);
+    if (v.indexOf('PEGA_AQUI') === 0) return;   // placeholder sin llenar → no tocar
+    p.setProperty(k, v);
+    aplicados.push(k);
   });
-  Logger.log('✅ Configuración guardada en Propiedades del script.');
+  Logger.log('✅ Guardado: ' + aplicados.join(', '));
 }
 
 // CONFIG se arma leyendo las Propiedades del script (lo que guardaste arriba).
