@@ -42,14 +42,18 @@ Anota el **ID** de ese archivo (de la URL: `.../spreadsheets/d/`**`ESTE_ID`**`/e
 
 ---
 
-## Paso 3 — Crear el proyecto de Apps Script
+## Paso 3 — Crear el proyecto de Apps Script y guardar la configuración
 
 1. Entra a <https://script.google.com> → **Nuevo proyecto**.
 2. Borra lo que traiga y **pega** el contenido de `Codigo.gs` (este repo).
-3. Arriba, en `CONFIG`, rellena los **IDs** y los **nombres de pestaña** del
-   Paso 1 y 2. Verifica que `APP_HTML_URL` apunte a tu página
-   (`https://attrapi.github.io/TT/index.html`).
-4. Guarda (💾).
+3. Hasta arriba está la función **`guardarConfiguracion()`**. Ahí pon tus
+   **IDs** y **nombres de pestaña** (Paso 1 y 2), reemplazando los textos
+   `PEGA_AQUI...`.
+4. Guarda (💾). Arriba, en el selector de función, elige
+   **`guardarConfiguracion`** y pulsa **Ejecutar ▶** (autoriza si lo pide).
+   - Esto guarda los datos en las **Propiedades del script**.
+   - 🎉 A partir de aquí, **re-pegar el código ya NO borra los IDs**. Solo
+     vuelve a correr `guardarConfiguracion` si quieres **cambiar** algún dato.
 
 ---
 

@@ -15,27 +15,46 @@
  */
 
 // ====================== CONFIGURACIÓN (rellena esto) ======================
-const CONFIG = {
-  // ID del archivo de cada hoja. Lo sacas de la URL normal del Sheet:
-  //   https://docs.google.com/spreadsheets/d/ESTE_ES_EL_ID/edit
-  HOJA_JEFATURAS_ID:    'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_JEFATURAS',
-  HOJA_JEFATURAS_PEST:  'Hoja 1',   // nombre exacto de la pestaña
+// ⚙️ PASO ÚNICO: pon aquí tus datos y CORRE esta función una sola vez
+//    (selecciona "guardarConfiguracion" arriba y pulsa Ejecutar ▶).
+//    Queda guardada en las Propiedades del script. A partir de ahí puedes
+//    re-pegar este código las veces que quieras y los IDs NO se borran.
+//    Solo vuelve a correrla si quieres CAMBIAR algún dato.
+function guardarConfiguracion() {
+  PropertiesService.getScriptProperties().setProperties({
+    HOJA_JEFATURAS_ID:    'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_JEFATURAS',
+    HOJA_JEFATURAS_PEST:  'Jefaturas',   // nombre exacto de la pestaña
 
-  HOJA_SUBDIR_ID:       'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_SUBDIRECCION',
-  HOJA_SUBDIR_PEST:     'Hoja 1',
+    HOJA_SUBDIR_ID:       'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_SUBDIRECCION',
+    HOJA_SUBDIR_PEST:     'SPAC',
 
-  HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
-  HOJA_USUARIOS_PEST:   'Usuarios',
+    HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
+    HOJA_USUARIOS_PEST:   'Usuarios',
 
-  // URL pública de tu index.html (GitHub Pages):
-  APP_HTML_URL:         'https://attrapi.github.io/TT/index.html',
+    APP_HTML_URL:         'https://attrapi.github.io/TT/index.html',
+    HOJA_ESTADOS_PEST:    'Estados',
+    HORAS_SESION:         '8'
+  });
+  Logger.log('✅ Configuración guardada en Propiedades del script.');
+}
 
-  // Pestaña donde se guardan los avances (Finalizar/Validar/Validadas). Vive
-  // en el MISMO archivo que Usuarios y se crea sola en el primer guardado.
-  HOJA_ESTADOS_PEST:    'Estados',
-
-  HORAS_SESION: 8
-};
+// CONFIG se arma leyendo las Propiedades del script (lo que guardaste arriba).
+// Así el código no contiene los IDs y re-pegarlo nunca los borra.
+const CONFIG = (function () {
+  var p = PropertiesService.getScriptProperties();
+  function g(k, def) { var v = p.getProperty(k); return (v === null || v === '') ? (def || '') : v; }
+  return {
+    HOJA_JEFATURAS_ID:   g('HOJA_JEFATURAS_ID'),
+    HOJA_JEFATURAS_PEST: g('HOJA_JEFATURAS_PEST', 'Jefaturas'),
+    HOJA_SUBDIR_ID:      g('HOJA_SUBDIR_ID'),
+    HOJA_SUBDIR_PEST:    g('HOJA_SUBDIR_PEST', 'SPAC'),
+    HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
+    HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
+    APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
+    HOJA_ESTADOS_PEST:   g('HOJA_ESTADOS_PEST', 'Estados'),
+    HORAS_SESION:        Number(g('HORAS_SESION', '8'))
+  };
+})();
 // ==========================================================================
 
 function doGet() {
