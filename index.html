@@ -938,6 +938,27 @@
 
   .nav-salir:hover { background: white; color: var(--guinda); }
 
+  /* Botón Actualizar del header: refresca los datos sin recargar la página
+     (evita perder la sesión y volver al login). */
+  .nav-actualizar {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .nav-actualizar:hover { background: white; color: var(--guinda); }
+  .nav-actualizar:disabled { opacity: 0.6; cursor: wait; }
+  .nav-actualizar svg { width: 14px; height: 14px; }
+  .nav-actualizar.sincronizando svg { animation: spin-actualizar 0.8s linear infinite; }
+
   /* === SUBHEADER === */
   .subheader {
     background: white;
@@ -2841,6 +2862,10 @@
             <span class="nav-usuario-rol" id="userRol">Director</span>
           </div>
         </div>
+        <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Actualizar datos sin salir de la sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+          <span>Actualizar</span>
+        </button>
         <button class="nav-salir" onclick="salir()">Salir</button>
       </div>
     </div>
@@ -2900,10 +2925,22 @@
 
       <div class="sidebar-grupo" id="sidebarGrupoDirector">
         <div class="sidebar-grupo-titulo">Gestión</div>
-        <button class="sidebar-item" data-vista="validadas" onclick="cambiarVista('validadas')">
+        <!-- Validadas general (Director y subdirecciones sin jefaturas) -->
+        <button class="sidebar-item" id="navValidadas" data-vista="validadas" data-valfiltro="null" onclick="verValidadas(null)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span class="sidebar-label">Validadas</span>
           <span class="sidebar-conteo" id="sidebarConteoValidadas">0</span>
+        </button>
+        <!-- Validadas separadas (solo SPAC, que tiene jefaturas) -->
+        <button class="sidebar-item" id="navValidadasSub" data-vista="validadas" data-valfiltro="subdireccion" onclick="verValidadas('subdireccion')" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="sidebar-label">Validadas · Subdirección</span>
+          <span class="sidebar-conteo" id="contValSub">0</span>
+        </button>
+        <button class="sidebar-item" id="navValidadasJef" data-vista="validadas" data-valfiltro="jefatura" onclick="verValidadas('jefatura')" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="sidebar-label">Validadas · Jefaturas</span>
+          <span class="sidebar-conteo" id="contValJef">0</span>
         </button>
         <button class="sidebar-item" data-vista="bitacora" onclick="cambiarVista('bitacora')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
@@ -3055,7 +3092,7 @@
   <!-- Vista: Validadas (histórico de tareas validadas y archivadas por el Director) -->
   <div class="validadas-wrap" id="validadasWrap">
     <div class="bitacora-titulo-fila">
-      <h2>Tareas Validadas</h2>
+      <h2 id="validadasTitulo">Tareas Validadas</h2>
       <span class="bitacora-meta" id="validadasMeta">0 tareas</span>
     </div>
     <div class="validadas-grid" id="validadasGrid"></div>
@@ -3341,10 +3378,10 @@ async function sincronizarSPAC() {
 // (que es la fuente "viva" de las tareas SPAC) y re-renderiza la vista
 // actual sin tocar la sesión.
 async function actualizarDatos() {
-  const btn = document.getElementById('btnActualizar');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
-  btn.classList.add('sincronizando');
+  // Puede dispararse desde el botón del header (navActualizar) o el de filtros.
+  const btns = [document.getElementById('navActualizar'), document.getElementById('btnActualizar')].filter(Boolean);
+  if (btns.some(b => b.disabled)) return;
+  btns.forEach(b => { b.disabled = true; b.classList.add('sincronizando'); });
   try {
     if (enAppScript()) {
       cargarTareasAppScript(true);     // recarga desde el servidor (conserva avance local)
@@ -3356,8 +3393,7 @@ async function actualizarDatos() {
   } catch (err) {
     toast('No se pudo actualizar', 'error');
   } finally {
-    btn.classList.remove('sincronizando');
-    btn.disabled = false;
+    btns.forEach(b => { b.disabled = false; b.classList.remove('sincronizando'); });
   }
 }
 
@@ -3377,6 +3413,7 @@ let tareaAbierta = null;
 let vistaActiva = 'tablero';
 let calMesActual = new Date();
 let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Script)
+let validadasFiltro = null;  // null=todas | 'subdireccion' | 'jefatura' (vista Validadas)
 
 // ¿La app está siendo servida por Google Apps Script? (entonces hay login real)
 function enAppScript() {
@@ -3456,6 +3493,17 @@ function aplicarSesion() {
 
     tabActiva = usuarioActual.subdireccion;
   }
+
+  // Validadas: SPAC (que tiene jefaturas) usa dos items separados
+  // (Subdirección / Jefaturas); el Director y las demás subdirecciones, uno.
+  const esSPAC = usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'SPAC';
+  const vGen = document.getElementById('navValidadas');
+  const vSub = document.getElementById('navValidadasSub');
+  const vJef = document.getElementById('navValidadasJef');
+  if (vGen) vGen.style.display = esSPAC ? 'none' : '';
+  if (vSub) vSub.style.display = esSPAC ? '' : 'none';
+  if (vJef) vJef.style.display = esSPAC ? '' : 'none';
+  validadasFiltro = esSPAC ? 'subdireccion' : null;
 
   cambiarTab(tabActiva);
 }
@@ -3921,13 +3969,20 @@ function actualizarConteosTabs() {
   if (cjp) cjp.textContent = enProcJef('PROCEDIMIENTOS');
   if (cjm) cjm.textContent = enProcJef('MANUALES');
 
-  // Conteo del item Validadas (Gestión): para el Director, todas las
-  // archivadas no-jefatura; para el Subdirector, las de su subdirección.
+  // Conteos de Validadas. Item general (Director / subdirecciones sin jefaturas)
+  // y los dos separados de SPAC (Subdirección / Jefaturas).
   const contVal = document.getElementById('sidebarConteoValidadas');
   if (contVal) {
     contVal.textContent = usuarioActual.rol === 'Director'
       ? TAREAS.filter(t => t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada')).length
       : TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion).length;
+  }
+  if (usuarioActual.rol === 'Capturista') {
+    const miSub = usuarioActual.subdireccion;
+    const cvs = document.getElementById('contValSub');
+    const cvj = document.getElementById('contValJef');
+    if (cvs) cvs.textContent = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === miSub && t.nivel !== 'jefatura').length;
+    if (cvj) cvj.textContent = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === miSub && t.nivel === 'jefatura').length;
   }
 
   if (usuarioActual.rol === 'Capturista') {
@@ -4717,9 +4772,20 @@ function renderizarReportes() {
 // Vista Validadas (Gestión, sólo Director): histórico de tareas archivadas
 // tras la validación. Reutiliza las tarjetas del tablero (que en estado
 // Archivada no muestran botones de acción).
+// Cambia a la vista Validadas aplicando un filtro (null=todas / 'subdireccion'
+// / 'jefatura') y resalta el item de menú correspondiente.
+function verValidadas(filtro) {
+  validadasFiltro = filtro;
+  cambiarVista('validadas');   // muestra el wrap y llama a renderizarValidadas
+  document.querySelectorAll('.sidebar-item[data-vista="validadas"]').forEach(b => {
+    b.classList.toggle('activa', b.dataset.valfiltro === String(filtro));
+  });
+}
+
 function renderizarValidadas() {
   const grid = document.getElementById('validadasGrid');
   const meta = document.getElementById('validadasMeta');
+  const titulo = document.getElementById('validadasTitulo');
   if (!grid) return;
 
   let lista;
@@ -4729,11 +4795,19 @@ function renderizarValidadas() {
     lista = TAREAS.filter(t => t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada'));
     if (tabActiva && tabActiva !== 'TODAS') lista = lista.filter(t => t.subdireccion === tabActiva);
   } else {
-    // Subdirector: las archivadas de SU subdirección (jefaturas + propias).
+    // Subdirector: archivadas de SU subdirección, separadas por origen según
+    // el item de menú elegido (Subdirección vs Jefaturas).
     lista = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion);
+    if (validadasFiltro === 'subdireccion') lista = lista.filter(t => t.nivel !== 'jefatura');
+    else if (validadasFiltro === 'jefatura') lista = lista.filter(t => t.nivel === 'jefatura');
   }
   lista = ordenarPorFecha(lista);
 
+  if (titulo) {
+    titulo.textContent = validadasFiltro === 'subdireccion' ? 'Validadas · Subdirección'
+      : validadasFiltro === 'jefatura' ? 'Validadas · Jefaturas'
+      : 'Tareas Validadas';
+  }
   if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
 
   grid.innerHTML = '';
