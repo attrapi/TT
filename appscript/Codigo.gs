@@ -242,6 +242,45 @@ function crearTarea(token, datos) {
   return { ok: true };
 }
 
+// Elimina una tarea (borra su fila del Sheet). Permisos:
+//   • Tarea de jefatura (SPACJ-): solo el Subdirector de SPAC.
+//   • Tarea de subdirección (SPAC-): el Director o el Subdirector de SPAC.
+// El ID es posicional (SPAC-003 = 3ª fila de datos), así se localiza la fila.
+function eliminarTarea(token, id) {
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  id = String(id || '').trim();
+
+  var esJef = id.indexOf('SPACJ-') === 0;
+  var esSub = id.indexOf('SPAC-') === 0 && !esJef;
+  if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
+
+  var taskSub = 'SPAC';
+  var permitido = esJef
+    ? (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub)
+    : (sesion.rol === 'Director' || (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub));
+  if (!permitido) return { ok: false, error: 'No tienes permiso para eliminar esta tarea.' };
+
+  var sheetId = esJef ? CONFIG.HOJA_JEFATURAS_ID : CONFIG.HOJA_SUBDIR_ID;
+  var sheetPest = esJef ? CONFIG.HOJA_JEFATURAS_PEST : CONFIG.HOJA_SUBDIR_PEST;
+  var ss = SpreadsheetApp.openById(sheetId);
+  var hoja = ss.getSheetByName(sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
+
+  var valores = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID).' };
+
+  var num = parseInt(id.replace(esJef ? 'SPACJ-' : 'SPAC-', ''), 10);
+  if (!num) return { ok: false, error: 'ID inválido.' };
+  var filaSheet = e + num + 1;   // fila 1-based en la hoja (encabezado en e+1)
+  if (filaSheet <= e + 1 || filaSheet > hoja.getLastRow()) return { ok: false, error: 'No se encontró la fila de la tarea.' };
+
+  hoja.deleteRow(filaSheet);
+  return { ok: true };
+}
+
 // ====================== ÁREAS (catálogo) =================================
 // Lista base de áreas + las extra que se vayan agregando (hoja "Areas").
 var AREAS_BASE = [

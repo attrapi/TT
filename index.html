@@ -1650,7 +1650,29 @@
     cursor: pointer;
     transition: all 0.15s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    position: relative;
   }
+
+  /* Botón eliminar (papelera) en la esquina superior derecha de la tarjeta. */
+  .tarjeta-eliminar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    color: var(--tinta-suave);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: all 0.15s;
+  }
+  .tarjeta-eliminar svg { width: 15px; height: 15px; }
+  .tarjeta-eliminar:hover { opacity: 1; background: #FEE2E2; border-color: var(--rojo); color: var(--rojo); }
 
   .tarjeta:hover {
     border-color: var(--tinta-tenue);
@@ -3853,6 +3875,15 @@ function usuarioPuedeFinalizar(t) {
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
+// ¿El usuario puede ELIMINAR esta tarea?
+//   • Director: cualquier tarea que NO sea de jefatura (DPAC/subdirecciones/Enlace).
+//   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
+function usuarioPuedeEliminar(t) {
+  if (!usuarioActual) return false;
+  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
+  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+}
+
 // ¿El usuario puede "Reabrir" (regresar a Identificadas)? SOLO en Gestión →
 // Validadas (tareas ya archivadas/validadas), no en "Para validar" ni en el
 // tablero. Y solo quien la gestiona.
@@ -4222,7 +4253,15 @@ function crearTarjeta(t) {
     ? (t.jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos')
     : t.subdireccion;
 
+  // Botón eliminar (papelera) arriba a la derecha, según permisos.
+  const btnEliminar = usuarioPuedeEliminar(t)
+    ? `<button class="tarjeta-eliminar" onclick="event.stopPropagation(); eliminarTarea('${t.id}')" title="Eliminar tarea">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+       </button>`
+    : '';
+
   let html = `
+    ${btnEliminar}
     ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}
     <div class="tarjeta-id">${t.id} · ${etiquetaSub}</div>
     <dl class="tarjeta-campos">
@@ -4512,6 +4551,34 @@ function reabrir(idTarea) {
   renderizar();
   if (vistaActiva === 'validadas') renderizarValidadas();
   toast('Tarea ' + idTarea + ' reabierta · Identificadas', 'ok');
+}
+
+// Elimina la tarea: la borra del Excel (Apps Script) y del tablero.
+function eliminarTarea(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso para eliminar esta tarea.', 'error'); return; }
+  if (!confirm('¿ELIMINAR la tarea ' + idTarea + '?\n\n"' + (t.tema || t.titulo) + '"\n\nSe borrará del Excel. Esta acción no se puede deshacer.')) return;
+
+  if (enAppScript()) {
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar', 'error'); return; }
+        cargarTareasAppScript(false);   // recarga (los IDs posicionales se recalculan)
+        toast('Tarea ' + idTarea + ' eliminada del Excel', 'ok');
+      })
+      .withFailureHandler(function (e) { toast('Error al eliminar: ' + (e && e.message ? e.message : e), 'error'); })
+      .eliminarTarea(SESION_TOKEN, idTarea);
+    return;
+  }
+
+  // Demo: solo en pantalla.
+  const i = TAREAS.indexOf(t);
+  if (i >= 0) TAREAS.splice(i, 1);
+  cerrarModal();
+  renderizar();
+  if (vistaActiva === 'validadas') renderizarValidadas();
+  toast('Tarea ' + idTarea + ' eliminada (demo)', 'ok');
 }
 
 // ============== MODAL ==============
