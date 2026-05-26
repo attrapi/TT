@@ -3749,14 +3749,19 @@ function usuarioPuedeFinalizar(t) {
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
-// ¿El usuario puede "Reabrir" (regresar a Identificadas)? Solo cuando la tarea
-// ya salió de Identificadas, y solo quien la gestiona: el Director (tareas no
-// jefatura) o el subdirector de esa subdirección.
+// ¿El usuario puede "Reabrir" (regresar a Identificadas)? SOLO en Gestión →
+// Validadas (tareas ya archivadas/validadas), no en "Para validar" ni en el
+// tablero. Y solo quien la gestiona.
 function usuarioPuedeReabrir(t) {
   if (!usuarioActual) return false;
-  if (t.estatus === 'En Proceso') return false;   // ya está en Identificadas
-  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
-  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+  if (usuarioActual.rol === 'Director') {
+    // Validadas del Director: lo que él envió (en_validadas) o ya archivado.
+    return t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada');
+  }
+  // Validadas del subdirector: sus tareas ya archivadas.
+  return usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === t.subdireccion
+    && t.estatus === 'Archivada';
 }
 
 // Ordena tareas por fecha de atención ascendente (la más próxima arriba).
