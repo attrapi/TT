@@ -1930,6 +1930,20 @@
   .btn-pildora-reabrir { background: #fff; color: var(--tinta-suave); border: 1px solid var(--linea); }
   .btn-pildora-reabrir:hover { background: var(--crema); color: var(--tinta); border-color: var(--guinda); }
 
+  /* Zona para arrastrar adjuntos en el formulario de nueva tarea. */
+  .dropzone {
+    border: 2px dashed var(--linea);
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+    color: var(--tinta-suave);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .dropzone:hover { border-color: var(--guinda); color: var(--tinta); }
+  .dz-activo { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); }
+
   .btn-liberar {
     width: 100%;
     background: var(--grafito);
@@ -4948,7 +4962,7 @@ function abrirNuevaTarea() {
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id">NUEVA TAREA · ID sugerido: <span id="nt_idPreview">${idSugerido}</span></div>
+        <div class="modal-id">NUEVA TAREA</div>
         <div class="modal-titulo">Captura de tarea</div>
       </div>
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
@@ -4956,14 +4970,9 @@ function abrirNuevaTarea() {
     <div class="modal-body">
       <form id="formNuevaTarea" onsubmit="event.preventDefault(); guardarNuevaTarea();">
         <div class="form-grid">
-          <div class="form-campo full">
-            <label>Título de la tarea <span class="req">*</span></label>
-            <input type="text" id="nt_titulo" required maxlength="160" placeholder="Ej. Reubicación líneas CFE km 42+300">
-          </div>
-
           <div class="form-campo">
             <label>Subdirección <span class="req">*</span></label>
-            <select id="nt_sub" required ${esCapturista ? 'disabled' : 'onchange="actualizarIdSugerido()"'}>
+            <select id="nt_sub" required ${esCapturista ? 'disabled' : ''}>
               ${opcionesSub}
             </select>
             ${esCapturista ? '<div class="form-hint">Asignada automáticamente a su subdirección.</div>' : ''}
@@ -4971,68 +4980,84 @@ function abrirNuevaTarea() {
 
           <div class="form-campo">
             <label>Responsable <span class="req">*</span></label>
-            <input type="text" id="nt_responsable" required maxlength="80" value="${esCapturista ? usuarioActual.nombre : ''}" placeholder="Nombre completo">
-          </div>
-
-          <div class="form-campo">
-            <label>Tipo <span class="req">*</span></label>
-            <select id="nt_tipo" required>
-              <option value="Trámite">Trámite</option>
-              <option value="Documento">Documento</option>
-              <option value="Reunión">Reunión</option>
-              <option value="Liberación">Liberación</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-
-          <div class="form-campo">
-            <label>Prioridad <span class="req">*</span></label>
-            <select id="nt_prioridad" required>
-              <option value="Alta">Alta</option>
-              <option value="Media" selected>Media</option>
-              <option value="Baja">Baja</option>
-            </select>
-          </div>
-
-          <div class="form-campo">
-            <label>Proyecto</label>
-            <select id="nt_proyecto">
-              <option value="Saltillo–N. Laredo">Saltillo–N. Laredo</option>
-              <option value="Querétaro–Irapuato">Querétaro–Irapuato</option>
-              <option value="Archivo institucional">Archivo institucional</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-
-          <div class="form-campo">
-            <label>Fecha límite <span class="req">*</span></label>
-            <input type="date" id="nt_fecha" required min="${hoyStr}" value="${hoyStr}">
+            <input type="text" id="nt_responsable" required maxlength="80" value="${esCapturista ? usuarioActual.nombre : ''}" placeholder="Nombre del responsable">
           </div>
 
           <div class="form-campo full">
-            <label>Descripción <span class="req">*</span></label>
-            <textarea id="nt_descripcion" required maxlength="800" placeholder="Describa el alcance de la tarea, productos esperados y consideraciones importantes."></textarea>
+            <label>Tema <span class="req">*</span></label>
+            <input type="text" id="nt_tema" required maxlength="200" placeholder="Ej. Matriz de licitaciones">
           </div>
 
           <div class="form-campo full">
-            <label>Observaciones iniciales</label>
-            <textarea id="nt_observaciones" maxlength="500" placeholder="Información adicional para el Director (opcional)."></textarea>
+            <label>Áreas involucradas</label>
+            <input type="text" id="nt_areas" maxlength="300" placeholder="Áreas o subdirecciones involucradas">
           </div>
 
           <div class="form-campo full">
-            <label>URL de adjunto (Drive)</label>
-            <input type="url" id="nt_url" maxlength="500" placeholder="https://drive.google.com/... — pega aquí el link de la carpeta o archivo (opcional)">
-            <div class="form-hint">Pega el link de la carpeta de Drive donde están los oficios, contratos o evidencias de esta tarea.</div>
+            <label>Acuerdos realizados</label>
+            <textarea id="nt_acuerdos" maxlength="800" placeholder="¿Qué se acordó o avanzó?"></textarea>
+          </div>
+
+          <div class="form-campo full">
+            <label>Acción a tomar</label>
+            <textarea id="nt_accion" maxlength="800" placeholder="¿Qué sigue / qué hay que hacer?"></textarea>
+          </div>
+
+          <div class="form-campo">
+            <label>Fecha de atención <span class="req">*</span></label>
+            <input type="date" id="nt_fecha" required value="${hoyStr}">
+          </div>
+
+          <div class="form-campo full">
+            <label>Adjunto (Drive)</label>
+            <div id="nt_dropzone" class="dropzone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" onclick="document.getElementById('nt_file').click()">
+              <span id="nt_dzTexto">Arrastra un archivo aquí o haz clic para elegir</span>
+            </div>
+            <input type="file" id="nt_file" style="display:none" onchange="dzFile(this.files)">
+            <input type="url" id="nt_url" maxlength="500" placeholder="o pega aquí un link de Drive (opcional)" style="margin-top:8px;">
+            <div class="form-hint">El archivo se sube a la carpeta de Drive y el link queda guardado en la tarea.</div>
           </div>
         </div>
       </form>
     </div>
     <div class="modal-acciones">
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-modal btn-modal-primario" type="button" onclick="guardarNuevaTarea()">Crear Tarea</button>
+      <button class="btn-modal btn-modal-primario" type="button" id="nt_btnCrear" onclick="guardarNuevaTarea()">Crear Tarea</button>
     </div>
   `;
   document.getElementById('modalFondo').classList.add('activo');
+}
+
+// === Arrastrar y soltar adjunto → sube a Drive (modo Apps Script) ===
+function dzOver(e) { e.preventDefault(); const d = document.getElementById('nt_dropzone'); if (d) d.classList.add('dz-activo'); }
+function dzLeave(e) { const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo'); }
+function dzDrop(e) {
+  e.preventDefault();
+  const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo');
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) dzUpload(e.dataTransfer.files[0]);
+}
+function dzFile(files) { if (files && files.length) dzUpload(files[0]); }
+function dzUpload(file) {
+  const txt = document.getElementById('nt_dzTexto');
+  if (!enAppScript() || !SESION_TOKEN) {
+    toast('Subir archivos requiere la versión con login. Por ahora pega el link de Drive.', 'error');
+    return;
+  }
+  txt.textContent = 'Subiendo "' + file.name + '"…';
+  const reader = new FileReader();
+  reader.onload = function () {
+    const base64 = String(reader.result).split(',')[1] || '';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) { txt.textContent = 'No se pudo subir. Intenta de nuevo o pega el link.'; toast((res && res.error) || 'Error al subir', 'error'); return; }
+        document.getElementById('nt_url').value = res.url;
+        txt.textContent = '✓ ' + (res.nombre || file.name) + ' subido';
+      })
+      .withFailureHandler(function (e) { txt.textContent = 'Error al subir.'; toast('Error: ' + (e && e.message ? e.message : e), 'error'); })
+      .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
+  };
+  reader.onerror = function () { txt.textContent = 'No se pudo leer el archivo.'; };
+  reader.readAsDataURL(file);
 }
 
 function generarSiguienteId(sub) {
@@ -5047,56 +5072,67 @@ function actualizarIdSugerido() {
 }
 
 function guardarNuevaTarea() {
-  const titulo = document.getElementById('nt_titulo').value.trim();
   const sub = document.getElementById('nt_sub').value;
   const responsable = document.getElementById('nt_responsable').value.trim();
-  const tipo = document.getElementById('nt_tipo').value;
-  const prioridad = document.getElementById('nt_prioridad').value;
-  const proyecto = document.getElementById('nt_proyecto').value;
+  const tema = document.getElementById('nt_tema').value.trim();
+  const areas = document.getElementById('nt_areas').value.trim();
+  const acuerdos = document.getElementById('nt_acuerdos').value.trim();
+  const accion = document.getElementById('nt_accion').value.trim();
   const fecha = document.getElementById('nt_fecha').value;
-  const descripcion = document.getElementById('nt_descripcion').value.trim();
-  const observaciones = document.getElementById('nt_observaciones').value.trim();
   const url = document.getElementById('nt_url').value.trim();
 
-  if (!titulo || !sub || !responsable || !tipo || !prioridad || !fecha || !descripcion) {
+  if (!sub || !responsable || !tema || !fecha) {
     toast('Complete los campos obligatorios marcados con *', 'error');
     return;
   }
 
-  const ahora = new Date();
-  const hoyStr = ahora.getFullYear() + '-' + String(ahora.getMonth()+1).padStart(2,'0') + '-' + String(ahora.getDate()).padStart(2,'0');
-  const stamp = hoyStr + ' ' + String(ahora.getHours()).padStart(2,'0') + ':' + String(ahora.getMinutes()).padStart(2,'0');
+  // Modo Apps Script: escribe la fila en el Google Sheet y recarga.
+  if (enAppScript()) {
+    const btn = document.getElementById('nt_btnCrear');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) {
+          toast((res && res.error) || 'No se pudo crear la tarea', 'error');
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+          return;
+        }
+        cerrarModal();
+        cargarTareasAppScript(true);
+        toast('Tarea creada y guardada en el Excel', 'ok');
+      })
+      .withFailureHandler(function (e) {
+        toast('Error: ' + (e && e.message ? e.message : e), 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+      })
+      .crearTarea(SESION_TOKEN, {
+        subdireccion: sub, nivel: 'subdireccion',
+        responsable, tema, areas, acuerdos, accion, fecha, url
+      });
+    return;
+  }
 
+  // Modo demo (GitHub): solo en pantalla.
   const nueva = {
     id: generarSiguienteId(sub),
-    subdireccion: sub,
-    responsable, titulo, descripcion,
-    tipo, proyecto: proyecto || 'Otro', prioridad,
-    fecha_reporte: hoyStr,
-    fecha_limite: fecha,
-    avance: 0,
-    estatus: 'En Proceso',
-    observaciones,
-    url,
-    validado_por: '',
-    fecha_validacion: '',
-    comentarios_director: ''
+    subdireccion: sub, nivel: 'subdireccion',
+    responsable, titulo: tema, tema,
+    areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
+    descripcion: acuerdos, observaciones: accion,
+    tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
+    fecha_atencion: fecha, fecha_limite: fecha,
+    avance: 0, estatus: 'En Proceso',
+    url, validado_por: '', fecha_validacion: '', comentarios_director: ''
   };
-
   TAREAS.push(nueva);
   BITACORA.unshift({
-    fecha: stamp,
-    usuario: usuarioActual.email,
-    accion: 'crear',
-    id_tarea: nueva.id,
-    estatus_anterior: '—',
-    estatus_nuevo: 'En Proceso'
+    fecha: ahoraStamp(), usuario: usuarioActual.email, accion: 'crear',
+    id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso'
   });
-
   cerrarModal();
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
-  toast('Tarea ' + nueva.id + ' creada correctamente', 'ok');
+  toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
 }
 
 // ============== CARGAR EXCEL ==============

@@ -33,6 +33,9 @@ function guardarConfiguracion() {
 
     APP_HTML_URL:         'https://attrapi.github.io/TT/index.html',
     HOJA_ESTADOS_PEST:    'Estados',
+    // Carpeta de Drive donde se suben los adjuntos arrastrados (debe ser
+    // accesible por esta cuenta). ID que va en la URL de la carpeta.
+    DRIVE_CARPETA_ID:     '1eG1a2hO1zs5DIdUUJxRGmRlmA3EFPDiq',
     HORAS_SESION:         '8'
   });
   Logger.log('✅ Configuración guardada en Propiedades del script.');
@@ -52,6 +55,7 @@ const CONFIG = (function () {
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
     HOJA_ESTADOS_PEST:   g('HOJA_ESTADOS_PEST', 'Estados'),
+    DRIVE_CARPETA_ID:    g('DRIVE_CARPETA_ID'),
     HORAS_SESION:        Number(g('HORAS_SESION', '8'))
   };
 })();
@@ -153,6 +157,73 @@ function obtenerTareas(token) {
   var tareas = jef.concat(sub);
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
   return { ok: true, tareas: tareas };
+}
+
+// Crea una tarea NUEVA escribiendo una fila en la hoja que corresponde.
+// `datos`: { subdireccion, nivel, responsable, jefatura, tema, areas,
+//            acuerdos, accion, fecha (yyyy-mm-dd o 'PERMANENTE'), url }
+function crearTarea(token, datos) {
+  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
+  datos = datos || {};
+  var sub = String(datos.subdireccion || '').toUpperCase();
+  var esJef = datos.nivel === 'jefatura';
+
+  var sheetId, sheetPest;
+  if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
+  else if (sub === 'SPAC') { sheetId = CONFIG.HOJA_SUBDIR_ID; sheetPest = CONFIG.HOJA_SUBDIR_PEST; }
+  else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
+
+  var ss = SpreadsheetApp.openById(sheetId);
+  var hoja = ss.getSheetByName(sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe la pestaña destino "' + sheetPest + '".' };
+
+  var valores = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja.' };
+
+  var enc = valores[e].map(norm_);
+  var fila = [];
+  for (var c = 0; c < enc.length; c++) fila.push('');
+  function set(nombre, val) {
+    var idx = enc.indexOf(nombre);
+    if (idx < 0) idx = enc.findIndex(function (h) { return h.indexOf(nombre) >= 0; });
+    if (idx >= 0) fila[idx] = val;
+  }
+  // Fecha: la app manda yyyy-mm-dd; la hoja usa dd/mm/yyyy.
+  var fecha = String(datos.fecha || '');
+  var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
+
+  set('responsable', datos.responsable || '');
+  if (esJef) set('jefatura', datos.jefatura || '');
+  set('tema', datos.tema || '');
+  set('areas', datos.areas || '');
+  set('acuerdos realizados', datos.acuerdos || '');
+  set('accion', datos.accion || '');
+  set('fecha', fecha);
+  set('estatus', 'En Proceso');
+  set('url', datos.url || '');
+
+  hoja.appendRow(fila);
+  return { ok: true };
+}
+
+// Sube un archivo (en base64) a la carpeta de Drive configurada y devuelve su
+// enlace. Lo usa el arrastrar-y-soltar del formulario de nueva tarea.
+function subirArchivo(token, nombre, mime, base64) {
+  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
+  if (!CONFIG.DRIVE_CARPETA_ID) return { ok: false, error: 'Falta configurar la carpeta de Drive.' };
+  try {
+    var bytes = Utilities.base64Decode(base64);
+    var blob = Utilities.newBlob(bytes, mime || 'application/octet-stream', nombre || 'adjunto');
+    var carpeta = DriveApp.getFolderById(CONFIG.DRIVE_CARPETA_ID);
+    var archivo = carpeta.createFile(blob);
+    try { archivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+    return { ok: true, url: archivo.getUrl(), nombre: archivo.getName() };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
 }
 
 // ====================== ESTADOS (guardar avances) =========================
