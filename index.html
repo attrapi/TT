@@ -5062,6 +5062,7 @@ function areasDisponibles() {
 }
 
 function abrirNuevaTarea() {
+  archivoPendiente = null;   // empieza sin archivo en espera
   const esCapturista = usuarioActual.rol === 'Capturista';
   const subFija = esCapturista ? usuarioActual.subdireccion : '';
 
@@ -5152,35 +5153,35 @@ function abrirNuevaTarea() {
 }
 
 // === Arrastrar y soltar adjunto → sube a Drive (modo Apps Script) ===
+// Archivo "en espera": NO se sube al arrastrar, sino al CREAR la tarea. Así,
+// si se cancela, no queda ningún archivo huérfano en Drive.
+let archivoPendiente = null;
+
 function dzOver(e) { e.preventDefault(); const d = document.getElementById('nt_dropzone'); if (d) d.classList.add('dz-activo'); }
 function dzLeave(e) { const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo'); }
 function dzDrop(e) {
   e.preventDefault();
   const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo');
-  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) dzUpload(e.dataTransfer.files[0]);
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) dzStage(e.dataTransfer.files[0]);
 }
-function dzFile(files) { if (files && files.length) dzUpload(files[0]); }
-function dzUpload(file) {
-  const txt = document.getElementById('nt_dzTexto');
+function dzFile(files) { if (files && files.length) dzStage(files[0]); }
+
+// "Apila" el archivo elegido (no lo sube todavía).
+function dzStage(file) {
   if (!enAppScript() || !SESION_TOKEN) {
     toast('Subir archivos requiere la versión con login. Por ahora pega el link de Drive.', 'error');
     return;
   }
-  txt.textContent = 'Subiendo "' + file.name + '"…';
-  const reader = new FileReader();
-  reader.onload = function () {
-    const base64 = String(reader.result).split(',')[1] || '';
-    google.script.run
-      .withSuccessHandler(function (res) {
-        if (!res || !res.ok) { txt.textContent = 'No se pudo subir. Intenta de nuevo o pega el link.'; toast((res && res.error) || 'Error al subir', 'error'); return; }
-        document.getElementById('nt_url').value = res.url;
-        txt.textContent = '✓ ' + (res.nombre || file.name) + ' subido';
-      })
-      .withFailureHandler(function (e) { txt.textContent = 'Error al subir.'; toast('Error: ' + (e && e.message ? e.message : e), 'error'); })
-      .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
-  };
-  reader.onerror = function () { txt.textContent = 'No se pudo leer el archivo.'; };
-  reader.readAsDataURL(file);
+  archivoPendiente = file;
+  document.getElementById('nt_dzTexto').textContent = '📎 ' + file.name + ' — se subirá al crear la tarea';
+  const url = document.getElementById('nt_url'); if (url) url.value = '';   // el archivo tiene prioridad
+}
+
+// Quita el archivo en espera (por si se equivocaron).
+function dzQuitar() {
+  archivoPendiente = null;
+  const txt = document.getElementById('nt_dzTexto');
+  if (txt) txt.textContent = 'Arrastra un archivo aquí o haz clic para elegir';
 }
 
 function generarSiguienteId(sub) {
@@ -5202,40 +5203,52 @@ function guardarNuevaTarea() {
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
   const accion = document.getElementById('nt_accion').value.trim();
   const fecha = document.getElementById('nt_fecha').value;
-  const url = document.getElementById('nt_url').value.trim();
+  const urlPegada = document.getElementById('nt_url').value.trim();
 
   if (!sub || !responsable || !tema || !fecha) {
     toast('Complete los campos obligatorios marcados con *', 'error');
     return;
   }
 
-  // Modo Apps Script: escribe la fila en el Google Sheet y recarga.
+  const datos = { subdireccion: sub, nivel: 'subdireccion', responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada };
+
+  // Modo Apps Script.
   if (enAppScript()) {
     const btn = document.getElementById('nt_btnCrear');
-    if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
-    google.script.run
-      .withSuccessHandler(function (res) {
-        if (!res || !res.ok) {
-          toast((res && res.error) || 'No se pudo crear la tarea', 'error');
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
-          return;
-        }
-        cerrarModal();
-        cargarTareasAppScript(true);
-        toast('Tarea creada y guardada en el Excel', 'ok');
-      })
-      .withFailureHandler(function (e) {
-        toast('Error: ' + (e && e.message ? e.message : e), 'error');
-        if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
-      })
-      .crearTarea(SESION_TOKEN, {
-        subdireccion: sub, nivel: 'subdireccion',
-        responsable, tema, areas, acuerdos, accion, fecha, url
-      });
+    // Si hay un archivo en espera, súbelo AHORA (al crear). Si falla, no se
+    // crea la tarea y el archivo no queda huérfano.
+    if (archivoPendiente && SESION_TOKEN) {
+      if (btn) { btn.disabled = true; btn.textContent = 'Subiendo…'; }
+      const file = archivoPendiente;
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = String(reader.result).split(',')[1] || '';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              toast((res && res.error) || 'No se pudo subir el archivo', 'error');
+              if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+              return;
+            }
+            datos.url = res.url;
+            enviarCrearTarea(datos, btn);
+          })
+          .withFailureHandler(function (e) {
+            toast('Error al subir: ' + (e && e.message ? e.message : e), 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+          })
+          .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
+      };
+      reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
+      reader.readAsDataURL(file);
+      return;
+    }
+    enviarCrearTarea(datos, btn);
     return;
   }
 
   // Modo demo (GitHub): solo en pantalla.
+  const url = urlPegada;
   const nueva = {
     id: generarSiguienteId(sub),
     subdireccion: sub, nivel: 'subdireccion',
@@ -5256,6 +5269,28 @@ function guardarNuevaTarea() {
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
   toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
+}
+
+// Escribe la tarea en el Google Sheet (Apps Script) y recarga.
+function enviarCrearTarea(datos, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) {
+        toast((res && res.error) || 'No se pudo crear la tarea', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+        return;
+      }
+      archivoPendiente = null;
+      cerrarModal();
+      cargarTareasAppScript(true);
+      toast('Tarea creada y guardada en el Excel', 'ok');
+    })
+    .withFailureHandler(function (e) {
+      toast('Error: ' + (e && e.message ? e.message : e), 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+    })
+    .crearTarea(SESION_TOKEN, datos);
 }
 
 // ============== CARGAR EXCEL ==============
