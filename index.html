@@ -2706,6 +2706,13 @@
   }
   .acceso-login-btn:hover { background: var(--guinda-oscuro); }
   .acceso-login-btn:disabled { opacity: .6; cursor: default; }
+  .login-volver {
+    align-self: flex-start;
+    background: none; border: none; padding: 0 0 10px;
+    color: var(--guinda); font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans);
+  }
+  .login-volver:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -2729,19 +2736,29 @@
 
     <div class="acceso-form">
       <!-- Login real (solo cuando la app se sirve desde Apps Script) -->
-      <form class="acceso-login" id="loginAppScript" style="display:none" onsubmit="iniciarSesionApp(event)">
-        <h1>Iniciar sesión</h1>
-        <p class="acceso-desc acceso-login-sub">Acceso para personal autorizado de ATTRAPI.</p>
-        <label for="loginUsuario">Usuario</label>
-        <input type="text" id="loginUsuario" autocomplete="username" autocapitalize="off" placeholder="tu usuario" required>
-        <label for="loginContrasena">Contraseña</label>
-        <input type="password" id="loginContrasena" autocomplete="current-password" placeholder="••••••••" required>
-        <div class="acceso-login-error" id="loginError"></div>
-        <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
-      </form>
+      <div id="loginAppScript" style="display:none">
+        <!-- Paso 1: elegir usuario (tarjetas, como el demo) -->
+        <div id="loginPaso1">
+          <label>Ingresar como</label>
+          <div class="acceso-roles" id="loginCards">
+            <div class="acceso-desc" style="padding:8px 0;">Cargando usuarios…</div>
+          </div>
+        </div>
+        <!-- Paso 2: contraseña del usuario elegido -->
+        <form class="acceso-login" id="loginPaso2" style="display:none" onsubmit="iniciarSesionApp(event)">
+          <button type="button" class="login-volver" onclick="volverLoginCards()">← Cambiar usuario</button>
+          <h1 id="loginNombreSel">Iniciar sesión</h1>
+          <label for="loginUsuarioManual" id="loginUsuarioManualLbl" style="display:none">Usuario</label>
+          <input type="text" id="loginUsuarioManual" autocomplete="username" autocapitalize="off" placeholder="tu usuario" style="display:none">
+          <label for="loginContrasena">Contraseña</label>
+          <input type="password" id="loginContrasena" autocomplete="current-password" placeholder="••••••••" required>
+          <div class="acceso-login-error" id="loginError"></div>
+          <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
+        </form>
+      </div>
 
       <label id="accesoRolesLabel">Ingresar como</label>
-      <div class="acceso-roles">
+      <div class="acceso-roles" id="accesoRolesDemo">
         <button class="acceso-rol" onclick="ingresar('director')">
           <div class="acceso-rol-icon" style="background: var(--guinda-tenue); color: var(--guinda);">AT</div>
           <div class="acceso-rol-info">
@@ -3438,8 +3455,12 @@ function salir() {
   jefaturaActiva = null;
   prioridadActiva = 'TODAS';
   if (enAppScript()) {
-    const u = document.getElementById('loginUsuario'); if (u) u.value = '';
+    usuarioLoginSel = null;
     const c = document.getElementById('loginContrasena'); if (c) c.value = '';
+    const m = document.getElementById('loginUsuarioManual'); if (m) m.value = '';
+    const e = document.getElementById('loginError'); if (e) e.textContent = '';
+    const p1 = document.getElementById('loginPaso1'); if (p1) p1.style.display = '';
+    const p2 = document.getElementById('loginPaso2'); if (p2) p2.style.display = 'none';
   }
 }
 
@@ -3453,14 +3474,92 @@ function inicialesDe(nombre) {
   return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
 }
 
-// Maneja el formulario de login: valida contra el servidor (hoja Usuarios).
+// Lista de usuarios cargada del servidor para las tarjetas, y el usuario
+// elegido (su "usuario" de login).
+let LOGIN_USUARIOS = [];
+let usuarioLoginSel = null;
+
+// Trae los usuarios y pinta las tarjetas "Ingresar como".
+function cargarTarjetasLogin() {
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok || !res.usuarios || !res.usuarios.length) { loginModoManual(); return; }
+      LOGIN_USUARIOS = res.usuarios;
+      const cont = document.getElementById('loginCards');
+      cont.innerHTML = LOGIN_USUARIOS.map(function (u, i) {
+        return '<button type="button" class="acceso-rol" onclick="seleccionarUsuarioLogin(' + i + ')">' +
+          '<div class="acceso-rol-icon" style="' + estiloIconoLogin(u) + '">' + inicialesDe(u.nombre) + '</div>' +
+          '<div class="acceso-rol-info">' +
+            '<div class="acceso-rol-nombre">' + escapeHtml(u.nombre || u.usuario) + '</div>' +
+            '<div class="acceso-rol-cargo">' + escapeHtml(cargoLogin(u)) + '</div>' +
+          '</div></button>';
+      }).join('');
+    })
+    .withFailureHandler(function () { loginModoManual(); })
+    .listarUsuarios();
+}
+
+function estiloIconoLogin(u) {
+  if (u.rol === 'Director' || u.subdireccion === 'TODAS') return 'background:var(--guinda-tenue);color:var(--guinda);';
+  const k = { SA: 'sa', SGOI: 'sgoi', SPAC: 'spac', ENLACE: 'enlace' }[u.subdireccion];
+  return k ? ('background:var(--sub-' + k + '-tenue);color:var(--sub-' + k + ');') : 'background:var(--guinda-tenue);color:var(--guinda);';
+}
+function cargoLogin(u) {
+  if (u.rol === 'Director') return 'Director · DPAC';
+  return ({
+    SA: 'Subdirección de Archivo',
+    SGOI: 'Subdirección de Gestión de Obras Inducidas',
+    SPAC: 'Subdirección de Procesos Adm. de Construcción',
+    ENLACE: 'Enlace administrativo del Director'
+  })[u.subdireccion] || 'Subdirector';
+}
+
+// Al elegir una tarjeta: pasa al paso de contraseña.
+function seleccionarUsuarioLogin(i) {
+  const u = LOGIN_USUARIOS[i];
+  if (!u) return;
+  usuarioLoginSel = u.usuario;
+  document.getElementById('loginPaso1').style.display = 'none';
+  document.getElementById('loginPaso2').style.display = '';
+  document.getElementById('loginUsuarioManual').style.display = 'none';
+  document.getElementById('loginUsuarioManualLbl').style.display = 'none';
+  document.getElementById('loginNombreSel').textContent = u.nombre || u.usuario;
+  document.getElementById('loginError').textContent = '';
+  const p = document.getElementById('loginContrasena'); p.value = ''; p.focus();
+}
+
+// Regresa a las tarjetas.
+function volverLoginCards() {
+  usuarioLoginSel = null;
+  document.getElementById('loginPaso2').style.display = 'none';
+  document.getElementById('loginPaso1').style.display = '';
+  document.getElementById('loginContrasena').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+// Respaldo: si no se pudieron cargar las tarjetas, muestra usuario+contraseña.
+function loginModoManual() {
+  usuarioLoginSel = null;
+  document.getElementById('loginPaso1').style.display = 'none';
+  document.getElementById('loginPaso2').style.display = '';
+  document.getElementById('loginUsuarioManual').style.display = '';
+  document.getElementById('loginUsuarioManualLbl').style.display = '';
+  document.getElementById('loginNombreSel').textContent = 'Iniciar sesión';
+  // Sin botón de volver útil en modo manual.
+  const volver = document.querySelector('#loginPaso2 .login-volver');
+  if (volver) volver.style.display = 'none';
+}
+
+// Valida contra el servidor (hoja Usuarios) con el usuario elegido (o el
+// escrito en modo manual) y la contraseña.
 function iniciarSesionApp(ev) {
   if (ev) ev.preventDefault();
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('loginError');
-  const usuario = (document.getElementById('loginUsuario').value || '').trim();
+  const manual = document.getElementById('loginUsuarioManual');
+  const usuario = (usuarioLoginSel || (manual ? manual.value : '') || '').trim();
   const contrasena = document.getElementById('loginContrasena').value || '';
-  if (!usuario || !contrasena) { err.textContent = 'Escribe usuario y contraseña.'; return; }
+  if (!usuario || !contrasena) { err.textContent = 'Escribe la contraseña.'; return; }
 
   err.textContent = '';
   btn.disabled = true;
@@ -5426,14 +5525,14 @@ document.addEventListener('keydown', (e) => {
 // como página estática (GitHub): modo demo con selección de perfil + CSV.
 (function arranque() {
   if (enAppScript()) {
-    const form = document.getElementById('loginAppScript');
-    const roles = document.querySelector('.acceso-roles');
+    // Login real con tarjetas: oculta el demo y muestra las tarjetas reales.
+    const login = document.getElementById('loginAppScript');
+    const rolesDemo = document.getElementById('accesoRolesDemo');
     const lblRoles = document.getElementById('accesoRolesLabel');
-    if (form) form.style.display = '';
-    if (roles) roles.style.display = 'none';
+    if (login) login.style.display = '';
+    if (rolesDemo) rolesDemo.style.display = 'none';
     if (lblRoles) lblRoles.style.display = 'none';
-    const u = document.getElementById('loginUsuario');
-    if (u) u.focus();
+    cargarTarjetasLogin();
   } else {
     // Modo demo: arranca el polling de la hoja SPAC publicada.
     iniciarSincronizacionSPAC();

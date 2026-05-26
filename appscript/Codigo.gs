@@ -91,6 +91,29 @@ function cerrarSesion(token) {
   return { ok: true };
 }
 
+// Lista de usuarios ACTIVOS para pintar las tarjetas de "Ingresar como"
+// (SIN contraseñas). Se llama antes de iniciar sesión.
+function listarUsuarios() {
+  var filas = leerHoja_(CONFIG.HOJA_USUARIOS_ID, CONFIG.HOJA_USUARIOS_PEST);
+  if (!filas.length) return { ok: false, usuarios: [] };
+  var enc = filas[0].map(norm_);
+  var iUser = enc.indexOf('usuario'), iNom = enc.indexOf('nombre'),
+      iRol = enc.indexOf('rol'), iSub = enc.indexOf('subdireccion'), iAct = enc.indexOf('activo');
+  var out = [];
+  for (var r = 1; r < filas.length; r++) {
+    var f = filas[r];
+    if (!String(f[iUser] || '').trim()) continue;
+    if (iAct >= 0 && norm_(f[iAct]) === 'no') continue;
+    out.push({
+      usuario: String(f[iUser]).trim(),
+      nombre: String(f[iNom] || '').trim(),
+      rol: (norm_(f[iRol]) === 'director') ? 'Director' : 'Capturista',
+      subdireccion: String(f[iSub] || '').trim().toUpperCase()
+    });
+  }
+  return { ok: true, usuarios: out };
+}
+
 function sesionValida_(token) {
   if (!token) return null;
   var v = CacheService.getScriptCache().get('tt_' + token);
