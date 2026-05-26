@@ -51,6 +51,14 @@ function guardarConfiguracion() {
   Logger.log('✅ Guardado: ' + aplicados.join(', '));
 }
 
+// ⚙️ Córrela UNA vez (Ejecutar ▶) para que Google pida autorizar TODOS los
+//    permisos, incluido Drive (necesario para subir adjuntos). Acepta en el
+//    diálogo. De paso verifica que la carpeta de Drive sea accesible.
+function autorizar() {
+  var carpeta = DriveApp.getFolderById(CONFIG.DRIVE_CARPETA_ID);   // fuerza el permiso de Drive
+  Logger.log('✅ Autorizado. Carpeta de adjuntos: "' + carpeta.getName() + '"');
+}
+
 // CONFIG se arma leyendo las Propiedades del script (lo que guardaste arriba).
 // Así el código no contiene los IDs y re-pegarlo nunca los borra.
 const CONFIG = (function () {
