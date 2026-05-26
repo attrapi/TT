@@ -3459,6 +3459,7 @@ function salir() {
     const c = document.getElementById('loginContrasena'); if (c) c.value = '';
     const m = document.getElementById('loginUsuarioManual'); if (m) m.value = '';
     const e = document.getElementById('loginError'); if (e) e.textContent = '';
+    const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     const p1 = document.getElementById('loginPaso1'); if (p1) p1.style.display = '';
     const p2 = document.getElementById('loginPaso2'); if (p2) p2.style.display = 'none';
   }
@@ -3529,6 +3530,7 @@ function seleccionarUsuarioLogin(i) {
   document.getElementById('loginUsuarioManualLbl').style.display = 'none';
   document.getElementById('loginNombreSel').textContent = u.nombre || u.usuario;
   document.getElementById('loginError').textContent = '';
+  const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   const p = document.getElementById('loginContrasena'); p.value = ''; p.focus();
 }
 
@@ -3586,6 +3588,7 @@ function iniciarSesionApp(ev) {
         jefatura: u.jefatura || '',
         iniciales: inicialesDe(u.nombre)
       };
+      btn.disabled = false; btn.textContent = 'Entrar';   // deja el botón listo para la próxima vez
       aplicarSesion();
       cargarTareasAppScript(false);       // primera carga de datos desde el servidor
     })
