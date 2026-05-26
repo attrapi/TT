@@ -2673,6 +2673,16 @@
     .kpis-fila { gap: 14px; }
     .kpi-valor { width: 60px; height: 60px; font-size: 22px; }
   }
+
+  /* Formulario de login (modo Apps Script) */
+  .acceso-login { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+  .acceso-login label { font-size: 12px; font-weight: 600; color: var(--tinta-suave); margin-top: 6px; }
+  .acceso-login input { padding: 10px 12px; border: 1px solid var(--linea); border-radius: 8px; font-size: 14px; font-family: var(--sans); }
+  .acceso-login input:focus { outline: none; border-color: var(--guinda); }
+  .acceso-login-error { color: var(--rojo); font-size: 12px; min-height: 16px; }
+  .acceso-login-btn { margin-top: 8px; background: var(--guinda); color: white; border: none; padding: 11px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .acceso-login-btn:hover { background: var(--guinda-oscuro); }
+  .acceso-login-btn:disabled { opacity: .6; cursor: default; }
 </style>
 </head>
 <body>
@@ -2695,7 +2705,17 @@
     </div>
 
     <div class="acceso-form">
-      <label>Ingresar como</label>
+      <!-- Login real (solo cuando la app se sirve desde Apps Script) -->
+      <form class="acceso-login" id="loginAppScript" style="display:none" onsubmit="iniciarSesionApp(event)">
+        <label for="loginUsuario">Usuario</label>
+        <input type="text" id="loginUsuario" autocomplete="username" autocapitalize="off" required>
+        <label for="loginContrasena">Contraseña</label>
+        <input type="password" id="loginContrasena" autocomplete="current-password" required>
+        <div class="acceso-login-error" id="loginError"></div>
+        <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
+      </form>
+
+      <label id="accesoRolesLabel">Ingresar como</label>
       <div class="acceso-roles">
         <button class="acceso-rol" onclick="ingresar('director')">
           <div class="acceso-rol-icon" style="background: var(--guinda-tenue); color: var(--guinda);">AT</div>
@@ -3267,8 +3287,13 @@ async function actualizarDatos() {
   btn.disabled = true;
   btn.classList.add('sincronizando');
   try {
-    await sincronizarSPAC();
-    toast('Información actualizada', 'ok');
+    if (enAppScript()) {
+      cargarTareasAppScript(true);     // recarga desde el servidor (conserva avance local)
+      toast('Información actualizada', 'ok');
+    } else {
+      await sincronizarSPAC();
+      toast('Información actualizada', 'ok');
+    }
   } catch (err) {
     toast('No se pudo actualizar', 'error');
   } finally {
@@ -3292,11 +3317,24 @@ let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
 let calMesActual = new Date();
+let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Script)
+
+// ¿La app está siendo servida por Google Apps Script? (entonces hay login real)
+function enAppScript() {
+  return typeof google !== 'undefined' && google.script && google.script.run;
+}
 
 // ============== AUTH ==============
 
 function ingresar(rol) {
+  // Modo demo (GitHub): el perfil viene de la lista USUARIOS.
   usuarioActual = USUARIOS[rol];
+  aplicarSesion();
+}
+
+// Aplica la sesión ya cargada en usuarioActual (sea de demo o de login real)
+// y arma la vista según el rol.
+function aplicarSesion() {
   document.getElementById('pantallaAcceso').style.display = 'none';
   document.getElementById('app').classList.add('activa');
 
@@ -3364,12 +3402,106 @@ function ingresar(rol) {
 }
 
 function salir() {
+  if (enAppScript() && SESION_TOKEN) {
+    try { google.script.run.cerrarSesion(SESION_TOKEN); } catch (e) {}
+  }
+  SESION_TOKEN = null;
   usuarioActual = null;
   document.getElementById('app').classList.remove('activa');
   document.getElementById('pantallaAcceso').style.display = 'flex';
   tabActiva = 'TODAS';
   jefaturaActiva = null;
   prioridadActiva = 'TODAS';
+  if (enAppScript()) {
+    const u = document.getElementById('loginUsuario'); if (u) u.value = '';
+    const c = document.getElementById('loginContrasena'); if (c) c.value = '';
+  }
+}
+
+// ============== LOGIN REAL (Apps Script) ==============
+
+// Calcula iniciales a partir del nombre (para el avatar del header).
+function inicialesDe(nombre) {
+  const limpio = (nombre || '').replace(/\b(ing|lic|mtra?|c|arq)\.?\b/gi, '').trim();
+  const partes = limpio.split(/\s+/).filter(Boolean);
+  if (!partes.length) return '··';
+  return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
+}
+
+// Maneja el formulario de login: valida contra el servidor (hoja Usuarios).
+function iniciarSesionApp(ev) {
+  if (ev) ev.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  const usuario = (document.getElementById('loginUsuario').value || '').trim();
+  const contrasena = document.getElementById('loginContrasena').value || '';
+  if (!usuario || !contrasena) { err.textContent = 'Escribe usuario y contraseña.'; return; }
+
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) {
+        err.textContent = (res && res.error) || 'No se pudo iniciar sesión.';
+        btn.disabled = false; btn.textContent = 'Entrar';
+        return;
+      }
+      SESION_TOKEN = res.token;
+      const u = res.usuario;
+      usuarioActual = {
+        email: u.email,
+        nombre: u.nombre,
+        rol: u.rol,                       // 'Director' o 'Capturista'
+        subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
+        jefatura: u.jefatura || '',
+        iniciales: inicialesDe(u.nombre)
+      };
+      aplicarSesion();
+      cargarTareasAppScript(false);       // primera carga de datos desde el servidor
+    })
+    .withFailureHandler(function (e) {
+      err.textContent = 'Error de conexión: ' + (e && e.message ? e.message : e);
+      btn.disabled = false; btn.textContent = 'Entrar';
+    })
+    .iniciarSesion(usuario, contrasena);
+}
+
+// Trae las tareas desde el servidor (hojas privadas). Si preservar=true,
+// conserva el avance hecho en la app (validar/archivar/finalizar) por id.
+function cargarTareasAppScript(preservar) {
+  if (!SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudieron cargar las tareas', 'error'); return; }
+      const nuevas = res.tareas || [];
+      if (preservar) {
+        const previas = new Map(TAREAS.map(t => [t.id, t]));
+        const orden = { 'En Proceso': 0, 'Atendida': 1, 'Archivada': 2 };
+        nuevas.forEach(n => {
+          const p = previas.get(n.id);
+          if (!p) return;
+          n.validada = p.validada;
+          n.validado_por = p.validado_por;
+          n.fecha_validacion = p.fecha_validacion;
+          n.finalizado_por = p.finalizado_por;
+          n.fecha_finalizacion = p.fecha_finalizacion;
+          n.comentarios_director = p.comentarios_director;
+          n.en_validadas = p.en_validadas;
+          if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
+        });
+      }
+      TAREAS.length = 0;
+      TAREAS.push(...nuevas);
+      renderizar();
+      if (vistaActiva === 'calendario') renderizarCalendario();
+      if (vistaActiva === 'carga') renderizarCarga();
+      if (vistaActiva === 'bitacora') renderizarBitacora();
+      if (vistaActiva === 'validadas') renderizarValidadas();
+    })
+    .withFailureHandler(function (e) { toast('Error al cargar: ' + (e && e.message ? e.message : e), 'error'); })
+    .obtenerTareas(SESION_TOKEN);
 }
 
 // ============== RENDERIZADO ==============
@@ -5263,9 +5395,25 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') cerrarModal();
 });
 
-// Arranca el polling de la hoja SPAC apenas carga la página, para que las
-// tareas estén listas cuando el usuario entre y se vayan refrescando solas.
-iniciarSincronizacionSPAC();
+// === ARRANQUE ===
+// Si la app la sirve Apps Script: login real (oculta los perfiles demo y no
+// lee CSV — los datos llegan del servidor tras iniciar sesión). Si se abre
+// como página estática (GitHub): modo demo con selección de perfil + CSV.
+(function arranque() {
+  if (enAppScript()) {
+    const form = document.getElementById('loginAppScript');
+    const roles = document.querySelector('.acceso-roles');
+    const lblRoles = document.getElementById('accesoRolesLabel');
+    if (form) form.style.display = '';
+    if (roles) roles.style.display = 'none';
+    if (lblRoles) lblRoles.style.display = 'none';
+    const u = document.getElementById('loginUsuario');
+    if (u) u.focus();
+  } else {
+    // Modo demo: arranca el polling de la hoja SPAC publicada.
+    iniciarSincronizacionSPAC();
+  }
+})();
 </script>
 
 </body>
