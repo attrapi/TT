@@ -3468,6 +3468,7 @@ let calMesActual = new Date();
 let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Script)
 let validadasFiltro = null;  // null=todas | 'subdireccion' | 'jefatura' (vista Validadas)
 let busquedaActiva = '';     // texto del buscador de la barra de filtros
+let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
 
@@ -3876,11 +3877,14 @@ function usuarioPuedeFinalizar(t) {
 }
 
 // ¿El usuario puede ELIMINAR esta tarea?
-//   • Director: cualquier tarea que NO sea de jefatura (DPAC/subdirecciones/Enlace).
+//   • Director: SOLO sus propias tareas (DPAC) y las del Enlace. NO las de las
+//     subdirecciones (SA/SGOI/SPAC) ni jefaturas.
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual) return false;
-  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
+  if (usuarioActual.rol === 'Director') {
+    return t.nivel !== 'jefatura' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+  }
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
@@ -4589,7 +4593,14 @@ function abrirDetalle(t) {
 
   const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id);
 
+  const btnEditarDetalle = usuarioPuedeEditar(t)
+    ? `<button class="btn-ics" onclick="abrirEditarTarea('${t.id}')" title="Editar los datos de la tarea">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+         Editar
+       </button>`
+    : '';
   const btnIcs = `
+    ${btnEditarDetalle}
     <button class="btn-ics btn-mail" onclick="enviarRecordatorio('${t.id}', 'correo')" title="Abre tu correo con la notificación de esta tarea ya redactada">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
       Notificar
@@ -4752,6 +4763,8 @@ function finalizarConComentarios() {
 function cerrarModal() {
   document.getElementById('modalFondo').classList.remove('activo');
   tareaAbierta = null;
+  tareaEditando = null;
+  archivoPendiente = null;
 }
 
 // ============== UTILIDADES ==============
@@ -5161,18 +5174,25 @@ function cargarAreas() {
     .obtenerAreas(SESION_TOKEN);
 }
 
-function abrirNuevaTarea() {
+function abrirNuevaTarea(tEdit) {
   archivoPendiente = null;   // empieza sin archivo en espera
+  tareaEditando = tEdit || null;
+  const ed = tareaEditando;
   const esCapturista = usuarioActual.rol === 'Capturista';
   const subFija = esCapturista ? usuarioActual.subdireccion : '';
 
-  // ID sugerido
-  const subDefault = subFija || 'SA';
-  const idSugerido = generarSiguienteId(subDefault);
-
-  // Fecha mínima = hoy
   const hoy = new Date();
   const hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+
+  // Valores precargados (edición) o por defecto (nueva).
+  const subDefault = ed ? ed.subdireccion : (subFija || 'SA');
+  const valResp = ed ? (ed.responsable || '') : (esCapturista ? usuarioActual.nombre : '');
+  const valTema = ed ? (ed.tema || ed.titulo || '') : '';
+  const valAcuerdos = ed ? (ed.acuerdos_realizados || '') : '';
+  const valAccion = ed ? (ed.accion_a_tomar || '') : '';
+  const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
+  const valUrl = ed ? (ed.url || '') : '';
+  const areasEd = ed ? (ed.areas_involucradas || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
 
   const opcionesSub = [
     {v:'SA', n:'SA · Subdirección de Archivo'},
@@ -5183,8 +5203,8 @@ function abrirNuevaTarea() {
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id">NUEVA TAREA</div>
-        <div class="modal-titulo">Captura de tarea</div>
+        <div class="modal-id">${ed ? 'EDITAR TAREA · ' + ed.id : 'NUEVA TAREA'}</div>
+        <div class="modal-titulo">${ed ? 'Editar tarea' : 'Captura de tarea'}</div>
       </div>
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
     </div>
@@ -5193,26 +5213,26 @@ function abrirNuevaTarea() {
         <div class="form-grid">
           <div class="form-campo">
             <label>Subdirección <span class="req">*</span></label>
-            <select id="nt_sub" required ${esCapturista ? 'disabled' : ''}>
+            <select id="nt_sub" required ${(esCapturista || ed) ? 'disabled' : ''}>
               ${opcionesSub}
             </select>
-            ${esCapturista ? '<div class="form-hint">Asignada automáticamente a su subdirección.</div>' : ''}
+            ${(esCapturista || ed) ? '<div class="form-hint">No se cambia desde aquí.</div>' : ''}
           </div>
 
           <div class="form-campo">
             <label>Responsable <span class="req">*</span></label>
-            <input type="text" id="nt_responsable" required maxlength="80" value="${esCapturista ? usuarioActual.nombre : ''}" placeholder="Nombre del responsable">
+            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Nombre del responsable">
           </div>
 
           <div class="form-campo full">
             <label>Tema <span class="req">*</span></label>
-            <input type="text" id="nt_tema" required maxlength="200" placeholder="Ej. Matriz de licitaciones">
+            <input type="text" id="nt_tema" required maxlength="200" value="${escapeHtml(valTema)}" placeholder="Ej. Matriz de licitaciones">
           </div>
 
           <div class="form-campo full">
             <label>Áreas involucradas</label>
             <div class="areas-multi" id="nt_areas">
-              ${areasDisponibles().map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}">${escapeHtml(a)}</label>`).join('')}
+              ${areasDisponibles().map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(a)}</label>`).join('')}
             </div>
             <input type="text" id="nt_areaOtra" maxlength="200" placeholder="Otra área (escríbela y se agregará a la lista)" style="margin-top:8px;">
             <div class="form-hint">Marca todas las que apliquen. Si falta alguna, escríbela en "Otra" y quedará disponible para la próxima.</div>
@@ -5220,26 +5240,26 @@ function abrirNuevaTarea() {
 
           <div class="form-campo full">
             <label>Acuerdos realizados</label>
-            <textarea id="nt_acuerdos" maxlength="800" placeholder="¿Qué se acordó o avanzó?"></textarea>
+            <textarea id="nt_acuerdos" maxlength="800" placeholder="¿Qué se acordó o avanzó?">${escapeHtml(valAcuerdos)}</textarea>
           </div>
 
           <div class="form-campo full">
             <label>Acción a tomar</label>
-            <textarea id="nt_accion" maxlength="800" placeholder="¿Qué sigue / qué hay que hacer?"></textarea>
+            <textarea id="nt_accion" maxlength="800" placeholder="¿Qué sigue / qué hay que hacer?">${escapeHtml(valAccion)}</textarea>
           </div>
 
           <div class="form-campo">
             <label>Fecha de atención <span class="req">*</span></label>
-            <input type="date" id="nt_fecha" required value="${hoyStr}">
+            <input type="date" id="nt_fecha" required value="${valFecha}">
           </div>
 
           <div class="form-campo full">
             <label>Adjunto (Drive)</label>
             <div id="nt_dropzone" class="dropzone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" onclick="document.getElementById('nt_file').click()">
-              <span id="nt_dzTexto">Arrastra un archivo aquí o haz clic para elegir</span>
+              <span id="nt_dzTexto">${valUrl ? '📎 Adjunto actual (arrastra otro para reemplazar)' : 'Arrastra un archivo aquí o haz clic para elegir'}</span>
             </div>
             <input type="file" id="nt_file" style="display:none" onchange="dzFile(this.files)">
-            <input type="url" id="nt_url" maxlength="500" placeholder="o pega aquí un link de Drive (opcional)" style="margin-top:8px;">
+            <input type="url" id="nt_url" maxlength="500" value="${escapeHtml(valUrl)}" placeholder="o pega aquí un link de Drive (opcional)" style="margin-top:8px;">
             <div class="form-hint">El archivo se sube a la carpeta de Drive y el link queda guardado en la tarea.</div>
           </div>
         </div>
@@ -5247,10 +5267,24 @@ function abrirNuevaTarea() {
     </div>
     <div class="modal-acciones">
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-modal btn-modal-primario" type="button" id="nt_btnCrear" onclick="guardarNuevaTarea()">Crear Tarea</button>
+      <button class="btn-modal btn-modal-primario" type="button" id="nt_btnCrear" onclick="guardarNuevaTarea()">${ed ? 'Guardar cambios' : 'Crear Tarea'}</button>
     </div>
   `;
   document.getElementById('modalFondo').classList.add('activo');
+}
+
+// ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
+// subdirector de esa subdirección).
+function usuarioPuedeEditar(t) {
+  if (!usuarioActual) return false;
+  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+}
+
+function abrirEditarTarea(id) {
+  const t = TAREAS.find(x => x.id === id);
+  if (!t) return;
+  if (!usuarioPuedeEditar(t)) { toast('No tienes permiso para editar esta tarea.', 'error'); return; }
+  abrirNuevaTarea(t);
 }
 
 // === Arrastrar y soltar adjunto → sube a Drive (modo Apps Script) ===
@@ -5314,65 +5348,89 @@ function guardarNuevaTarea() {
     return;
   }
 
-  const datos = { subdireccion: sub, nivel: 'subdireccion', responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada };
+  const editando = !!tareaEditando;
+  const btn = document.getElementById('nt_btnCrear');
+  const textoBtn = editando ? 'Guardar cambios' : 'Crear Tarea';
+  const datos = {
+    subdireccion: sub,
+    nivel: (editando && tareaEditando.nivel) ? tareaEditando.nivel : 'subdireccion',
+    responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada
+  };
 
-  // Modo Apps Script.
-  if (enAppScript()) {
-    const btn = document.getElementById('nt_btnCrear');
-    // Si hay un archivo en espera, súbelo AHORA (al crear). Si falla, no se
-    // crea la tarea y el archivo no queda huérfano.
-    if (archivoPendiente && SESION_TOKEN) {
-      if (btn) { btn.disabled = true; btn.textContent = 'Subiendo…'; }
-      const file = archivoPendiente;
-      const reader = new FileReader();
-      reader.onload = function () {
-        const base64 = String(reader.result).split(',')[1] || '';
-        google.script.run
-          .withSuccessHandler(function (res) {
-            if (!res || !res.ok) {
-              toast((res && res.error) || 'No se pudo subir el archivo', 'error');
-              if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
-              return;
-            }
-            datos.url = res.url;
-            enviarCrearTarea(datos, btn);
-          })
-          .withFailureHandler(function (e) {
-            toast('Error al subir: ' + (e && e.message ? e.message : e), 'error');
-            if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
-          })
-          .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
-      };
-      reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
-      reader.readAsDataURL(file);
+  // Continúa con la URL ya resuelta (subida o pegada).
+  const finalizar = function (url) {
+    datos.url = url;
+    if (enAppScript()) {
+      if (editando) enviarEditarTarea(datos, btn, textoBtn);
+      else enviarCrearTarea(datos, btn);
       return;
     }
-    enviarCrearTarea(datos, btn);
+    // Modo demo (GitHub): solo en pantalla.
+    if (editando) {
+      Object.assign(tareaEditando, {
+        responsable, titulo: tema, tema,
+        areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
+        fecha_atencion: fecha, fecha_limite: fecha, url: url || tareaEditando.url
+      });
+      const idEd = tareaEditando.id; tareaEditando = null;
+      cerrarModal(); renderizar();
+      toast('Tarea ' + idEd + ' actualizada (demo)', 'ok');
+    } else {
+      const nueva = {
+        id: generarSiguienteId(sub), subdireccion: sub, nivel: 'subdireccion',
+        responsable, titulo: tema, tema,
+        areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
+        descripcion: acuerdos, observaciones: accion,
+        tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
+        fecha_atencion: fecha, fecha_limite: fecha,
+        avance: 0, estatus: 'En Proceso',
+        url: url, validado_por: '', fecha_validacion: '', comentarios_director: ''
+      };
+      TAREAS.push(nueva);
+      BITACORA.unshift({ fecha: ahoraStamp(), usuario: usuarioActual.email, accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
+      cerrarModal(); renderizar();
+      if (vistaActiva === 'calendario') renderizarCalendario();
+      toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
+    }
+  };
+
+  // Si hay un archivo en espera (solo Apps Script), súbelo AHORA y luego sigue.
+  if (enAppScript() && archivoPendiente && SESION_TOKEN) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Subiendo…'; }
+    const file = archivoPendiente;
+    const reader = new FileReader();
+    reader.onload = function () {
+      const base64 = String(reader.result).split(',')[1] || '';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } return; }
+          finalizar(res.url);
+        })
+        .withFailureHandler(function (e) { toast('Error al subir: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } })
+        .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
+    };
+    reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
+    reader.readAsDataURL(file);
     return;
   }
+  finalizar(urlPegada);
+}
 
-  // Modo demo (GitHub): solo en pantalla.
-  const url = urlPegada;
-  const nueva = {
-    id: generarSiguienteId(sub),
-    subdireccion: sub, nivel: 'subdireccion',
-    responsable, titulo: tema, tema,
-    areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
-    descripcion: acuerdos, observaciones: accion,
-    tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
-    fecha_atencion: fecha, fecha_limite: fecha,
-    avance: 0, estatus: 'En Proceso',
-    url, validado_por: '', fecha_validacion: '', comentarios_director: ''
-  };
-  TAREAS.push(nueva);
-  BITACORA.unshift({
-    fecha: ahoraStamp(), usuario: usuarioActual.email, accion: 'crear',
-    id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso'
-  });
-  cerrarModal();
-  renderizar();
-  if (vistaActiva === 'calendario') renderizarCalendario();
-  toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
+// Guarda los cambios de una tarea editada en el Sheet (Apps Script).
+function enviarEditarTarea(datos, btn, textoBtn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  const id = tareaEditando ? tareaEditando.id : '';
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } return; }
+      tareaEditando = null; archivoPendiente = null;
+      cerrarModal();
+      cargarTareasAppScript(true);
+      cargarAreas();
+      toast('Tarea ' + id + ' actualizada', 'ok');
+    })
+    .withFailureHandler(function (e) { toast('Error: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } })
+    .actualizarTarea(SESION_TOKEN, id, datos);
 }
 
 // Escribe la tarea en el Google Sheet (Apps Script) y recarga.

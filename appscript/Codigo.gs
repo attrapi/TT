@@ -227,6 +227,7 @@ function crearTarea(token, datos) {
   var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
+  set('id', siguienteIdSheet_(valores, e, esJef ? 'SPACJ-' : 'SPAC-'));   // ID FIJO
   set('responsable', datos.responsable || '');
   if (esJef) set('jefatura', datos.jefatura || '');
   set('tema', datos.tema || '');
@@ -242,10 +243,111 @@ function crearTarea(token, datos) {
   return { ok: true };
 }
 
-// Elimina una tarea (borra su fila del Sheet). Permisos:
-//   • Tarea de jefatura (SPACJ-): solo el Subdirector de SPAC.
-//   • Tarea de subdirección (SPAC-): el Director o el Subdirector de SPAC.
-// El ID es posicional (SPAC-003 = 3ª fila de datos), así se localiza la fila.
+// Siguiente ID estable para una hoja (máximo sufijo del prefijo + 1).
+function siguienteIdSheet_(valores, e, prefijo) {
+  var max = 0;
+  for (var r = e + 1; r < valores.length; r++) {
+    var v = String(valores[r][0] || '').trim();
+    if (v.indexOf(prefijo) === 0) {
+      var n = parseInt(v.slice(prefijo.length), 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  return prefijo + String(max + 1).padStart(3, '0');
+}
+
+// Localiza la fila (1-based en la hoja) de una tarea por su ID. Primero busca
+// en la columna ID; si no, usa el respaldo posicional (ids viejos).
+function localizarFila_(valores, e, id) {
+  id = String(id || '').trim();
+  for (var r = e + 1; r < valores.length; r++) {
+    if (String(valores[r][0] || '').trim() === id) return r + 1;
+  }
+  var m = id.match(/-(\d+)$/);
+  if (m) {
+    var fila = e + parseInt(m[1], 10) + 1;
+    if (fila > e + 1 && fila <= valores.length) return fila;
+  }
+  return -1;
+}
+
+// Asigna IDs fijos a las filas que aún no lo tienen (córrela UNA vez para
+// migrar las tareas existentes). Después, crear/editar/eliminar usan ese ID.
+function asignarIds() {
+  var hechos = 0;
+  [{ id: CONFIG.HOJA_JEFATURAS_ID, pest: CONFIG.HOJA_JEFATURAS_PEST, pre: 'SPACJ-' },
+   { id: CONFIG.HOJA_SUBDIR_ID, pest: CONFIG.HOJA_SUBDIR_PEST, pre: 'SPAC-' }].forEach(function (h) {
+    var ss = SpreadsheetApp.openById(h.id);
+    var hoja = ss.getSheetByName(h.pest);
+    if (!hoja) return;
+    var vals = hoja.getDataRange().getValues();
+    var e = -1;
+    for (var i = 0; i < vals.length; i++) { if (norm_(vals[i][0]) === 'id') { e = i; break; } }
+    if (e < 0) return;
+    var iTema = vals[e].map(norm_).indexOf('tema');
+    var max = 0;
+    for (var r = e + 1; r < vals.length; r++) {
+      var v = String(vals[r][0] || '').trim();
+      if (v.indexOf(h.pre) === 0) { var n = parseInt(v.slice(h.pre.length), 10); if (!isNaN(n) && n > max) max = n; }
+    }
+    for (var r2 = e + 1; r2 < vals.length; r2++) {
+      if (!String(vals[r2][iTema] || '').trim()) continue;
+      if (/^SPACJ?-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
+      max++;
+      hoja.getRange(r2 + 1, 1).setValue(h.pre + String(max).padStart(3, '0'));
+      hechos++;
+    }
+  });
+  Logger.log('✅ IDs fijos asignados: ' + hechos);
+  return { ok: true, asignados: hechos };
+}
+
+// Actualiza (edita) una tarea existente. Mismos permisos que eliminar.
+function actualizarTarea(token, id, datos) {
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  datos = datos || {};
+  id = String(id || '').trim();
+  var esJef = id.indexOf('SPACJ-') === 0;
+  var esSub = id.indexOf('SPAC-') === 0 && !esJef;
+  if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
+  if (!(sesion.rol === 'Capturista' && sesion.subdireccion === 'SPAC')) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
+
+  var sheetId = esJef ? CONFIG.HOJA_JEFATURAS_ID : CONFIG.HOJA_SUBDIR_ID;
+  var sheetPest = esJef ? CONFIG.HOJA_JEFATURAS_PEST : CONFIG.HOJA_SUBDIR_PEST;
+  var ss = SpreadsheetApp.openById(sheetId);
+  var hoja = ss.getSheetByName(sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
+  var valores = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID).' };
+  var filaSheet = localizarFila_(valores, e, id);
+  if (filaSheet < 0) return { ok: false, error: 'No se encontró la tarea.' };
+
+  var enc = valores[e].map(norm_);
+  function setCell(nombre, val) {
+    var idx = enc.indexOf(nombre);
+    if (idx < 0) idx = enc.findIndex(function (c) { return c.indexOf(nombre) >= 0; });
+    if (idx >= 0) hoja.getRange(filaSheet, idx + 1).setValue(val);
+  }
+  var fecha = String(datos.fecha || '');
+  var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
+
+  if (datos.responsable !== undefined) setCell('responsable', datos.responsable);
+  if (datos.tema !== undefined) setCell('tema', datos.tema);
+  if (datos.areas !== undefined) setCell('areas', datos.areas);
+  if (datos.acuerdos !== undefined) setCell('acuerdos realizados', datos.acuerdos);
+  if (datos.accion !== undefined) setCell('accion', datos.accion);
+  if (datos.fecha !== undefined) setCell('fecha', fecha);
+  if (datos.url) setCell('url', datos.url);
+  agregarAreas_(datos.areas);
+  return { ok: true };
+}
+
+// Elimina una tarea (borra su fila del Sheet). Solo el Subdirector de SPAC
+// (sus tareas de subdirección y de jefatura). La fila se ubica por ID fijo.
 function eliminarTarea(token, id) {
   var sesion = sesionValida_(token);
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
@@ -255,10 +357,11 @@ function eliminarTarea(token, id) {
   var esSub = id.indexOf('SPAC-') === 0 && !esJef;
   if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
 
+  // Las tareas SPAC (subdirección y jefatura) solo las borra el Subdirector de
+  // SPAC. El Director solo borra sus propias tareas (DPAC) y las de Enlace, que
+  // aún no tienen hoja configurada.
   var taskSub = 'SPAC';
-  var permitido = esJef
-    ? (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub)
-    : (sesion.rol === 'Director' || (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub));
+  var permitido = (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub);
   if (!permitido) return { ok: false, error: 'No tienes permiso para eliminar esta tarea.' };
 
   var sheetId = esJef ? CONFIG.HOJA_JEFATURAS_ID : CONFIG.HOJA_SUBDIR_ID;
@@ -272,10 +375,8 @@ function eliminarTarea(token, id) {
   for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
   if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID).' };
 
-  var num = parseInt(id.replace(esJef ? 'SPACJ-' : 'SPAC-', ''), 10);
-  if (!num) return { ok: false, error: 'ID inválido.' };
-  var filaSheet = e + num + 1;   // fila 1-based en la hoja (encabezado en e+1)
-  if (filaSheet <= e + 1 || filaSheet > hoja.getLastRow()) return { ok: false, error: 'No se encontró la fila de la tarea.' };
+  var filaSheet = localizarFila_(valores, e, id);
+  if (filaSheet < 0) return { ok: false, error: 'No se encontró la fila de la tarea.' };
 
   hoja.deleteRow(filaSheet);
   return { ok: true };
@@ -519,7 +620,10 @@ function parsearHoja_(filas, nivel) {
     var f = filas[r];
     var tema = String(f[iTema] || '').trim();
     if (!tema) continue;
-    var id = prefijo + String(r - e).padStart(3, '0');
+    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / SPACJ-###);
+    // si está vacío o es un número suelto, usa el posicional como respaldo.
+    var idCell = String(f[0] || '').trim();
+    var id = /^SPACJ?-\d+/i.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
     var est = normEstatus_(f[iEst]);
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
