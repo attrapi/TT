@@ -35,7 +35,13 @@ function guardarConfiguracion() {
     HOJA_ESTADOS_PEST:    'Estados',
     // Carpeta de Drive donde se suben los adjuntos arrastrados (debe ser
     // accesible por esta cuenta). ID que va en la URL de la carpeta.
-    DRIVE_CARPETA_ID:     '1kF3hbcJMnFSceeAv8MXiYzNSA4yYhz2q',   // carpeta DPAC
+    // Carpeta general (Director / respaldo) y una por subdirección. El adjunto
+    // se guarda en la carpeta de la subdirección de quien lo sube.
+    DRIVE_CARPETA_ID:     '1kF3hbcJMnFSceeAv8MXiYzNSA4yYhz2q',   // DPAC (general)
+    DRIVE_CARPETA_SPAC:   '1He1CRd5FMMO563v7DeyB_SBmChbxYfmo',   // carpeta SPAC
+    DRIVE_CARPETA_SA:     'PEGA_AQUI_ID_CARPETA_SA',
+    DRIVE_CARPETA_SGOI:   'PEGA_AQUI_ID_CARPETA_SGOI',
+    DRIVE_CARPETA_ENLACE: 'PEGA_AQUI_ID_CARPETA_ENLACE',
     HORAS_SESION:         '8'
   };
   // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
@@ -77,7 +83,11 @@ const CONFIG = (function () {
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
     HOJA_ESTADOS_PEST:   g('HOJA_ESTADOS_PEST', 'Estados'),
-    DRIVE_CARPETA_ID:    g('DRIVE_CARPETA_ID'),
+    DRIVE_CARPETA_ID:     g('DRIVE_CARPETA_ID'),
+    DRIVE_CARPETA_SPAC:   g('DRIVE_CARPETA_SPAC'),
+    DRIVE_CARPETA_SA:     g('DRIVE_CARPETA_SA'),
+    DRIVE_CARPETA_SGOI:   g('DRIVE_CARPETA_SGOI'),
+    DRIVE_CARPETA_ENLACE: g('DRIVE_CARPETA_ENLACE'),
     HORAS_SESION:        Number(g('HORAS_SESION', '8'))
   };
 })();
@@ -231,15 +241,30 @@ function crearTarea(token, datos) {
   return { ok: true };
 }
 
-// Sube un archivo (en base64) a la carpeta de Drive configurada y devuelve su
-// enlace. Lo usa el arrastrar-y-soltar del formulario de nueva tarea.
+// Carpeta de Drive según la subdirección de quien sube. Si esa subdirección
+// no tiene carpeta configurada, usa la general (DPAC).
+function carpetaDe_(subdireccion) {
+  var m = {
+    SPAC: CONFIG.DRIVE_CARPETA_SPAC,
+    SA: CONFIG.DRIVE_CARPETA_SA,
+    SGOI: CONFIG.DRIVE_CARPETA_SGOI,
+    ENLACE: CONFIG.DRIVE_CARPETA_ENLACE
+  };
+  var id = m[subdireccion];
+  return (id && String(id).trim()) ? id : CONFIG.DRIVE_CARPETA_ID;
+}
+
+// Sube un archivo (en base64) a la carpeta de la subdirección del usuario y
+// devuelve su enlace. Lo usa el arrastrar-y-soltar del formulario de nueva tarea.
 function subirArchivo(token, nombre, mime, base64) {
-  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
-  if (!CONFIG.DRIVE_CARPETA_ID) return { ok: false, error: 'Falta configurar la carpeta de Drive.' };
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  var carpetaId = carpetaDe_(sesion.subdireccion);
+  if (!carpetaId) return { ok: false, error: 'Falta configurar la carpeta de Drive.' };
   try {
     var bytes = Utilities.base64Decode(base64);
     var blob = Utilities.newBlob(bytes, mime || 'application/octet-stream', nombre || 'adjunto');
-    var carpeta = DriveApp.getFolderById(CONFIG.DRIVE_CARPETA_ID);
+    var carpeta = DriveApp.getFolderById(carpetaId);
     var archivo = carpeta.createFile(blob);
     try { archivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
     return { ok: true, url: archivo.getUrl(), nombre: archivo.getName() };
