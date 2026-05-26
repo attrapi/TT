@@ -3701,7 +3701,7 @@ function obtenerTareasFiltradas() {
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (estatus === 'En Proceso') return 'Identificadas';
-  if (estatus === 'Atendida')   return 'Por validar';
+  if (estatus === 'Atendida')   return esDir ? 'Por validar' : 'Para validar';
   if (estatus === 'Archivada')  return esDir ? 'Validadas' : 'Atendidas';
   return estatus;
 }
