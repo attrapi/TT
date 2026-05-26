@@ -5039,17 +5039,27 @@ function enviarRecordatorio(idTarea, canal) {
 
 // ============== FORMULARIO NUEVA TAREA ==============
 
-// Lista fija de áreas para el formulario de nueva tarea (multi-selección).
-// Edita este arreglo para agregar o quitar áreas; así no hay inconsistencias.
-const AREAS_DISPONIBLES = [
-  'Dirección de Procesos Administrativos de Construcción',
-  'Subdirección de Procesos Administrativos de Construcción',
-  'Subdirección de Archivo',
-  'Subdirección de Gestión de Obras Inducidas',
-  'Jefatura de Departamento de Procedimientos de Construcción',
-  'Jefatura de Departamento de Implementación de Manuales Administrativos',
-  'Enlace del Director'
-];
+// Áreas disponibles en el formulario de nueva tarea, SEGÚN el perfil:
+//   • Director: la Dirección, las subdirecciones y el Enlace (sin jefaturas).
+//   • Subdirector de SPAC: solo sus dos jefaturas.
+//   • Otros subdirectores: la Dirección y subdirecciones.
+function areasDisponibles() {
+  const dirYSubs = [
+    'Dirección de Procesos Administrativos de Construcción',
+    'Subdirección de Procesos Administrativos de Construcción',
+    'Subdirección de Archivo',
+    'Subdirección de Gestión de Obras Inducidas',
+    'Enlace del Director'
+  ];
+  const jefaturas = [
+    'Jefatura de Departamento de Procedimientos de Construcción',
+    'Jefatura de Departamento de Implementación de Manuales Administrativos'
+  ];
+  if (!usuarioActual) return dirYSubs;
+  if (usuarioActual.rol === 'Director') return dirYSubs;
+  if (usuarioActual.subdireccion === 'SPAC') return jefaturas;
+  return dirYSubs;
+}
 
 function abrirNuevaTarea() {
   const esCapturista = usuarioActual.rol === 'Capturista';
@@ -5101,7 +5111,7 @@ function abrirNuevaTarea() {
           <div class="form-campo full">
             <label>Áreas involucradas</label>
             <div class="areas-multi" id="nt_areas">
-              ${AREAS_DISPONIBLES.map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}">${escapeHtml(a)}</label>`).join('')}
+              ${areasDisponibles().map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}">${escapeHtml(a)}</label>`).join('')}
             </div>
             <div class="form-hint">Marca todas las que apliquen (lista fija para mantener los datos consistentes).</div>
           </div>
