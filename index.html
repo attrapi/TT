@@ -3468,8 +3468,12 @@ function salir() {
 
 // Calcula iniciales a partir del nombre (para el avatar del header).
 function inicialesDe(nombre) {
-  const limpio = (nombre || '').replace(/\b(ing|lic|mtra?|c|arq)\.?\b/gi, '').trim();
-  const partes = limpio.split(/\s+/).filter(Boolean);
+  const limpio = (nombre || '')
+    .replace(/[.,;:]/g, ' ')                                          // puntuación → espacio
+    .replace(/\b(ing|lic|mtra?|mtro|dr|dra|profa?|c|arq)\b/gi, ' ')   // títulos
+    .replace(/\s+/g, ' ')
+    .trim();
+  const partes = limpio.split(' ').filter(Boolean);
   if (!partes.length) return '··';
   return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
 }
@@ -3505,11 +3509,11 @@ function estiloIconoLogin(u) {
   return k ? ('background:var(--sub-' + k + '-tenue);color:var(--sub-' + k + ');') : 'background:var(--guinda-tenue);color:var(--guinda);';
 }
 function cargoLogin(u) {
-  if (u.rol === 'Director') return 'Director · DPAC';
+  if (u.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
   return ({
     SA: 'Subdirección de Archivo',
     SGOI: 'Subdirección de Gestión de Obras Inducidas',
-    SPAC: 'Subdirección de Procesos Adm. de Construcción',
+    SPAC: 'Subdirección de Procesos Administrativos de Construcción',
     ENLACE: 'Enlace administrativo del Director'
   })[u.subdireccion] || 'Subdirector';
 }
