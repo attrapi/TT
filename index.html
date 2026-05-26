@@ -1530,6 +1530,8 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .filtros-buscar:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
+  .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
 
   .btn-actualizar:hover { background: var(--guinda); color: white; }
   .btn-actualizar:disabled { opacity: 0.6; cursor: wait; }
@@ -3163,6 +3165,7 @@
       <h2 id="validadasTitulo">Tareas Validadas</h2>
       <span class="bitacora-meta" id="validadasMeta">0 tareas</span>
     </div>
+    <input type="search" class="filtros-buscar validadas-buscar" id="filtroBuscarValidadas" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarValidadas(this.value)">
     <div class="validadas-grid" id="validadasGrid"></div>
   </div>
 
@@ -3483,6 +3486,7 @@ let calMesActual = new Date();
 let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Script)
 let validadasFiltro = null;  // null=todas | 'subdireccion' | 'jefatura' (vista Validadas)
 let busquedaActiva = '';     // texto del buscador de la barra de filtros
+let busquedaValidadas = '';  // texto del buscador de la vista Validadas
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
@@ -3865,22 +3869,36 @@ function obtenerTareasFiltradas() {
     lista = lista.filter(t => prioridadDe(t) === prioridadActiva);
   }
 
-  // Buscador: filtra por tema, responsable, ID y áreas.
+  // Buscador: filtra por tema, responsable, ID y áreas (sin importar acentos).
   if (busquedaActiva) {
-    lista = lista.filter(t => {
-      const txt = ((t.tema || t.titulo || '') + ' ' + (t.responsable || '') + ' ' + (t.id || '') + ' ' + (t.areas_involucradas || '')).toLowerCase();
-      return txt.indexOf(busquedaActiva) >= 0;
-    });
+    lista = lista.filter(t => coincideBusqueda(t, busquedaActiva));
   }
 
   return lista;
 }
 
+// Normaliza texto para buscar: minúsculas y SIN acentos (guía == guia).
+function sinAcentos(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// ¿La tarea coincide con el término (ya normalizado sin acentos)?
+function coincideBusqueda(t, termino) {
+  const txt = sinAcentos((t.tema || t.titulo || '') + ' ' + (t.responsable || '') + ' ' + (t.id || '') + ' ' + (t.areas_involucradas || ''));
+  return txt.indexOf(termino) >= 0;
+}
+
 // Buscador de la barra de filtros.
 function filtrarBuscar(texto) {
-  busquedaActiva = (texto || '').trim().toLowerCase();
+  busquedaActiva = sinAcentos((texto || '').trim());
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
+// Buscador de la vista Validadas (independiente, también sin acentos).
+function filtrarValidadas(texto) {
+  busquedaValidadas = sinAcentos((texto || '').trim());
+  renderizarValidadas();
 }
 
 // Etiqueta de estatus dependiente del rol. Internamente las tareas siguen
@@ -4997,6 +5015,9 @@ function renderizarValidadas() {
     if (validadasFiltro === 'subdireccion') lista = lista.filter(t => t.nivel !== 'jefatura');
     else if (validadasFiltro === 'jefatura') lista = lista.filter(t => t.nivel === 'jefatura');
   }
+  // Buscador propio de Validadas (sin acentos): aplica a todos los apartados.
+  if (busquedaValidadas) lista = lista.filter(t => coincideBusqueda(t, busquedaValidadas));
+
   lista = ordenarPorFecha(lista);
 
   if (titulo) {
@@ -5008,7 +5029,9 @@ function renderizarValidadas() {
 
   grid.innerHTML = '';
   if (lista.length === 0) {
-    grid.innerHTML = '<div class="validadas-vacio">Aún no hay tareas validadas y archivadas.</div>';
+    grid.innerHTML = '<div class="validadas-vacio">' +
+      (busquedaValidadas ? 'Sin resultados para tu búsqueda.' : 'Aún no hay tareas validadas y archivadas.') +
+      '</div>';
     return;
   }
   lista.forEach(t => grid.appendChild(crearTarjeta(t)));
