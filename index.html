@@ -5695,11 +5695,27 @@ const ACCION_LABEL = {
   devolver:    'Devuelta'
 };
 
+// ¿Este movimiento de bitácora es visible para el usuario actual?
+function bitacoraVisible(b) {
+  const tarea = TAREAS.find(t => t.id === b.id_tarea);
+  if (usuarioActual.rol === 'Director') {
+    // El Director no ve jefaturas. Las tareas eliminadas (sin match) sí se ven.
+    return !(tarea && tarea.nivel === 'jefatura');
+  }
+  // El subdirector solo ve los movimientos de su subdirección.
+  return !!tarea && tarea.subdireccion === usuarioActual.subdireccion;
+}
+
 function renderizarBitacora() {
   const lista = document.getElementById('bitacoraLista');
-  document.getElementById('bitacoraMeta').textContent = BITACORA.length + ' movimiento' + (BITACORA.length === 1 ? '' : 's');
+  // Contar y mostrar SOLO los movimientos visibles para este usuario (antes el
+  // contador usaba BITACORA.length completo y aparecía "1" con la lista vacía).
+  const visibles = BITACORA.filter(bitacoraVisible);
+  document.getElementById('bitacoraMeta').textContent = visibles.length + ' movimiento' + (visibles.length === 1 ? '' : 's');
+  const conteo = document.getElementById('sidebarConteoBitacora');
+  if (conteo) conteo.textContent = visibles.length;
 
-  if (BITACORA.length === 0) {
+  if (visibles.length === 0) {
     lista.innerHTML = '<div class="bitacora-vacio">Sin movimientos registrados todavía.</div>';
     return;
   }
@@ -5712,15 +5728,8 @@ function renderizarBitacora() {
       <div>Cambio</div>
     </div>
   `;
-  BITACORA.forEach(b => {
+  visibles.forEach(b => {
     const tarea = TAREAS.find(t => t.id === b.id_tarea);
-    if (usuarioActual.rol === 'Director') {
-      // El Director no ve jefaturas: sus movimientos no entran a esta bitácora.
-      if (tarea && tarea.nivel === 'jefatura') return;
-    } else {
-      // El subdirector solo ve los movimientos de su subdirección.
-      if (!tarea || tarea.subdireccion !== usuarioActual.subdireccion) return;
-    }
     const sub = tarea ? tarea.subdireccion : '';
     const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
     const accionKey = (b.accion || '').toLowerCase();
@@ -5745,9 +5754,6 @@ function renderizarBitacora() {
     `;
   });
   lista.innerHTML = html;
-
-  const conteo = document.getElementById('sidebarConteoBitacora');
-  if (conteo) conteo.textContent = BITACORA.length;
 }
 
 // ============== VISTA: CARGA POR RESPONSABLE ==============
