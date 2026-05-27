@@ -2096,6 +2096,11 @@
   /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
   .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
   .btn-pildora-devolver:hover { background: #ffedd5; }
+  /* Enviar a validación: azul (acción del subdirector). */
+  .btn-pildora-enviar { background: #1d4ed8; color: #fff; }
+  .btn-pildora-enviar:hover { filter: brightness(1.1); }
+  /* Finalizada (jefatura): verde estático, no es botón de acción. */
+  .btn-pildora-finalizada { background: var(--verde-tenue); color: var(--verde); cursor: default; opacity: 1; }
 
   /* Zona para arrastrar adjuntos en el formulario de nueva tarea. */
   .dropzone {
@@ -3066,41 +3071,8 @@
         </button>
       </div>
 
-      <!-- Jefaturas que dependen de SPAC. Sólo visible para el Subdirector de
-           SPAC; el Director no ve estas tareas. -->
-      <div class="sidebar-grupo" id="sidebarGrupoJefaturas" style="display:none">
-        <div class="sidebar-grupo-titulo">Jefaturas</div>
-        <button class="sidebar-item sidebar-jef" data-jef="PROCEDIMIENTOS" onclick="cambiarJefatura('PROCEDIMIENTOS')">
-          <span class="sub-dot" style="background: var(--sub-spac)"></span>
-          <span class="sidebar-label">Jefatura de Departamento de Procedimientos de Construcción</span>
-          <span class="sidebar-conteo" id="contJEF_PROCEDIMIENTOS">0</span>
-        </button>
-        <button class="sidebar-item sidebar-jef" data-jef="MANUALES" onclick="cambiarJefatura('MANUALES')">
-          <span class="sub-dot" style="background: var(--sub-spac)"></span>
-          <span class="sidebar-label">Jefatura de Departamento de Implementación de Manuales Administrativos</span>
-          <span class="sidebar-conteo" id="contJEF_MANUALES">0</span>
-        </button>
-      </div>
-
       <div class="sidebar-grupo" id="sidebarGrupoDirector">
         <div class="sidebar-grupo-titulo">Gestión</div>
-        <!-- Validadas general (Director y subdirecciones sin jefaturas) -->
-        <button class="sidebar-item" id="navValidadas" data-vista="validadas" data-valfiltro="null" onclick="verValidadas(null)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span class="sidebar-label">Validadas</span>
-          <span class="sidebar-conteo" id="sidebarConteoValidadas">0</span>
-        </button>
-        <!-- Validadas separadas (solo SPAC, que tiene jefaturas) -->
-        <button class="sidebar-item" id="navValidadasSub" data-vista="validadas" data-valfiltro="subdireccion" onclick="verValidadas('subdireccion')" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span class="sidebar-label">Validadas · Subdirección</span>
-          <span class="sidebar-conteo" id="contValSub">0</span>
-        </button>
-        <button class="sidebar-item" id="navValidadasJef" data-vista="validadas" data-valfiltro="jefatura" onclick="verValidadas('jefatura')" style="display:none">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span class="sidebar-label">Validadas · Jefaturas</span>
-          <span class="sidebar-conteo" id="contValJef">0</span>
-        </button>
         <button class="sidebar-item" data-vista="bitacora" onclick="cambiarVista('bitacora')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
           <span class="sidebar-label">Bitácora</span>
@@ -3645,7 +3617,6 @@ function aplicarSesion() {
   // El Director ve TODO. Los Capturistas SOLO ven su subdirección.
   const subItems = document.querySelectorAll('.sidebar-sub');
   const grupoDir = document.getElementById('sidebarGrupoDirector');
-  const grupoJef = document.getElementById('sidebarGrupoJefaturas');
   const tituloSubs = document.getElementById('sidebarTituloSubs');
 
   jefaturaActiva = null;
@@ -3653,7 +3624,6 @@ function aplicarSesion() {
   if (usuarioActual.rol === 'Director') {
     subItems.forEach(b => b.style.display = '');
     tituloSubs.textContent = 'Subdirecciones';
-    grupoJef.style.display = 'none';            // el Director no ve jefaturas
     grupoDir.style.display = '';
     document.getElementById('kpisSubGrupo').style.display = '';
     document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
@@ -3670,11 +3640,8 @@ function aplicarSesion() {
     // El grupo se llama "Subdirección" (singular) en el perfil del subdirector.
     tituloSubs.textContent = 'Subdirección';
 
-    // Las Jefaturas sólo existen para SPAC (por ahora).
-    grupoJef.style.display = usuarioActual.subdireccion === 'SPAC' ? '' : 'none';
-
-    // Gestión completa también para el subdirector: Validadas, Bitácora,
-    // Carga y Reportes (cada vista ya acota los datos a su subdirección).
+    // Gestión completa también para el subdirector: Bitácora, Carga, Reportes
+    // y Dashboard (cada vista ya acota los datos a su subdirección).
     grupoDir.style.display = '';
 
     document.getElementById('kpisSubGrupo').style.display = 'none';
@@ -3690,17 +3657,6 @@ function aplicarSesion() {
 
     tabActiva = usuarioActual.subdireccion;
   }
-
-  // Validadas: SPAC (que tiene jefaturas) usa dos items separados
-  // (Subdirección / Jefaturas); el Director y las demás subdirecciones, uno.
-  const esSPAC = usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'SPAC';
-  const vGen = document.getElementById('navValidadas');
-  const vSub = document.getElementById('navValidadasSub');
-  const vJef = document.getElementById('navValidadasJef');
-  if (vGen) vGen.style.display = esSPAC ? 'none' : '';
-  if (vSub) vSub.style.display = esSPAC ? '' : 'none';
-  if (vJef) vJef.style.display = esSPAC ? '' : 'none';
-  validadasFiltro = esSPAC ? 'subdireccion' : null;
 
   cambiarTab(tabActiva);
 }
@@ -3910,6 +3866,7 @@ function persistirEstado(t) {
       estatus: t.estatus,
       validada: !!t.validada,
       en_validadas: !!t.en_validadas,
+      confirmada: !!t.confirmada,
       finalizado_por: t.finalizado_por || '',
       fecha_finalizacion: t.fecha_finalizacion || '',
       validado_por: t.validado_por || '',
@@ -3940,6 +3897,7 @@ function cargarTareasAppScript(preservar) {
           n.comentarios_director = p.comentarios_director;
           n.comentario_devolucion = p.comentario_devolucion;
           n.en_validadas = p.en_validadas;
+          n.confirmada = p.confirmada;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
@@ -3971,15 +3929,9 @@ function obtenerTareasFiltradas() {
   // Capturistas: SIEMPRE filtrar por su subdirección, sin importar qué tab esté activa.
   // Esto es defensa en profundidad: aunque manipulen el DOM, no ven otras subdirecciones.
   if (usuarioActual.rol === 'Capturista') {
+    // El subdirector ve TODAS las tareas de su subdirección, incluidas las de
+    // jefatura (ya no hay apartado separado de jefaturas: se muestran juntas).
     lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
-    // SPAC alterna entre su Subdirección (jefaturaActiva = null) y cada
-    // Jefatura. Otras subdirecciones no tienen tareas de jefatura, así que
-    // este filtro las deja igual.
-    if (jefaturaActiva) {
-      lista = lista.filter(t => t.nivel === 'jefatura' && t.jefatura === jefaturaActiva);
-    } else {
-      lista = lista.filter(t => t.nivel !== 'jefatura');
-    }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica
     lista = lista.filter(t => t.subdireccion === tabActiva);
@@ -4040,7 +3992,7 @@ function filtrarValidadas(texto) {
 //   Archivada   → "Validadas"      (ambos roles; va a Gestión › Validadas)
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  if (estatus === 'En Proceso') return 'Identificadas';
+  if (estatus === 'En Proceso') return 'En Proceso';
   if (estatus === 'Atendida')   return esDir ? 'Por validar' : 'Para validar';
   if (estatus === 'Archivada')  return 'Validadas';
   return estatus;
@@ -4247,39 +4199,19 @@ function actualizarConteosTabs() {
   // KPI y reflejen carga de trabajo real, no tareas cerradas.
   // Conteos a nivel subdirección excluyen las tareas de jefatura (esas se
   // cuentan aparte en su propia card).
+  // Director: cuenta por subdirección SIN jefaturas (no las ve).
   const enProc = sub => TAREAS.filter(t => t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
   const totalEnProc = TAREAS.filter(t => t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const enProcJef = cod => TAREAS.filter(t => t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
-
-  // Conteos de cada Jefatura SPAC (sólo visibles para el Subdirector de SPAC).
-  const cjp = document.getElementById('contJEF_PROCEDIMIENTOS');
-  const cjm = document.getElementById('contJEF_MANUALES');
-  if (cjp) cjp.textContent = enProcJef('PROCEDIMIENTOS');
-  if (cjm) cjm.textContent = enProcJef('MANUALES');
-
-  // Conteos de Validadas. Item general (Director / subdirecciones sin jefaturas)
-  // y los dos separados de SPAC (Subdirección / Jefaturas).
-  const contVal = document.getElementById('sidebarConteoValidadas');
-  if (contVal) {
-    contVal.textContent = usuarioActual.rol === 'Director'
-      ? TAREAS.filter(t => t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada')).length
-      : TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === usuarioActual.subdireccion).length;
-  }
-  if (usuarioActual.rol === 'Capturista') {
-    const miSub = usuarioActual.subdireccion;
-    const cvs = document.getElementById('contValSub');
-    const cvj = document.getElementById('contValJef');
-    if (cvs) cvs.textContent = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === miSub && t.nivel !== 'jefatura').length;
-    if (cvj) cvj.textContent = TAREAS.filter(t => t.estatus === 'Archivada' && t.subdireccion === miSub && t.nivel === 'jefatura').length;
-  }
+  // Subdirector: cuenta TODAS las En Proceso de su área, incluidas las de jefatura.
+  const enProcTodo = sub => TAREAS.filter(t => t.subdireccion === sub && t.estatus === 'En Proceso').length;
 
   if (usuarioActual.rol === 'Capturista') {
     const subPropia = usuarioActual.subdireccion;
     document.getElementById('contTODAS').textContent = '';
-    document.getElementById('contSA').textContent = subPropia === 'SA' ? enProc('SA') : '';
-    document.getElementById('contSGOI').textContent = subPropia === 'SGOI' ? enProc('SGOI') : '';
-    document.getElementById('contSPAC').textContent = subPropia === 'SPAC' ? enProc('SPAC') : '';
-    document.getElementById('contENLACE').textContent = subPropia === 'ENLACE' ? enProc('ENLACE') : '';
+    document.getElementById('contSA').textContent = subPropia === 'SA' ? enProcTodo('SA') : '';
+    document.getElementById('contSGOI').textContent = subPropia === 'SGOI' ? enProcTodo('SGOI') : '';
+    document.getElementById('contSPAC').textContent = subPropia === 'SPAC' ? enProcTodo('SPAC') : '';
+    document.getElementById('contENLACE').textContent = subPropia === 'ENLACE' ? enProcTodo('ENLACE') : '';
     return;
   }
 
@@ -4294,22 +4226,27 @@ function actualizarConteosTabs() {
 function renderizarTablero() {
   const lista = obtenerTareasFiltradas();
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  // Todos ven 2 columnas (Identificadas | Por/Para validar). Lo validado o
-  // archivado sale del tablero y vive en Gestión › Validadas.
-  const cols = ['En Proceso', 'Atendida'];
+  // 3 columnas para todos: En Proceso | Por/Para validar | Validadas.
+  const cols = ['En Proceso', 'Atendida', 'Archivada'];
   const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
 
   cols.forEach(estatus => {
-    // Ordenadas por fecha ascendente — las próximas arriba. Para el Director,
-    // las tareas que ya envió a Validadas (en_validadas) salen de su columna
-    // "Por validar" aunque su estatus interno siga en Atendida (eso permite
-    // que el subdirector las siga viendo como Por validar hasta que él las
-    // pase a sus Atendidas).
-    const tareasCol = ordenarPorFecha(
-      lista.filter(t => t.estatus === estatus && !(esDir && t.en_validadas))
-    );
+    let tareasCol = lista.filter(t => t.estatus === estatus);
+    // El Director solo ve en "Por validar" las tareas que el subdirector ya
+    // ENVIÓ a validación (confirmada). Sus propias áreas (DPAC/Enlace) no
+    // requieren ese paso, así que siempre se muestran.
+    if (esDir && estatus === 'Atendida') {
+      tareasCol = tareasCol.filter(t => t.confirmada || t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+    }
+    // En "En Proceso", el Director solo ve sus propias áreas: las tareas de las
+    // subdirecciones en En Proceso (devueltas o jefatura) las gestiona el
+    // subdirector, no él.
+    if (esDir && estatus === 'En Proceso') {
+      tareasCol = tareasCol.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+    }
+    tareasCol = ordenarPorFecha(tareasCol);
     const col = document.createElement('div');
     col.className = 'columna col-' + slugs[estatus];
 
@@ -4520,42 +4457,41 @@ function crearTarjeta(t) {
   const icoReloj = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
   const icoReabrir = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-6.5L1 10"/></svg>';
   const icoDevolver = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
+  const icoEnviar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
 
-  // El subdirector "dueño" de una tarea de subdirección (no de jefatura): él la
-  // finaliza pero NO la valida (eso lo hace el Director).
-  const esDuenoSub = usuarioActual && usuarioActual.rol === 'Capturista'
-    && usuarioActual.subdireccion === t.subdireccion && t.nivel !== 'jefatura';
+  const esMario = usuarioActual && usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === t.subdireccion;
+  const esDir2 = usuarioActual && usuarioActual.rol === 'Director';
 
   let pills = '';
-  if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
-    // Identificadas: solo el subdirector dueño puede Finalizar (la envía a
-    // "Por validar").
-    pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizar('${t.id}')">${icoCheck} Finalizar</button>`;
-  } else if (t.estatus === 'En Proceso') {
-    // Quien no finaliza (Director, o subdirector viendo una jefatura) ve la
-    // tarea como "Pendiente", deshabilitada: aún no la finaliza su dueño.
-    pills += `<button class="btn-pildora btn-pildora-off" disabled title="Pendiente de finalizar por el responsable.">${icoReloj} Pendiente</button>`;
-  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t) && !t.en_validadas) {
-    // Por validar: actúa quien valida (Director para subdirección; Subdirector
-    // para jefatura). Primero Validar; eso habilita Archivar. Si ya la envió a
-    // Validadas (en_validadas), no se muestran botones (queda en su histórico).
-    if (!t.validada) {
+  if (t.nivel === 'jefatura') {
+    // JEFATURA: vive en "En Proceso". Mario la Finaliza (no escala a nadie):
+    // se queda en En Proceso con píldora "Finalizada". El borrar es la papelera.
+    if (t.estatus === 'En Proceso') {
+      if (t.finalizado_por) {
+        pills += `<button class="btn-pildora btn-pildora-finalizada" disabled>${icoCheck} Finalizada</button>`;
+      } else if (esMario) {
+        pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizarJefatura('${t.id}')">${icoCheck} Finalizar</button>`;
+      }
+    }
+  } else {
+    // SUBDIRECCIÓN: nace retenida en "Para validar". Mario la ENVÍA a validación;
+    // el Director Valida → Validadas. Si fue devuelta, vuelve a En Proceso y
+    // Mario la reenvía.
+    if ((t.estatus === 'Atendida' || t.estatus === 'En Proceso') && esMario && !t.confirmada) {
+      pills += `<button class="btn-pildora btn-pildora-enviar" onclick="event.stopPropagation(); enviarAValidacion('${t.id}')" title="Enviar la tarea a validación del Director.">${icoEnviar} Enviar a validación</button>`;
+    } else if (t.estatus === 'Atendida' && esMario && t.confirmada) {
+      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Enviada a validación; espera al Director.">${icoReloj} Enviada</button>`;
+    } else if (t.estatus === 'Atendida' && esDir2 && t.confirmada) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
       pills += `<button class="btn-pildora btn-pildora-devolver" onclick="event.stopPropagation(); devolver('${t.id}')" title="Regresar al responsable con un comentario.">${icoDevolver} Devolver</button>`;
-      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Primero valida la tarea para enviarla a Validadas.">${icoCaja} Validadas</button>`;
-    } else {
-      pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Envía la tarea a Gestión › Validadas.">${icoCaja} Validadas</button>`;
     }
-  } else if (t.estatus === 'Atendida' && t.validada && esDuenoSub) {
-    // El subdirector dueño, una vez que el Director validó, la envía a sus
-    // Validadas (Gestión); sale de "Para validar".
-    pills += `<button class="btn-pildora btn-pildora-archivar" onclick="event.stopPropagation(); archivar('${t.id}')" title="Enviar a Gestión › Validadas.">${icoCaja} Validadas</button>`;
   }
 
-  // Reabrir: disponible para quien gestiona la tarea, una vez que salió de
-  // Identificadas. La regresa a Identificadas y limpia el avance.
+  // Reabrir: para quien gestiona la tarea, una vez en Validadas. La regresa a
+  // su columna de origen y limpia el avance.
   if (usuarioPuedeReabrir(t)) {
-    pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Regresar a Identificadas.">${icoReabrir} Reabrir</button>`;
+    pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Regresar a En Proceso.">${icoReabrir} Reabrir</button>`;
   }
 
   if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
@@ -4661,9 +4597,46 @@ function finalizar(idTarea, comentarios) {
   toast('Tarea ' + idTarea + ' finalizada · enviada a Por validar', 'ok');
 }
 
-// "Validar": exclusivo del Director. No cambia el estatus (sigue en
-// "Por validar"/Atendida) pero marca la tarea como validada, lo que habilita
-// el botón Archivar en la tarjeta y en el modal.
+// Finalizar JEFATURA: la marca como Finalizada y la deja en "En Proceso"
+// (no escala a validación; el Director no la ve). Solo el subdirector de SPAC.
+function finalizarJefatura(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || t.nivel !== 'jefatura') return;
+  if (!confirm('¿Finalizar la tarea de jefatura ' + idTarea + '?\n\n"' + t.titulo + '"\n\nQuedará marcada como Finalizada y permanece en En Proceso.')) return;
+
+  t.finalizado_por = usuarioActual.nombre;
+  t.fecha_finalizacion = ahoraStamp();
+  // Se queda en 'En Proceso' a propósito.
+  registrarEnBitacora({ accion: 'finalizar', id_tarea: idTarea, estatus_anterior: 'En Proceso', estatus_nuevo: 'En Proceso' });
+
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  toast('Tarea de jefatura ' + idTarea + ' finalizada', 'ok');
+}
+
+// Enviar a validación: el subdirector envía una tarea de subdirección al
+// Director. Nace retenida (no se sube sola); solo al enviarla aparece en el
+// "Por validar" del Director. Si venía devuelta (En Proceso), vuelve a Atendida.
+function enviarAValidacion(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || t.nivel === 'jefatura') return;
+  if (!confirm('¿Enviar la tarea ' + idTarea + ' a validación del Director?\n\n"' + t.titulo + '"')) return;
+
+  const ant = t.estatus;
+  t.estatus = 'Atendida';
+  t.confirmada = true;
+  t.comentario_devolucion = '';
+  registrarEnBitacora({ accion: 'enviar', id_tarea: idTarea, estatus_anterior: ant, estatus_nuevo: 'Atendida' });
+
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  toast('Tarea ' + idTarea + ' enviada a validación', 'ok');
+}
+
+// "Validar": exclusivo del Director. La tarea pasa directo a "Validadas"
+// (estatus Archivada) y queda registrada con quién y cuándo la validó.
 function validar(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
@@ -4671,19 +4644,20 @@ function validar(idTarea) {
     toast('Solo se pueden validar tareas Por validar', 'error');
     return;
   }
-  if (!confirm('¿Validar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nQuedará validada y podrá archivarla.')) return;
+  if (!confirm('¿Validar la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nPasará a la columna Validadas.')) return;
 
   const stamp = ahoraStamp();
   t.validada = true;
   t.validado_por = usuarioActual.nombre;
   t.fecha_validacion = stamp;
+  t.estatus = 'Archivada';   // va directo a Validadas
 
-  registrarEnBitacora({ accion: 'validar', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Atendida' });
+  registrarEnBitacora({ accion: 'validar', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Archivada' });
 
   cerrarModal();
   persistirEstado(t);
   renderizar();
-  toast('Tarea ' + idTarea + ' validada', 'ok');
+  toast('Tarea ' + idTarea + ' validada → Validadas', 'ok');
 }
 
 // Archiva una tarea ya validada. La hace el Director (a Gestión › Validadas)
@@ -4739,6 +4713,7 @@ function devolver(idTarea) {
   t.estatus = 'En Proceso';
   t.validada = false;
   t.en_validadas = false;
+  t.confirmada = false;       // vuelve a Mario para corregir y reenviar
   t.finalizado_por = '';
   t.fecha_finalizacion = '';
   t.validado_por = '';
@@ -4751,7 +4726,7 @@ function devolver(idTarea) {
   cerrarModal();
   persistirEstado(t);
   renderizar();
-  toast('Tarea ' + idTarea + ' devuelta a Identificadas', 'ok');
+  toast('Tarea ' + idTarea + ' devuelta a En Proceso', 'ok');
 }
 
 // Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
@@ -4765,6 +4740,7 @@ function reabrir(idTarea) {
   t.estatus = 'En Proceso';
   t.validada = false;
   t.en_validadas = false;
+  t.confirmada = false;
   t.finalizado_por = '';
   t.fecha_finalizacion = '';
   t.validado_por = '';
@@ -4776,8 +4752,7 @@ function reabrir(idTarea) {
   cerrarModal();
   persistirEstado(t);
   renderizar();
-  if (vistaActiva === 'validadas') renderizarValidadas();
-  toast('Tarea ' + idTarea + ' reabierta · Identificadas', 'ok');
+  toast('Tarea ' + idTarea + ' reabierta · En Proceso', 'ok');
 }
 
 // Elimina la tarea: la borra del Excel (Apps Script) y del tablero.
@@ -4831,71 +4806,42 @@ function abrirDetalle(t) {
   `;
 
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  let acciones = '';
-  if (t.estatus === 'En Proceso' && usuarioPuedeFinalizar(t)) {
-    // El comentario solo lo escribe el Director; capturistas no lo usan.
-    const textArea = esDir
-      ? '<textarea class="modal-comentar" id="comentariosDirector" placeholder="Comentarios u observaciones (opcional)"></textarea>'
-      : '';
-    acciones = `
-      ${textArea}
-      <div class="modal-acciones">
-        ${btnIcs}
-        <div style="flex:1"></div>
-        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal btn-modal-primario" onclick="finalizarConComentarios()">✓ Finalizar</button>
-      </div>
-    `;
-  } else if (t.estatus === 'En Proceso') {
-    // Quien no finaliza (Director, o subdirector viendo jefatura) la ve como
-    // "Pendiente", deshabilitada.
-    acciones = `
-      <div class="modal-acciones">
-        ${btnIcs}
-        <div style="flex:1"></div>
-        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Pendiente de finalizar por el responsable.">⏳ Pendiente</button>
-      </div>
-    `;
-  } else if (t.estatus === 'Atendida' && usuarioEsValidador(t) && !t.en_validadas) {
-    // Por validar: valida quien corresponde (Director para subdirección;
-    // Subdirector para jefatura) y luego archiva. Archivar deshabilitado
-    // mientras la tarea no esté validada.
-    const btnValidar = t.validada
-      ? ''
-      : `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
-    const btnDevolver = t.validada
-      ? ''
-      : `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`;
-    const btnArchivar = t.validada
-      ? `<button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Validadas</button>`
-      : `<button class="btn-modal" disabled style="opacity:.45; cursor:not-allowed;" title="Primero valida la tarea.">📦 Validadas</button>`;
-    acciones = `
-      <div class="modal-acciones">
-        ${btnIcs}
-        <div style="flex:1"></div>
-        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        ${btnDevolver}
-        ${btnValidar}
-        ${btnArchivar}
-      </div>
-    `;
-  } else if (t.estatus === 'Atendida' && t.validada
-             && usuarioActual.rol === 'Capturista'
-             && usuarioActual.subdireccion === t.subdireccion && t.nivel !== 'jefatura') {
-    // Subdirector dueño: tras la validación del Director, la envía a sus
-    // Validadas (Gestión); sale de "Para validar".
-    acciones = `
-      <div class="modal-acciones">
-        ${btnIcs}
-        <div style="flex:1"></div>
-        <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn-modal" style="background: var(--grafito); color: white; border-color: var(--grafito);" onclick="archivar('${t.id}')">📦 Validadas</button>
-      </div>
-    `;
+  const esMario = usuarioActual && usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === t.subdireccion;
+  let botones = '';
+
+  if (t.nivel === 'jefatura') {
+    // Jefatura: Mario la Finaliza (queda en En Proceso) y no escala.
+    if (t.estatus === 'En Proceso' && !t.finalizado_por && esMario) {
+      botones = `<button class="btn-modal btn-modal-primario" onclick="finalizarJefatura('${t.id}')">✓ Finalizar</button>`;
+    } else if (t.estatus === 'En Proceso' && t.finalizado_por) {
+      botones = `<button class="btn-modal" disabled style="cursor:default; background:var(--verde-tenue); color:var(--verde); border-color:var(--verde-tenue);">✓ Finalizada</button>`;
+    }
   } else {
-    acciones = `<div class="modal-acciones">${btnIcs}<div style="flex:1"></div><button class="btn-modal" onclick="cerrarModal()">Cerrar</button></div>`;
+    // Subdirección: Mario ENVÍA a validación; el Director Valida o Devuelve.
+    if ((t.estatus === 'Atendida' || t.estatus === 'En Proceso') && esMario && !t.confirmada) {
+      botones = `<button class="btn-modal btn-modal-primario" style="background:#1d4ed8; border-color:#1d4ed8;" onclick="enviarAValidacion('${t.id}')">➤ Enviar a validación</button>`;
+    } else if (t.estatus === 'Atendida' && esMario && t.confirmada) {
+      botones = `<button class="btn-modal" disabled style="opacity:.55; cursor:default;">⏳ Enviada a validación</button>`;
+    } else if (t.estatus === 'Atendida' && esDir && t.confirmada) {
+      botones = `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`
+              + `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
+    }
   }
+
+  // Reabrir: en Validadas, para quien gestiona la tarea.
+  if (usuarioPuedeReabrir(t)) {
+    botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
+  }
+
+  const acciones = `
+    <div class="modal-acciones">
+      ${btnIcs}
+      <div style="flex:1"></div>
+      <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+      ${botones}
+    </div>
+  `;
 
   // Mismos campos que la tarjeta, mismo orden, mismas reglas de fallback
   // (sin Responsable; Fecha de atención va primero).

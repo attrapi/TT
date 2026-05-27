@@ -235,7 +235,9 @@ function crearTarea(token, datos) {
   set('acuerdos realizados', datos.acuerdos || '');
   set('accion', datos.accion || '');
   set('fecha', fecha);
-  set('estatus', 'En Proceso');
+  // Estatus inicial: jefatura nace en En Proceso; subdirección en "Para validar"
+  // (Atendida, retenida hasta que el subdirector la envíe a validación).
+  set('estatus', esJef ? 'En Proceso' : 'Atendida');
   set('url', datos.url || '');
 
   hoja.appendRow(fila);
@@ -526,7 +528,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -547,8 +549,9 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
-  } else if (datos[0].map(norm_).indexOf('comentario') === -1) {
-    // Hoja creada antes de agregar la columna Comentario: repara el encabezado.
+  } else if (datos[0].map(norm_).indexOf('confirmada') === -1) {
+    // Hoja creada antes de agregar las columnas Comentario/Confirmada: repara
+    // el encabezado (no borra datos; las columnas nuevas quedan al final).
     hoja.getRange(1, 1, 1, ESTADOS_HEADERS.length).setValues([ESTADOS_HEADERS]);
     datos[0] = ESTADOS_HEADERS;
   }
@@ -563,7 +566,8 @@ function guardarEstado(token, id, e) {
     e.fecha_validacion || '',
     sesion.nombre || sesion.email || '',
     ahoraStamp_(),
-    e.comentario_devolucion || ''
+    e.comentario_devolucion || '',
+    e.confirmada ? 'Si' : ''
   ];
   var rowIndex = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -584,7 +588,8 @@ function leerEstados_() {
     var enc = datos[0].map(norm_);
     var iId = enc.indexOf('id'), iEst = enc.indexOf('estatus'), iVal = enc.indexOf('validada'),
         iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
-        iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario');
+        iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario'),
+        iConf = enc.indexOf('confirmada');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -597,7 +602,8 @@ function leerEstados_() {
         fecha_finalizacion: String(f[iFf] || '').trim(),
         validado_por: String(f[iVp] || '').trim(),
         fecha_validacion: String(f[iFv] || '').trim(),
-        comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : ''
+        comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : '',
+        confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false
       };
     }
     return map;
@@ -618,6 +624,7 @@ function aplicarEstados_(tareas) {
     if (e.validado_por) t.validado_por = e.validado_por;
     if (e.fecha_validacion) t.fecha_validacion = e.fecha_validacion;
     t.comentario_devolucion = e.comentario_devolucion || '';
+    t.confirmada = !!e.confirmada;
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
 }
@@ -735,7 +742,13 @@ function parsearHoja_(filas, nivel) {
     // posicional como respaldo.
     var idCell = String(f[0] || '').trim();
     var id = /^(?:JSPAC|SPACJ|SPAC)-\d+/i.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
-    var est = normEstatus_(f[iEst]);
+    // Estatus INICIAL por origen (lo guardado en la hoja Estados lo sobreescribe):
+    //   • Jefatura      → 'En Proceso' (Mario la finaliza; no escala).
+    //   • Subdirección  → 'Atendida'   (nace en "Para validar", retenida).
+    // Si la hoja marca 'Archivada' explícitamente, se respeta.
+    var estHoja = normEstatus_(f[iEst]);
+    var est = estHoja === 'Archivada' ? 'Archivada'
+            : (nivel === 'jefatura' ? 'En Proceso' : 'Atendida');
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
     var fecha = perm ? '' : fechaNorm_(raw);
@@ -750,7 +763,7 @@ function parsearHoja_(filas, nivel) {
       accion_a_tomar: String(f[iAcc] || '').trim(),
       descripcion: String(f[iAcu] || '').trim(), observaciones: String(f[iAcc] || '').trim(),
       fecha_atencion: fecha, fecha_limite: fecha, permanente: perm,
-      estatus: est, avance: est === 'Atendida' ? 100 : 0,
+      estatus: est, avance: est === 'Archivada' ? 100 : 0, confirmada: false,
       url: String(f[iUrl] || '').trim(),
       validado_por: '', fecha_validacion: '', comentarios_director: '', fuente: 'sheet'
     });
