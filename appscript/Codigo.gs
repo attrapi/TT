@@ -386,10 +386,13 @@ function reasignarIdsJefatura() {
   if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja de jefaturas.' };
   var enc = vals[e].map(norm_);
   var iTema = enc.indexOf('tema');
+  var iResp = enc.indexOf('responsable');
+  // Columna "Jefatura": exacta y, si no, la primera cuyo encabezado la contenga.
   var iJef = enc.indexOf('jefatura');
+  if (iJef < 0) iJef = enc.findIndex(function (c) { return c.indexOf('jefatura') >= 0; });
   var iAreas = enc.findIndex(function (c) { return c.indexOf('areas') >= 0; });
 
-  var mapa = {}, cont = { JDPC: 0, JDIMA: 0 }, cambios = 0;
+  var mapa = {}, cont = { JDPC: 0, JDIMA: 0 }, cambios = 0, detalle = [];
   for (var r = e + 1; r < vals.length; r++) {
     if (iTema >= 0 && !String(vals[r][iTema] || '').trim()) continue;   // fila vacía
     // Clasifica por la COLUMNA "Jefatura" (solo usa "Áreas" si está vacía).
@@ -401,12 +404,16 @@ function reasignarIdsJefatura() {
     hoja.getRange(r + 1, 1).setValue(newId);
     if (oldId && oldId !== newId) mapa[oldId] = newId;   // para reajustar Estados/Bitacora
     cambios++;
+    detalle.push((oldId || '(sin id)') + ' → ' + newId + '  | Resp: ' + String(iResp >= 0 ? vals[r][iResp] : '') +
+      '  | Jefatura leída: "' + jefCol + '" → ' + jef);
   }
 
   var renEstados = renombrarEnHoja_(hojaEstados_(false), 0, mapa);
   var renBitacora = renombrarEnHoja_(hojaBitacora_(false), 3, mapa);
+  Logger.log('Columna Jefatura usada: índice ' + iJef + ' (encabezado "' + (iJef >= 0 ? vals[e][iJef] : '—') + '")');
+  Logger.log(detalle.join('\n'));
   Logger.log('✅ Reasignación jefatura: JDPC=' + cont.JDPC + ', JDIMA=' + cont.JDIMA + ', Estados=' + renEstados + ', Bitacora=' + renBitacora);
-  return { ok: true, jdpc: cont.JDPC, jdima: cont.JDIMA, estados: renEstados, bitacora: renBitacora };
+  return { ok: true, jdpc: cont.JDPC, jdima: cont.JDIMA, estados: renEstados, bitacora: renBitacora, detalle: detalle };
 }
 
 // Reemplaza, en la columna `colIdx` (0-based) de `hoja`, los valores presentes
@@ -878,6 +885,7 @@ function parsearHoja_(filas, nivel, subCode) {
   var iResp = col('responsable'), iJef = col('jefatura'), iTema = col('tema'),
       iAreas = find('areas'), iAcu = col('acuerdos realizados'), iAcc = find('accion'),
       iFecha = find('fecha'), iEst = col('estatus'), iUrl = col('url');
+  if (iJef < 0) iJef = find('jefatura');   // por si el encabezado no es exacto
 
   var out = [];
   for (var r = e + 1; r < filas.length; r++) {
