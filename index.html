@@ -2936,6 +2936,8 @@
   }
   .login-ojo:hover { background: var(--guinda-tenue); color: var(--guinda); }
   .login-ojo svg { width: 19px; height: 19px; }
+  .login-recordar { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--tinta-suave); cursor: pointer; margin-top: 2px; }
+  .login-recordar input { width: 15px; height: 15px; cursor: pointer; }
   .acceso-login-error { color: var(--rojo); font-size: 12.5px; min-height: 18px; margin-top: 8px; }
   .acceso-login-btn {
     margin-top: 6px;
@@ -3003,6 +3005,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
+          <label class="login-recordar"><input type="checkbox" id="loginRecordar"> Recordar mi contraseña en este equipo</label>
           <div class="acceso-login-error" id="loginError"></div>
           <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
         </form>
@@ -3836,7 +3839,25 @@ function seleccionarUsuarioLogin(i) {
   document.getElementById('loginNombreSel').textContent = formatearNombre(u.nombre || u.usuario);
   document.getElementById('loginError').textContent = '';
   const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-  const p = document.getElementById('loginContrasena'); p.value = ''; p.type = 'password'; p.focus();
+  const p = document.getElementById('loginContrasena'); p.type = 'password';
+  // Si en este equipo se recordó la contraseña de este perfil, pre-llénala.
+  const guardada = leerPasswordRecordada(u.usuario);
+  p.value = guardada || '';
+  const chk = document.getElementById('loginRecordar'); if (chk) chk.checked = !!guardada;
+  p.focus();
+}
+
+// Lee/guarda/olvida la contraseña recordada por equipo (localStorage). Va
+// ofuscada en base64 — NO es cifrado; es una comodidad por dispositivo.
+function claveRecordada(usuario) { return 'ttpwd:' + String(usuario || '').toLowerCase(); }
+function leerPasswordRecordada(usuario) {
+  try { const v = localStorage.getItem(claveRecordada(usuario)); return v ? atob(v) : ''; } catch (e) { return ''; }
+}
+function recordarPassword(usuario, contrasena, recordar) {
+  try {
+    if (recordar) localStorage.setItem(claveRecordada(usuario), btoa(contrasena));
+    else localStorage.removeItem(claveRecordada(usuario));
+  } catch (e) {}
 }
 
 // Regresa a las tarjetas.
@@ -3905,6 +3926,7 @@ function iniciarSesionApp(ev) {
   const manual = document.getElementById('loginUsuarioManual');
   const usuario = (usuarioLoginSel || (manual ? manual.value : '') || '').trim();
   const contrasena = document.getElementById('loginContrasena').value || '';
+  const recordar = !!(document.getElementById('loginRecordar') && document.getElementById('loginRecordar').checked);
   if (!usuario || !contrasena) { err.textContent = 'Escribe la contraseña.'; return; }
 
   err.textContent = '';
@@ -3918,6 +3940,8 @@ function iniciarSesionApp(ev) {
         btn.disabled = false; btn.textContent = 'Entrar';
         return;
       }
+      // Guarda u olvida la contraseña recordada en ESTE equipo, según la casilla.
+      recordarPassword(usuario, contrasena, recordar);
       btn.disabled = false; btn.textContent = 'Entrar';   // deja el botón listo para la próxima vez
       aplicarUsuarioServidor(res);
     })
