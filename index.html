@@ -5617,6 +5617,26 @@ function abrirNuevaTarea(tEdit) {
     {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción'}
   ].map(o => `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`).join('');
 
+  // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
+  // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
+  const esDirNuevo = !esCapturista && !ed;
+  const asignablesHTML = [
+    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción', ok:true},
+    {v:'SA',   n:'SA · Subdirección de Archivo',         ok:false},
+    {v:'SGOI', n:'SGOI · Gestión de Obras Inducidas',    ok:false}
+  ].map(o => `<label class="area-chip"${o.ok ? '' : ' style="opacity:.45"'}><input type="checkbox" value="${o.v}" ${o.v==='SPAC'?'checked':''} ${o.ok?'':'disabled'}>${o.n}${o.ok?'':' (sin hoja)'}</label>`).join('');
+  const campoSub = esDirNuevo
+    ? `<div class="form-campo full">
+         <label>Asignar a subdirección <span class="req">*</span></label>
+         <div class="areas-multi" id="nt_asignar">${asignablesHTML}</div>
+         <div class="form-hint">Se envía a la subdirección y entra a su "Para validar"; cuando la revisen y la manden, te llega a "Por validar".</div>
+       </div>`
+    : `<div class="form-campo">
+         <label>Subdirección <span class="req">*</span></label>
+         <select id="nt_sub" required ${(esCapturista || ed) ? 'disabled' : ''}>${opcionesSub}</select>
+         ${(esCapturista || ed) ? '<div class="form-hint">No se cambia desde aquí.</div>' : ''}
+       </div>`;
+
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
@@ -5628,13 +5648,7 @@ function abrirNuevaTarea(tEdit) {
     <div class="modal-body">
       <form id="formNuevaTarea" onsubmit="event.preventDefault(); guardarNuevaTarea();">
         <div class="form-grid">
-          <div class="form-campo">
-            <label>Subdirección <span class="req">*</span></label>
-            <select id="nt_sub" required ${(esCapturista || ed) ? 'disabled' : ''}>
-              ${opcionesSub}
-            </select>
-            ${(esCapturista || ed) ? '<div class="form-hint">No se cambia desde aquí.</div>' : ''}
-          </div>
+          ${campoSub}
 
           <div class="form-campo">
             <label>Responsable <span class="req">*</span></label>
@@ -5748,7 +5762,17 @@ function actualizarIdSugerido() {
 }
 
 function guardarNuevaTarea() {
-  const sub = document.getElementById('nt_sub').value;
+  // El Director (creando) ASIGNA a una o varias subdirecciones (checkboxes);
+  // los demás usan su subdirección fija (select).
+  const esDirNuevo = usuarioActual.rol === 'Director' && !tareaEditando;
+  let subsAsignadas;
+  if (esDirNuevo) {
+    subsAsignadas = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
+  } else {
+    const selSub = document.getElementById('nt_sub');
+    subsAsignadas = selSub ? [selSub.value] : [];
+  }
+  const sub = subsAsignadas[0] || '';
   const responsable = document.getElementById('nt_responsable').value.trim();
   const tema = document.getElementById('nt_tema').value.trim();
   const areasMarcadas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value);
@@ -5760,8 +5784,10 @@ function guardarNuevaTarea() {
   const fecha = document.getElementById('nt_fecha').value;
   const urlPegada = document.getElementById('nt_url').value.trim();
 
-  if (!sub || !responsable || !tema || !fecha) {
-    toast('Complete los campos obligatorios marcados con *', 'error');
+  if (!subsAsignadas.length || !responsable || !tema || !fecha) {
+    toast(esDirNuevo && !subsAsignadas.length
+      ? 'Elige al menos una subdirección para asignar la tarea.'
+      : 'Complete los campos obligatorios marcados con *', 'error');
     return;
   }
 
@@ -5778,8 +5804,9 @@ function guardarNuevaTarea() {
   const finalizar = function (url) {
     datos.url = url;
     if (enAppScript()) {
-      if (editando) enviarEditarTarea(datos, btn, textoBtn);
-      else enviarCrearTarea(datos, btn);
+      if (editando) { enviarEditarTarea(datos, btn, textoBtn); return; }
+      // Crea una tarea por cada subdirección asignada (hoy solo SPAC).
+      subsAsignadas.forEach(function (s) { enviarCrearTarea(Object.assign({}, datos, { subdireccion: s }), btn); });
       return;
     }
     // Modo demo (GitHub): solo en pantalla.
