@@ -1677,9 +1677,15 @@
   .tarjeta-eliminar svg { width: 15px; height: 15px; }
   .tarjeta-eliminar:hover { opacity: 1; background: #FEE2E2; border-color: var(--rojo); color: var(--rojo); }
 
+  /* Borde izquierdo según el estatus/columna (el color se conserva en hover).
+     Identificadas = ámbar (como el título), Por validar = verde (como Validar),
+     Validadas = grafito. El rojo de "vence hoy" se define después y prevalece. */
+  .tarjeta.estatus-identificadas { border-left-color: var(--ambar); }
+  .tarjeta.estatus-validar       { border-left-color: var(--verde); }
+  .tarjeta.estatus-validadas     { border-left-color: var(--grafito); }
+
   .tarjeta:hover {
     border-color: var(--tinta-tenue);
-    border-left-color: var(--tinta);
     box-shadow: 0 6px 16px rgba(0,0,0,0.1);
     transform: translateY(-1px);
   }
@@ -1727,6 +1733,26 @@
     border-radius: 999px;
     margin-bottom: 8px;
     animation: pulso-hoy 1.6s ease-in-out infinite;
+  }
+
+  /* Chip "Vencida": rojo y palpitando para llamar la atención de un pendiente
+     que ya pasó su fecha límite. */
+  @keyframes pulso-vencida {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(185,28,28,0.55); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 7px rgba(185,28,28,0); transform: scale(1.04); }
+  }
+  .vencida-chip {
+    display: inline-block;
+    background: var(--rojo);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+    animation: pulso-vencida 1.2s ease-in-out infinite;
   }
 
   /* === Lista de campos en la tarjeta ===
@@ -4308,6 +4334,13 @@ function crearTarjeta(t) {
   const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso';
   if (venceEsteDia) card.classList.add('vence-hoy');
 
+  // Borde izquierdo coloreado según la columna/estatus donde está la tarea:
+  // Identificadas = ámbar, Por validar = verde, Validadas = grafito.
+  const claseEstatus = t.estatus === 'Atendida' ? 'estatus-validar'
+    : t.estatus === 'Archivada' ? 'estatus-validadas'
+    : 'estatus-identificadas';
+  card.classList.add(claseEstatus);
+
   // Campos del nuevo modelo de tarjeta. Los datos viven en TAREAS con sus
   // claves originales (titulo, observaciones, descripcion, fecha_limite);
   // aquí los exponemos con los nombres que pidió el cliente. Si en el
@@ -4334,6 +4367,7 @@ function crearTarjeta(t) {
 
   let html = `
     ${btnEliminar}
+    ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
     ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}
     <div class="tarjeta-id">${t.id} · ${etiquetaSub}</div>
     <dl class="tarjeta-campos">
@@ -4341,7 +4375,7 @@ function crearTarjeta(t) {
       <dd class="${vencida ? 'campo-fecha-vencida' : ''}">
         ${t.permanente
           ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
-          : `${fechaTxt}${vencida ? ' · vencida' : ''}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 6px;">${prioridadDe(t)}</span>`}
+          : `${fechaTxt}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 6px;">${prioridadDe(t)}</span>`}
       </dd>
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -4769,6 +4803,7 @@ function abrirDetalle(t) {
         <div class="modal-meta">
           <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${etiquetaEstatus(t.estatus)}</span>
           <span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}">Prioridad ${prioridadDe(t)}</span>
+          ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
           ${venceEsteDia ? '<span class="vence-hoy-chip" style="margin: 0;">⏰ Ocurriendo hoy</span>' : ''}
         </div>
       </div>
@@ -4780,7 +4815,7 @@ function abrirDetalle(t) {
         <dd class="${vencida ? 'modal-campo-fecha-vencida' : ''}">
           ${t.permanente
             ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
-            : `${formatearFechaLarga(fechaAt)}${vencida ? ' · vencida' : ''}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 8px;">${prioridadDe(t)}</span>`}
+            : `${formatearFechaLarga(fechaAt)}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 8px;">${prioridadDe(t)}</span>`}
         </dd>
         <dt>Tema</dt>
         <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
