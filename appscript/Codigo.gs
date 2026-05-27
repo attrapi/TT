@@ -627,6 +627,20 @@ function aplicarEstados_(tareas) {
     t.confirmada = !!e.confirmada;
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
+  // Las tareas de JEFATURA nunca escalan: SIEMPRE quedan en 'En Proceso'
+  // (datos del flujo anterior pudieron quedar como Atendida/Archivada). Si
+  // estaban validadas/archivadas, se conserva quién y cuándo como "Finalizada".
+  tareas.forEach(function (t) {
+    if (t.nivel !== 'jefatura') return;
+    if (t.estatus === 'Atendida' || t.estatus === 'Archivada') {
+      if (!t.finalizado_por) t.finalizado_por = t.validado_por || '';
+      if (!t.fecha_finalizacion) t.fecha_finalizacion = t.fecha_validacion || '';
+    }
+    t.estatus = 'En Proceso';
+    t.validada = false;
+    t.en_validadas = false;
+    t.confirmada = false;
+  });
 }
 
 function ahoraStamp_() { return fechaHora_(new Date()); }

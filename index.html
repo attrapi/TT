@@ -3901,6 +3901,8 @@ function cargarTareasAppScript(preservar) {
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
+      // Seguro: las tareas de jefatura siempre se quedan en En Proceso.
+      nuevas.forEach(n => { if (n.nivel === 'jefatura') { n.estatus = 'En Proceso'; n.validada = false; n.en_validadas = false; n.confirmada = false; } });
       TAREAS.length = 0;
       TAREAS.push(...nuevas);
       renderizar();
