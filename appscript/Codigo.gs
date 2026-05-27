@@ -537,7 +537,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -558,9 +558,10 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
-  } else if (datos[0].map(norm_).indexOf('confirmada') === -1) {
-    // Hoja creada antes de agregar las columnas Comentario/Confirmada: repara
-    // el encabezado (no borra datos; las columnas nuevas quedan al final).
+  } else if (datos[0].map(norm_).indexOf('enviadopor') === -1) {
+    // Hoja creada antes de agregar columnas nuevas (Comentario/Confirmada/
+    // EnviadoPor/FechaEnvio): repara el encabezado (no borra datos; las
+    // columnas nuevas quedan al final).
     hoja.getRange(1, 1, 1, ESTADOS_HEADERS.length).setValues([ESTADOS_HEADERS]);
     datos[0] = ESTADOS_HEADERS;
   }
@@ -576,7 +577,9 @@ function guardarEstado(token, id, e) {
     sesion.nombre || sesion.email || '',
     ahoraStamp_(),
     e.comentario_devolucion || '',
-    e.confirmada ? 'Si' : ''
+    e.confirmada ? 'Si' : '',
+    e.enviado_por || '',
+    e.fecha_envio || ''
   ];
   var rowIndex = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -598,7 +601,7 @@ function leerEstados_() {
     var iId = enc.indexOf('id'), iEst = enc.indexOf('estatus'), iVal = enc.indexOf('validada'),
         iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
         iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario'),
-        iConf = enc.indexOf('confirmada');
+        iConf = enc.indexOf('confirmada'), iEp = enc.indexOf('enviadopor'), iFe = enc.indexOf('fechaenvio');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -612,7 +615,9 @@ function leerEstados_() {
         validado_por: String(f[iVp] || '').trim(),
         fecha_validacion: fechaHora_(f[iFv]),
         comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : '',
-        confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false
+        confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false,
+        enviado_por: iEp >= 0 ? String(f[iEp] || '').trim() : '',
+        fecha_envio: iFe >= 0 ? fechaHora_(f[iFe]) : ''
       };
     }
     return map;
@@ -634,6 +639,8 @@ function aplicarEstados_(tareas) {
     if (e.fecha_validacion) t.fecha_validacion = e.fecha_validacion;
     t.comentario_devolucion = e.comentario_devolucion || '';
     t.confirmada = !!e.confirmada;
+    t.enviado_por = e.enviado_por || '';
+    t.fecha_envio = e.fecha_envio || '';
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
   // Las tareas de JEFATURA nunca escalan: SIEMPRE quedan en 'En Proceso'

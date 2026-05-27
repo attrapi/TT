@@ -643,6 +643,7 @@
   .bitacora-accion.desarchivar { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.reabrir     { background: var(--ambar-tenue); color: var(--ambar); }
   .bitacora-accion.mover       { background: var(--grafito-tenue); color: var(--grafito); }
+  .bitacora-accion.enviar      { background: var(--azul-tenue); color: var(--azul); }
   .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; }
   .bitacora-tarea {
     display: flex;
@@ -3916,6 +3917,8 @@ function persistirEstado(t) {
       validada: !!t.validada,
       en_validadas: !!t.en_validadas,
       confirmada: !!t.confirmada,
+      enviado_por: t.enviado_por || '',
+      fecha_envio: t.fecha_envio || '',
       finalizado_por: t.finalizado_por || '',
       fecha_finalizacion: t.fecha_finalizacion || '',
       validado_por: t.validado_por || '',
@@ -3947,6 +3950,8 @@ function cargarTareasAppScript(preservar) {
           n.comentario_devolucion = p.comentario_devolucion;
           n.en_validadas = p.en_validadas;
           n.confirmada = p.confirmada;
+          n.enviado_por = p.enviado_por;
+          n.fecha_envio = p.fecha_envio;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
@@ -4483,6 +4488,10 @@ function crearTarjeta(t) {
     sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
     if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
   }
+  if (t.nivel !== 'jefatura' && t.enviado_por) {
+    sello += (sello ? '<br>' : '') + '📨 Enviada por ' + escapeHtml(t.enviado_por);
+    if (t.fecha_envio) sello += '<br>' + formatearStamp(t.fecha_envio);
+  }
   if (t.estatus === 'Archivada' && t.validado_por) {
     sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
     if (t.fecha_validacion) sello += '<br>' + formatearStamp(t.fecha_validacion);
@@ -4682,6 +4691,8 @@ function enviarAValidacion(idTarea) {
   const ant = t.estatus;
   t.estatus = 'Atendida';
   t.confirmada = true;
+  t.enviado_por = usuarioActual.nombre;
+  t.fecha_envio = ahoraStamp();
   t.comentario_devolucion = '';
   registrarEnBitacora({ accion: 'enviar', id_tarea: idTarea, estatus_anterior: ant, estatus_nuevo: 'Atendida' });
 
@@ -4770,6 +4781,8 @@ function devolver(idTarea) {
   t.validada = false;
   t.en_validadas = false;
   t.confirmada = false;       // vuelve a Mario para corregir y reenviar
+  t.enviado_por = '';
+  t.fecha_envio = '';
   t.finalizado_por = '';
   t.fecha_finalizacion = '';
   t.validado_por = '';
@@ -4797,6 +4810,8 @@ function reabrir(idTarea) {
   t.validada = false;
   t.en_validadas = false;
   t.confirmada = false;
+  t.enviado_por = '';
+  t.fecha_envio = '';
   t.finalizado_por = '';
   t.fecha_finalizacion = '';
   t.validado_por = '';
@@ -4960,11 +4975,12 @@ function abrirDetalle(t) {
         </div>
       ` : ''}
 
-      ${((t.nivel === 'jefatura' && t.finalizado_por) || (t.estatus === 'Archivada' && t.validado_por)) ? `
+      ${((t.nivel === 'jefatura' && t.finalizado_por) || (t.nivel !== 'jefatura' && t.enviado_por) || (t.estatus === 'Archivada' && t.validado_por)) ? `
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Seguimiento</div>
           <div class="modal-comentarios">
             ${(t.nivel === 'jefatura' && t.finalizado_por) ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
+            ${(t.nivel !== 'jefatura' && t.enviado_por) ? '<strong>📨 Enviada por:</strong> ' + escapeHtml(t.enviado_por) + (t.fecha_envio ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_envio)) + '</span>' : '') + '<br>' : ''}
             ${(t.estatus === 'Archivada' && t.validado_por)
               ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '')
               : ''}
@@ -5951,6 +5967,7 @@ const ACCION_LABEL = {
   desarchivar: 'Desarchivada',
   reabrir:     'Reabierta',
   mover:       'Movida',
+  enviar:      'Enviada a validación',
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta'
