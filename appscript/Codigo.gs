@@ -650,6 +650,16 @@ function aplicarEstados_(tareas) {
     t.en_validadas = false;
     t.confirmada = false;
   });
+  // Tareas de SUBDIRECCIÓN que aún NO están en Validadas: en el flujo nuevo no
+  // existe "finalizada/validada" hasta que el Director valida (Archivada). Se
+  // limpian los datos del flujo anterior (p.ej. SPAC-001 finalizada/validada
+  // por migración) para que no aparezcan estando todavía sin enviar.
+  tareas.forEach(function (t) {
+    if (t.nivel === 'jefatura' || t.estatus === 'Archivada') return;
+    t.finalizado_por = ''; t.fecha_finalizacion = '';
+    t.validado_por = '';   t.fecha_validacion = '';
+    t.validada = false;
+  });
 }
 
 function ahoraStamp_() { return fechaHora_(new Date()); }

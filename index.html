@@ -4483,14 +4483,15 @@ function crearTarjeta(t) {
     html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
   }
 
-  // Sello al pie: quién finalizó (la persona que pulsó el botón) y, una vez
-  // validada, quién la validó. Fechas en formato DD/MM/AAAA HH:MM.
+  // Sello al pie acorde al flujo actual (ignora datos viejos de migración):
+  //   • "Finalizada por" SOLO en jefaturas (su botón Finalizar).
+  //   • "Validada por"  SOLO cuando ya está en Validadas (Archivada).
   let sello = '';
-  if (t.finalizado_por) {
+  if (t.nivel === 'jefatura' && t.finalizado_por) {
     sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
     if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
   }
-  if ((t.validada || t.estatus === 'Archivada') && t.validado_por) {
+  if (t.estatus === 'Archivada' && t.validado_por) {
     sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
     if (t.fecha_validacion) sello += '<br>' + formatearStamp(t.fecha_validacion);
   }
@@ -4970,12 +4971,12 @@ function abrirDetalle(t) {
         </div>
       ` : ''}
 
-      ${(t.finalizado_por || ((t.validada || t.estatus === 'Archivada') && t.validado_por)) ? `
+      ${((t.nivel === 'jefatura' && t.finalizado_por) || (t.estatus === 'Archivada' && t.validado_por)) ? `
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Seguimiento</div>
           <div class="modal-comentarios">
-            ${t.finalizado_por ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
-            ${((t.validada || t.estatus === 'Archivada') && t.validado_por)
+            ${(t.nivel === 'jefatura' && t.finalizado_por) ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
+            ${(t.estatus === 'Archivada' && t.validado_por)
               ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '')
               : ''}
             ${t.comentarios_director ? '<br><br><strong>Comentarios:</strong> ' + escapeHtml(t.comentarios_director) : ''}
