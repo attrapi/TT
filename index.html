@@ -4462,6 +4462,9 @@ function moverTarea(idTarea, nuevoEstatus) {
       t.fecha_validacion = stamp;
     }
   }
+  // Al regresar a "En Proceso" deja de estar enviada a validación: vuelve a la
+  // subdirección para que la retrabajen y la reenvíen.
+  if (nuevoEstatus === 'En Proceso') t.confirmada = false;
   t.avance = nuevoEstatus === 'Atendida' || nuevoEstatus === 'Archivada' ? 100 : 0;
 
   // La acción en bitácora describe el sentido. finalizar/archivar para
@@ -4479,7 +4482,17 @@ function moverTarea(idTarea, nuevoEstatus) {
 
   persistirEstado(t);
   renderizar();
-  toast('Tarea ' + idTarea + ': ' + anterior + ' → ' + nuevoEstatus, 'ok');
+
+  // Si el Director mandó a "En Proceso" una tarea de subdirección/jefatura, esa
+  // tarea sale de SU tablero (En Proceso es de cada subdirección): avísalo
+  // claramente para que no parezca que "se borró".
+  const saleDelTablero = usuarioActual.rol === 'Director' && nuevoEstatus === 'En Proceso'
+    && t.subdireccion !== 'DPAC' && t.subdireccion !== 'ENLACE';
+  if (saleDelTablero) {
+    toast('Tarea ' + idTarea + ' regresada a ' + (NOMBRE_SUB[t.subdireccion] || t.subdireccion) + ' (En Proceso). La gestiona el subdirector; reaparecerá cuando la envíen a validación.', 'ok');
+  } else {
+    toast('Tarea ' + idTarea + ': ' + anterior + ' → ' + etiquetaEstatus(nuevoEstatus), 'ok');
+  }
 }
 
 function crearTarjeta(t) {
