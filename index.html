@@ -3200,12 +3200,6 @@
   </div>
 
   <div class="filtros">
-    <span class="filtros-label">Prioridad</span>
-    <button class="chip activo" data-prio="TODAS" onclick="filtrarPrioridad('TODAS')">Todas</button>
-    <button class="chip" data-prio="Alta" onclick="filtrarPrioridad('Alta')">Alta <span class="chip-dias">≤ 3 días</span></button>
-    <button class="chip" data-prio="Media" onclick="filtrarPrioridad('Media')">Media <span class="chip-dias">4 – 7 días</span></button>
-    <button class="chip" data-prio="Baja" onclick="filtrarPrioridad('Baja')">Baja <span class="chip-dias">&gt; 7 días</span></button>
-
     <div class="filtros-spacer"></div>
     <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
   </div>
@@ -4463,7 +4457,7 @@ function crearTarjeta(t) {
       <dd class="${vencida ? 'campo-fecha-vencida' : ''}">
         ${t.permanente
           ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
-          : `${fechaTxt}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 6px;">${prioridadDe(t)}</span>`}
+          : `${fechaTxt}`}
       </dd>
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -4933,7 +4927,6 @@ function abrirDetalle(t) {
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
           <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${etiquetaEstatus(t.estatus)}</span>
-          <span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}">Prioridad ${prioridadDe(t)}</span>
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
           ${venceEsteDia ? '<span class="vence-hoy-chip" style="margin: 0;">⏰ Ocurriendo hoy</span>' : ''}
         </div>
@@ -4946,7 +4939,7 @@ function abrirDetalle(t) {
         <dd class="${vencida ? 'modal-campo-fecha-vencida' : ''}">
           ${t.permanente
             ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
-            : `${formatearFechaLarga(fechaAt)}<span class="tarjeta-prioridad prioridad-${prioridadDe(t).toLowerCase()}" style="margin-left: 8px;">${prioridadDe(t)}</span>`}
+            : `${formatearFechaLarga(fechaAt)}`}
         </dd>
         <dt>Tema</dt>
         <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
