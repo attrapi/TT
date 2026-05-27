@@ -4577,6 +4577,15 @@ function cambiarTab(sub) {
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 
+  // En el Dashboard, el filtro de subdirección del menú también cambia el
+  // alcance de las gráficas (y nos quedamos en el Dashboard, no en el Tablero).
+  if (vistaActiva === 'dashboard') {
+    dashAreaSel = sub;          // TODAS / SA / SGOI / SPAC / ENLACE son válidos
+    dashDetalleSel = 'todo';
+    renderizarDashboard();
+    return;
+  }
+
   // Si el usuario está en una vista de Gestión (Bitácora, Carga, Reportes,
   // Validadas) y hace clic en una subdirección, lo mandamos al Tablero
   // filtrado para que el clic tenga feedback visible (si no, parecería que
@@ -4593,6 +4602,14 @@ function cambiarJefatura(codigo) {
   // El tab de subdirección deja de estar activo mientras se ve una Jefatura.
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.remove('activa'));
   document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.toggle('activa', b.dataset.jef === codigo));
+
+  // En el Dashboard, elegir una Jefatura del menú cambia el alcance de las
+  // gráficas a esa jefatura (y nos quedamos en el Dashboard).
+  if (vistaActiva === 'dashboard') {
+    dashDetalleSel = codigo;    // 'PROCEDIMIENTOS' | 'MANUALES'
+    renderizarDashboard();
+    return;
+  }
 
   if (vistaActiva !== 'tablero' && vistaActiva !== 'calendario') cambiarVista('tablero');
   renderizar();
