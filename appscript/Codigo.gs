@@ -179,6 +179,15 @@ function sesionValida_(token) {
   return v ? JSON.parse(v) : null;
 }
 
+// Reanuda una sesión guardada en el navegador (para que recargar la página no
+// cierre sesión). Devuelve el usuario si el token sigue vigente y renueva su TTL.
+function reanudarSesion(token) {
+  var datos = sesionValida_(token);
+  if (!datos) return { ok: false };
+  try { CacheService.getScriptCache().put('tt_' + token, JSON.stringify(datos), CONFIG.HORAS_SESION * 3600); } catch (e) {}
+  return { ok: true, token: token, usuario: datos };
+}
+
 // ============================== DATOS =====================================
 // Devuelve TODAS las tareas de SPAC (jefaturas + subdirección) ya parseadas,
 // solo si el token de sesión es válido.

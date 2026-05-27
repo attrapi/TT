@@ -3667,6 +3667,7 @@ function salir() {
   if (enAppScript() && SESION_TOKEN) {
     try { google.script.run.cerrarSesion(SESION_TOKEN); } catch (e) {}
   }
+  try { localStorage.removeItem('tt_token'); } catch (e) {}   // olvida la sesión recordada
   SESION_TOKEN = null;
   usuarioActual = null;
   document.getElementById('app').classList.remove('activa');
@@ -3754,6 +3755,9 @@ function seleccionarUsuarioLogin(i) {
   document.getElementById('loginPaso2').style.display = '';
   document.getElementById('loginUsuarioManual').style.display = 'none';
   document.getElementById('loginUsuarioManualLbl').style.display = 'none';
+  // Llena el campo usuario (aunque esté oculto) para que el navegador pueda
+  // ofrecer guardar/autocompletar la contraseña asociada a ese usuario.
+  const mu = document.getElementById('loginUsuarioManual'); if (mu) mu.value = u.usuario;
   document.getElementById('loginNombreSel').textContent = formatearNombre(u.nombre || u.usuario);
   document.getElementById('loginError').textContent = '';
   const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
@@ -3782,6 +3786,26 @@ function loginModoManual() {
   if (volver) volver.style.display = 'none';
 }
 
+// Aplica una sesión devuelta por el servidor (login o reanudación): guarda el
+// token (para que recargar la página NO cierre sesión), arma el usuario y carga.
+function aplicarUsuarioServidor(res) {
+  SESION_TOKEN = res.token;
+  try { localStorage.setItem('tt_token', res.token); } catch (e) {}
+  const u = res.usuario;
+  usuarioActual = {
+    email: u.email,
+    nombre: formatearNombre(u.nombre),
+    rol: u.rol,                       // 'Director' o 'Capturista'
+    subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
+    jefatura: u.jefatura || '',
+    iniciales: inicialesDe(u.nombre)
+  };
+  aplicarSesion();
+  cargarTareasAppScript(false);       // primera carga de datos desde el servidor
+  cargarAreas();                      // catálogo de áreas (base + agregadas)
+  cargarBitacora();                   // historial persistido
+}
+
 // Valida contra el servidor (hoja Usuarios) con el usuario elegido (o el
 // escrito en modo manual) y la contraseña.
 function iniciarSesionApp(ev) {
@@ -3804,21 +3828,8 @@ function iniciarSesionApp(ev) {
         btn.disabled = false; btn.textContent = 'Entrar';
         return;
       }
-      SESION_TOKEN = res.token;
-      const u = res.usuario;
-      usuarioActual = {
-        email: u.email,
-        nombre: formatearNombre(u.nombre),
-        rol: u.rol,                       // 'Director' o 'Capturista'
-        subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
-        jefatura: u.jefatura || '',
-        iniciales: inicialesDe(u.nombre)
-      };
       btn.disabled = false; btn.textContent = 'Entrar';   // deja el botón listo para la próxima vez
-      aplicarSesion();
-      cargarTareasAppScript(false);       // primera carga de datos desde el servidor
-      cargarAreas();                      // catálogo de áreas (base + agregadas)
-      cargarBitacora();                   // historial persistido
+      aplicarUsuarioServidor(res);
     })
     .withFailureHandler(function (e) {
       err.textContent = 'Error de conexión: ' + (e && e.message ? e.message : e);
@@ -6330,7 +6341,22 @@ document.addEventListener('keydown', (e) => {
     if (login) login.style.display = '';
     if (rolesDemo) rolesDemo.style.display = 'none';
     if (lblRoles) lblRoles.style.display = 'none';
-    cargarTarjetasLogin();
+
+    // ¿Hay una sesión recordada? Si el token sigue vigente, entra directo
+    // (recargar la página NO cierra sesión). Si no, muestra el login.
+    let tokGuardado = null;
+    try { tokGuardado = localStorage.getItem('tt_token'); } catch (e) {}
+    if (tokGuardado) {
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.ok) { aplicarUsuarioServidor(res); }
+          else { try { localStorage.removeItem('tt_token'); } catch (e) {} cargarTarjetasLogin(); }
+        })
+        .withFailureHandler(function () { cargarTarjetasLogin(); })
+        .reanudarSesion(tokGuardado);
+    } else {
+      cargarTarjetasLogin();
+    }
   } else {
     // Modo demo: arranca el polling de la hoja SPAC publicada.
     iniciarSincronizacionSPAC();
