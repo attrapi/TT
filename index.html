@@ -4432,23 +4432,18 @@ function crearTarjeta(t) {
     html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
   }
 
-  // Sello al pie: quién finalizó (el RESPONSABLE que viene del Excel, no el
-  // usuario que pulsó el botón) y, una vez validada, quién la validó.
-  if (t.estatus === 'Atendida' || t.estatus === 'Archivada') {
-    let sello = '';
-    if (t.responsable) {
-      sello += 'Finalizada por ' + escapeHtml(t.responsable);
-      if (t.fecha_finalizacion) sello += '<br>' + t.fecha_finalizacion;
-    }
-    if ((t.validada || t.estatus === 'Archivada') && t.validado_por) {
-      sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
-      if (t.fecha_validacion) sello += '<br>' + t.fecha_validacion;
-    } else if (t.estatus === 'Atendida') {
-      // Finalizada pero aún sin validar.
-      sello += (sello ? '<br>' : '') + '⏳ Pendiente de validación';
-    }
-    if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
+  // Sello al pie: quién finalizó (la persona que pulsó el botón) y, una vez
+  // validada, quién la validó. Fechas en formato DD/MM/AAAA HH:MM.
+  let sello = '';
+  if (t.finalizado_por) {
+    sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
+    if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
   }
+  if ((t.validada || t.estatus === 'Archivada') && t.validado_por) {
+    sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
+    if (t.fecha_validacion) sello += '<br>' + formatearStamp(t.fecha_validacion);
+  }
+  if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
 
   // Acciones de la tarjeta como píldoras (misma forma para todas; el color
   // marca la acción). Íconos reutilizados:
@@ -4559,14 +4554,30 @@ function filtrarPrioridad(prio) {
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
 
-// Sello de fecha/hora "AAAA-MM-DD HH:MM" usado en bitácora y metadata.
+// Sello de fecha/hora "DD/MM/AAAA HH:MM" usado en bitácora y metadata.
 function ahoraStamp() {
-  const a = new Date();
-  return a.getFullYear() + '-' +
-    String(a.getMonth()+1).padStart(2,'0') + '-' +
-    String(a.getDate()).padStart(2,'0') + ' ' +
-    String(a.getHours()).padStart(2,'0') + ':' +
-    String(a.getMinutes()).padStart(2,'0');
+  return formatearStamp(new Date());
+}
+
+// Formatea una fecha/hora a "DD/MM/AAAA HH:MM" (en español, sin zona horaria
+// ni "GMT-06:00 hora estándar"). Acepta un Date, o un texto ya formateado o en
+// ISO; si no puede interpretarlo, lo devuelve tal cual (limpiando el GMT).
+function formatearStamp(valor) {
+  let d = valor instanceof Date ? valor : null;
+  if (!d && valor) {
+    const s = String(valor).trim();
+    // Si ya viene como DD/MM/AAAA…, déjalo (solo recorta zona horaria).
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) d = parsed;
+    else return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  return String(d.getDate()).padStart(2,'0') + '/' +
+    String(d.getMonth()+1).padStart(2,'0') + '/' +
+    d.getFullYear() + ' ' +
+    String(d.getHours()).padStart(2,'0') + ':' +
+    String(d.getMinutes()).padStart(2,'0');
 }
 
 // "Finalizar": el subdirector (o el Director) da por terminada una tarea
@@ -4903,14 +4914,14 @@ function abrirDetalle(t) {
         </div>
       ` : ''}
 
-      ${(t.estatus === 'Atendida' || t.estatus === 'Archivada') ? `
+      ${(t.finalizado_por || ((t.validada || t.estatus === 'Archivada') && t.validado_por)) ? `
         <div class="modal-seccion">
-          <div class="modal-seccion-titulo">Validación</div>
+          <div class="modal-seccion-titulo">Seguimiento</div>
           <div class="modal-comentarios">
-            ${t.responsable ? '<strong>Finalizada por:</strong> ' + escapeHtml(t.responsable) + '<br>' : ''}
+            ${t.finalizado_por ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
             ${((t.validada || t.estatus === 'Archivada') && t.validado_por)
-              ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? '<br><span class="modal-fecha-mono">' + t.fecha_validacion + '</span>' : '')
-              : '<em>Pendiente de validación</em>'}
+              ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '')
+              : ''}
             ${t.comentarios_director ? '<br><br><strong>Comentarios:</strong> ' + escapeHtml(t.comentarios_director) : ''}
           </div>
         </div>

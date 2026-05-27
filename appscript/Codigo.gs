@@ -599,9 +599,9 @@ function leerEstados_() {
         validada: norm_(f[iVal]) === 'si',
         en_validadas: norm_(f[iEnV]) === 'si',
         finalizado_por: String(f[iFp] || '').trim(),
-        fecha_finalizacion: String(f[iFf] || '').trim(),
+        fecha_finalizacion: fechaHora_(f[iFf]),
         validado_por: String(f[iVp] || '').trim(),
-        fecha_validacion: String(f[iFv] || '').trim(),
+        fecha_validacion: fechaHora_(f[iFv]),
         comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : '',
         confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false
       };
@@ -629,10 +629,21 @@ function aplicarEstados_(tareas) {
   });
 }
 
-function ahoraStamp_() {
-  var a = new Date();
-  return a.getFullYear() + '-' + String(a.getMonth() + 1).padStart(2, '0') + '-' + String(a.getDate()).padStart(2, '0') +
-    ' ' + String(a.getHours()).padStart(2, '0') + ':' + String(a.getMinutes()).padStart(2, '0');
+function ahoraStamp_() { return fechaHora_(new Date()); }
+
+// Formatea a "DD/MM/AAAA HH:MM" (sin "GMT-06:00 hora estándar"). Acepta un
+// objeto Date (como los que devuelve getValues sobre celdas de fecha) o texto.
+function fechaHora_(v) {
+  var d = (v instanceof Date) ? v : null;
+  if (!d && v) {
+    var s = String(v).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
+    var p = new Date(s);
+    if (!isNaN(p.getTime())) d = p; else return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' +
+    d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
 // ====================== BITÁCORA (persistente) ===========================
@@ -674,7 +685,7 @@ function obtenerBitacora(token) {
     var f = datos[r];
     if (!String(f[iF] || '').trim() && !String(f[iId] || '').trim()) continue;
     out.push({
-      fecha: String(f[iF] || ''), usuario: String(f[iU] || ''), accion: String(f[iA] || ''),
+      fecha: fechaHora_(f[iF]), usuario: String(f[iU] || ''), accion: String(f[iA] || ''),
       id_tarea: String(f[iId] || ''), estatus_anterior: String(f[iEa] || ''),
       estatus_nuevo: String(f[iEn] || ''), comentario: String(iC >= 0 ? f[iC] || '' : '')
     });
