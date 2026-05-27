@@ -4464,18 +4464,10 @@ function crearTarjeta(t) {
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
       <dt>Áreas involucradas</dt>
       <dd>${escapeHtml(areas)}</dd>
-      <dt>Acuerdos realizados</dt>
-      <dd>${escapeHtml(acuerdos)}</dd>
-      <dt>Acción a tomar</dt>
-      <dd>${escapeHtml(accion)}</dd>
     </dl>
-    ${t.url ? `
-      <a href="${escapeHtml(t.url)}" class="tarjeta-adjunto" target="_blank" rel="noopener" onclick="event.stopPropagation();">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg>
-        Ver adjunto
-      </a>
-    ` : ''}
   `;
+  // El resto de los datos (acuerdos, acción a tomar, adjunto) se muestran al
+  // abrir la tarjeta (modal), para que las tarjetas queden más compactas.
 
   // Aviso de devolución: si la tarea fue regresada al responsable con un
   // comentario, lo mostramos mientras siga en Identificadas (En Proceso).
@@ -4516,10 +4508,7 @@ function crearTarjeta(t) {
     // se queda en En Proceso con píldora "Finalizada". El borrar es la papelera.
     if (t.estatus === 'En Proceso') {
       if (t.finalizado_por) {
-        // Reabrir (ámbar, a la izquierda) + Finalizada (gris, inactiva).
-        if (esMario) {
-          pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Reabrir: regresa la tarea a pendiente.">${icoReabrir} Reabrir</button>`;
-        }
+        // Solo el sello gris "Finalizada" (sin botón Reabrir aquí).
         pills += `<button class="btn-pildora btn-pildora-finalizada" disabled>${icoCheck} Finalizada</button>`;
       } else if (esMario) {
         pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizarJefatura('${t.id}')">${icoCheck} Finalizar</button>`;
