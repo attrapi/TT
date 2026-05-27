@@ -4358,10 +4358,6 @@ function crearTarjeta(t) {
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
 
-  // Para tareas de jefatura mostramos a qué jefatura pertenece en el id.
-  const etiquetaSub = t.nivel === 'jefatura'
-    ? (t.jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos')
-    : t.subdireccion;
 
   // Botón eliminar (papelera) arriba a la derecha, según permisos.
   const btnEliminar = usuarioPuedeEliminar(t)
@@ -4374,7 +4370,7 @@ function crearTarjeta(t) {
     ${btnEliminar}
     ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
     ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}
-    <div class="tarjeta-id">${t.id} · ${etiquetaSub}</div>
+    <div class="tarjeta-id">${t.id}</div>
     <dl class="tarjeta-campos">
       <dt>Fecha de atención</dt>
       <dd class="${vencida ? 'campo-fecha-vencida' : ''}">
