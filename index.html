@@ -3449,8 +3449,6 @@ function parsearHojaSPAC(texto, nivel) {
   const get = (fila, idx) => (idx >= 0 && fila[idx] != null) ? String(fila[idx]).trim() : '';
   // Prefijo distinto por hoja para que las dos numeraciones (ambas inician en
   // 1) no colisionen al unirlas en TAREAS.
-  const prefijo = nivel === 'jefatura' ? 'JSPAC-' : 'SPAC-';
-
   const out = [];
   for (let r = filaEnc + 1; r < filas.length; r++) {
     const fila = filas[r];
@@ -3459,6 +3457,11 @@ function parsearHojaSPAC(texto, nivel) {
     // Numeración relativa a los datos: 1, 2, 3... independientemente de
     // cuántas filas de título tenga el Sheet por arriba.
     const numFila = r - filaEnc;
+    // La jefatura define el prefijo: Procesos→JDPC, Manuales→JDIMA.
+    const jefatura = nivel === 'jefatura'
+      ? detectarJefatura(get(fila, idxJef) || get(fila, idxAreas))
+      : '';
+    const prefijo = nivel === 'jefatura' ? (jefatura === 'MANUALES' ? 'JDIMA-' : 'JDPC-') : 'SPAC-';
     const id = prefijo + String(numFila).padStart(3, '0');
     const estatus = normalizarEstatusSheet(get(fila, idxEstatus));
     // Tareas permanentes: el capturista escribe "PERMANENTE" (o "permanente")
@@ -3466,9 +3469,6 @@ function parsearHojaSPAC(texto, nivel) {
     const fechaRaw = get(fila, idxFecha);
     const esPermanente = /^permanente$/i.test(fechaRaw.trim());
     const fechaNorm = esPermanente ? '' : fechaSheetANormal(fechaRaw);
-    const jefatura = nivel === 'jefatura'
-      ? detectarJefatura(get(fila, idxJef) || get(fila, idxAreas))
-      : '';
     out.push({
       id,
       subdireccion: 'SPAC',

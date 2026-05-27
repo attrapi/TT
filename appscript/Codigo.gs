@@ -236,7 +236,7 @@ function crearTarea(token, datos) {
   var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
-  set('id', siguienteIdSheet_(valores, e, esJef ? 'JSPAC-' : 'SPAC-'));   // ID FIJO
+  set('id', siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : 'SPAC-'));   // ID FIJO
   set('responsable', datos.responsable || '');
   if (esJef) set('jefatura', datos.jefatura || '');
   set('tema', datos.tema || '');
@@ -303,7 +303,7 @@ function asignarIds() {
     }
     for (var r2 = e + 1; r2 < vals.length; r2++) {
       if (!String(vals[r2][iTema] || '').trim()) continue;
-      if (/^(?:JSPAC|SPACJ|SPAC)-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
+      if (/^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC)-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
       max++;
       hoja.getRange(r2 + 1, 1).setValue(h.pre + String(max).padStart(3, '0'));
       hechos++;
@@ -356,6 +356,43 @@ function migrarIdsJefatura() {
   return { ok: true, ids: cambios, estados: renEstados, bitacora: renBitacora };
 }
 
+// Reasigna TODOS los IDs de jefatura desde cero, según la jefatura de cada fila:
+//   • Procesos de Construcción      → JDPC-001, JDPC-002, ...
+//   • Implementación de Manuales    → JDIMA-001, JDIMA-002, ...
+// Borra los IDs actuales de la hoja de jefaturas y los vuelve a asignar fijos.
+// Reajusta Estados y Bitacora (viejo -> nuevo) para no perder avance ni
+// historial. CÓRRELA UNA VEZ después de actualizar el código.
+function reasignarIdsJefatura() {
+  var ss = SpreadsheetApp.openById(CONFIG.HOJA_JEFATURAS_ID);
+  var hoja = ss.getSheetByName(CONFIG.HOJA_JEFATURAS_PEST);
+  if (!hoja) return { ok: false, error: 'No existe la hoja de jefaturas.' };
+  var vals = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < vals.length; i++) { if (norm_(vals[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja de jefaturas.' };
+  var enc = vals[e].map(norm_);
+  var iTema = enc.indexOf('tema');
+  var iJef = enc.indexOf('jefatura');
+  var iAreas = enc.findIndex(function (c) { return c.indexOf('areas') >= 0; });
+
+  var mapa = {}, cont = { JDPC: 0, JDIMA: 0 }, cambios = 0;
+  for (var r = e + 1; r < vals.length; r++) {
+    if (iTema >= 0 && !String(vals[r][iTema] || '').trim()) continue;   // fila vacía
+    var jef = detectarJefatura_(String(iJef >= 0 ? vals[r][iJef] : '') + ' ' + String(iAreas >= 0 ? vals[r][iAreas] : ''));
+    var pre = (jef === 'MANUALES') ? 'JDIMA' : 'JDPC';
+    var newId = pre + '-' + String(++cont[pre]).padStart(3, '0');
+    var oldId = String(vals[r][0] || '').trim();
+    hoja.getRange(r + 1, 1).setValue(newId);
+    if (oldId && oldId !== newId) mapa[oldId] = newId;   // para reajustar Estados/Bitacora
+    cambios++;
+  }
+
+  var renEstados = renombrarEnHoja_(hojaEstados_(false), 0, mapa);
+  var renBitacora = renombrarEnHoja_(hojaBitacora_(false), 3, mapa);
+  Logger.log('✅ Reasignación jefatura: JDPC=' + cont.JDPC + ', JDIMA=' + cont.JDIMA + ', Estados=' + renEstados + ', Bitacora=' + renBitacora);
+  return { ok: true, jdpc: cont.JDPC, jdima: cont.JDIMA, estados: renEstados, bitacora: renBitacora };
+}
+
 // Reemplaza, en la columna `colIdx` (0-based) de `hoja`, los valores presentes
 // en `mapa` (viejo -> nuevo). Devuelve cuántas celdas cambió.
 function renombrarEnHoja_(hoja, colIdx, mapa) {
@@ -375,7 +412,7 @@ function actualizarTarea(token, id, datos) {
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   datos = datos || {};
   id = String(id || '').trim();
-  var esJef = id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
+  var esJef = id.indexOf('JDPC-') === 0 || id.indexOf('JDIMA-') === 0 || id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
   var esSub = id.indexOf('SPAC-') === 0 && !esJef;
   if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
   if (!(sesion.rol === 'Capturista' && sesion.subdireccion === 'SPAC')) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
@@ -420,7 +457,7 @@ function eliminarTarea(token, id) {
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   id = String(id || '').trim();
 
-  var esJef = id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
+  var esJef = id.indexOf('JDPC-') === 0 || id.indexOf('JDIMA-') === 0 || id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
   var esSub = id.indexOf('SPAC-') === 0 && !esJef;
   if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
 
@@ -759,6 +796,14 @@ function detectarJefatura_(texto) {
   return 'PROCEDIMIENTOS';
 }
 
+// Prefijo de ID según la jefatura:
+//   • Procesos de Construcción (PROCEDIMIENTOS)          → JDPC-
+//   • Implementación de Manuales Admin. (MANUALES)       → JDIMA-
+function prefijoJef_(jefatura) { return jefatura === 'MANUALES' ? 'JDIMA-' : 'JDPC-'; }
+
+// Regex que reconoce un ID estable (incluye prefijos viejos por compatibilidad).
+var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC)-\d+/i;
+
 function fechaNorm_(celda) {
   if (celda instanceof Date) {
     var d = celda;
@@ -783,16 +828,20 @@ function parsearHoja_(filas, nivel) {
       iAreas = find('areas'), iAcu = col('acuerdos realizados'), iAcc = find('accion'),
       iFecha = find('fecha'), iEst = col('estatus'), iUrl = col('url');
 
-  var out = [], prefijo = nivel === 'jefatura' ? 'JSPAC-' : 'SPAC-';
+  var out = [];
   for (var r = e + 1; r < filas.length; r++) {
     var f = filas[r];
     var tema = String(f[iTema] || '').trim();
     if (!tema) continue;
-    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / JSPAC-###,
-    // o el viejo SPACJ-###); si está vacío o es un número suelto, usa el
-    // posicional como respaldo.
+    // La jefatura define el prefijo del ID (JDPC- / JDIMA-).
+    var jefatura = nivel === 'jefatura'
+      ? detectarJefatura_(String(iJef >= 0 ? f[iJef] : '') + ' ' + String(f[iAreas] || ''))
+      : '';
+    var prefijo = nivel === 'jefatura' ? prefijoJef_(jefatura) : 'SPAC-';
+    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / JDPC-### /
+    // JDIMA-###, o los viejos JSPAC-/SPACJ-); si no, usa el posicional.
     var idCell = String(f[0] || '').trim();
-    var id = /^(?:JSPAC|SPACJ|SPAC)-\d+/i.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
+    var id = RE_ID_ESTABLE.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
     // Estatus INICIAL por origen (lo guardado en la hoja Estados lo sobreescribe):
     //   • Jefatura      → 'En Proceso' (Mario la finaliza; no escala).
     //   • Subdirección  → 'Atendida'   (nace en "Para validar", retenida).
@@ -803,9 +852,6 @@ function parsearHoja_(filas, nivel) {
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
     var fecha = perm ? '' : fechaNorm_(raw);
-    var jefatura = nivel === 'jefatura'
-      ? detectarJefatura_(String(iJef >= 0 ? f[iJef] : '') + ' ' + String(f[iAreas] || ''))
-      : '';
     out.push({
       id: id, subdireccion: 'SPAC', nivel: nivel, jefatura: jefatura,
       responsable: String(f[iResp] || '').trim(), titulo: tema, tema: tema,
