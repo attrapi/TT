@@ -4061,11 +4061,12 @@ function filtrarValidadas(texto) {
 // la bitácora ni la lógica), pero al usuario se le muestran nombres del
 // nuevo flujo:
 //   En Proceso  → "En Proceso"   (ambos roles)
-//   Atendida    → "Para validar" (ambos roles)
+//   Atendida    → "Para validar" (Director) / "Por validar" (subdirección)
 //   Archivada   → "Validadas"    (ambos roles)
 function etiquetaEstatus(estatus) {
+  const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (estatus === 'En Proceso') return 'En Proceso';
-  if (estatus === 'Atendida')   return 'Para validar';
+  if (estatus === 'Atendida')   return esDir ? 'Para validar' : 'Por validar';
   if (estatus === 'Archivada')  return 'Validadas';
   return estatus;
 }
@@ -5187,7 +5188,7 @@ function renderizarDashboard() {
   const segs = [
     { label: etiquetaEstatus('En Proceso'), valor: identificadas, color: '#B45309' },
     { label: 'Vencidas',    valor: vencidas,    color: '#B91C1C' },
-    { label: 'Para validar', valor: porValidar,  color: '#1D4ED8' },
+    { label: etiquetaEstatus('Atendida'), valor: porValidar, color: '#1D4ED8' },
     { label: 'Validadas',   valor: validadas,   color: '#15803D' }
   ];
   document.getElementById('dashDonut').innerHTML = dashDonutHTML(segs);
