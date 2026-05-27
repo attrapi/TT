@@ -4462,26 +4462,37 @@ function crearTarjeta(t) {
        </button>`
     : '';
 
-  let html = `
-    ${btnEliminar}
-    ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
-    ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}
+  // En "Validadas" la tarjeta es mínima: solo ID, Tema y Áreas (sin fecha, sin
+  // seguimiento, sin botones). El detalle completo se ve al abrir el modal.
+  const esValidada = t.estatus === 'Archivada';
+
+  let html = `${btnEliminar}`;
+  if (!esValidada) {
+    html += `
+      ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
+      ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}`;
+  }
+  html += `
     <div class="tarjeta-id">${t.id}</div>
-    <dl class="tarjeta-campos">
+    <dl class="tarjeta-campos">`;
+  if (!esValidada) {
+    html += `
       <dt>Fecha de atención</dt>
       <dd class="${vencida ? 'campo-fecha-vencida' : ''}">
         ${t.permanente
           ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
           : `${fechaTxt}`}
-      </dd>
+      </dd>`;
+  }
+  html += `
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
       <dt>Áreas involucradas</dt>
       <dd>${escapeHtml(areas)}</dd>
     </dl>
   `;
-  // El resto de los datos (acuerdos, acción a tomar, adjunto) se muestran al
-  // abrir la tarjeta (modal), para que las tarjetas queden más compactas.
+  // El resto de los datos (acuerdos, acción a tomar, adjunto, seguimiento) se
+  // muestran al abrir la tarjeta (modal), para que las tarjetas queden compactas.
 
   // Aviso de devolución: si la tarea fue regresada al responsable con un
   // comentario, lo mostramos mientras siga en Identificadas (En Proceso).
@@ -4489,21 +4500,19 @@ function crearTarjeta(t) {
     html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
   }
 
-  // Sello al pie acorde al flujo actual (ignora datos viejos de migración):
+  // Sello al pie (NO en Validadas: ahí la tarjeta es mínima). Acorde al flujo:
   //   • "Finalizada por" SOLO en jefaturas (su botón Finalizar).
-  //   • "Validada por"  SOLO cuando ya está en Validadas (Archivada).
+  //   • "Enviada por"    cuando el subdirector la mandó a validación.
   let sello = '';
-  if (t.nivel === 'jefatura' && t.finalizado_por) {
-    sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
-    if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
-  }
-  if (t.nivel !== 'jefatura' && t.enviado_por) {
-    sello += (sello ? '<br>' : '') + '📨 Enviada por ' + escapeHtml(t.enviado_por);
-    if (t.fecha_envio) sello += '<br>' + formatearStamp(t.fecha_envio);
-  }
-  if (t.estatus === 'Archivada' && t.validado_por) {
-    sello += (sello ? '<br>' : '') + '✓ Validada por ' + escapeHtml(t.validado_por);
-    if (t.fecha_validacion) sello += '<br>' + formatearStamp(t.fecha_validacion);
+  if (!esValidada) {
+    if (t.nivel === 'jefatura' && t.finalizado_por) {
+      sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
+      if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
+    }
+    if (t.nivel !== 'jefatura' && t.enviado_por) {
+      sello += (sello ? '<br>' : '') + '📨 Enviada por ' + escapeHtml(t.enviado_por);
+      if (t.fecha_envio) sello += '<br>' + formatearStamp(t.fecha_envio);
+    }
   }
   if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
 
@@ -4546,11 +4555,7 @@ function crearTarjeta(t) {
     }
   }
 
-  // Reabrir: para quien gestiona la tarea, una vez en Validadas. La regresa a
-  // su columna de origen y limpia el avance.
-  if (usuarioPuedeReabrir(t)) {
-    pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Regresar a En Proceso.">${icoReabrir} Reabrir</button>`;
-  }
+  // (Reabrir ya NO va en la tarjeta: vive dentro del modal al abrir la tarea.)
 
   if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
 
