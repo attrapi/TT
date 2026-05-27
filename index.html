@@ -2100,8 +2100,9 @@
   /* Enviar a validación: azul (acción del subdirector). */
   .btn-pildora-enviar { background: #1d4ed8; color: #fff; }
   .btn-pildora-enviar:hover { filter: brightness(1.1); }
-  /* Finalizada (jefatura): verde estático, no es botón de acción. */
-  .btn-pildora-finalizada { background: var(--verde-tenue); color: var(--verde); cursor: default; opacity: 1; }
+  /* Finalizada (jefatura): gris/inactiva (es solo un sello, no una acción), para
+     no confundirla con el botón verde "Finalizar". */
+  .btn-pildora-finalizada { background: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; cursor: default; }
 
   /* Zona para arrastrar adjuntos en el formulario de nueva tarea. */
   .dropzone {
@@ -4467,6 +4468,10 @@ function crearTarjeta(t) {
     // se queda en En Proceso con píldora "Finalizada". El borrar es la papelera.
     if (t.estatus === 'En Proceso') {
       if (t.finalizado_por) {
+        // Reabrir (ámbar, a la izquierda) + Finalizada (gris, inactiva).
+        if (esMario) {
+          pills += `<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); reabrir('${t.id}')" title="Reabrir: regresa la tarea a pendiente.">${icoReabrir} Reabrir</button>`;
+        }
         pills += `<button class="btn-pildora btn-pildora-finalizada" disabled>${icoCheck} Finalizada</button>`;
       } else if (esMario) {
         pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizarJefatura('${t.id}')">${icoCheck} Finalizar</button>`;
@@ -4748,7 +4753,7 @@ function devolver(idTarea) {
 function reabrir(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
-  if (!confirm('¿Reabrir la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nVolverá a "Identificadas" y se borrará su avance (validación).')) return;
+  if (!confirm('¿Reabrir la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nVolverá a "En Proceso" y se borrará su avance.')) return;
 
   const anterior = t.estatus;
   t.estatus = 'En Proceso';
@@ -4829,7 +4834,9 @@ function abrirDetalle(t) {
     if (t.estatus === 'En Proceso' && !t.finalizado_por && esMario) {
       botones = `<button class="btn-modal btn-modal-primario" onclick="finalizarJefatura('${t.id}')">✓ Finalizar</button>`;
     } else if (t.estatus === 'En Proceso' && t.finalizado_por) {
-      botones = `<button class="btn-modal" disabled style="cursor:default; background:var(--verde-tenue); color:var(--verde); border-color:var(--verde-tenue);">✓ Finalizada</button>`;
+      // Reabrir (ámbar) a la izquierda + Finalizada (gris, inactiva).
+      botones = (esMario ? `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>` : '')
+              + `<button class="btn-modal" disabled style="cursor:default; background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb;">✓ Finalizada</button>`;
     }
   } else {
     // Subdirección: Mario ENVÍA a validación; el Director Valida o Devuelve.
