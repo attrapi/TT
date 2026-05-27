@@ -3164,10 +3164,10 @@
             </div>
           </div>
           <div class="kpi-pie-leyenda">
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>Identificadas</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--rojo)"></span><span>Vencidas</span><span class="kpi-pie-val" id="kpiPieVencidas">0</span></div>
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span>Por validar</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>En Proceso</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span id="kpiPieLblAtendidas">Por validar</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--grafito)"></span><span>Validadas</span><span class="kpi-pie-val" id="kpiPieArchivadas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--rojo)"></span><span>Vencidas</span><span class="kpi-pie-val" id="kpiPieVencidas">0</span></div>
           </div>
         </div>
       </div>
@@ -3195,6 +3195,23 @@
           <div class="kpi-valor" id="kpiPendENLACE">0</div>
           <div class="kpi-clave">ENLACE</div>
           <div class="kpi-label">Enlace Director</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pendientes por jefatura (solo el subdirector de SPAC). -->
+    <div class="kpi-card sub-card" id="kpisJefGrupo" style="display:none">
+      <div class="kpis-grupo-titulo">Pendientes por jefatura</div>
+      <div class="kpis-fila">
+        <div class="kpi kpi-sub" data-sub="SPAC">
+          <div class="kpi-valor" id="kpiPendJDPC">0</div>
+          <div class="kpi-clave">JDPC</div>
+          <div class="kpi-label">Procesos Construcción</div>
+        </div>
+        <div class="kpi kpi-sub" data-sub="SPAC">
+          <div class="kpi-valor" id="kpiPendJDIMA">0</div>
+          <div class="kpi-clave">JDIMA</div>
+          <div class="kpi-label">Implementación Manuales</div>
         </div>
       </div>
     </div>
@@ -3668,7 +3685,7 @@ function aplicarSesion() {
     grupoDir.style.display = '';
 
     document.getElementById('kpisSubGrupo').style.display = 'none';
-    document.getElementById('kpisGrupoTitulo').textContent = 'Mis tareas';
+    document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
 
     const nombresSubs = {
       'SA': 'Subdirección de Archivo',
@@ -4126,10 +4143,8 @@ function renderizar() {
 
 function actualizarKPIs() {
   const visible = obtenerTareasFiltradas();
-  const hoy = new Date().toISOString().split('T')[0];
-  const hace7 = new Date(); hace7.setDate(hace7.getDate() - 7);
+  const esDir = usuarioActual.rol === 'Director';
 
-  // Helper para localizar el .kpi-label asociado a un valor (sube al .kpi padre)
   const setLabel = (valorId, texto) => {
     const valor = document.getElementById(valorId);
     if (!valor) return;
@@ -4137,116 +4152,110 @@ function actualizarKPIs() {
     if (lbl) lbl.textContent = texto;
   };
 
-  const pieWrap = document.getElementById('kpiPieWrap');
-  const vencidasChip = document.getElementById('kpiVencidasChip');
-
-  // Helper común: muestra/oculta el chip pequeño de Vencidas según el conteo.
-  const pintarVencidasChip = n => {
-    if (!vencidasChip) return;
-    document.getElementById('kpiHoy').textContent = n;
-    vencidasChip.classList.toggle('oculto', n === 0);
-  };
-
-  if (usuarioActual.rol === 'Capturista') {
-    const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
-    const atendidas = visible.filter(t => t.estatus === 'Atendida').length;
-    const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
-    const vencidasCap = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
-
-    setLabel('kpiActivas', etiquetaEstatus('En Proceso'));
-    setLabel('kpiSemana', etiquetaEstatus('Atendida'));
-    setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));
-
-    document.getElementById('kpiActivas').textContent = enProcesos;
-    document.getElementById('kpiSemana').textContent = atendidas;
-    document.getElementById('kpiArchivadas').textContent = archivadas;
-    pintarVencidasChip(vencidasCap);
-    if (pieWrap) pieWrap.style.display = 'none'; // pie solo para Director
-    return;
+  // Conteos por columna CON LA MISMA VISIBILIDAD QUE EL TABLERO (si no, no
+  // coinciden: el Director solo ve sus áreas en En Proceso y lo confirmado en
+  // Por validar).
+  let colProc, colAtendida;
+  if (esDir) {
+    colProc = visible.filter(t => t.estatus === 'En Proceso' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
+    colAtendida = visible.filter(t => t.estatus === 'Atendida' && (t.confirmada || t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
+  } else {
+    colProc = visible.filter(t => t.estatus === 'En Proceso');
+    colAtendida = visible.filter(t => t.estatus === 'Atendida');
   }
+  const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
+  const vencidas   = colProc.filter(t => esVencida(t.fecha_limite)).length;
+  const enProcesos = colProc.length;
+  const atendidas  = colAtendida.length;
 
-  // KPIs del Director
-  setLabel('kpiActivas', etiquetaEstatus('En Proceso'));
-  setLabel('kpiSemana', etiquetaEstatus('Atendida'));
-  setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));
-
-  const enProcesos = visible.filter(t => t.estatus === 'En Proceso').length;
-  const vencidas = visible.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
-  // Por validar = Atendida que el Director aún no envió a Validadas.
-  const atendidas = visible.filter(t => t.estatus === 'Atendida' && !t.en_validadas).length;
-  // Validadas = archivadas o ya enviadas a Validadas por el Director.
-  const archivadas = visible.filter(t => t.estatus === 'Archivada' || t.en_validadas).length;
-
+  setLabel('kpiActivas', etiquetaEstatus('En Proceso'));      // "En Proceso"
+  setLabel('kpiSemana', etiquetaEstatus('Atendida'));         // "Por validar"/"Para validar"
+  setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));    // "Validadas"
   document.getElementById('kpiActivas').textContent = enProcesos;
   document.getElementById('kpiSemana').textContent = atendidas;
   document.getElementById('kpiArchivadas').textContent = archivadas;
-  pintarVencidasChip(vencidas);
 
-  // Donut: En Proceso (no vencidas) | Vencidas | Atendidas | Archivadas
-  if (pieWrap) {
-    pieWrap.style.display = '';
-    const enProcesoNoVencidas = enProcesos - vencidas;
-    const totalDonut = enProcesoNoVencidas + vencidas + atendidas + archivadas;
-    const pie = document.getElementById('kpiPie');
-    const pctProc = document.getElementById('kpiPiePctProceso');
-    const pctVenc = document.getElementById('kpiPiePctVencidas');
-    const pctAten = document.getElementById('kpiPiePctAtendidas');
-    const pctArch = document.getElementById('kpiPiePctArchivadas');
+  const vencidasChip = document.getElementById('kpiVencidasChip');
+  const kpiHoy = document.getElementById('kpiHoy');
+  if (kpiHoy) kpiHoy.textContent = vencidas;
+  if (vencidasChip) vencidasChip.classList.toggle('oculto', vencidas === 0);
 
-    if (totalDonut === 0) {
-      pie.classList.add('vacio');
-      pie.style.setProperty('--p1', 0);
-      pie.style.setProperty('--p2', 0);
-      pie.style.setProperty('--p3', 0);
-      pie.style.setProperty('--p4', 0);
-      pctProc.classList.add('oculto');
-      pctVenc.classList.add('oculto');
-      pctAten.classList.add('oculto');
-      pctArch.classList.add('oculto');
-    } else {
-      pie.classList.remove('vacio');
-      const p1 = (enProcesoNoVencidas / totalDonut) * 100;
-      const p2 = (vencidas / totalDonut) * 100;
-      const p3 = (atendidas / totalDonut) * 100;
-      const p4 = (archivadas / totalDonut) * 100;
-      pie.style.setProperty('--p1', p1.toFixed(2));
-      pie.style.setProperty('--p2', p2.toFixed(2));
-      pie.style.setProperty('--p3', p3.toFixed(2));
-      pie.style.setProperty('--p4', p4.toFixed(2));
+  // Donut para AMBOS roles. La leyenda "Por validar/Para validar" según el rol.
+  const lblAt = document.getElementById('kpiPieLblAtendidas');
+  if (lblAt) lblAt.textContent = etiquetaEstatus('Atendida');
+  renderDonut(enProcesos - vencidas, vencidas, atendidas, archivadas);
 
-      const RADIO = 41; // centro del anillo coloreado
-      const posicionarLabel = (lbl, pct, midPct) => {
-        if (pct < 4) { lbl.classList.add('oculto'); return; }
-        lbl.classList.remove('oculto');
-        const angRad = (midPct * 3.6 - 90) * Math.PI / 180;
-        const x = 50 + Math.cos(angRad) * RADIO;
-        const y = 50 + Math.sin(angRad) * RADIO;
-        lbl.style.left = x + '%';
-        lbl.style.top  = y + '%';
-        lbl.textContent = Math.round(pct) + '%';
-      };
-      posicionarLabel(pctProc, p1, p1 / 2);
-      posicionarLabel(pctVenc, p2, p1 + p2 / 2);
-      posicionarLabel(pctAten, p3, p1 + p2 + p3 / 2);
-      posicionarLabel(pctArch, p4, p1 + p2 + p3 + p4 / 2);
+  // Pendientes: el Director por subdirección; el subdirector por jefatura.
+  const subCard = document.getElementById('kpisSubGrupo');
+  const jefCard = document.getElementById('kpisJefGrupo');
+  if (esDir) {
+    if (subCard) subCard.style.display = '';
+    if (jefCard) jefCard.style.display = 'none';
+    const pend = sub => TAREAS.filter(t => t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+    document.getElementById('kpiPendSA').textContent = pend('SA');
+    document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
+    document.getElementById('kpiPendSPAC').textContent = pend('SPAC');
+    document.getElementById('kpiPendENLACE').textContent = pend('ENLACE');
+  } else {
+    if (subCard) subCard.style.display = 'none';
+    const tieneJef = usuarioActual.subdireccion === 'SPAC';
+    if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
+    if (tieneJef) {
+      const pendJef = cod => TAREAS.filter(t => t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
+      document.getElementById('kpiPendJDPC').textContent = pendJef('PROCEDIMIENTOS');
+      document.getElementById('kpiPendJDIMA').textContent = pendJef('MANUALES');
     }
-    document.getElementById('kpiPieTotal').textContent = totalDonut;
-    document.getElementById('kpiPieProceso').textContent = enProcesoNoVencidas;
-    document.getElementById('kpiPieVencidas').textContent = vencidas;
-    document.getElementById('kpiPieAtendidas').textContent = atendidas;
-    document.getElementById('kpiPieArchivadas').textContent = archivadas;
   }
+}
 
-  // Pendientes "En Proceso" por subdirección (universo total, ignorando
-  // filtros). Excluye jefaturas: este panel es del Director, que no las ve.
-  const pendSA     = TAREAS.filter(t => t.subdireccion === 'SA'     && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const pendSGOI   = TAREAS.filter(t => t.subdireccion === 'SGOI'   && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const pendSPAC   = TAREAS.filter(t => t.subdireccion === 'SPAC'   && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const pendENLACE = TAREAS.filter(t => t.subdireccion === 'ENLACE' && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  document.getElementById('kpiPendSA').textContent = pendSA;
-  document.getElementById('kpiPendSGOI').textContent = pendSGOI;
-  document.getElementById('kpiPendSPAC').textContent = pendSPAC;
-  document.getElementById('kpiPendENLACE').textContent = pendENLACE;
+// Dibuja el donut del Resumen general (4 segmentos: En Proceso sin vencer,
+// Vencidas, Por/Para validar, Validadas).
+function renderDonut(enProcesoNoVencidas, vencidas, atendidas, archivadas) {
+  const pieWrap = document.getElementById('kpiPieWrap');
+  if (!pieWrap) return;
+  pieWrap.style.display = '';
+  const totalDonut = enProcesoNoVencidas + vencidas + atendidas + archivadas;
+  const pie = document.getElementById('kpiPie');
+  const pctProc = document.getElementById('kpiPiePctProceso');
+  const pctVenc = document.getElementById('kpiPiePctVencidas');
+  const pctAten = document.getElementById('kpiPiePctAtendidas');
+  const pctArch = document.getElementById('kpiPiePctArchivadas');
+
+  if (totalDonut === 0) {
+    pie.classList.add('vacio');
+    pie.style.setProperty('--p1', 0); pie.style.setProperty('--p2', 0);
+    pie.style.setProperty('--p3', 0); pie.style.setProperty('--p4', 0);
+    [pctProc, pctVenc, pctAten, pctArch].forEach(l => l && l.classList.add('oculto'));
+  } else {
+    pie.classList.remove('vacio');
+    const p1 = (enProcesoNoVencidas / totalDonut) * 100;
+    const p2 = (vencidas / totalDonut) * 100;
+    const p3 = (atendidas / totalDonut) * 100;
+    const p4 = (archivadas / totalDonut) * 100;
+    pie.style.setProperty('--p1', p1.toFixed(2));
+    pie.style.setProperty('--p2', p2.toFixed(2));
+    pie.style.setProperty('--p3', p3.toFixed(2));
+    pie.style.setProperty('--p4', p4.toFixed(2));
+    const RADIO = 41;
+    const posicionarLabel = (lbl, pct, midPct) => {
+      if (!lbl) return;
+      if (pct < 4) { lbl.classList.add('oculto'); return; }
+      lbl.classList.remove('oculto');
+      const angRad = (midPct * 3.6 - 90) * Math.PI / 180;
+      lbl.style.left = (50 + Math.cos(angRad) * RADIO) + '%';
+      lbl.style.top  = (50 + Math.sin(angRad) * RADIO) + '%';
+      lbl.textContent = Math.round(pct) + '%';
+    };
+    posicionarLabel(pctProc, p1, p1 / 2);
+    posicionarLabel(pctVenc, p2, p1 + p2 / 2);
+    posicionarLabel(pctAten, p3, p1 + p2 + p3 / 2);
+    posicionarLabel(pctArch, p4, p1 + p2 + p3 + p4 / 2);
+  }
+  document.getElementById('kpiPieTotal').textContent = totalDonut;
+  document.getElementById('kpiPieProceso').textContent = enProcesoNoVencidas;
+  document.getElementById('kpiPieVencidas').textContent = vencidas;
+  document.getElementById('kpiPieAtendidas').textContent = atendidas;
+  document.getElementById('kpiPieArchivadas').textContent = archivadas;
 }
 
 function actualizarConteosTabs() {

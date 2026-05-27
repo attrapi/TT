@@ -378,7 +378,9 @@ function reasignarIdsJefatura() {
   var mapa = {}, cont = { JDPC: 0, JDIMA: 0 }, cambios = 0;
   for (var r = e + 1; r < vals.length; r++) {
     if (iTema >= 0 && !String(vals[r][iTema] || '').trim()) continue;   // fila vacía
-    var jef = detectarJefatura_(String(iJef >= 0 ? vals[r][iJef] : '') + ' ' + String(iAreas >= 0 ? vals[r][iAreas] : ''));
+    // Clasifica por la COLUMNA "Jefatura" (solo usa "Áreas" si está vacía).
+    var jefCol = String(iJef >= 0 ? vals[r][iJef] : '').trim();
+    var jef = detectarJefatura_(jefCol || String(iAreas >= 0 ? vals[r][iAreas] : ''));
     var pre = (jef === 'MANUALES') ? 'JDIMA' : 'JDPC';
     var newId = pre + '-' + String(++cont[pre]).padStart(3, '0');
     var oldId = String(vals[r][0] || '').trim();
@@ -833,9 +835,11 @@ function parsearHoja_(filas, nivel) {
     var f = filas[r];
     var tema = String(f[iTema] || '').trim();
     if (!tema) continue;
-    // La jefatura define el prefijo del ID (JDPC- / JDIMA-).
+    // La jefatura define el prefijo del ID (JDPC- / JDIMA-). Se toma de la
+    // COLUMNA "Jefatura"; solo si está vacía se usa "Áreas" como respaldo.
+    var textoJef = String(iJef >= 0 ? f[iJef] : '').trim();
     var jefatura = nivel === 'jefatura'
-      ? detectarJefatura_(String(iJef >= 0 ? f[iJef] : '') + ' ' + String(f[iAreas] || ''))
+      ? detectarJefatura_(textoJef || String(f[iAreas] || ''))
       : '';
     var prefijo = nivel === 'jefatura' ? prefijoJef_(jefatura) : 'SPAC-';
     // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / JDPC-### /
