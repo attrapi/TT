@@ -2124,8 +2124,8 @@
   /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
   .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
   .btn-pildora-devolver:hover { background: #ffedd5; }
-  /* Enviar a validación: azul (acción del subdirector). */
-  .btn-pildora-enviar { background: #1d4ed8; color: #fff; }
+  /* Enviar a validación: verde-azulado (teal), distinto del verde de Validar. */
+  .btn-pildora-enviar { background: #0d9488; color: #fff; }
   .btn-pildora-enviar:hover { filter: brightness(1.1); }
   /* Finalizada (jefatura): gris/inactiva (es solo un sello, no una acción), para
      no confundirla con el botón verde "Finalizar". */
@@ -5022,7 +5022,7 @@ function abrirDetalle(t) {
   } else {
     // Subdirección: Mario ENVÍA a validación; el Director Valida o Devuelve.
     if ((t.estatus === 'Atendida' || t.estatus === 'En Proceso') && esMario && !t.confirmada) {
-      botones = `<button class="btn-modal btn-modal-primario" style="background:#1d4ed8; border-color:#1d4ed8;" onclick="enviarAValidacion('${t.id}')">➤ Enviar a validación</button>`;
+      botones = `<button class="btn-modal btn-modal-primario" style="background:#0d9488; border-color:#0d9488;" onclick="enviarAValidacion('${t.id}')">➤ Enviar a validación</button>`;
     } else if (t.estatus === 'Atendida' && esMario && t.confirmada) {
       botones = `<button class="btn-modal" disabled style="opacity:.55; cursor:default;">⏳ Enviada a validación</button>`;
     } else if (t.estatus === 'Atendida' && esDir && t.confirmada) {
