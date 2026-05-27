@@ -507,6 +507,23 @@
   .app-main[data-vista="dashboard"] #reportesWrap { display: none; }
   .app-main[data-vista="dashboard"] #dashboardWrap { display: block; }
 
+  /* Papelera de reciclaje (vista) — oculta salvo en su propia vista. */
+  #papeleraWrap { display: none; }
+  .app-main[data-vista="papelera"] .kpis,
+  .app-main[data-vista="papelera"] .tabs-wrap,
+  .app-main[data-vista="papelera"] .filtros,
+  .app-main[data-vista="papelera"] .filtros-acciones,
+  .app-main[data-vista="papelera"] #tablero,
+  .app-main[data-vista="papelera"] #calendarioWrap,
+  .app-main[data-vista="papelera"] #bitacoraWrap,
+  .app-main[data-vista="papelera"] #cargaWrap,
+  .app-main[data-vista="papelera"] #reportesWrap,
+  .app-main[data-vista="papelera"] #dashboardWrap { display: none; }
+  .app-main[data-vista="papelera"] #papeleraWrap { display: block; }
+  /* Botón Papelera anclado al fondo del menú lateral. */
+  .sidebar-papelera { margin-top: auto; }
+  .sidebar-papelera svg { color: var(--rojo); }
+
   /* === Dashboard === */
   .dashboard-wrap { padding: 14px 24px 40px; }
   .dash-controles {
@@ -3120,6 +3137,13 @@
           <span class="sidebar-label">Dashboard</span>
         </button>
       </div>
+
+      <!-- Papelera de reciclaje: anclada al fondo del menú (abajo a la izquierda). -->
+      <button class="sidebar-item sidebar-papelera" data-vista="papelera" onclick="cambiarVista('papelera')" title="Papelera de reciclaje">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        <span class="sidebar-label">Papelera</span>
+        <span class="sidebar-conteo" id="sidebarConteoPapelera">0</span>
+      </button>
     </aside>
 
     <main class="app-main" id="appMain" data-vista="tablero">
@@ -3304,6 +3328,15 @@
         <div id="dashBarras"></div>
       </div>
     </div>
+  </div>
+
+  <div class="validadas-wrap" id="papeleraWrap">
+    <div class="bitacora-titulo-fila">
+      <h2>🗑️ Papelera de reciclaje</h2>
+      <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
+    </div>
+    <div class="reportes-subtitulo">Tareas eliminadas. Puedes <strong>restaurarlas</strong> a su columna o <strong>eliminarlas definitivamente</strong> del Excel.</div>
+    <div class="validadas-grid" id="papeleraGrid"></div>
   </div>
 
     </main>
@@ -3940,7 +3973,8 @@ function persistirEstado(t) {
       fecha_finalizacion: t.fecha_finalizacion || '',
       validado_por: t.validado_por || '',
       fecha_validacion: t.fecha_validacion || '',
-      comentario_devolucion: t.comentario_devolucion || ''
+      comentario_devolucion: t.comentario_devolucion || '',
+      eliminada: !!t.eliminada
     });
 }
 
@@ -3969,6 +4003,7 @@ function cargarTareasAppScript(preservar) {
           n.confirmada = p.confirmada;
           n.enviado_por = p.enviado_por;
           n.fecha_envio = p.fecha_envio;
+          n.eliminada = p.eliminada;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
@@ -3982,6 +4017,7 @@ function cargarTareasAppScript(preservar) {
       if (vistaActiva === 'bitacora') renderizarBitacora();
       if (vistaActiva === 'validadas') renderizarValidadas();
       if (vistaActiva === 'dashboard') renderizarDashboard();
+      if (vistaActiva === 'papelera') renderizarPapelera();
     })
     .withFailureHandler(function (e) { toast('Error al cargar: ' + (e && e.message ? e.message : e), 'error'); })
     .obtenerTareas(SESION_TOKEN);
@@ -3990,7 +4026,8 @@ function cargarTareasAppScript(preservar) {
 // ============== RENDERIZADO ==============
 
 function obtenerTareasFiltradas() {
-  let lista = TAREAS;
+  // Las tareas en la Papelera (eliminadas) no aparecen en el tablero ni KPIs.
+  let lista = TAREAS.filter(t => !t.eliminada);
 
   // El Director NO ve las tareas de Jefatura: no suben a él (las valida el
   // Subdirector). Se excluyen en cualquier vista del Director.
@@ -4191,7 +4228,7 @@ function actualizarKPIs() {
   if (esDir) {
     if (subCard) subCard.style.display = '';
     if (jefCard) jefCard.style.display = 'none';
-    const pend = sub => TAREAS.filter(t => t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+    const pend = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
     document.getElementById('kpiPendSA').textContent = pend('SA');
     document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
     document.getElementById('kpiPendSPAC').textContent = pend('SPAC');
@@ -4201,7 +4238,7 @@ function actualizarKPIs() {
     const tieneJef = usuarioActual.subdireccion === 'SPAC';
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
-      const pendJef = cod => TAREAS.filter(t => t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
+      const pendJef = cod => TAREAS.filter(t => !t.eliminada && t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
       document.getElementById('kpiPendJDPC').textContent = pendJef('PROCEDIMIENTOS');
       document.getElementById('kpiPendJDIMA').textContent = pendJef('MANUALES');
     }
@@ -4264,11 +4301,19 @@ function actualizarConteosTabs() {
   // KPI y reflejen carga de trabajo real, no tareas cerradas.
   // Conteos a nivel subdirección excluyen las tareas de jefatura (esas se
   // cuentan aparte en su propia card).
+  // (Las tareas en Papelera se excluyen de todos los conteos.)
   // Director: cuenta por subdirección SIN jefaturas (no las ve).
-  const enProc = sub => TAREAS.filter(t => t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const totalEnProc = TAREAS.filter(t => t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const enProc = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+  const totalEnProc = TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
   // Subdirector: cuenta TODAS las En Proceso de su área, incluidas las de jefatura.
-  const enProcTodo = sub => TAREAS.filter(t => t.subdireccion === sub && t.estatus === 'En Proceso').length;
+  const enProcTodo = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.estatus === 'En Proceso').length;
+
+  // Contador del botón Papelera (las que el usuario puede ver en su papelera).
+  const contPap = document.getElementById('sidebarConteoPapelera');
+  if (contPap) {
+    const nPap = TAREAS.filter(t => t.eliminada && (usuarioActual.rol === 'Director' ? t.nivel !== 'jefatura' : t.subdireccion === usuarioActual.subdireccion)).length;
+    contPap.textContent = nPap;
+  }
 
   if (usuarioActual.rol === 'Capturista') {
     const subPropia = usuarioActual.subdireccion;
@@ -4840,32 +4885,102 @@ function reabrir(idTarea) {
   toast('Tarea ' + idTarea + ' reabierta · En Proceso', 'ok');
 }
 
-// Elimina la tarea: la borra del Excel (Apps Script) y del tablero.
+// Eliminar = enviar a la PAPELERA (soft-delete): la tarea sale del tablero pero
+// se puede restaurar. El borrado físico del Excel se hace desde la Papelera.
 function eliminarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso para eliminar esta tarea.', 'error'); return; }
-  if (!confirm('¿ELIMINAR la tarea ' + idTarea + '?\n\n"' + (t.tema || t.titulo) + '"\n\nSe borrará del Excel. Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Enviar la tarea ' + idTarea + ' a la Papelera?\n\n"' + (t.tema || t.titulo) + '"\n\nPodrás restaurarla o eliminarla definitivamente desde la Papelera.')) return;
+
+  t.eliminada = true;
+  registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Papelera' });
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  if (vistaActiva === 'papelera') renderizarPapelera();
+  toast('Tarea ' + idTarea + ' enviada a la Papelera', 'ok');
+}
+
+// Restaurar desde la Papelera: vuelve a su columna (donde estaba).
+function restaurarTarea(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
+  t.eliminada = false;
+  registrarEnBitacora({ accion: 'restaurar', id_tarea: idTarea, estatus_anterior: 'Papelera', estatus_nuevo: t.estatus });
+  persistirEstado(t);
+  renderizar();
+  renderizarPapelera();
+  toast('Tarea ' + idTarea + ' restaurada', 'ok');
+}
+
+// Eliminar DEFINITIVAMENTE: borra la fila del Excel (no se puede deshacer).
+function eliminarDefinitivo(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
+  if (!confirm('¿ELIMINAR DEFINITIVAMENTE la tarea ' + idTarea + '?\n\n"' + (t.tema || t.titulo) + '"\n\nSe borrará del Excel. Esta acción NO se puede deshacer.')) return;
 
   if (enAppScript()) {
     google.script.run
       .withSuccessHandler(function (res) {
         if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar', 'error'); return; }
-        cargarTareasAppScript(false);   // recarga (los IDs posicionales se recalculan)
+        cargarTareasAppScript(false);
+        if (vistaActiva === 'papelera') renderizarPapelera();
         toast('Tarea ' + idTarea + ' eliminada del Excel', 'ok');
       })
       .withFailureHandler(function (e) { toast('Error al eliminar: ' + (e && e.message ? e.message : e), 'error'); })
       .eliminarTarea(SESION_TOKEN, idTarea);
     return;
   }
-
-  // Demo: solo en pantalla.
   const i = TAREAS.indexOf(t);
   if (i >= 0) TAREAS.splice(i, 1);
-  cerrarModal();
   renderizar();
-  if (vistaActiva === 'validadas') renderizarValidadas();
+  renderizarPapelera();
   toast('Tarea ' + idTarea + ' eliminada (demo)', 'ok');
+}
+
+// Render de la vista Papelera.
+function tareasPapelera() {
+  let lista = TAREAS.filter(t => t.eliminada);
+  if (usuarioActual.rol === 'Director') lista = lista.filter(t => t.nivel !== 'jefatura');
+  else lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+  return lista;
+}
+
+function renderizarPapelera() {
+  const grid = document.getElementById('papeleraGrid');
+  const meta = document.getElementById('papeleraMeta');
+  if (!grid) return;
+  const lista = ordenarPorFecha(tareasPapelera());
+  if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
+  const cont = document.getElementById('sidebarConteoPapelera');
+  if (cont) cont.textContent = lista.length;
+
+  grid.innerHTML = '';
+  if (!lista.length) {
+    grid.innerHTML = '<div class="validadas-vacio">La papelera está vacía.</div>';
+    return;
+  }
+  lista.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'tarjeta';
+    const areas = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '—';
+    let html = `<div class="tarjeta-id">${t.id} · <span style="color:var(--tinta-suave)">${etiquetaEstatus(t.estatus)}</span></div>
+      <dl class="tarjeta-campos">
+        <dt>Tema</dt><dd class="campo-tema">${escapeHtml(t.tema || t.titulo)}</dd>
+        <dt>Áreas involucradas</dt><dd>${escapeHtml(areas)}</dd>
+      </dl>`;
+    if (usuarioPuedeEliminar(t)) {
+      html += `<div class="tarjeta-acciones">
+        <button class="btn-pildora btn-pildora-reabrir" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>
+        <button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>
+      </div>`;
+    }
+    card.innerHTML = html;
+    grid.appendChild(card);
+  });
 }
 
 // ============== MODAL ==============
@@ -5275,7 +5390,8 @@ function cambiarVista(v) {
     carga:      'Carga por Responsable',
     reportes:   'Reportes',
     dashboard:  'Dashboard',
-    validadas:  'Tareas Validadas'
+    validadas:  'Tareas Validadas',
+    papelera:   'Papelera de reciclaje'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -5286,6 +5402,7 @@ function cambiarVista(v) {
   if (v === 'validadas')  renderizarValidadas();
   if (v === 'reportes')   renderizarReportes();
   if (v === 'dashboard')  renderizarDashboard();
+  if (v === 'papelera')   renderizarPapelera();
 }
 
 // Tarjetas de la vista Reportes según el rol. El Director ve la consolidada y
@@ -6015,6 +6132,8 @@ const ACCION_LABEL = {
   reabrir:     'Reabierta',
   mover:       'Movida',
   enviar:      'Enviada a validación',
+  eliminar:    'Enviada a Papelera',
+  restaurar:   'Restaurada',
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta'

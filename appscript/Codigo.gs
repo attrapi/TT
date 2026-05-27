@@ -598,7 +598,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio', 'Eliminada'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -619,7 +619,7 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
-  } else if (datos[0].map(norm_).indexOf('enviadopor') === -1) {
+  } else if (datos[0].map(norm_).indexOf('eliminada') === -1) {
     // Hoja creada antes de agregar columnas nuevas (Comentario/Confirmada/
     // EnviadoPor/FechaEnvio): repara el encabezado (no borra datos; las
     // columnas nuevas quedan al final).
@@ -640,7 +640,8 @@ function guardarEstado(token, id, e) {
     e.comentario_devolucion || '',
     e.confirmada ? 'Si' : '',
     e.enviado_por || '',
-    e.fecha_envio || ''
+    e.fecha_envio || '',
+    e.eliminada ? 'Si' : ''
   ];
   var writeRow = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -666,7 +667,8 @@ function leerEstados_() {
     var iId = enc.indexOf('id'), iEst = enc.indexOf('estatus'), iVal = enc.indexOf('validada'),
         iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
         iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario'),
-        iConf = enc.indexOf('confirmada'), iEp = enc.indexOf('enviadopor'), iFe = enc.indexOf('fechaenvio');
+        iConf = enc.indexOf('confirmada'), iEp = enc.indexOf('enviadopor'), iFe = enc.indexOf('fechaenvio'),
+        iElim = enc.indexOf('eliminada');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -682,7 +684,8 @@ function leerEstados_() {
         comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : '',
         confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false,
         enviado_por: iEp >= 0 ? String(f[iEp] || '').trim() : '',
-        fecha_envio: iFe >= 0 ? fechaHora_(f[iFe]) : ''
+        fecha_envio: iFe >= 0 ? fechaHora_(f[iFe]) : '',
+        eliminada: iElim >= 0 ? norm_(f[iElim]) === 'si' : false
       };
     }
     return map;
@@ -706,6 +709,7 @@ function aplicarEstados_(tareas) {
     t.confirmada = !!e.confirmada;
     t.enviado_por = e.enviado_por || '';
     t.fecha_envio = e.fecha_envio || '';
+    t.eliminada = !!e.eliminada;
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
   // Las tareas de JEFATURA nunca escalan: SIEMPRE quedan en 'En Proceso'
