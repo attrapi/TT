@@ -28,6 +28,10 @@ function guardarConfiguracion() {
     HOJA_SUBDIR_ID:       'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_SUBDIRECCION',
     HOJA_SUBDIR_PEST:     'SPAC',
 
+    // Hoja de la Dirección (DPAC): tareas propias del Director.
+    HOJA_DPAC_ID:         '1uJaxAg2GMdjiaeTFdyeqfCPTKW290UNu0orp1F83XWktar',
+    HOJA_DPAC_PEST:       'DPAC',          // nombre exacto de la pestaña
+
     HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
     HOJA_USUARIOS_PEST:   'Usuarios',
 
@@ -79,6 +83,8 @@ const CONFIG = (function () {
     HOJA_JEFATURAS_PEST: g('HOJA_JEFATURAS_PEST', 'Jefaturas'),
     HOJA_SUBDIR_ID:      g('HOJA_SUBDIR_ID'),
     HOJA_SUBDIR_PEST:    g('HOJA_SUBDIR_PEST', 'SPAC'),
+    HOJA_DPAC_ID:        g('HOJA_DPAC_ID'),
+    HOJA_DPAC_PEST:      g('HOJA_DPAC_PEST', 'DPAC'),
     HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
@@ -193,9 +199,16 @@ function reanudarSesion(token) {
 // solo si el token de sesión es válido.
 function obtenerTareas(token) {
   if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida. Vuelve a iniciar sesión.' };
-  var jef = parsearHoja_(leerHoja_(CONFIG.HOJA_JEFATURAS_ID, CONFIG.HOJA_JEFATURAS_PEST), 'jefatura');
-  var sub = parsearHoja_(leerHoja_(CONFIG.HOJA_SUBDIR_ID,    CONFIG.HOJA_SUBDIR_PEST),    'subdireccion');
+  var jef = parsearHoja_(leerHoja_(CONFIG.HOJA_JEFATURAS_ID, CONFIG.HOJA_JEFATURAS_PEST), 'jefatura', 'SPAC');
+  var sub = parsearHoja_(leerHoja_(CONFIG.HOJA_SUBDIR_ID,    CONFIG.HOJA_SUBDIR_PEST),    'subdireccion', 'SPAC');
   var tareas = jef.concat(sub);
+  // Tareas propias de la Dirección (DPAC), si la hoja está configurada.
+  if (CONFIG.HOJA_DPAC_ID) {
+    try {
+      var dpac = parsearHoja_(leerHoja_(CONFIG.HOJA_DPAC_ID, CONFIG.HOJA_DPAC_PEST), 'subdireccion', 'DPAC');
+      tareas = tareas.concat(dpac);
+    } catch (e) { /* hoja DPAC aún no lista: se ignora */ }
+  }
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
   return { ok: true, tareas: tareas };
 }
@@ -212,6 +225,7 @@ function crearTarea(token, datos) {
   var sheetId, sheetPest;
   if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
   else if (sub === 'SPAC') { sheetId = CONFIG.HOJA_SUBDIR_ID; sheetPest = CONFIG.HOJA_SUBDIR_PEST; }
+  else if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) { sheetId = CONFIG.HOJA_DPAC_ID; sheetPest = CONFIG.HOJA_DPAC_PEST; }
   else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
 
   var ss = SpreadsheetApp.openById(sheetId);
@@ -236,7 +250,7 @@ function crearTarea(token, datos) {
   var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
-  set('id', siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : 'SPAC-'));   // ID FIJO
+  set('id', siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : (sub + '-')));   // ID FIJO
   set('responsable', datos.responsable || '');
   if (esJef) set('jefatura', datos.jefatura || '');
   set('tema', datos.tema || '');
@@ -244,9 +258,9 @@ function crearTarea(token, datos) {
   set('acuerdos realizados', datos.acuerdos || '');
   set('accion', datos.accion || '');
   set('fecha', fecha);
-  // Estatus inicial: jefatura nace en En Proceso; subdirección en "Para validar"
-  // (Atendida, retenida hasta que el subdirector la envíe a validación).
-  set('estatus', esJef ? 'En Proceso' : 'Atendida');
+  // Estatus inicial: jefatura y tareas propias del Director (DPAC) nacen "En
+  // Proceso"; las demás subdirecciones en "Para validar" (Atendida, retenida).
+  set('estatus', estatusInicial_(datos.nivel, sub));
   set('url', datos.url || '');
 
   hoja.appendRow(fila);
@@ -408,19 +422,33 @@ function renombrarEnHoja_(hoja, colIdx, mapa) {
   return n;
 }
 
+// Determina a qué hoja pertenece un ID y la subdirección dueña.
+function hojaDeId_(id) {
+  id = String(id || '').trim();
+  if (/^(?:JDPC|JDIMA|JSPAC|SPACJ)-/i.test(id)) return { sheetId: CONFIG.HOJA_JEFATURAS_ID, sheetPest: CONFIG.HOJA_JEFATURAS_PEST, sub: 'SPAC', esJef: true };
+  if (/^SPAC-/i.test(id))                       return { sheetId: CONFIG.HOJA_SUBDIR_ID,    sheetPest: CONFIG.HOJA_SUBDIR_PEST,    sub: 'SPAC', esJef: false };
+  if (/^DPAC-/i.test(id) && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID,     sheetPest: CONFIG.HOJA_DPAC_PEST,     sub: 'DPAC', esJef: false };
+  return null;
+}
+
+// ¿La sesión puede editar/eliminar tareas de esa hoja? DPAC → el Director;
+// las demás → el subdirector (Capturista) de esa subdirección.
+function puedeGestionar_(sesion, dest) {
+  if (dest.sub === 'DPAC') return sesion.rol === 'Director';
+  return sesion.rol === 'Capturista' && sesion.subdireccion === dest.sub;
+}
+
 // Actualiza (edita) una tarea existente. Mismos permisos que eliminar.
 function actualizarTarea(token, id, datos) {
   var sesion = sesionValida_(token);
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   datos = datos || {};
   id = String(id || '').trim();
-  var esJef = id.indexOf('JDPC-') === 0 || id.indexOf('JDIMA-') === 0 || id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
-  var esSub = id.indexOf('SPAC-') === 0 && !esJef;
-  if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
-  if (!(sesion.rol === 'Capturista' && sesion.subdireccion === 'SPAC')) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
+  var dest = hojaDeId_(id);
+  if (!dest) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
+  if (!puedeGestionar_(sesion, dest)) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
 
-  var sheetId = esJef ? CONFIG.HOJA_JEFATURAS_ID : CONFIG.HOJA_SUBDIR_ID;
-  var sheetPest = esJef ? CONFIG.HOJA_JEFATURAS_PEST : CONFIG.HOJA_SUBDIR_PEST;
+  var sheetId = dest.sheetId, sheetPest = dest.sheetPest, esJef = dest.esJef;
   var ss = SpreadsheetApp.openById(sheetId);
   var hoja = ss.getSheetByName(sheetPest);
   if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
@@ -459,19 +487,13 @@ function eliminarTarea(token, id) {
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   id = String(id || '').trim();
 
-  var esJef = id.indexOf('JDPC-') === 0 || id.indexOf('JDIMA-') === 0 || id.indexOf('JSPAC-') === 0 || id.indexOf('SPACJ-') === 0;
-  var esSub = id.indexOf('SPAC-') === 0 && !esJef;
-  if (!esJef && !esSub) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
+  var dest = hojaDeId_(id);
+  if (!dest) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
+  // SPAC (subdirección y jefatura) solo las borra el Subdirector de SPAC; las de
+  // DPAC solo el Director.
+  if (!puedeGestionar_(sesion, dest)) return { ok: false, error: 'No tienes permiso para eliminar esta tarea.' };
 
-  // Las tareas SPAC (subdirección y jefatura) solo las borra el Subdirector de
-  // SPAC. El Director solo borra sus propias tareas (DPAC) y las de Enlace, que
-  // aún no tienen hoja configurada.
-  var taskSub = 'SPAC';
-  var permitido = (sesion.rol === 'Capturista' && sesion.subdireccion === taskSub);
-  if (!permitido) return { ok: false, error: 'No tienes permiso para eliminar esta tarea.' };
-
-  var sheetId = esJef ? CONFIG.HOJA_JEFATURAS_ID : CONFIG.HOJA_SUBDIR_ID;
-  var sheetPest = esJef ? CONFIG.HOJA_JEFATURAS_PEST : CONFIG.HOJA_SUBDIR_PEST;
+  var sheetId = dest.sheetId, sheetPest = dest.sheetPest;
   var ss = SpreadsheetApp.openById(sheetId);
   var hoja = ss.getSheetByName(sheetPest);
   if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
@@ -804,7 +826,16 @@ function detectarJefatura_(texto) {
 function prefijoJef_(jefatura) { return jefatura === 'MANUALES' ? 'JDIMA-' : 'JDPC-'; }
 
 // Regex que reconoce un ID estable (incluye prefijos viejos por compatibilidad).
-var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC)-\d+/i;
+var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
+
+// Estatus inicial de una tarea según su origen (lo guardado en Estados lo
+// sobreescribe): jefatura y tareas propias del Director (DPAC/Enlace) nacen
+// "En Proceso"; las demás subdirecciones nacen "Atendida" (Para validar).
+function estatusInicial_(nivel, sub) {
+  if (nivel === 'jefatura') return 'En Proceso';
+  if (sub === 'DPAC' || sub === 'ENLACE') return 'En Proceso';
+  return 'Atendida';
+}
 
 function fechaNorm_(celda) {
   if (celda instanceof Date) {
@@ -816,8 +847,10 @@ function fechaNorm_(celda) {
 }
 
 // Parsea el rango de valores de una hoja al mismo formato de tarea que usa la
-// app. `nivel` es 'jefatura' o 'subdireccion'.
-function parsearHoja_(filas, nivel) {
+// app. `nivel` es 'jefatura' o 'subdireccion'; `subCode` es la subdirección
+// dueña de la hoja (SPAC por defecto; DPAC para la hoja de la Dirección).
+function parsearHoja_(filas, nivel, subCode) {
+  subCode = subCode || 'SPAC';
   var e = -1;
   for (var i = 0; i < filas.length; i++) { if (norm_(filas[i][0]) === 'id') { e = i; break; } }
   if (e < 0) return [];
@@ -841,23 +874,19 @@ function parsearHoja_(filas, nivel) {
     var jefatura = nivel === 'jefatura'
       ? detectarJefatura_(textoJef || String(f[iAreas] || ''))
       : '';
-    var prefijo = nivel === 'jefatura' ? prefijoJef_(jefatura) : 'SPAC-';
-    // ID FIJO: usa el de la columna ID si ya es estable (SPAC-### / JDPC-### /
-    // JDIMA-###, o los viejos JSPAC-/SPACJ-); si no, usa el posicional.
+    var prefijo = nivel === 'jefatura' ? prefijoJef_(jefatura) : (subCode + '-');
+    // ID FIJO: usa el de la columna ID si ya es estable; si no, usa el posicional.
     var idCell = String(f[0] || '').trim();
     var id = RE_ID_ESTABLE.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
-    // Estatus INICIAL por origen (lo guardado en la hoja Estados lo sobreescribe):
-    //   • Jefatura      → 'En Proceso' (Mario la finaliza; no escala).
-    //   • Subdirección  → 'Atendida'   (nace en "Para validar", retenida).
-    // Si la hoja marca 'Archivada' explícitamente, se respeta.
+    // Estatus inicial por origen (lo guardado en Estados lo sobreescribe). Si la
+    // hoja marca 'Archivada' explícitamente, se respeta.
     var estHoja = normEstatus_(f[iEst]);
-    var est = estHoja === 'Archivada' ? 'Archivada'
-            : (nivel === 'jefatura' ? 'En Proceso' : 'Atendida');
+    var est = estHoja === 'Archivada' ? 'Archivada' : estatusInicial_(nivel, subCode);
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
     var fecha = perm ? '' : fechaNorm_(raw);
     out.push({
-      id: id, subdireccion: 'SPAC', nivel: nivel, jefatura: jefatura,
+      id: id, subdireccion: subCode, nivel: nivel, jefatura: jefatura,
       responsable: String(f[iResp] || '').trim(), titulo: tema, tema: tema,
       areas_involucradas: String(f[iAreas] || '').trim(),
       acuerdos_realizados: String(f[iAcu] || '').trim(),

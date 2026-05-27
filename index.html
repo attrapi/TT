@@ -5621,15 +5621,16 @@ function abrirNuevaTarea(tEdit) {
   // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
   const esDirNuevo = !esCapturista && !ed;
   const asignablesHTML = [
-    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción', ok:true},
-    {v:'SA',   n:'SA · Subdirección de Archivo',         ok:false},
-    {v:'SGOI', n:'SGOI · Gestión de Obras Inducidas',    ok:false}
-  ].map(o => `<label class="area-chip"${o.ok ? '' : ' style="opacity:.45"'}><input type="checkbox" value="${o.v}" ${o.v==='SPAC'?'checked':''} ${o.ok?'':'disabled'}>${o.n}${o.ok?'':' (sin hoja)'}</label>`).join('');
+    {v:'DPAC', n:'DPAC · Dirección (mi tarea)',           ok:true},
+    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción',  ok:true},
+    {v:'SA',   n:'SA · Subdirección de Archivo',          ok:false},
+    {v:'SGOI', n:'SGOI · Gestión de Obras Inducidas',     ok:false}
+  ].map(o => `<label class="area-chip"${o.ok ? '' : ' style="opacity:.45"'}><input type="checkbox" value="${o.v}" ${o.v==='DPAC'?'checked':''} ${o.ok?'':'disabled'}>${o.n}${o.ok?'':' (sin hoja)'}</label>`).join('');
   const campoSub = esDirNuevo
     ? `<div class="form-campo full">
-         <label>Asignar a subdirección <span class="req">*</span></label>
+         <label>Destino de la tarea <span class="req">*</span></label>
          <div class="areas-multi" id="nt_asignar">${asignablesHTML}</div>
-         <div class="form-hint">Se envía a la subdirección y entra a su "Para validar"; cuando la revisen y la manden, te llega a "Por validar".</div>
+         <div class="form-hint">DPAC = tu tarea (queda en tu panel, En Proceso). Una subdirección = se la asignas y entra a su "Para validar"; cuando la revisen y la manden, te llega a "Por validar".</div>
        </div>`
     : `<div class="form-campo">
          <label>Subdirección <span class="req">*</span></label>
@@ -5708,6 +5709,11 @@ function abrirNuevaTarea(tEdit) {
 // subdirector de esa subdirección).
 function usuarioPuedeEditar(t) {
   if (!usuarioActual) return false;
+  // El Director edita sus propias tareas (DPAC / Enlace); el subdirector las de
+  // su subdirección (incluidas jefaturas).
+  if (usuarioActual.rol === 'Director') {
+    return t.nivel !== 'jefatura' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+  }
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
