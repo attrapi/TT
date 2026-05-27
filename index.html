@@ -4632,21 +4632,11 @@ function cambiarTab(sub) {
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 
-  // En el Dashboard, el filtro de subdirección del menú también cambia el
-  // alcance de las gráficas (y nos quedamos en el Dashboard, no en el Tablero).
-  if (vistaActiva === 'dashboard') {
-    dashAreaSel = sub;          // TODAS / SA / SGOI / SPAC / ENLACE son válidos
-    dashDetalleSel = 'todo';
-    renderizarDashboard();
-    return;
-  }
-
-  // Si el usuario está en una vista de Gestión (Bitácora, Carga, Reportes,
-  // Validadas) y hace clic en una subdirección, lo mandamos al Tablero
-  // filtrado para que el clic tenga feedback visible (si no, parecería que
-  // "no abre" porque seguiría viendo la vista de Gestión).
-  const vistasSinFiltroSub = ['bitacora', 'carga', 'reportes', 'validadas'];
-  if (vistasSinFiltroSub.includes(vistaActiva)) {
+  // Si el usuario está en una vista que no es el Tablero (Dashboard, Papelera,
+  // Bitácora, Carga, Reportes, Validadas) y hace clic en una subdirección, lo
+  // regresamos al Tablero (inicio) filtrado por esa subdirección.
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'papelera'];
+  if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
 }
