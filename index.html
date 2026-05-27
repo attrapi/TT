@@ -45,6 +45,8 @@
     --sub-spac-tenue: #DBEAFE;
     --sub-enlace: #6D28D9;      /* Morado — Enlace del Director */
     --sub-enlace-tenue: #EDE9FE;
+    --jef-jdpc:  #0d9488;       /* JDPC — Procesos de Construcción (teal) */
+    --jef-jdima: #d97706;       /* JDIMA — Implementación de Manuales (ámbar) */
 
     --serif: 'Fraunces', Georgia, serif;
     --sans: 'Inter', -apple-system, sans-serif;
@@ -1350,6 +1352,11 @@
   .kpi-sub[data-sub="SGOI"]   .kpi-clave { background: var(--sub-sgoi);  color: #fff; }
   .kpi-sub[data-sub="SPAC"]   .kpi-clave { background: #1d4ed8;  color: #fff; }
   .kpi-sub[data-sub="ENLACE"] .kpi-clave { background: var(--sub-enlace); color: #fff; }
+  /* Indicadores de jefatura (Pendientes por jefatura), color propio. */
+  .kpi-sub[data-jef="PROCEDIMIENTOS"] .kpi-valor { border-color: var(--jef-jdpc);  color: var(--jef-jdpc); }
+  .kpi-sub[data-jef="MANUALES"]       .kpi-valor { border-color: var(--jef-jdima); color: var(--jef-jdima); }
+  .kpi-sub[data-jef="PROCEDIMIENTOS"] .kpi-clave { background: var(--jef-jdpc);  color: #fff; }
+  .kpi-sub[data-jef="MANUALES"]       .kpi-clave { background: var(--jef-jdima); color: #fff; }
   .kpi-sub .kpi-label { font-size: 11px; color: var(--tinta-suave); font-weight: 600; }
 
   /* === TABS SUBDIRECCIONES (PÍLDORAS) === */
@@ -1943,6 +1950,9 @@
   .tarjeta[data-sub="SGOI"]   .tarjeta-id { background: var(--sub-sgoi);   color: #fff; }
   .tarjeta[data-sub="SPAC"]   .tarjeta-id { background: #1d4ed8;   color: #fff; }
   .tarjeta[data-sub="ENLACE"] .tarjeta-id { background: var(--sub-enlace); color: #fff; }
+  /* Jefaturas con color propio (coincide con su indicador de Pendientes). */
+  .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
+  .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
 
   .tarjeta-titulo {
     font-size: 14px;
@@ -3229,11 +3239,11 @@
     <div class="kpi-card sub-card" id="kpisJefGrupo" style="display:none">
       <div class="kpis-grupo-titulo">Pendientes por jefatura</div>
       <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-sub="SPAC">
+        <div class="kpi kpi-sub" data-jef="PROCEDIMIENTOS">
           <div class="kpi-valor" id="kpiPendJDPC">0</div>
           <div class="kpi-clave">JDPC</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SPAC">
+        <div class="kpi kpi-sub" data-jef="MANUALES">
           <div class="kpi-valor" id="kpiPendJDIMA">0</div>
           <div class="kpi-clave">JDIMA</div>
         </div>
@@ -4499,6 +4509,7 @@ function crearTarjeta(t) {
   const card = document.createElement('div');
   card.className = 'tarjeta';
   card.setAttribute('data-sub', t.subdireccion);
+  card.setAttribute('data-pre', (String(t.id).split('-')[0] || '').toUpperCase());   // JDPC / JDIMA / SPAC / DPAC
   card.setAttribute('data-id', t.id);
   card.onclick = () => abrirDetalle(t);
 
