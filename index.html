@@ -495,6 +495,68 @@
   .app-main[data-vista="validadas"] #reportesWrap { display: none; }
   .app-main[data-vista="validadas"] #validadasWrap { display: block; }
 
+  /* Dashboard: gráficas con selector de alcance. Oculto por defecto. */
+  #dashboardWrap { display: none; }
+  .app-main[data-vista="dashboard"] .kpis,
+  .app-main[data-vista="dashboard"] .tabs-wrap,
+  .app-main[data-vista="dashboard"] .filtros,
+  .app-main[data-vista="dashboard"] #tablero,
+  .app-main[data-vista="dashboard"] #calendarioWrap,
+  .app-main[data-vista="dashboard"] #bitacoraWrap,
+  .app-main[data-vista="dashboard"] #cargaWrap,
+  .app-main[data-vista="dashboard"] #reportesWrap { display: none; }
+  .app-main[data-vista="dashboard"] #dashboardWrap { display: block; }
+
+  /* === Dashboard === */
+  .dashboard-wrap { padding: 14px 24px 40px; }
+  .dash-controles {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;
+    background: #fff; border: 1px solid var(--linea); border-radius: 12px;
+    padding: 14px 18px; margin-bottom: 18px;
+  }
+  .dash-campo { display: flex; flex-direction: column; gap: 5px; }
+  .dash-campo label {
+    font-size: 11px; font-weight: 700; color: var(--tinta-suave);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .dash-select {
+    border: 1px solid var(--linea); border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; font-family: var(--sans); background: #fff; color: var(--tinta);
+    min-width: 220px; cursor: pointer;
+  }
+  .dash-select:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .dash-resumen-chip {
+    margin-left: auto; font-size: 12px; color: var(--tinta-suave);
+    background: var(--guinda-tenue); color: var(--guinda); font-weight: 700;
+    padding: 7px 14px; border-radius: 999px;
+  }
+  .dash-grid {
+    display: grid; grid-template-columns: minmax(280px, 0.9fr) 1.4fr; gap: 18px;
+  }
+  @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+  .dash-card {
+    background: #fff; border: 1px solid var(--linea); border-radius: 12px;
+    padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .dash-card h3 {
+    font-size: 14px; font-weight: 800; color: var(--tinta); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dash-donut-fila { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .dash-donut { flex: 0 0 auto; }
+  .dash-leyenda { display: flex; flex-direction: column; gap: 9px; min-width: 150px; }
+  .dash-leyenda-item { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+  .dash-leyenda-dot { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+  .dash-leyenda-val { margin-left: auto; font-weight: 800; }
+  .dash-leyenda-pct { color: var(--tinta-suave); font-size: 11px; min-width: 38px; text-align: right; }
+  .dash-vacio { color: var(--tinta-suave); font-style: italic; padding: 30px 0; text-align: center; }
+  /* Barras horizontales por responsable */
+  .dash-barra-row { display: grid; grid-template-columns: 130px 1fr 34px; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dash-barra-nombre { font-size: 12px; color: var(--tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-barra-track { background: var(--linea); border-radius: 6px; height: 16px; overflow: hidden; }
+  .dash-barra-fill { height: 100%; border-radius: 6px; background: var(--guinda); transition: width .3s; }
+  .dash-barra-val { font-size: 12px; font-weight: 800; text-align: right; color: var(--tinta); }
+
   .validadas-wrap { padding: 8px 24px 40px; }
   .validadas-grid {
     display: grid;
@@ -3052,6 +3114,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8"  y2="13"/><line x1="16" y1="17" x2="8"  y2="17"/><line x1="10" y1="9"  x2="8"  y2="9"/></svg>
           <span class="sidebar-label">Reportes</span>
         </button>
+        <button class="sidebar-item" data-vista="dashboard" onclick="cambiarVista('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="sidebar-label">Dashboard</span>
+        </button>
       </div>
     </aside>
 
@@ -3202,6 +3268,30 @@
     <div class="reportes-titulo">Reportes</div>
     <div class="reportes-subtitulo">Cada reporte abre una vista imprimible. Desde el diálogo de impresión, elige <em>"Guardar como PDF"</em> en el destino.</div>
     <div class="reportes-grid" id="reportesGrid"></div>
+  </div>
+
+  <div class="dashboard-wrap" id="dashboardWrap">
+    <div class="dash-controles">
+      <div class="dash-campo" id="dashCampoArea" style="display:none">
+        <label for="dashArea">Área</label>
+        <select class="dash-select" id="dashArea" onchange="cambiarDashArea(this.value)"></select>
+      </div>
+      <div class="dash-campo" id="dashCampoDetalle" style="display:none">
+        <label for="dashDetalle">Detalle</label>
+        <select class="dash-select" id="dashDetalle" onchange="cambiarDashDetalle(this.value)"></select>
+      </div>
+      <span class="dash-resumen-chip" id="dashResumenChip">0 tareas</span>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>Tareas por estatus</h3>
+        <div id="dashDonut"></div>
+      </div>
+      <div class="dash-card">
+        <h3>Tareas por responsable</h3>
+        <div id="dashBarras"></div>
+      </div>
+    </div>
   </div>
 
     </main>
@@ -3465,6 +3555,7 @@ async function sincronizarSPAC() {
       if (vistaActiva === 'carga') renderizarCarga();
       if (vistaActiva === 'bitacora') renderizarBitacora();
       if (vistaActiva === 'validadas') renderizarValidadas();
+      if (vistaActiva === 'dashboard') renderizarDashboard();
     }
   } catch (err) {
     console.warn('Sincronización SPAC fallida:', err);
@@ -3515,6 +3606,8 @@ let SESION_TOKEN = null;     // token de sesión cuando hay login real (Apps Scr
 let validadasFiltro = null;  // null=todas | 'subdireccion' | 'jefatura' (vista Validadas)
 let busquedaActiva = '';     // texto del buscador de la barra de filtros
 let busquedaValidadas = '';  // texto del buscador de la vista Validadas
+let dashAreaSel = 'TODAS';   // Dashboard · área elegida (solo Director)
+let dashDetalleSel = 'todo'; // Dashboard · detalle: todo|sub|jef|PROCEDIMIENTOS|MANUALES
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
@@ -3857,6 +3950,7 @@ function cargarTareasAppScript(preservar) {
       if (vistaActiva === 'carga') renderizarCarga();
       if (vistaActiva === 'bitacora') renderizarBitacora();
       if (vistaActiva === 'validadas') renderizarValidadas();
+      if (vistaActiva === 'dashboard') renderizarDashboard();
     })
     .withFailureHandler(function (e) { toast('Error al cargar: ' + (e && e.message ? e.message : e), 'error'); })
     .obtenerTareas(SESION_TOKEN);
@@ -4963,6 +5057,151 @@ function toast(mensaje, tipo) {
   setTimeout(() => el.classList.remove('mostrar'), 3000);
 }
 
+// ============== VISTA: DASHBOARD ==============
+
+// ¿El área tiene jefaturas? Hoy solo SPAC; cuando otras las tengan, se agregan
+// aquí y el selector de "Detalle" aparece solo, sin más cambios.
+function tieneJefaturasArea(area) { return area === 'SPAC'; }
+
+function cambiarDashArea(v)    { dashAreaSel = v; renderizarDashboard(); }
+function cambiarDashDetalle(v) { dashDetalleSel = v; renderizarDashboard(); }
+
+// Llena los selectores según el rol: el Director elige Área (sin jefaturas, que
+// nunca ve); el subdirector de un área con jefaturas elige el Detalle.
+function poblarControlesDashboard() {
+  const esDir = usuarioActual.rol === 'Director';
+  const campoArea = document.getElementById('dashCampoArea');
+  const campoDet  = document.getElementById('dashCampoDetalle');
+  const selArea = document.getElementById('dashArea');
+  const selDet  = document.getElementById('dashDetalle');
+
+  if (esDir) {
+    campoArea.style.display = '';
+    campoDet.style.display = 'none';   // el Director nunca ve jefaturas
+    const areas = [
+      ['TODAS', 'Todas las áreas'],
+      ['DPAC',  'Dirección (DPAC)'],
+      ['ENLACE','Enlace del Director'],
+      ['SA',    NOMBRE_SUB['SA']   || 'SA'],
+      ['SGOI',  NOMBRE_SUB['SGOI'] || 'SGOI'],
+      ['SPAC',  NOMBRE_SUB['SPAC'] || 'SPAC']
+    ];
+    selArea.innerHTML = areas.map(([v, l]) =>
+      `<option value="${v}" ${v === dashAreaSel ? 'selected' : ''}>${l}</option>`).join('');
+  } else {
+    campoArea.style.display = 'none';
+    if (tieneJefaturasArea(usuarioActual.subdireccion)) {
+      campoDet.style.display = '';
+      const dets = [
+        ['todo', 'Subdirección + Jefaturas'],
+        ['sub',  'Solo subdirección'],
+        ['jef',  'Solo jefaturas'],
+        ['PROCEDIMIENTOS', 'Jef. Procedimientos'],
+        ['MANUALES',       'Jef. Manuales']
+      ];
+      selDet.innerHTML = dets.map(([v, l]) =>
+        `<option value="${v}" ${v === dashDetalleSel ? 'selected' : ''}>${l}</option>`).join('');
+    } else {
+      campoDet.style.display = 'none';
+    }
+  }
+}
+
+// Tareas que entran al dashboard según el alcance elegido.
+function tareasDashboard() {
+  let lista = TAREAS.slice();
+  if (usuarioActual.rol === 'Director') {
+    lista = lista.filter(t => t.nivel !== 'jefatura');               // sin jefaturas
+    if (dashAreaSel !== 'TODAS') lista = lista.filter(t => t.subdireccion === dashAreaSel);
+  } else {
+    lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+    if (tieneJefaturasArea(usuarioActual.subdireccion)) {
+      if (dashDetalleSel === 'sub')      lista = lista.filter(t => t.nivel !== 'jefatura');
+      else if (dashDetalleSel === 'jef') lista = lista.filter(t => t.nivel === 'jefatura');
+      else if (dashDetalleSel === 'PROCEDIMIENTOS' || dashDetalleSel === 'MANUALES')
+        lista = lista.filter(t => t.nivel === 'jefatura' && t.jefatura === dashDetalleSel);
+      // 'todo' → subdirección + jefaturas (sin filtro extra)
+    } else {
+      lista = lista.filter(t => t.nivel !== 'jefatura');
+    }
+  }
+  return lista;
+}
+
+function renderizarDashboard() {
+  if (!usuarioActual) return;
+  poblarControlesDashboard();
+  const lista = tareasDashboard();
+  document.getElementById('dashResumenChip').textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
+
+  // Dona por estatus (En Proceso al día | Vencidas | Por validar | Validadas).
+  const enProc = lista.filter(t => t.estatus === 'En Proceso');
+  const vencidas = enProc.filter(t => esVencida(t.fecha_limite)).length;
+  const identificadas = enProc.length - vencidas;
+  const porValidar = lista.filter(t => t.estatus === 'Atendida' && !t.en_validadas).length;
+  const validadas  = lista.filter(t => t.estatus === 'Archivada' || t.en_validadas).length;
+  const segs = [
+    { label: etiquetaEstatus('En Proceso'), valor: identificadas, color: '#B45309' },
+    { label: 'Vencidas',    valor: vencidas,    color: '#B91C1C' },
+    { label: 'Por validar', valor: porValidar,  color: '#1D4ED8' },
+    { label: 'Validadas',   valor: validadas,   color: '#15803D' }
+  ];
+  document.getElementById('dashDonut').innerHTML = dashDonutHTML(segs);
+
+  // Barras por responsable (de mayor a menor).
+  const porResp = {};
+  lista.forEach(t => {
+    const r = (t.responsable || '').trim() || 'Sin responsable';
+    porResp[r] = (porResp[r] || 0) + 1;
+  });
+  const items = Object.keys(porResp).map(k => ({ label: k, valor: porResp[k] }))
+    .sort((a, b) => b.valor - a.valor);
+  document.getElementById('dashBarras').innerHTML = dashBarrasHTML(items);
+}
+
+// Dona en SVG (sin librerías) + leyenda con conteo y porcentaje.
+function dashDonutHTML(segs) {
+  const total = segs.reduce((s, x) => s + x.valor, 0);
+  if (total === 0) return '<div class="dash-vacio">Sin tareas para este alcance.</div>';
+  const R = 54, C = 2 * Math.PI * R, cx = 70, cy = 70, sw = 22;
+  let off = 0, circles = '';
+  segs.forEach(s => {
+    if (s.valor <= 0) return;
+    const len = (s.valor / total) * C;
+    circles += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off += len;
+  });
+  const svg = `<svg class="dash-donut" width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
+      ${circles}
+      <text x="${cx}" y="${cy - 3}" text-anchor="middle" font-size="27" font-weight="800" fill="#1A1A1A">${total}</text>
+      <text x="${cx}" y="${cy + 17}" text-anchor="middle" font-size="11" fill="#6b7280">tareas</text>
+    </svg>`;
+  const leyenda = segs.map(s => {
+    const pct = Math.round(s.valor / total * 100);
+    return `<div class="dash-leyenda-item">
+        <span class="dash-leyenda-dot" style="background:${s.color}"></span>
+        <span>${s.label}</span>
+        <span class="dash-leyenda-val">${s.valor}</span>
+        <span class="dash-leyenda-pct">${pct}%</span>
+      </div>`;
+  }).join('');
+  return `<div class="dash-donut-fila">${svg}<div class="dash-leyenda">${leyenda}</div></div>`;
+}
+
+// Barras horizontales por responsable.
+function dashBarrasHTML(items) {
+  if (!items.length) return '<div class="dash-vacio">Sin tareas para este alcance.</div>';
+  const max = Math.max.apply(null, items.map(i => i.valor));
+  return items.map(i => {
+    const w = max ? Math.round(i.valor / max * 100) : 0;
+    return `<div class="dash-barra-row">
+        <span class="dash-barra-nombre" title="${escapeHtml(i.label)}">${escapeHtml(i.label)}</span>
+        <span class="dash-barra-track"><span class="dash-barra-fill" style="width:${w}%"></span></span>
+        <span class="dash-barra-val">${i.valor}</span>
+      </div>`;
+  }).join('');
+}
+
 // ============== VISTA TABLERO / CALENDARIO ==============
 
 // Botón Inicio: regresa a Tablero + Vista Consolidada en un solo click.
@@ -4985,6 +5224,7 @@ function cambiarVista(v) {
     bitacora:   'Bitácora de Validaciones',
     carga:      'Carga por Responsable',
     reportes:   'Reportes',
+    dashboard:  'Dashboard',
     validadas:  'Tareas Validadas'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
@@ -4995,6 +5235,7 @@ function cambiarVista(v) {
   if (v === 'carga')      renderizarCarga();
   if (v === 'validadas')  renderizarValidadas();
   if (v === 'reportes')   renderizarReportes();
+  if (v === 'dashboard')  renderizarDashboard();
 }
 
 // Tarjetas de la vista Reportes según el rol. El Director ve la consolidada y
