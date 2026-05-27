@@ -642,12 +642,16 @@ function guardarEstado(token, id, e) {
     e.enviado_por || '',
     e.fecha_envio || ''
   ];
-  var rowIndex = -1;
+  var writeRow = -1;
   for (var r = 1; r < datos.length; r++) {
-    if (String(datos[r][0]).trim() === String(id).trim()) { rowIndex = r + 1; break; }
+    if (String(datos[r][0]).trim() === String(id).trim()) { writeRow = r + 1; break; }
   }
-  if (rowIndex > 0) hoja.getRange(rowIndex, 1, 1, fila.length).setValues([fila]);
-  else hoja.appendRow(fila);
+  if (writeRow < 0) writeRow = hoja.getLastRow() + 1;
+  // Escribe la fila como TEXTO (formato '@') para que Google Sheets NO convierta
+  // los timestamps a fecha (eso causaba el desfase de zona horaria al releerlos).
+  var rng = hoja.getRange(writeRow, 1, 1, fila.length);
+  rng.setNumberFormat('@');
+  rng.setValues([fila]);
   return { ok: true };
 }
 
@@ -734,17 +738,20 @@ function ahoraStamp_() { return fechaHora_(new Date()); }
 
 // Formatea a "DD/MM/AAAA HH:MM" (sin "GMT-06:00 hora estándar"). Acepta un
 // objeto Date (como los que devuelve getValues sobre celdas de fecha) o texto.
+var TZ_APP = 'America/Mexico_City';   // zona horaria de la aplicación (UTC-6)
+
 function fechaHora_(v) {
   var d = (v instanceof Date) ? v : null;
   if (!d && v) {
     var s = String(v).trim();
+    // Texto que ya viene "dd/mm/aaaa ..." se deja tal cual (solo quita el GMT).
     if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
     var p = new Date(s);
     if (!isNaN(p.getTime())) d = p; else return s.replace(/\s*GMT.*$/i, '').replace(/\s*\(.*\)$/, '').trim();
   }
   if (!d || isNaN(d.getTime())) return '';
-  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' +
-    d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  // Formatea SIEMPRE en la zona de la app, sin importar la zona del proyecto.
+  return Utilities.formatDate(d, TZ_APP, 'dd/MM/yyyy HH:mm');
 }
 
 // ====================== BITÁCORA (persistente) ===========================
@@ -763,10 +770,15 @@ function registrarBitacora(token, ent) {
   if (!sesionValida_(token)) return { ok: false };
   ent = ent || {};
   var hoja = hojaBitacora_(true);
-  hoja.appendRow([
+  var fila = [
     ent.fecha || ahoraStamp_(), ent.usuario || '', ent.accion || '', ent.id_tarea || '',
     ent.estatus_anterior || '', ent.estatus_nuevo || '', ent.comentario || ''
-  ]);
+  ];
+  // Escribe como TEXTO para que la fecha no se convierta (desfase de zona).
+  var row = hoja.getLastRow() + 1;
+  var rng = hoja.getRange(row, 1, 1, fila.length);
+  rng.setNumberFormat('@');
+  rng.setValues([fila]);
   return { ok: true };
 }
 
