@@ -4598,15 +4598,11 @@ function crearTarjeta(t) {
     html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
   }
 
-  // Sello al pie (NO en Validadas: ahí la tarjeta es mínima). Acorde al flujo:
-  //   • "Finalizada por" SOLO en jefaturas (su botón Finalizar).
-  //   • "Enviada por"    cuando el subdirector la mandó a validación.
+  // Sello al pie de la tarjeta: SOLO "Enviada por" (subdirección). El
+  // seguimiento de jefatura ("Finalizada por…") NO va en la tarjeta —la píldora
+  // gris "Finalizada" ya lo indica—; el detalle se ve dentro del modal.
   let sello = '';
   if (!esValidada) {
-    if (t.nivel === 'jefatura' && t.finalizado_por) {
-      sello += '✓ Finalizada por ' + escapeHtml(t.finalizado_por);
-      if (t.fecha_finalizacion) sello += '<br>' + formatearStamp(t.fecha_finalizacion);
-    }
     if (t.nivel !== 'jefatura' && t.enviado_por) {
       sello += (sello ? '<br>' : '') + '📨 Enviada por ' + escapeHtml(t.enviado_por);
       if (t.fecha_envio) sello += '<br>' + formatearStamp(t.fecha_envio);
