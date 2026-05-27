@@ -3165,7 +3165,7 @@
           </div>
           <div class="kpi-pie-leyenda">
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--ambar)"></span><span>En Proceso</span><span class="kpi-pie-val" id="kpiPieProceso">0</span></div>
-            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span id="kpiPieLblAtendidas">Por validar</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
+            <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--verde)"></span><span id="kpiPieLblAtendidas">Para validar</span><span class="kpi-pie-val" id="kpiPieAtendidas">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--grafito)"></span><span>Validadas</span><span class="kpi-pie-val" id="kpiPieArchivadas">0</span></div>
             <div class="kpi-pie-fila"><span class="kpi-pie-dot" style="background: var(--rojo)"></span><span>Vencidas</span><span class="kpi-pie-val" id="kpiPieVencidas">0</span></div>
           </div>
@@ -4060,13 +4060,12 @@ function filtrarValidadas(texto) {
 // usando 'En Proceso' / 'Atendida' / 'Archivada' (así no se rompe el Sheet,
 // la bitácora ni la lógica), pero al usuario se le muestran nombres del
 // nuevo flujo:
-//   En Proceso  → "Identificadas"  (ambos roles)
-//   Atendida    → "Por validar"    (Director) / "Para validar" (subdirector)
-//   Archivada   → "Validadas"      (ambos roles; va a Gestión › Validadas)
+//   En Proceso  → "En Proceso"   (ambos roles)
+//   Atendida    → "Para validar" (ambos roles)
+//   Archivada   → "Validadas"    (ambos roles)
 function etiquetaEstatus(estatus) {
-  const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (estatus === 'En Proceso') return 'En Proceso';
-  if (estatus === 'Atendida')   return esDir ? 'Por validar' : 'Para validar';
+  if (estatus === 'Atendida')   return 'Para validar';
   if (estatus === 'Archivada')  return 'Validadas';
   return estatus;
 }
@@ -5188,7 +5187,7 @@ function renderizarDashboard() {
   const segs = [
     { label: etiquetaEstatus('En Proceso'), valor: identificadas, color: '#B45309' },
     { label: 'Vencidas',    valor: vencidas,    color: '#B91C1C' },
-    { label: 'Por validar', valor: porValidar,  color: '#1D4ED8' },
+    { label: 'Para validar', valor: porValidar,  color: '#1D4ED8' },
     { label: 'Validadas',   valor: validadas,   color: '#15803D' }
   ];
   document.getElementById('dashDonut').innerHTML = dashDonutHTML(segs);
