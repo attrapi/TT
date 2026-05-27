@@ -3974,7 +3974,11 @@ function persistirEstado(t) {
       validado_por: t.validado_por || '',
       fecha_validacion: t.fecha_validacion || '',
       comentario_devolucion: t.comentario_devolucion || '',
-      eliminada: !!t.eliminada
+      eliminada: !!t.eliminada,
+      creado_por: t.creado_por || '',
+      fecha_creacion: t.fecha_creacion || '',
+      eliminado_por: t.eliminado_por || '',
+      fecha_eliminacion: t.fecha_eliminacion || ''
     });
 }
 
@@ -4004,6 +4008,10 @@ function cargarTareasAppScript(preservar) {
           n.enviado_por = p.enviado_por;
           n.fecha_envio = p.fecha_envio;
           n.eliminada = p.eliminada;
+          n.creado_por = p.creado_por;
+          n.fecha_creacion = p.fecha_creacion;
+          n.eliminado_por = p.eliminado_por;
+          n.fecha_eliminacion = p.fecha_eliminacion;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
@@ -4894,6 +4902,8 @@ function eliminarTarea(idTarea) {
   if (!confirm('¿Enviar la tarea ' + idTarea + ' a la Papelera?\n\n"' + (t.tema || t.titulo) + '"\n\nPodrás restaurarla o eliminarla definitivamente desde la Papelera.')) return;
 
   t.eliminada = true;
+  t.eliminado_por = usuarioActual.nombre;
+  t.fecha_eliminacion = ahoraStamp();
   registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Papelera' });
   cerrarModal();
   persistirEstado(t);
@@ -4908,6 +4918,8 @@ function restaurarTarea(idTarea) {
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
   t.eliminada = false;
+  t.eliminado_por = '';
+  t.fecha_eliminacion = '';
   registrarEnBitacora({ accion: 'restaurar', id_tarea: idTarea, estatus_anterior: 'Papelera', estatus_nuevo: t.estatus });
   persistirEstado(t);
   renderizar();
@@ -5104,15 +5116,15 @@ function abrirDetalle(t) {
         </div>
       ` : ''}
 
-      ${((t.nivel === 'jefatura' && t.finalizado_por) || (t.nivel !== 'jefatura' && t.enviado_por) || (t.estatus === 'Archivada' && t.validado_por)) ? `
+      ${(t.creado_por || (t.nivel === 'jefatura' && t.finalizado_por) || (t.nivel !== 'jefatura' && t.enviado_por) || (t.estatus === 'Archivada' && t.validado_por) || (t.eliminada && t.eliminado_por)) ? `
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Seguimiento</div>
           <div class="modal-comentarios">
+            ${t.creado_por ? '<strong>🆕 Creada por:</strong> ' + escapeHtml(t.creado_por) + (t.fecha_creacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_creacion)) + '</span>' : '') + '<br>' : ''}
             ${(t.nivel === 'jefatura' && t.finalizado_por) ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
             ${(t.nivel !== 'jefatura' && t.enviado_por) ? '<strong>📨 Enviada por:</strong> ' + escapeHtml(t.enviado_por) + (t.fecha_envio ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_envio)) + '</span>' : '') + '<br>' : ''}
-            ${(t.estatus === 'Archivada' && t.validado_por)
-              ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '')
-              : ''}
+            ${(t.estatus === 'Archivada' && t.validado_por) ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '') + '<br>' : ''}
+            ${(t.eliminada && t.eliminado_por) ? '<strong>🗑 Eliminada por:</strong> ' + escapeHtml(t.eliminado_por) + (t.fecha_eliminacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_eliminacion)) + '</span>' : '') : ''}
             ${t.comentarios_director ? '<br><br><strong>Comentarios:</strong> ' + escapeHtml(t.comentarios_director) : ''}
           </div>
         </div>

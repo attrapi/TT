@@ -217,7 +217,8 @@ function obtenerTareas(token) {
 // `datos`: { subdireccion, nivel, responsable, jefatura, tema, areas,
 //            acuerdos, accion, fecha (yyyy-mm-dd o 'PERMANENTE'), url }
 function crearTarea(token, datos) {
-  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
   datos = datos || {};
   var sub = String(datos.subdireccion || '').toUpperCase();
   var esJef = datos.nivel === 'jefatura';
@@ -250,7 +251,8 @@ function crearTarea(token, datos) {
   var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
-  set('id', siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : (sub + '-')));   // ID FIJO
+  var nuevoId = siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : (sub + '-'));
+  set('id', nuevoId);   // ID FIJO
   set('responsable', datos.responsable || '');
   if (esJef) set('jefatura', datos.jefatura || '');
   set('tema', datos.tema || '');
@@ -260,12 +262,20 @@ function crearTarea(token, datos) {
   set('fecha', fecha);
   // Estatus inicial: jefatura y tareas propias del Director (DPAC) nacen "En
   // Proceso"; las demás subdirecciones en "Para validar" (Atendida, retenida).
-  set('estatus', estatusInicial_(datos.nivel, sub));
+  var estIni = estatusInicial_(datos.nivel, sub);
+  set('estatus', estIni);
   set('url', datos.url || '');
 
   hoja.appendRow(fila);
   agregarAreas_(datos.areas);   // registra áreas nuevas (las escritas en "Otra")
-  return { ok: true };
+
+  // Seguimiento: guarda QUIÉN creó la tarea (hoja Estados) y déjalo en bitácora.
+  var autor = sesion.nombre || sesion.email || '';
+  var stamp = ahoraStamp_();
+  try { guardarEstado(token, nuevoId, { creado_por: autor, fecha_creacion: stamp }); } catch (e2) {}
+  try { registrarBitacora(token, { fecha: stamp, usuario: autor, accion: 'crear', id_tarea: nuevoId, estatus_anterior: '—', estatus_nuevo: estIni }); } catch (e3) {}
+
+  return { ok: true, id: nuevoId };
 }
 
 // Siguiente ID estable para una hoja (máximo sufijo del prefijo + 1).
@@ -605,7 +615,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio', 'Eliminada'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio', 'Eliminada', 'CreadoPor', 'FechaCreacion', 'EliminadoPor', 'FechaEliminacion'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -626,7 +636,7 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
-  } else if (datos[0].map(norm_).indexOf('eliminada') === -1) {
+  } else if (datos[0].map(norm_).indexOf('fechaeliminacion') === -1) {
     // Hoja creada antes de agregar columnas nuevas (Comentario/Confirmada/
     // EnviadoPor/FechaEnvio): repara el encabezado (no borra datos; las
     // columnas nuevas quedan al final).
@@ -648,7 +658,11 @@ function guardarEstado(token, id, e) {
     e.confirmada ? 'Si' : '',
     e.enviado_por || '',
     e.fecha_envio || '',
-    e.eliminada ? 'Si' : ''
+    e.eliminada ? 'Si' : '',
+    e.creado_por || '',
+    e.fecha_creacion || '',
+    e.eliminado_por || '',
+    e.fecha_eliminacion || ''
   ];
   var writeRow = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -675,7 +689,8 @@ function leerEstados_() {
         iEnV = enc.indexOf('envalidadas'), iFp = enc.indexOf('finalizadopor'), iFf = enc.indexOf('fechafinalizacion'),
         iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario'),
         iConf = enc.indexOf('confirmada'), iEp = enc.indexOf('enviadopor'), iFe = enc.indexOf('fechaenvio'),
-        iElim = enc.indexOf('eliminada');
+        iElim = enc.indexOf('eliminada'), iCp = enc.indexOf('creadopor'), iFc = enc.indexOf('fechacreacion'),
+        iElp = enc.indexOf('eliminadopor'), iFel = enc.indexOf('fechaeliminacion');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -692,7 +707,11 @@ function leerEstados_() {
         confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false,
         enviado_por: iEp >= 0 ? String(f[iEp] || '').trim() : '',
         fecha_envio: iFe >= 0 ? fechaHora_(f[iFe]) : '',
-        eliminada: iElim >= 0 ? norm_(f[iElim]) === 'si' : false
+        eliminada: iElim >= 0 ? norm_(f[iElim]) === 'si' : false,
+        creado_por: iCp >= 0 ? String(f[iCp] || '').trim() : '',
+        fecha_creacion: iFc >= 0 ? fechaHora_(f[iFc]) : '',
+        eliminado_por: iElp >= 0 ? String(f[iElp] || '').trim() : '',
+        fecha_eliminacion: iFel >= 0 ? fechaHora_(f[iFel]) : ''
       };
     }
     return map;
@@ -717,6 +736,10 @@ function aplicarEstados_(tareas) {
     t.enviado_por = e.enviado_por || '';
     t.fecha_envio = e.fecha_envio || '';
     t.eliminada = !!e.eliminada;
+    t.creado_por = e.creado_por || '';
+    t.fecha_creacion = e.fecha_creacion || '';
+    t.eliminado_por = e.eliminado_por || '';
+    t.fecha_eliminacion = e.fecha_eliminacion || '';
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
   });
   // Las tareas de JEFATURA nunca escalan: SIEMPRE quedan en 'En Proceso'
