@@ -4981,6 +4981,7 @@ function renderizarPapelera() {
   lista.forEach(t => {
     const card = document.createElement('div');
     card.className = 'tarjeta';
+    card.onclick = () => abrirDetalle(t);   // clic en la tarjeta → ver detalle
     const areas = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '—';
     let html = `<div class="tarjeta-id">${t.id} · <span style="color:var(--tinta-suave)">${etiquetaEstatus(t.estatus)}</span></div>
       <dl class="tarjeta-campos">
@@ -4989,8 +4990,8 @@ function renderizarPapelera() {
       </dl>`;
     if (usuarioPuedeEliminar(t)) {
       html += `<div class="tarjeta-acciones">
-        <button class="btn-pildora btn-pildora-reabrir" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>
-        <button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>
+        <button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea('${t.id}')">↺ Restaurar</button>
+        <button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="event.stopPropagation(); eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>
       </div>`;
     }
     card.innerHTML = html;
@@ -5025,7 +5026,13 @@ function abrirDetalle(t) {
     && usuarioActual.subdireccion === t.subdireccion;
   let botones = '';
 
-  if (t.nivel === 'jefatura') {
+  if (t.eliminada) {
+    // En la Papelera: restaurar o eliminar definitivamente.
+    if (usuarioPuedeEliminar(t)) {
+      botones = `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>`
+              + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
+    }
+  } else if (t.nivel === 'jefatura') {
     // Jefatura: Mario la Finaliza (queda en En Proceso) y no escala.
     if (t.estatus === 'En Proceso' && !t.finalizado_por && esMario) {
       botones = `<button class="btn-modal btn-modal-primario" onclick="finalizarJefatura('${t.id}')">✓ Finalizar</button>`;
@@ -5046,8 +5053,8 @@ function abrirDetalle(t) {
     }
   }
 
-  // Reabrir: en Validadas, para quien gestiona la tarea.
-  if (usuarioPuedeReabrir(t)) {
+  // Reabrir: en Validadas, para quien gestiona la tarea (no en Papelera).
+  if (!t.eliminada && usuarioPuedeReabrir(t)) {
     botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
   }
 
