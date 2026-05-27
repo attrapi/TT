@@ -1683,6 +1683,8 @@
   .tarjeta.estatus-identificadas { border-left-color: var(--ambar); }
   .tarjeta.estatus-validar       { border-left-color: var(--verde); }
   .tarjeta.estatus-validadas     { border-left-color: var(--grafito); }
+  /* Vencida: borde izquierdo rojo (gana sobre el ámbar de Identificadas). */
+  .tarjeta.es-vencida { border-left-color: var(--rojo); }
 
   .tarjeta:hover {
     border-color: var(--tinta-tenue);
@@ -4330,9 +4332,12 @@ function crearTarjeta(t) {
     card.addEventListener('dragend', () => card.classList.remove('arrastrando'));
   }
 
-  const vencida   = esVencida(t.fecha_limite) && t.estatus === 'En Proceso';
+  // "Vencida": fecha límite ya pasada, SIN importar el estatus (Identificadas,
+  // Por validar o Validadas). Las permanentes (sin fecha) nunca vencen.
+  const vencida   = esVencida(t.fecha_limite);
   const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso';
   if (venceEsteDia) card.classList.add('vence-hoy');
+  if (vencida) card.classList.add('es-vencida');
 
   // Borde izquierdo coloreado según la columna/estatus donde está la tarea:
   // Identificadas = ámbar, Por validar = verde, Validadas = grafito.
@@ -4792,7 +4797,7 @@ function abrirDetalle(t) {
   const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
   const fechaAt = t.fecha_atencion || t.fecha_limite;
-  const vencida = esVencida(fechaAt) && t.estatus === 'En Proceso';
+  const vencida = esVencida(fechaAt);   // vencida sin importar el estatus
   const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso';
 
   modal.innerHTML = `
