@@ -1752,14 +1752,14 @@
   .col-color-morado .col-subtitulo,
   .col-color-morado .col-conteo  { color: #5b21b6; }
 
-  /* SGOI — olivo */
+  /* SGOI — verde bosque, mismo del ID (antes era olivo y se veía muy claro). */
   .col-color-olivo .col-header {
-    background: #f1f5e3; border-bottom-color: #6b8e23;
+    background: #d1fae5; border-bottom-color: #166534;
   }
-  .col-color-olivo .col-marca  { background: #6b8e23; }
+  .col-color-olivo .col-marca  { background: #166534; }
   .col-color-olivo .col-titulo,
   .col-color-olivo .col-subtitulo,
-  .col-color-olivo .col-conteo  { color: #4d6817; }
+  .col-color-olivo .col-conteo  { color: #14532d; }
 
   /* SPAC — azul (mismo tono que sus píldoras) */
   .col-color-azul .col-header {
@@ -4297,6 +4297,37 @@ function aplicarUsuarioServidor(res) {
   cargarTareasAppScript(false);       // primera carga de datos desde el servidor
   cargarAreas();                      // catálogo de áreas (base + agregadas)
   cargarBitacora();                   // historial persistido
+  cargarTelefonos();                  // mapa de teléfonos por área (para WhatsApp)
+}
+
+// Mapa { "SUBDIRECCION|JEFATURA": { telefono, nombre } } cargado desde la hoja
+// Usuarios. Permite que al darle WhatsApp en una tarea se mande al responsable
+// correcto. Vacío hasta que el backend responda.
+let TELEFONOS = {};
+function cargarTelefonos() {
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && res.telefonos) TELEFONOS = res.telefonos;
+    })
+    .withFailureHandler(function () { /* sin teléfonos: el WA abre vacío */ })
+    .listarTelefonos(SESION_TOKEN);
+}
+// Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
+//   - Jefaturas: busca por subdirección + jefatura.
+//   - Subdirección sin jefatura: busca por subdirección.
+function telefonoPara(t) {
+  if (!t) return '';
+  const sub = String(t.subdireccion || '').toUpperCase();
+  const jefCod = t.nivel === 'jefatura' ? String(t.jefatura || '').toUpperCase() : '';
+  // 1) match exacto subdir+jefatura, 2) fallback solo subdir (subdirector).
+  const claves = [sub + '|' + jefCod, sub + '|'];
+  for (let i = 0; i < claves.length; i++) {
+    if (TELEFONOS[claves[i]] && TELEFONOS[claves[i]].telefono) {
+      return TELEFONOS[claves[i]].telefono;
+    }
+  }
+  return '';
 }
 
 // Valida contra el servidor (hoja Usuarios) con el usuario elegido (o el
@@ -6190,9 +6221,13 @@ function enviarRecordatorio(idTarea, canal) {
     }
     lineas.push('', sep, '_Sistema TT · ATTRAPI_');
 
-    const url = 'https://wa.me/?text=' + encodeURIComponent(lineas.join('\n'));
+    // Si conocemos el teléfono del responsable de la tarea, abrimos WhatsApp
+    // directamente con ese contacto (https://wa.me/<numero>). Si no, queda
+    // como antes (el usuario elige a quién mandárselo).
+    const telefono = telefonoPara(t);
+    const url = 'https://wa.me/' + (telefono || '') + '?text=' + encodeURIComponent(lineas.join('\n'));
     window.open(url, '_blank');
-    toast('Abriendo WhatsApp con el recordatorio…', 'ok');
+    toast(telefono ? 'Abriendo WhatsApp con el responsable…' : 'Abriendo WhatsApp (elige el contacto)', 'ok');
     return;
   }
 

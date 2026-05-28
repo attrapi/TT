@@ -203,6 +203,42 @@ function sesionValida_(token) {
   return v ? JSON.parse(v) : null;
 }
 
+// Mapa de teléfonos por (subdirección + jefatura) para mandar WhatsApp al
+// responsable correcto desde la app. Lee la columna "Telefono" de Usuarios.
+// Devuelve { ok: true, telefonos: { "SPAC|": "521234567890", ... } }.
+function listarTelefonos(token) {
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  try {
+    var filas = leerHoja_(CONFIG.HOJA_USUARIOS_ID, CONFIG.HOJA_USUARIOS_PEST);
+    if (!filas.length) return { ok: true, telefonos: {} };
+    var enc = filas[0].map(norm_);
+    var iSub = enc.indexOf('subdireccion'),
+        iJef = enc.indexOf('jefatura'),
+        iTel = enc.indexOf('telefono'),
+        iAct = enc.indexOf('activo'),
+        iNom = enc.indexOf('nombre');
+    if (iTel < 0) return { ok: true, telefonos: {} };   // columna aún no existe
+    var map = {};
+    for (var r = 1; r < filas.length; r++) {
+      var f = filas[r];
+      if (iAct >= 0 && norm_(f[iAct]) === 'no') continue;
+      var sub = String(iSub >= 0 ? (f[iSub] || '') : '').trim().toUpperCase();
+      var jef = String(iJef >= 0 ? (f[iJef] || '') : '').trim().toUpperCase();
+      var tel = String(f[iTel] || '').trim();
+      var nom = String(iNom >= 0 ? (f[iNom] || '') : '').trim();
+      if (!tel) continue;
+      // Normaliza: deja solo dígitos y, si falta lada México, antepone 521.
+      var soloDigitos = tel.replace(/[^0-9]/g, '');
+      if (soloDigitos.length === 10) soloDigitos = '521' + soloDigitos;
+      map[sub + '|' + jef] = { telefono: soloDigitos, nombre: nom };
+    }
+    return { ok: true, telefonos: map };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+}
+
 // Reanuda una sesión guardada en el navegador (para que recargar la página no
 // cierre sesión). Devuelve el usuario si el token sigue vigente y renueva su TTL.
 function reanudarSesion(token) {
