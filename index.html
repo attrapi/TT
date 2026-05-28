@@ -1646,7 +1646,7 @@
     margin: 24px auto 48px;
     padding: 0 32px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(var(--tablero-cols, 3), minmax(220px, 1fr));
     gap: 20px;
   }
 
@@ -4174,11 +4174,10 @@ function obtenerTareasFiltradas() {
   // Las tareas en la Papelera (eliminadas) no aparecen en el tablero ni KPIs.
   let lista = TAREAS.filter(t => !t.eliminada);
 
-  // El Director NO ve las tareas de Jefatura: no suben a él (las valida el
-  // Subdirector). Se excluyen en cualquier vista del Director.
-  if (usuarioActual.rol === 'Director') {
-    lista = lista.filter(t => t.nivel !== 'jefatura');
-  }
+  // En el modelo NUEVO el Director SÍ ve las jefaturas (entran a la columna de
+  // su subdirección, p. ej. JDPC/JDIMA dentro de SPAC). Antes se excluían
+  // porque las validaba el subdirector — ahora la validación es por checklist
+  // adentro de la tarea.
 
   // === CONTROL DE ACCESO POR ROL ===
   // Capturistas: SIEMPRE filtrar por su subdirección, sin importar qué tab esté activa.
@@ -4507,73 +4506,83 @@ function actualizarConteosTabs() {
   document.getElementById('contENLACE').textContent = enProc('ENLACE');
 }
 
+// Devuelve la lista de columnas del tablero según el rol del usuario.
+// Modelo NUEVO: las columnas ya no son por estatus (En Proceso/Validadas),
+// son por SUBDIRECCIÓN / JEFATURA. La validación vive en el checklist de cada
+// tarjeta y al completarla pasa al Historial (no a una columna).
+//
+//   - Director (Adrián): 4 columnas → Staff (DPAC + Enlace) · SGOI · SPAC · SA
+//                        Cada subdirección incluye sus jefaturas.
+//   - Enlace (Samanta): 1 columna → Staff
+//   - Mario (SPAC):     3 columnas → SPAC · JDPC · JDIMA
+//   - Subdirector de SGOI (futuro): 3 columnas → SGOI · JDGA · JDGOI
+function columnasPorRol() {
+  if (!usuarioActual) return [];
+  if (usuarioActual.rol === 'Director') {
+    return [
+      { id: 'STAFF', titulo: 'Staff',
+        filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' },
+      { id: 'SGOI', titulo: 'SGOI · Gestión de Obras Inducidas',
+        filtro: t => t.subdireccion === 'SGOI' },
+      { id: 'SPAC', titulo: 'SPAC · Procesos Adm. de Construcción',
+        filtro: t => t.subdireccion === 'SPAC' },
+      { id: 'SA',   titulo: 'SA · Subdirección de Archivo',
+        filtro: t => t.subdireccion === 'SA' }
+    ];
+  }
+  if (esEnlace()) {
+    return [{ id: 'STAFF', titulo: 'Staff',
+              filtro: t => t.subdireccion === 'ENLACE' }];
+  }
+  const sub = usuarioActual.subdireccion;
+  if (sub === 'SPAC') {
+    return [
+      { id: 'SPAC',  titulo: 'SPAC · Subdirección',
+        filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
+      { id: 'JDPC',  titulo: 'JDPC · Procedimientos de Construcción',
+        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
+      { id: 'JDIMA', titulo: 'JDIMA · Implementación de Manuales',
+        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
+    ];
+  }
+  if (sub === 'SGOI') {
+    return [
+      { id: 'SGOI',  titulo: 'SGOI · Subdirección',
+        filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
+      { id: 'JDGA',  titulo: 'JDGA · Gestión Ambiental',
+        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
+      { id: 'JDGOI', titulo: 'JDGOI · Gestión de Obras Inducidas',
+        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
+    ];
+  }
+  // Default: una sola columna con todo lo del perfil.
+  return [{ id: sub, titulo: sub, filtro: t => t.subdireccion === sub }];
+}
+
 function renderizarTablero() {
-  const lista = obtenerTareasFiltradas();
-  const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  // El Enlace solo ve 2 columnas (En Proceso · Validadas); los demás, 3.
-  const cols = esEnlace() ? ['En Proceso', 'Archivada'] : ['En Proceso', 'Atendida', 'Archivada'];
-  const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
+  const lista = obtenerTareasFiltradas().filter(t => t.estatus !== 'Archivada');
+  const cols = columnasPorRol();
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
+  tablero.style.setProperty('--tablero-cols', cols.length);
 
-  cols.forEach(estatus => {
-    let tareasCol = lista.filter(t => t.estatus === estatus);
-    // Enlace (2 columnas): su "En Proceso" agrupa En Proceso + Atendida, para no
-    // perder ninguna (no tiene columna intermedia).
-    if (esEnlace() && estatus === 'En Proceso') {
-      tareasCol = lista.filter(t => t.estatus === 'En Proceso' || t.estatus === 'Atendida');
-    }
-    // El Director NO ve en "Para validar" las tareas que devolvió (confirmada
-    // === false): esas quedan con el subdirector en su "En Proceso".
-    if (esDir && estatus === 'Atendida') {
-      tareasCol = tareasCol.filter(t => t.confirmada !== false);
-    }
-    // "Para validar" (Atendida): el Director ve TODAS automáticamente — las
-    // tareas de subdirección llegan directo, sin que el subdirector las envíe.
-    // En "En Proceso", el Director solo ve sus propias áreas (DPAC/Enlace); las
-    // de subdirección en En Proceso (devueltas) las gestiona el subdirector.
-    if (esDir && estatus === 'En Proceso') {
-      tareasCol = tareasCol.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-    }
-    tareasCol = ordenarPorFecha(tareasCol);
-    const col = document.createElement('div');
-    col.className = 'columna col-' + slugs[estatus];
-
-    col.innerHTML = `
+  cols.forEach(col => {
+    const tareasCol = ordenarPorFecha(lista.filter(col.filtro));
+    const colEl = document.createElement('div');
+    colEl.className = 'columna col-' + col.id.toLowerCase();
+    colEl.innerHTML = `
       <div class="col-header">
         <div class="col-marca"></div>
-        <div class="col-titulo">${etiquetaEstatus(estatus)}</div>
+        <div class="col-titulo">${escapeHtml(col.titulo)}</div>
         <div class="col-conteo">${tareasCol.length}</div>
       </div>
-      <div class="col-cuerpo" id="col-${slugs[estatus]}" data-estatus="${estatus}"></div>
+      <div class="col-cuerpo" data-col="${col.id}"></div>
     `;
-    tablero.appendChild(col);
+    tablero.appendChild(colEl);
 
-    const cuerpo = col.querySelector('.col-cuerpo');
-    // Drop target: SÓLO el Director puede arrastrar tarjetas entre columnas
-    // en su panel. Los subdirectores avanzan únicamente con los botones
-    // (Finalizar). Cada movimiento queda registrado en la Bitácora.
-    if (esDir) {
-      cuerpo.addEventListener('dragover', e => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        cuerpo.classList.add('drop-activo');
-      });
-      cuerpo.addEventListener('dragleave', e => {
-        // Sólo quitamos el highlight cuando el cursor sale del cuerpo,
-        // no cuando entra a una tarjeta hija (relatedTarget chequea eso).
-        if (!cuerpo.contains(e.relatedTarget)) cuerpo.classList.remove('drop-activo');
-      });
-      cuerpo.addEventListener('drop', e => {
-        e.preventDefault();
-        cuerpo.classList.remove('drop-activo');
-        const idTarea = e.dataTransfer.getData('text/plain');
-        if (idTarea) moverTarea(idTarea, estatus);
-      });
-    }
-
+    const cuerpo = colEl.querySelector('.col-cuerpo');
     if (tareasCol.length === 0) {
-      cuerpo.innerHTML = '<div class="vacio">Sin tareas en este estatus</div>';
+      cuerpo.innerHTML = '<div class="vacio">Sin tareas en esta columna</div>';
     } else {
       tareasCol.forEach(t => cuerpo.appendChild(crearTarjeta(t)));
     }
