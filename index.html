@@ -3053,6 +3053,23 @@
   }
   .btn-completada:hover { filter: brightness(1.06); }
 
+  /* Indicador de avance del checklist en la tarjeta (compacto). */
+  .tarjeta-progreso {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 10px; padding: 6px 10px;
+    background: #f9fafb; border-radius: 6px;
+    font-size: 11px; color: var(--tinta-suave);
+  }
+  .tarjeta-progreso-barra {
+    flex: 1; height: 6px; background: var(--linea);
+    border-radius: 999px; overflow: hidden;
+  }
+  .tarjeta-progreso-relleno {
+    height: 100%; background: var(--guinda); border-radius: 999px;
+    transition: width .25s;
+  }
+  .tarjeta-progreso-texto { font-weight: 600; }
+
   @media (max-width: 700px) {
     .obs-doble { grid-template-columns: 1fr; }
     .checklist-cab, .checklist-fila { grid-template-columns: 1fr 70px 70px; }
@@ -4741,55 +4758,22 @@ function crearTarjeta(t) {
   // El resto de los datos (acuerdos, acción a tomar, adjunto, seguimiento) se
   // muestran al abrir la tarjeta (modal), para que las tarjetas queden compactas.
 
-  // Aviso de devolución: si el Director la regresó con un comentario, lo
-  // mostramos mientras no esté validada/archivada (para que el responsable lo vea).
-  if (t.comentario_devolucion && t.estatus !== 'Archivada') {
-    html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
-  }
-
-  // (Las tarjetas NO muestran "seguimiento" —enviada/finalizada/validada por—;
-  //  ese rastro vive en la Bitácora, dentro del modal.)
-
-  // Acciones de la tarjeta como píldoras (misma forma para todas; el color
-  // marca la acción). Íconos reutilizados:
-  const icoCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
-  const icoCaja  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>';
-  const icoReloj = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
-  const icoReabrir = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-6.5L1 10"/></svg>';
-  const icoDevolver = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
-  const icoEnviar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
-
-  const esMario = usuarioActual && usuarioActual.rol === 'Capturista'
-    && usuarioActual.subdireccion === t.subdireccion;
-  const esDir2 = usuarioActual && usuarioActual.rol === 'Director';
-
-  let pills = '';
-  if (t.nivel === 'jefatura') {
-    // JEFATURA: vive en "En Proceso". Mario la Finaliza (no escala a nadie):
-    // se queda en En Proceso con píldora "Finalizada". El borrar es la papelera.
-    if (t.estatus === 'En Proceso') {
-      if (t.finalizado_por) {
-        // Solo el sello gris "Finalizada" (sin botón Reabrir aquí).
-        pills += `<button class="btn-pildora btn-pildora-finalizada" disabled>${icoCheck} Finalizada</button>`;
-      } else if (esMario) {
-        pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); finalizarJefatura('${t.id}')">${icoCheck} Finalizar</button>`;
-      }
-    }
-  } else {
-    // SUBDIRECCIÓN: la tarea (Atendida) la ve el Director en "Para validar"; él
-    // la Valida → Validadas o la Devuelve. Si la devolvió (confirmada=false),
-    // se queda con el subdirector, que la corrige y la REENVÍA.
-    if (t.estatus === 'Atendida' && t.confirmada === false && esMario) {
-      pills += `<button class="btn-pildora btn-pildora-enviar" onclick="event.stopPropagation(); reenviarAValidacion('${t.id}')" title="Reenviar al Director tras corregir.">${icoEnviar} Reenviar</button>`;
-    } else if (t.estatus === 'Atendida' && t.confirmada !== false && esDir2) {
-      pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
-      pills += `<button class="btn-pildora btn-pildora-devolver" onclick="event.stopPropagation(); devolver('${t.id}')" title="Regresar al responsable con un comentario.">${icoDevolver} Devolver</button>`;
+  // Indicador chiquito del avance del checklist. Si todo está paloma, aparece
+  // un sello verde "Lista para completar"; si no, una barra con el progreso.
+  const _items = obtenerChecklist(t);
+  if (_items.length > 0) {
+    const _avance = checklistAvance(t);
+    const _completas = _items.filter(i => i.check_resp && i.check_dir).length;
+    if (_completas === _items.length) {
+      html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Lista para completar</button></div>';
+    } else {
+      html += '<div class="tarjeta-progreso" title="Avance del checklist">' +
+        '<div class="tarjeta-progreso-barra"><div class="tarjeta-progreso-relleno" style="width:' + _avance + '%"></div></div>' +
+        '<span class="tarjeta-progreso-texto">' + _completas + '/' + _items.length + '</span>' +
+      '</div>';
     }
   }
-
-  // (Reabrir ya NO va en la tarjeta: vive dentro del modal al abrir la tarea.)
-
-  if (pills) html += `<div class="tarjeta-acciones">${pills}</div>`;
 
   card.innerHTML = html;
   return card;
@@ -5209,41 +5193,22 @@ function abrirDetalle(t) {
     && usuarioActual.subdireccion === t.subdireccion;
   let botones = '';
 
-  // Si todo el checklist está paloma (Resp + Dir) y la tarea aún no se cerró,
-  // mostramos el botón verde "Completada" (manda al Historial). Esto reemplaza
-  // a Validar/Finalizar en el flujo nuevo.
+  // Flujo nuevo: la validación es por checklist. El ÚNICO botón de acción
+  // primaria es "Completada" (verde) y aparece cuando TODAS las casillas están
+  // paloma. Validar/Devolver/Finalizar/Reenviar quedaron obsoletos.
   const todoListo = !t.eliminada && t.estatus !== 'Archivada' && checklistTodoMarcado(t);
 
   if (t.eliminada) {
-    // En la Papelera: restaurar o eliminar definitivamente.
     if (usuarioPuedeEliminar(t)) {
       botones = `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>`
               + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
     }
   } else if (todoListo) {
     botones = `<button class="btn-modal btn-completada" onclick="completarTarea('${t.id}')">✓ Completada</button>`;
-  } else if (t.nivel === 'jefatura') {
-    // Jefatura: Mario la Finaliza (queda en En Proceso) y no escala.
-    if (t.estatus === 'En Proceso' && !t.finalizado_por && esMario) {
-      botones = `<button class="btn-modal btn-modal-primario" onclick="finalizarJefatura('${t.id}')">✓ Finalizar</button>`;
-    } else if (t.estatus === 'En Proceso' && t.finalizado_por) {
-      // Reabrir (ámbar) a la izquierda + Finalizada (gris, inactiva).
-      botones = (esMario ? `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>` : '')
-              + `<button class="btn-modal" disabled style="cursor:default; background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb;">✓ Finalizada</button>`;
-    }
-  } else {
-    // Subdirección: el Director Valida/Devuelve en "Para validar". Si la devolvió
-    // (confirmada=false), el subdirector la corrige y la Reenvía.
-    if (t.estatus === 'Atendida' && t.confirmada === false && esMario) {
-      botones = `<button class="btn-modal btn-modal-primario" style="background:#0d9488; border-color:#0d9488;" onclick="reenviarAValidacion('${t.id}')">➤ Reenviar a validación</button>`;
-    } else if (t.estatus === 'Atendida' && t.confirmada !== false && esDir) {
-      botones = `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`
-              + `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
-    }
   }
 
-  // Reabrir: en Validadas, para quien gestiona la tarea (no en Papelera).
-  if (!t.eliminada && usuarioPuedeReabrir(t)) {
+  // Reabrir sigue disponible para tareas que ya están en el Historial.
+  if (!t.eliminada && t.estatus === 'Archivada' && usuarioPuedeReabrir(t)) {
     botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
   }
 
@@ -5308,7 +5273,7 @@ function abrirDetalle(t) {
         ` : ''}
       </dl>
 
-      ${(t.estatus === 'En Proceso' && t.comentario_devolucion) ? `
+      ${false /* "Devuelta para corrección" eliminado: el flujo ya no usa Devolver/Reenviar (la validación es por checklist). */ ? `
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Devuelta para corrección</div>
           <div class="modal-comentarios" style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px; border-radius:8px;">
