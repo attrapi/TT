@@ -5920,13 +5920,33 @@ function puedeMarcarDir(t) {
 function puedeEditarObsResp(t) { return puedeMarcarResp(t); }
 function puedeEditarObsDir(t)  { return puedeMarcarDir(t); }
 
-// Asegura que la tarea tenga los campos del modelo nuevo inicializados.
+// Asegura que la tarea tenga los campos del modelo nuevo inicializados. Si la
+// tarea aún no trae checklist pero sí texto en "Acciones a tomar", lo derivamos
+// automáticamente — así las tareas viejas ya tienen checklist sin migración.
 function asegurarCamposChecklist(t) {
   if (!t) return t;
   if (!Array.isArray(t.checklist)) t.checklist = [];
+  if (t.checklist.length === 0 && t.accion_a_tomar) {
+    t.checklist = checklistDesdeTexto(t.accion_a_tomar);
+  }
   if (typeof t.observaciones_resp !== 'string') t.observaciones_resp = '';
   if (typeof t.observaciones_dir  !== 'string') t.observaciones_dir  = '';
   return t;
+}
+
+// Mezcla un texto editado de checklist con el checklist anterior. Si una línea
+// existe igual en el viejo, CONSERVA sus palomas; si es nueva, nace vacía; si
+// se borró, desaparece. Así editar el texto no pierde el avance ya marcado.
+function mergearChecklist(viejo, textoNuevo) {
+  const v = Array.isArray(viejo) ? viejo : [];
+  const lineas = String(textoNuevo || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return lineas.map(linea => {
+    const previo = v.find(i => i && i.texto === linea);
+    return previo || {
+      texto: linea, check_resp: false, check_dir: false,
+      fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: ''
+    };
+  });
 }
 
 // Recarga el catálogo de áreas desde el servidor (base + las agregadas).
@@ -5952,7 +5972,12 @@ function abrirNuevaTarea(tEdit) {
   const valResp = ed ? (ed.responsable || '') : (esCapturista ? usuarioActual.nombre : '');
   const valTema = ed ? (ed.tema || ed.titulo || '') : '';
   const valAcuerdos = ed ? (ed.acuerdos_realizados || '') : '';
-  const valAccion = ed ? (ed.accion_a_tomar || '') : '';
+  // Acciones a tomar: editor de CHECKLIST. Al editar una tarea que ya tiene
+  // checklist, prellenamos con sus renglones (uno por línea) para no perder
+  // las palomas ya marcadas (mergearChecklist se encarga al guardar).
+  const valAccion = ed
+    ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.accion_a_tomar || ''))
+    : '';
   const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
   const valUrl = ed ? (ed.url || '') : '';
   const areasEd = ed ? (ed.areas_involucradas || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
@@ -6031,8 +6056,9 @@ function abrirNuevaTarea(tEdit) {
           </div>
 
           <div class="form-campo full">
-            <label>Acción a tomar</label>
-            <textarea id="nt_accion" maxlength="800" placeholder="¿Qué sigue / qué hay que hacer?">${escapeHtml(valAccion)}</textarea>
+            <label>Acciones a tomar (checklist) <span class="req">*</span></label>
+            <textarea id="nt_accion" required maxlength="1500" rows="5" placeholder="Una acción por renglón. Ej.&#10;Revisar documento&#10;Firmar oficio&#10;Subir a Drive" style="font-family:var(--sans); line-height:1.6;">${escapeHtml(valAccion)}</textarea>
+            <div class="form-hint">Cada renglón se convierte en un punto del checklist. Adentro de la tarea cada acción tendrá dos casillas: una del responsable y una del director.</div>
           </div>
 
           <div class="form-campo">
@@ -6177,6 +6203,8 @@ function guardarNuevaTarea() {
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         fecha_atencion: fecha, fecha_limite: fecha, url: url || tareaEditando.url
       });
+      // Mezcla el checklist viejo con el texto nuevo (conserva palomas).
+      tareaEditando.checklist = mergearChecklist(tareaEditando.checklist || [], accion);
       const idEd = tareaEditando.id; tareaEditando = null;
       cerrarModal(); renderizar();
       toast('Tarea ' + idEd + ' actualizada (demo)', 'ok');
