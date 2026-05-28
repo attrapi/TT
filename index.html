@@ -3609,6 +3609,7 @@ async function sincronizarSPAC() {
 
     // Reemplaza SOLO el bloque SPAC; deja intactas SA, SGOI y ENLACE.
     const otras = TAREAS.filter(t => t.subdireccion !== 'SPAC');
+    nuevas.forEach(asegurarCamposChecklist);
     TAREAS.length = 0;
     TAREAS.push(...otras, ...nuevas);
 
@@ -4078,6 +4079,8 @@ function cargarTareasAppScript(preservar) {
       }
       // Seguro: las tareas de jefatura siempre se quedan en En Proceso.
       nuevas.forEach(n => { if (n.nivel === 'jefatura') { n.estatus = 'En Proceso'; n.validada = false; n.en_validadas = false; n.confirmada = false; } });
+      // Inicializa los campos del modelo nuevo (checklist + observaciones duales).
+      nuevas.forEach(asegurarCamposChecklist);
       TAREAS.length = 0;
       TAREAS.push(...nuevas);
       renderizar();
@@ -5853,6 +5856,79 @@ function mostrarAreas(areasStr) {
 
 function areasDisponibles() { return AREAS; }
 
+// =====================================================================
+// Modelo de CHECKLIST y OBSERVACIONES DUALES (validación dentro de la tarea)
+//
+// Cada tarea lleva una lista `checklist` de acciones. Cada acción tiene DOS
+// casillas: una del responsable y otra del director (Adrián). Cuando TODAS las
+// acciones están marcadas en AMBAS columnas, aparece el botón "Completada"
+// (verde) que manda la tarea al Historial.
+//
+// Además, dos cuadros de observaciones por tarea:
+//   - observaciones_resp: lo escribe el responsable (subdirector/jefatura/enlace).
+//   - observaciones_dir:  lo escribe el director (Adrián).
+// Cada uno solo edita el suyo; el otro lo ve en read-only.
+// =====================================================================
+function obtenerChecklist(t) {
+  if (!t) return [];
+  if (!Array.isArray(t.checklist)) t.checklist = [];
+  return t.checklist;
+}
+// Construye un checklist a partir del texto de "Acciones a tomar" (un punto
+// por renglón). Se llama al crear o editar la tarea.
+function checklistDesdeTexto(texto) {
+  if (!texto) return [];
+  return String(texto).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(linea => ({
+    texto: linea,
+    check_resp: false,
+    check_dir: false,
+    fecha_resp: '',
+    fecha_dir: '',
+    autor_resp: '',
+    autor_dir: ''
+  }));
+}
+// Texto plano del checklist (uno por renglón) para volverlo a editar.
+function checklistATexto(t) {
+  return obtenerChecklist(t).map(i => i.texto).join('\n');
+}
+// ¿Todas las casillas marcadas (ambas columnas, todos los renglones)?
+function checklistTodoMarcado(t) {
+  const items = obtenerChecklist(t);
+  if (items.length === 0) return false;
+  return items.every(i => i.check_resp && i.check_dir);
+}
+// % de avance combinado (cuántas casillas marcadas de las posibles).
+function checklistAvance(t) {
+  const items = obtenerChecklist(t);
+  if (items.length === 0) return 0;
+  let marcadas = 0;
+  items.forEach(i => { if (i.check_resp) marcadas++; if (i.check_dir) marcadas++; });
+  return Math.round((marcadas / (items.length * 2)) * 100);
+}
+// Permisos: el responsable de la subdirección (o jefatura/enlace) marca su
+// columna; Adrián marca la suya. Los demás solo ven (read-only).
+function puedeMarcarResp(t) {
+  if (!usuarioActual || !t) return false;
+  if (usuarioActual.rol === 'Director') return false;     // Adrián no marca la del responsable
+  // ENLACE marca solo lo suyo; subdirectores y jefaturas, lo de su subdirección.
+  return usuarioActual.subdireccion === t.subdireccion;
+}
+function puedeMarcarDir(t) {
+  return !!(usuarioActual && usuarioActual.rol === 'Director');
+}
+function puedeEditarObsResp(t) { return puedeMarcarResp(t); }
+function puedeEditarObsDir(t)  { return puedeMarcarDir(t); }
+
+// Asegura que la tarea tenga los campos del modelo nuevo inicializados.
+function asegurarCamposChecklist(t) {
+  if (!t) return t;
+  if (!Array.isArray(t.checklist)) t.checklist = [];
+  if (typeof t.observaciones_resp !== 'string') t.observaciones_resp = '';
+  if (typeof t.observaciones_dir  !== 'string') t.observaciones_dir  = '';
+  return t;
+}
+
 // Recarga el catálogo de áreas desde el servidor (base + las agregadas).
 function cargarAreas() {
   if (!enAppScript() || !SESION_TOKEN) return;
@@ -6115,6 +6191,9 @@ function guardarNuevaTarea() {
         avance: 0, estatus: 'En Proceso',
         url: url, validado_por: '', fecha_validacion: '', comentarios_director: ''
       };
+      asegurarCamposChecklist(nueva);
+      // El texto de "Acciones a tomar" arranca el checklist (un punto por renglón).
+      nueva.checklist = checklistDesdeTexto(accion);
       TAREAS.push(nueva);
       registrarEnBitacora({ accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
       cerrarModal(); renderizar();
