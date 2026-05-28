@@ -4933,7 +4933,7 @@ function crearTarjeta(t) {
       html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Lista para completar</button></div>';
     } else {
-      html += '<div class="tarjeta-progreso" title="Avance del checklist">' +
+      html += '<div class="tarjeta-progreso" title="Avance de acciones">' +
         '<div class="tarjeta-progreso-barra"><div class="tarjeta-progreso-relleno" style="width:' + _avance + '%"></div></div>' +
         '<span class="tarjeta-progreso-texto">' + _completas + '/' + _items.length + '</span>' +
       '</div>';
@@ -5442,7 +5442,7 @@ function abrirDetalle(t) {
       <!-- Checklist y Observaciones a TODO el ancho del modal (no caben bien
            dentro del dl de dos columnas). Mismas secciones, más espacio. -->
       <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Acciones · Checklist</div>
+        <div class="modal-seccion-titulo">Acciones</div>
         ${renderChecklistHTML(t)}
       </div>
       <div class="modal-seccion modal-seccion-ancha">
@@ -6397,7 +6397,7 @@ function completarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!checklistTodoMarcado(t)) {
-    toast('Faltan acciones por marcar en el checklist.', 'error');
+    toast('Faltan acciones por marcar.', 'error');
     return;
   }
   if (t.estatus === 'Archivada') return;     // ya está en Historial
@@ -6476,7 +6476,7 @@ function eliminarItemChecklist(idTarea, idx) {
     toast('Solo puedes borrar acciones que tú creaste.', 'error');
     return;
   }
-  if (!confirm('¿Borrar la acción "' + item.texto + '" del checklist?')) return;
+  if (!confirm('¿Borrar la acción "' + item.texto + '"?')) return;
   items.splice(idx, 1);
   registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '− "' + item.texto + '"' });
   persistirEstado(t);
@@ -6608,9 +6608,9 @@ function abrirNuevaTarea(tEdit) {
           </div>
 
           <div class="form-campo full">
-            <label>Acciones a tomar (checklist) <span class="req">*</span></label>
+            <label>Acciones <span class="req">*</span></label>
             <textarea id="nt_accion" required maxlength="1500" rows="5" placeholder="Una acción por renglón. Ej.&#10;Revisar documento&#10;Firmar oficio&#10;Subir a Drive" style="font-family:var(--sans); line-height:1.6;">${escapeHtml(valAccion)}</textarea>
-            <div class="form-hint">Cada renglón se convierte en un punto del checklist. Adentro de la tarea cada acción tendrá dos casillas: una del responsable y una del director.</div>
+            <div class="form-hint">Cada renglón se convierte en una acción. Adentro de la tarea cada acción tendrá dos casillas: una del responsable y una del director.</div>
           </div>
 
           <div class="form-campo full">
