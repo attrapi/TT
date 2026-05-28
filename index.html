@@ -5567,12 +5567,13 @@ function abrirDetalle(t) {
   modal.innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id" data-sub="${t.subdireccion}" data-pre="${(String(t.id).split('-')[0] || '').toUpperCase()}">${t.id}</div>
+        <!-- Cabecera del modal: arriba SOLO el tema; abajo el ID coloreado y,
+             si aplica, el chip "Vencida" a su derecha. Aplica a todos los
+             niveles (subdir, jefatura, DPAC, Staff). -->
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
-          <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${etiquetaEstatus(t.estatus)}</span>
+          <span class="modal-id" data-sub="${t.subdireccion}" data-pre="${(String(t.id).split('-')[0] || '').toUpperCase()}">${t.id}</span>
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
-          ${venceEsteDia ? '<span class="vence-hoy-chip" style="margin: 0;">⏰ Ocurriendo hoy</span>' : ''}
         </div>
       </div>
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
