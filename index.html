@@ -3754,6 +3754,15 @@ function aplicarSesion() {
     tabActiva = usuarioActual.subdireccion;
   }
 
+  // El ENLACE tiene un panel mínimo: sin grupo de Subdirección, sin Gestión y
+  // sin Historial (solo su tablero de 2 columnas). Los demás sí los ven.
+  const grupoSubs = document.getElementById('sidebarGrupoSubs');
+  const btnHistorial = document.querySelector('.sidebar-papelera');
+  const ocultarEnlace = esEnlace();
+  if (grupoSubs) grupoSubs.style.display = ocultarEnlace ? 'none' : '';
+  if (btnHistorial) btnHistorial.style.display = ocultarEnlace ? 'none' : '';
+  if (ocultarEnlace) grupoDir.style.display = 'none';
+
   cambiarTab(tabActiva);
 }
 
@@ -4275,10 +4284,18 @@ function actualizarKPIs() {
   const enProcesos = colProc.length;
   const atendidas  = colAtendida.length;
 
+  // El ENLACE solo tiene 2 columnas (En Proceso = En Proceso + Atendidas, y
+  // Validadas), así que su Resumen muestra 2 círculos: ocultamos el de en medio
+  // y juntamos los pendientes en el primero.
+  const enlace = esEnlace();
+  const kpiMedio = document.getElementById('kpiSemana').parentElement;
+  if (kpiMedio) kpiMedio.style.display = enlace ? 'none' : '';
+  const procTotal = enlace ? enProcesos + atendidas : enProcesos;
+
   setLabel('kpiActivas', etiquetaEstatus('En Proceso'));      // "En Proceso"
   setLabel('kpiSemana', etiquetaEstatus('Atendida'));         // "Por validar"/"Para validar"
   setLabel('kpiArchivadas', etiquetaEstatus('Archivada'));    // "Validadas"
-  document.getElementById('kpiActivas').textContent = enProcesos;
+  document.getElementById('kpiActivas').textContent = procTotal;
   document.getElementById('kpiSemana').textContent = atendidas;
   document.getElementById('kpiArchivadas').textContent = archivadas;
 
@@ -4290,7 +4307,9 @@ function actualizarKPIs() {
   // Donut para AMBOS roles. La leyenda "Por validar/Para validar" según el rol.
   const lblAt = document.getElementById('kpiPieLblAtendidas');
   if (lblAt) lblAt.textContent = etiquetaEstatus('Atendida');
-  renderDonut(enProcesos - vencidas, vencidas, atendidas, archivadas);
+  // Para el Enlace, "Atendidas" se cuenta dentro de "En Proceso" (no es un
+  // estatus aparte para ella), por eso el segmento de validar va en 0.
+  renderDonut(procTotal - vencidas, vencidas, enlace ? 0 : atendidas, archivadas);
 
   // Pendientes: el Director por subdirección; el subdirector por jefatura.
   const subCard = document.getElementById('kpisSubGrupo');
