@@ -3108,6 +3108,15 @@
   .checklist-borrar { color: var(--rojo, #b91c1c); font-size: 16px; }
   .checklist-borrar:hover, .checklist-editar:hover { opacity: 1; }
   .checklist-borrar-vacio { display: inline-block; width: 14px; }
+  /* Input para editar el texto de una acción inline (al darle ✎). */
+  .checklist-edit-input {
+    width: 100%; box-sizing: border-box;
+    padding: 5px 9px;
+    border: 1.5px solid var(--guinda); border-radius: 5px;
+    background: #fff; color: var(--tinta);
+    font-family: var(--sans); font-size: 13px; line-height: 1.4;
+  }
+  .checklist-edit-input:focus { outline: none; box-shadow: 0 0 0 3px var(--guinda-tenue); }
   /* Input para agregar una nueva acción al checklist desde el modal. */
   .checklist-agregar {
     display: flex; gap: 6px; margin-top: 8px;
@@ -6256,7 +6265,9 @@ function renderChecklistHTML(t) {
     '<div class="checklist-leyenda"><span class="leyenda-punto leyenda-director"></span>Acción del Director · <span class="leyenda-punto leyenda-capturista"></span>Acción del Responsable</div>';
 }
 
-// Edita el texto de un ítem del checklist (solo el creador puede).
+// Edita el texto de un ítem del checklist EN LA MISMA FILA (inline, sin
+// modales emergentes). Solo el creador puede editarlo. Enter guarda, Esc
+// cancela, perder el foco también guarda.
 function hacerEditableChecklist(idTarea, idx) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
@@ -6268,15 +6279,53 @@ function hacerEditableChecklist(idTarea, idx) {
     toast('Solo puedes editar acciones que tú creaste.', 'error');
     return;
   }
-  const nuevo = prompt('Editar acción:', item.texto);
-  if (nuevo === null) return;     // cancelado
-  const limpio = String(nuevo).trim();
-  if (!limpio || limpio === item.texto) return;
-  item.texto = limpio;
-  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '✎ "' + limpio + '"' });
-  persistirEstado(t);
-  abrirDetalle(t);
-  renderizar();
+  // Localiza la fila del checklist correspondiente y reemplaza el texto
+  // por un <input> editable. No re-renderiza el modal para no perder el foco.
+  const filas = document.querySelectorAll('.checklist-tabla .checklist-fila');
+  const fila = filas[idx];
+  if (!fila) return;
+  const span = fila.querySelector('.checklist-texto-valor');
+  if (!span || span.dataset.editando === '1') return;
+  span.dataset.editando = '1';
+
+  const original = item.texto;
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = original;
+  inp.maxLength = 200;
+  inp.className = 'checklist-edit-input';
+  span.innerHTML = '';
+  span.appendChild(inp);
+  inp.focus();
+  try { inp.setSelectionRange(0, original.length); } catch (e) {}
+
+  let cerrado = false;
+  function guardar() {
+    if (cerrado) return; cerrado = true;
+    const limpio = (inp.value || '').trim();
+    if (!limpio || limpio === original) {
+      abrirDetalle(t);     // cancelar suave si no cambió
+      return;
+    }
+    item.texto = limpio;
+    registrarEnBitacora({
+      accion: 'mover', id_tarea: idTarea,
+      estatus_anterior: '', estatus_nuevo: '',
+      comentario: '✎ "' + limpio + '"'
+    });
+    persistirEstado(t);
+    abrirDetalle(t);
+    renderizar();
+  }
+  function cancelar() {
+    if (cerrado) return; cerrado = true;
+    abrirDetalle(t);
+  }
+  inp.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter')  { e.preventDefault(); guardar();  }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelar(); }
+  });
+  inp.addEventListener('blur', guardar);
 }
 function renderObservacionesHTML(t) {
   const puedeR = puedeEditarObsResp(t);
