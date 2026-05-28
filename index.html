@@ -2984,6 +2984,79 @@
     cursor: pointer; font-family: var(--sans);
   }
   .login-volver:hover { text-decoration: underline; }
+
+  /* ===== Checklist (validación dentro de la tarea) ===== */
+  .checklist-tabla {
+    border: 1px solid var(--linea); border-radius: 8px; overflow: hidden;
+    margin-top: 6px; background: #fff;
+  }
+  .checklist-cab, .checklist-fila {
+    display: grid; grid-template-columns: 1fr 110px 110px;
+    align-items: center; gap: 8px; padding: 8px 12px;
+  }
+  .checklist-cab {
+    background: var(--guinda-tenue); font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--guinda);
+  }
+  .checklist-cab-resp, .checklist-cab-dir { text-align: center; }
+  .checklist-fila { border-top: 1px solid var(--linea); font-size: 13px; }
+  .checklist-fila.completa { background: #f0fdf4; }
+  .checklist-chk {
+    width: 18px; height: 18px; cursor: pointer; justify-self: center;
+    accent-color: var(--guinda);
+  }
+  .checklist-chk:disabled { cursor: default; opacity: 0.55; }
+  .checklist-texto { color: var(--tinta); line-height: 1.4; }
+  .checklist-fila.completa .checklist-texto { text-decoration: line-through; color: var(--tinta-suave); }
+  .checklist-vacio {
+    padding: 14px; font-size: 12.5px; color: var(--tinta-suave);
+    text-align: center; font-style: italic;
+  }
+  .checklist-avance {
+    font-size: 11px; color: var(--tinta-suave); margin-top: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .checklist-avance-barra {
+    flex: 1; height: 5px; background: var(--linea); border-radius: 999px; overflow: hidden;
+  }
+  .checklist-avance-relleno {
+    height: 100%; background: var(--guinda); border-radius: 999px;
+    transition: width .25s;
+  }
+
+  /* ===== Observaciones duales ===== */
+  .obs-doble {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;
+  }
+  .obs-col {
+    background: #fafafa; border: 1px solid var(--linea); border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .obs-titulo {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--gris); margin-bottom: 4px;
+  }
+  .obs-textarea {
+    width: 100%; min-height: 60px; border: 0; background: transparent;
+    resize: vertical; font-family: var(--sans); font-size: 12.5px;
+    color: var(--tinta); padding: 0;
+  }
+  .obs-textarea:focus { outline: none; }
+  .obs-textarea[readonly] { color: var(--tinta-suave); cursor: default; }
+
+  /* ===== Botón "Completada" (verde, aparece cuando todo paloma) ===== */
+  .btn-completada {
+    background: var(--verde, #15803d) !important;
+    color: #fff !important;
+    border-color: var(--verde, #15803d) !important;
+    font-weight: 700 !important;
+  }
+  .btn-completada:hover { filter: brightness(1.06); }
+
+  @media (max-width: 700px) {
+    .obs-doble { grid-template-columns: 1fr; }
+    .checklist-cab, .checklist-fila { grid-template-columns: 1fr 70px 70px; }
+  }
 </style>
 </head>
 <body>
@@ -5127,12 +5200,19 @@ function abrirDetalle(t) {
     && usuarioActual.subdireccion === t.subdireccion;
   let botones = '';
 
+  // Si todo el checklist está paloma (Resp + Dir) y la tarea aún no se cerró,
+  // mostramos el botón verde "Completada" (manda al Historial). Esto reemplaza
+  // a Validar/Finalizar en el flujo nuevo.
+  const todoListo = !t.eliminada && t.estatus !== 'Archivada' && checklistTodoMarcado(t);
+
   if (t.eliminada) {
     // En la Papelera: restaurar o eliminar definitivamente.
     if (usuarioPuedeEliminar(t)) {
       botones = `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>`
               + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
     }
+  } else if (todoListo) {
+    botones = `<button class="btn-modal btn-completada" onclick="completarTarea('${t.id}')">✓ Completada</button>`;
   } else if (t.nivel === 'jefatura') {
     // Jefatura: Mario la Finaliza (queda en En Proceso) y no escala.
     if (t.estatus === 'En Proceso' && !t.finalizado_por && esMario) {
@@ -5204,8 +5284,10 @@ function abrirDetalle(t) {
         <dd>${escapeHtml(areas)}</dd>
         <dt>Acuerdos realizados</dt>
         <dd>${escapeHtml(acuerdos)}</dd>
-        <dt>Acción a tomar</dt>
-        <dd>${escapeHtml(accion)}</dd>
+        <dt>Acciones · Checklist</dt>
+        <dd>${renderChecklistHTML(t)}</dd>
+        <dt>Observaciones</dt>
+        <dd>${renderObservacionesHTML(t)}</dd>
         ${t.url ? `
           <dt>Adjunto</dt>
           <dd>
@@ -5934,6 +6016,119 @@ function asegurarCamposChecklist(t) {
   return t;
 }
 
+// ===== Render del checklist y observaciones para el modal de detalle =====
+function renderChecklistHTML(t) {
+  const items = obtenerChecklist(t);
+  const puedeR = puedeMarcarResp(t);
+  const puedeD = puedeMarcarDir(t);
+  if (items.length === 0) {
+    return '<div class="checklist-vacio">Sin acciones definidas. Edita la tarea y agrega un punto por renglón en "Acciones a tomar".</div>';
+  }
+  const filas = items.map(function (item, i) {
+    const completa = item.check_resp && item.check_dir;
+    const tipR = item.autor_resp ? ('Marcado por ' + item.autor_resp + (item.fecha_resp ? ' · ' + item.fecha_resp : '')) : 'Responsable';
+    const tipD = item.autor_dir  ? ('Marcado por ' + item.autor_dir  + (item.fecha_dir  ? ' · ' + item.fecha_dir  : '')) : 'Director';
+    return '<div class="checklist-fila' + (completa ? ' completa' : '') + '">' +
+      '<span class="checklist-texto">' + escapeHtml(item.texto) + '</span>' +
+      '<input type="checkbox" class="checklist-chk"' + (item.check_resp ? ' checked' : '') + (puedeR ? '' : ' disabled') + ' onchange="toggleCheckResp(\'' + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipR) + '">' +
+      '<input type="checkbox" class="checklist-chk"' + (item.check_dir  ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
+    '</div>';
+  }).join('');
+  const avance = checklistAvance(t);
+  const completas = items.filter(function (i) { return i.check_resp && i.check_dir; }).length;
+  return '<div class="checklist-tabla">' +
+    '<div class="checklist-cab"><span>Acción</span><span class="checklist-cab-resp">Responsable</span><span class="checklist-cab-dir">Director</span></div>' +
+    filas +
+    '</div>' +
+    '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>';
+}
+function renderObservacionesHTML(t) {
+  const puedeR = puedeEditarObsResp(t);
+  const puedeD = puedeEditarObsDir(t);
+  return '<div class="obs-doble">' +
+    '<div class="obs-col"><div class="obs-titulo">Responsable</div>' +
+      '<textarea class="obs-textarea" ' + (puedeR ? '' : 'readonly') + ' maxlength="600" placeholder="' + (puedeR ? 'Escribe tus observaciones…' : '— sin observaciones —') + '" onblur="guardarObsResp(\'' + t.id + '\', this.value)">' + escapeHtml(t.observaciones_resp || '') + '</textarea>' +
+    '</div>' +
+    '<div class="obs-col"><div class="obs-titulo">Director</div>' +
+      '<textarea class="obs-textarea" ' + (puedeD ? '' : 'readonly') + ' maxlength="600" placeholder="' + (puedeD ? 'Escribe tus observaciones…' : '— sin observaciones —') + '" onblur="guardarObsDir(\'' + t.id + '\', this.value)">' + escapeHtml(t.observaciones_dir || '') + '</textarea>' +
+    '</div>' +
+  '</div>';
+}
+
+// ===== Acciones de interacción del checklist y observaciones =====
+function toggleCheckResp(idTarea, idx, valor) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeMarcarResp(t)) return;
+  const items = obtenerChecklist(t);
+  if (!items[idx]) return;
+  items[idx].check_resp = !!valor;
+  if (valor) {
+    items[idx].fecha_resp = ahoraStamp();
+    items[idx].autor_resp = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  } else {
+    items[idx].fecha_resp = ''; items[idx].autor_resp = '';
+  }
+  abrirDetalle(t);     // repintar el modal (puede aparecer el botón Completada)
+  renderizar();        // actualiza KPIs/tarjetas
+}
+function toggleCheckDir(idTarea, idx, valor) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeMarcarDir(t)) return;
+  const items = obtenerChecklist(t);
+  if (!items[idx]) return;
+  items[idx].check_dir = !!valor;
+  if (valor) {
+    items[idx].fecha_dir = ahoraStamp();
+    items[idx].autor_dir = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  } else {
+    items[idx].fecha_dir = ''; items[idx].autor_dir = '';
+  }
+  abrirDetalle(t);
+  renderizar();
+}
+function guardarObsResp(idTarea, valor) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeEditarObsResp(t)) return;
+  t.observaciones_resp = String(valor || '');
+}
+function guardarObsDir(idTarea, valor) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeEditarObsDir(t)) return;
+  t.observaciones_dir = String(valor || '');
+}
+
+// Marca la tarea como Completada: cuando TODAS las casillas del checklist
+// están en verde (responsable + director), aparece el botón verde "Completada"
+// y al darle clic la tarea pasa directo al Historial (status Archivada).
+function completarTarea(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!checklistTodoMarcado(t)) {
+    toast('Faltan acciones por marcar en el checklist.', 'error');
+    return;
+  }
+  if (t.estatus === 'Archivada') return;     // ya está en Historial
+  if (!confirm('¿Marcar la tarea ' + idTarea + ' como Completada?\nPasará al Historial.')) return;
+
+  const estatusAnterior = t.estatus;
+  t.estatus = 'Archivada';
+  t.finalizado_por = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  t.fecha_finalizacion = ahoraStamp();
+  registrarEnBitacora({
+    accion: 'completar', id_tarea: idTarea,
+    estatus_anterior: estatusAnterior, estatus_nuevo: 'Archivada'
+  });
+  // Si hay hoja origen, escribe "Atendida" en la columna Estatus (igual que el
+  // Enlace: marca de validada en el Excel).
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run.withFailureHandler(function () {}).fijarEstatusHoja(SESION_TOKEN, t.id, 'Atendida');
+  }
+  cerrarModal();
+  if (typeof persistirEstado === 'function') { try { persistirEstado(t); } catch (e) {} }
+  renderizar();
+  toast('Tarea ' + idTarea + ' completada → Historial', 'ok');
+}
+
 // Mezcla un texto editado de checklist con el checklist anterior. Si una línea
 // existe igual en el viejo, CONSERVA sus palomas; si es nueva, nace vacía; si
 // se borró, desaparece. Así editar el texto no pierde el avance ya marcado.
@@ -6400,7 +6595,8 @@ const ACCION_LABEL = {
   restaurar:   'Restaurada',
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
-  devolver:    'Devuelta'
+  devolver:    'Devuelta',
+  completar:   'Completada'
 };
 
 // ¿Este movimiento de bitácora es visible para el usuario actual?
