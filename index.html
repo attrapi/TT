@@ -3754,14 +3754,23 @@ function aplicarSesion() {
     tabActiva = usuarioActual.subdireccion;
   }
 
-  // El ENLACE tiene un panel mínimo: sin grupo de Subdirección, sin Gestión y
-  // sin Historial (solo su tablero de 2 columnas). Los demás sí los ven.
+  // El ENLACE tiene un panel mínimo: conserva su grupo de Subdirección (con un
+  // único ítem "Enlace"), pero SIN Gestión y SIN Historial. Su tablero es de 2
+  // columnas. Los demás perfiles ven todo normal.
   const grupoSubs = document.getElementById('sidebarGrupoSubs');
   const btnHistorial = document.querySelector('.sidebar-papelera');
-  const ocultarEnlace = esEnlace();
-  if (grupoSubs) grupoSubs.style.display = ocultarEnlace ? 'none' : '';
-  if (btnHistorial) btnHistorial.style.display = ocultarEnlace ? 'none' : '';
-  if (ocultarEnlace) grupoDir.style.display = 'none';
+  const lblEnlace = document.querySelector('.sidebar-sub[data-sub="ENLACE"] .sidebar-label');
+  const enlaceUser = esEnlace();
+  if (grupoSubs) grupoSubs.style.display = '';
+  if (btnHistorial) btnHistorial.style.display = enlaceUser ? 'none' : '';
+  if (enlaceUser) {
+    grupoDir.style.display = 'none';
+    tituloSubs.textContent = 'Enlace de Subdirección';
+    if (lblEnlace) lblEnlace.textContent = 'Enlace';
+  } else {
+    // Para el Director/otros perfiles el tab del Enlace mantiene su nombre largo.
+    if (lblEnlace) lblEnlace.textContent = 'Enlace del Director';
+  }
 
   cambiarTab(tabActiva);
 }
