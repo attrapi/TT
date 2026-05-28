@@ -4525,10 +4525,10 @@ function usuarioPuedeFinalizar(t) {
 //     subdirecciones (SA/SGOI/SPAC) ni jefaturas.
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
 function usuarioPuedeEliminar(t) {
-  if (!usuarioActual) return false;
-  // El Director gestiona todo lo que ve en su tablero (no ve jefaturas), así que
-  // puede enviar al Historial cualquier tarea no-jefatura.
-  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
+  if (!usuarioActual || !t) return false;
+  // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
+  // Puede enviar cualquiera al Historial.
+  if (usuarioActual.rol === 'Director') return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
@@ -4536,10 +4536,10 @@ function usuarioPuedeEliminar(t) {
 // Validadas (tareas ya archivadas/validadas), no en "Para validar" ni en el
 // tablero. Y solo quien la gestiona.
 function usuarioPuedeReabrir(t) {
-  if (!usuarioActual) return false;
+  if (!usuarioActual || !t) return false;
   if (usuarioActual.rol === 'Director') {
-    // Validadas del Director: lo que él envió (en_validadas) o ya archivado.
-    return t.nivel !== 'jefatura' && (t.en_validadas || t.estatus === 'Archivada');
+    // El Director puede reabrir CUALQUIER tarea archivada (Historial).
+    return t.estatus === 'Archivada';
   }
   // Validadas del subdirector: sus tareas ya archivadas.
   return usuarioActual.rol === 'Capturista'
@@ -6812,12 +6812,11 @@ function abrirNuevaTarea(tEdit) {
 // ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
 // subdirector de esa subdirección).
 function usuarioPuedeEditar(t) {
-  if (!usuarioActual) return false;
-  // El Director edita sus propias tareas (DPAC / Enlace); el subdirector las de
-  // su subdirección (incluidas jefaturas).
-  if (usuarioActual.rol === 'Director') {
-    return t.nivel !== 'jefatura' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-  }
+  if (!usuarioActual || !t) return false;
+  // En el modelo nuevo el Director ve TODAS las áreas y jefaturas en su
+  // tablero — por lo tanto puede editar cualquier tarjeta (Staff, subdirección
+  // o jefatura). El subdirector solo edita las de su subdirección.
+  if (usuarioActual.rol === 'Director') return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
