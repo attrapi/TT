@@ -6241,13 +6241,17 @@ function checklistAvance(t) {
   items.forEach(i => { if (i.check_resp) marcadas++; if (i.check_dir) marcadas++; });
   return Math.round((marcadas / (items.length * 2)) * 100);
 }
-// Permisos: el responsable de la subdirección (o jefatura/enlace) marca su
-// columna; Adrián marca la suya. Los demás solo ven (read-only).
+// Permisos del checklist.
+// Columna 1: SOLO el SUBDIRECTOR de la subdirección de la tarea (Capturista de
+// esa subdirección, SIN jefatura asignada en la hoja Usuarios). Las personas
+// de jefatura (con Jefatura no vacía) ven la paloma pero NO la marcan.
+// Caso especial: las tareas DPAC son del Director (Adrián) y no tienen
+// subdirector — Adrián marca ambas columnas para que pueda completarse.
 function puedeMarcarResp(t) {
   if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return false;     // Adrián no marca la del responsable
-  // ENLACE marca solo lo suyo; subdirectores y jefaturas, lo de su subdirección.
-  return usuarioActual.subdireccion === t.subdireccion;
+  if (usuarioActual.rol === 'Director') return t.subdireccion === 'DPAC';
+  return usuarioActual.subdireccion === t.subdireccion
+      && !usuarioActual.jefatura;
 }
 function puedeMarcarDir(t) {
   return !!(usuarioActual && usuarioActual.rol === 'Director');
@@ -6276,11 +6280,15 @@ function renderChecklistHTML(t) {
   const puedeD = puedeMarcarDir(t);
   const puedeAgregar = puedeR || puedeD;     // cualquiera con acceso al checklist
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  // Nombres de los encabezados: el de la columna "Responsable" muestra el
-  // nombre del responsable directo de la tarea; el de "Director" muestra al
-  // Director (Adrián). Tooltips con el nombre completo por si se trunca.
-  const nombreResp = (t.responsable || '').trim() || 'Responsable';
-  const nombreDir  = 'Ing. Adrián Tavares';
+  // Encabezados de las columnas del checklist:
+  // - Col 1: acrónimo de la subdirección dueña (la marca el SUBDIRECTOR).
+  //          Para ENLACE muestra "Staff"; para DPAC, "Dirección".
+  // - Col 2: la marca el Director (Adrián) — usamos el título genérico.
+  let nombreResp;
+  if (t.subdireccion === 'ENLACE')      nombreResp = 'Staff';
+  else if (t.subdireccion === 'DPAC')   nombreResp = 'Dirección';
+  else                                  nombreResp = t.subdireccion || 'Responsable';
+  const nombreDir = 'Director';
 
   const inputAgregar = puedeAgregar
     ? '<div class="checklist-agregar">' +
