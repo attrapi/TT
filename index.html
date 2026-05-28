@@ -3270,7 +3270,7 @@
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="ENLACE" onclick="cambiarTab('ENLACE')">
           <span class="sub-dot" style="background: var(--sub-enlace)"></span>
-          <span class="sidebar-label">Enlace del Director</span>
+          <span class="sidebar-label">Staff</span>
           <span class="sidebar-conteo" id="contENLACE">0</span>
         </button>
       </div>
@@ -3895,8 +3895,9 @@ function aplicarSesion() {
     tituloSubs.textContent = 'Enlace de Subdirección';
     if (lblEnlace) lblEnlace.textContent = 'Enlace';
   } else {
-    // Para el Director/otros perfiles el tab del Enlace mantiene su nombre largo.
-    if (lblEnlace) lblEnlace.textContent = 'Enlace del Director';
+    // Para el Director/otros perfiles el tab del Enlace se llama "Staff" (es la
+    // misma columna que agrupa DPAC + Enlace en su tablero).
+    if (lblEnlace) lblEnlace.textContent = 'Staff';
   }
 
   cambiarTab(tabActiva);
