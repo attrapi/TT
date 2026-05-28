@@ -4141,9 +4141,17 @@ function filtrarValidadas(texto) {
 //   Archivada   → "Validadas"    (ambos roles)
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  if (estatus === 'En Proceso') return 'En Proceso';
-  if (estatus === 'Atendida')   return esDir ? 'Para validar' : 'Por validar';
-  if (estatus === 'Archivada')  return 'Validadas';
+  if (esDir) {
+    // Director (Adrián): En Proceso · Para validar · Validadas
+    if (estatus === 'En Proceso') return 'En Proceso';
+    if (estatus === 'Atendida')   return 'Para validar';
+    if (estatus === 'Archivada')  return 'Validadas';
+  } else {
+    // Subdirector (Mario): Identificadas · En Proceso · Validadas
+    if (estatus === 'En Proceso') return 'Identificadas';
+    if (estatus === 'Atendida')   return 'En Proceso';
+    if (estatus === 'Archivada')  return 'Validadas';
+  }
   return estatus;
 }
 
