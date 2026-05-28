@@ -3402,11 +3402,8 @@
           <span class="sidebar-label">Vista Consolidada</span>
           <span class="sidebar-conteo" id="contTODAS">0</span>
         </button>
-        <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
-          <span class="sub-dot" style="background: var(--sub-sa)"></span>
-          <span class="sidebar-label">Subdirección de Archivo</span>
-          <span class="sidebar-conteo" id="contSA">0</span>
-        </button>
+        <!-- Orden de las subdirecciones: SGOI · SPAC · SA · Staff (mismo orden
+             que las columnas del tablero del Director). -->
         <button class="sidebar-item sidebar-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')">
           <span class="sub-dot" style="background: var(--sub-sgoi)"></span>
           <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas</span>
@@ -3416,6 +3413,11 @@
           <span class="sub-dot" style="background: var(--sub-spac)"></span>
           <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
+        </button>
+        <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
+          <span class="sub-dot" style="background: var(--sub-sa)"></span>
+          <span class="sidebar-label">Subdirección de Archivo</span>
+          <span class="sidebar-conteo" id="contSA">0</span>
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="ENLACE" onclick="cambiarTab('ENLACE')">
           <span class="sub-dot" style="background: var(--sub-enlace)"></span>
@@ -4681,17 +4683,15 @@ function renderDonut(enProcesoNoVencidas, vencidas, atendidas, archivadas) {
 }
 
 function actualizarConteosTabs() {
-  // Los conteos del sidebar muestran tareas EN PROCESO (no total) — para
-  // que coincidan con el círculo "Pendientes por subdirección" del panel
-  // KPI y reflejen carga de trabajo real, no tareas cerradas.
-  // Conteos a nivel subdirección excluyen las tareas de jefatura (esas se
-  // cuentan aparte en su propia card).
-  // (Las tareas en Papelera se excluyen de todos los conteos.)
-  // Director: cuenta por subdirección SIN jefaturas (no las ve).
-  const enProc = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  const totalEnProc = TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
-  // Subdirector: cuenta TODAS las En Proceso de su área, incluidas las de jefatura.
-  const enProcTodo = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.estatus === 'En Proceso').length;
+  // En el modelo NUEVO, las tareas "activas" son todas las que NO están
+  // Archivadas (Completadas → Historial) ni eliminadas. El estatus interno
+  // En Proceso vs Atendida ya no se distingue en el tablero — todas son
+  // activas hasta que el checklist las completa.
+  // El Director ahora SÍ ve las jefaturas (entran a la columna de su subdir),
+  // por lo que el conteo de SPAC incluye SPAC + JDPC + JDIMA.
+  const activas = sub => TAREAS.filter(t =>
+      !t.eliminada && t.estatus !== 'Archivada' && t.subdireccion === sub).length;
+  const totalActivas = TAREAS.filter(t => !t.eliminada && t.estatus !== 'Archivada').length;
 
   // Contador del botón Papelera (las que el usuario puede ver en su papelera).
   const contPap = document.getElementById('sidebarConteoPapelera');
@@ -4703,19 +4703,20 @@ function actualizarConteosTabs() {
   if (usuarioActual.rol === 'Capturista') {
     const subPropia = usuarioActual.subdireccion;
     document.getElementById('contTODAS').textContent = '';
-    document.getElementById('contSA').textContent = subPropia === 'SA' ? enProcTodo('SA') : '';
-    document.getElementById('contSGOI').textContent = subPropia === 'SGOI' ? enProcTodo('SGOI') : '';
-    document.getElementById('contSPAC').textContent = subPropia === 'SPAC' ? enProcTodo('SPAC') : '';
-    document.getElementById('contENLACE').textContent = subPropia === 'ENLACE' ? enProcTodo('ENLACE') : '';
+    document.getElementById('contSA').textContent     = subPropia === 'SA'     ? activas('SA')     : '';
+    document.getElementById('contSGOI').textContent   = subPropia === 'SGOI'   ? activas('SGOI')   : '';
+    document.getElementById('contSPAC').textContent   = subPropia === 'SPAC'   ? activas('SPAC')   : '';
+    document.getElementById('contENLACE').textContent = subPropia === 'ENLACE' ? activas('ENLACE') : '';
     return;
   }
 
-  // Director: ve todos los conteos
-  document.getElementById('contTODAS').textContent = totalEnProc;
-  document.getElementById('contSA').textContent = enProc('SA');
-  document.getElementById('contSGOI').textContent = enProc('SGOI');
-  document.getElementById('contSPAC').textContent = enProc('SPAC');
-  document.getElementById('contENLACE').textContent = enProc('ENLACE');
+  // Director: ve todos los conteos. El tab "Staff" suma DPAC + ENLACE (mismo
+  // criterio que su columna Staff del tablero).
+  document.getElementById('contTODAS').textContent  = totalActivas;
+  document.getElementById('contSA').textContent     = activas('SA');
+  document.getElementById('contSGOI').textContent   = activas('SGOI');
+  document.getElementById('contSPAC').textContent   = activas('SPAC');
+  document.getElementById('contENLACE').textContent = activas('DPAC') + activas('ENLACE');
 }
 
 // Devuelve la lista de columnas del tablero según el rol del usuario.
@@ -4731,10 +4732,9 @@ function actualizarConteosTabs() {
 function columnasPorRol() {
   if (!usuarioActual) return [];
   if (usuarioActual.rol === 'Director') {
+    // Orden de columnas del Director: SGOI · SPAC · SA · Staff (mismo que el
+    // menú izquierdo). Staff agrupa DPAC + Enlace y va al final.
     return [
-      { id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
-        color: 'morado',
-        filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' },
       { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
         color: 'olivo',
         filtro: t => t.subdireccion === 'SGOI' },
@@ -4743,7 +4743,10 @@ function columnasPorRol() {
         filtro: t => t.subdireccion === 'SPAC' },
       { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
         color: 'naranja',
-        filtro: t => t.subdireccion === 'SA' }
+        filtro: t => t.subdireccion === 'SA' },
+      { id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
+        color: 'morado',
+        filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }
     ];
   }
   if (esEnlace()) {
