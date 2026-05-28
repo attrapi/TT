@@ -1764,6 +1764,42 @@
   .col-color-naranja .col-subtitulo,
   .col-color-naranja .col-conteo  { color: #9a3412; }
 
+  /* JDPC — indigo (mismo de su píldora) */
+  .col-color-indigo .col-header {
+    background: #e0e7ff; border-bottom-color: #4338ca;
+  }
+  .col-color-indigo .col-marca  { background: #4338ca; }
+  .col-color-indigo .col-titulo,
+  .col-color-indigo .col-subtitulo,
+  .col-color-indigo .col-conteo  { color: #3730a3; }
+
+  /* JDIMA — ámbar (mismo de su píldora) */
+  .col-color-ambar .col-header {
+    background: #fef3c7; border-bottom-color: #d97706;
+  }
+  .col-color-ambar .col-marca  { background: #d97706; }
+  .col-color-ambar .col-titulo,
+  .col-color-ambar .col-subtitulo,
+  .col-color-ambar .col-conteo  { color: #92400e; }
+
+  /* JDGA — verde oscuro (jefatura ambiental de SGOI, distinta de su madre olivo) */
+  .col-color-verdeoscuro .col-header {
+    background: #d1fae5; border-bottom-color: #047857;
+  }
+  .col-color-verdeoscuro .col-marca  { background: #047857; }
+  .col-color-verdeoscuro .col-titulo,
+  .col-color-verdeoscuro .col-subtitulo,
+  .col-color-verdeoscuro .col-conteo  { color: #065f46; }
+
+  /* JDGOI — café (jefatura de obras inducidas de SGOI) */
+  .col-color-cafe .col-header {
+    background: #f5e6d3; border-bottom-color: #78350f;
+  }
+  .col-color-cafe .col-marca  { background: #78350f; }
+  .col-color-cafe .col-titulo,
+  .col-color-cafe .col-subtitulo,
+  .col-color-cafe .col-conteo  { color: #78350f; }
+
   /* === Colores de TARJETA según el avance del Director (urgencia) === */
   /* Naranja: aún no hay ningún check del Director (Adrián). */
   .tarjeta.tarjeta-color-pendiente {
@@ -3061,8 +3097,8 @@
     margin-top: 6px; background: #fff;
   }
   .checklist-cab, .checklist-fila {
-    display: grid; grid-template-columns: minmax(0, 1fr) 90px 90px;
-    align-items: center; gap: 12px; padding: 8px 12px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 75px 75px 105px;
+    align-items: center; gap: 10px; padding: 8px 12px;
   }
   /* La acción ocupa todo el espacio disponible. Si el texto es muy largo se
      envuelve a la siguiente línea (no se trunca). */
@@ -3071,6 +3107,28 @@
     min-width: 0; flex: 1;
   }
   .checklist-texto-valor { flex: 1; word-break: break-word; }
+  /* Celda de adjunto por acción: zona de drop + click para elegir archivo. */
+  .checklist-adj-cell {
+    border: 1px dashed #cbd5e1; border-radius: 5px;
+    padding: 4px 6px; font-size: 10.5px; text-align: center;
+    cursor: pointer; min-height: 30px; max-width: 105px;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    color: var(--tinta-suave); background: #fff;
+    transition: all .15s;
+  }
+  .checklist-adj-cell:hover { border-color: var(--guinda); color: var(--guinda); }
+  .checklist-adj-cell.dz-activo-item { background: var(--guinda-tenue); border-color: var(--guinda); border-style: solid; }
+  .checklist-adj-link {
+    color: var(--guinda); text-decoration: none; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 68px;
+  }
+  .checklist-adj-link:hover { text-decoration: underline; }
+  .checklist-adj-quitar {
+    background: transparent; border: 0; color: var(--rojo, #b91c1c);
+    cursor: pointer; padding: 0 2px; font-size: 13px; line-height: 1;
+  }
+  .checklist-cab-adj { text-align: center; font-size: 10px; }
   .checklist-cab {
     background: var(--guinda-tenue); font-size: 10.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.04em; color: var(--guinda);
@@ -4700,10 +4758,10 @@ function columnasPorRol() {
         color: 'azul',
         filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
       { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
-        color: 'azul',
+        color: 'indigo',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
       { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
-        color: 'azul',
+        color: 'ambar',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
     ];
   }
@@ -4713,10 +4771,10 @@ function columnasPorRol() {
         color: 'olivo',
         filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
       { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
-        color: 'olivo',
+        color: 'verdeoscuro',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
       { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
-        color: 'olivo',
+        color: 'cafe',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
     ];
   }
@@ -6220,6 +6278,7 @@ function renderChecklistHTML(t) {
       '<span>Acción</span>' +
       '<span class="checklist-cab-resp" title="' + escapeHtml(nombreResp) + '">' + escapeHtml(nombreResp) + '</span>' +
       '<span class="checklist-cab-dir"  title="' + escapeHtml(nombreDir)  + '">' + escapeHtml(nombreDir)  + '</span>' +
+      '<span class="checklist-cab-adj">Adjunto</span>' +
     '</div>';
 
   if (items.length === 0) {
@@ -6246,6 +6305,25 @@ function renderChecklistHTML(t) {
     const tooltipCreador = item.creado_por_nombre
       ? 'Creada por ' + item.creado_por_nombre + (item.creado_en ? ' · ' + item.creado_en : '')
       : '';
+    // Celda de adjunto: si ya hay archivo, link al Drive + botón quitar; si no,
+    // dropzone con "📎 Arrastra". Solo lo manipulan quienes tienen acceso al
+    // checklist (Resp o Director).
+    const puedeAdj = puedeR || puedeD;
+    let celdaAdj;
+    if (item.adjunto) {
+      const nombreAdj = item.adjunto_nombre || 'Adjunto';
+      celdaAdj = '<div class="checklist-adj-cell">' +
+          '<a href="' + escapeHtml(item.adjunto) + '" target="_blank" rel="noopener" class="checklist-adj-link" onclick="event.stopPropagation()" title="' + escapeHtml(nombreAdj) + '">📎 ' + escapeHtml(nombreAdj) + '</a>' +
+          (puedeAdj ? '<button class="checklist-adj-quitar" onclick="event.stopPropagation(); quitarAdjuntoItem(\'' + t.id + '\', ' + i + ')" title="Quitar adjunto">×</button>' : '') +
+        '</div>';
+    } else if (puedeAdj) {
+      celdaAdj = '<div class="checklist-adj-cell"' +
+        ' ondragover="dzOverItem(event)" ondragleave="dzLeaveItem(event)" ondrop="dzDropItem(event, \'' + t.id + '\', ' + i + ')"' +
+        ' onclick="dzPickItem(\'' + t.id + '\', ' + i + ')"' +
+        ' title="Arrastra un archivo aquí o haz clic">📎 Arrastra</div>';
+    } else {
+      celdaAdj = '<div class="checklist-adj-cell" style="cursor:default;opacity:.4">—</div>';
+    }
     return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
       '<span class="checklist-texto">' +
         '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
@@ -6253,6 +6331,7 @@ function renderChecklistHTML(t) {
       '</span>' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_resp ? ' checked' : '') + (puedeR ? '' : ' disabled') + ' onchange="toggleCheckResp(\'' + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipR) + '">' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_dir  ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
+      celdaAdj +
     '</div>';
   }).join('');
   const avance = checklistAvance(t);
@@ -6491,6 +6570,71 @@ function nuevoItemChecklistTeclado(ev, idTarea) {
     const inp = document.getElementById('chk-nuevo-' + idTarea);
     if (inp) { agregarItemChecklist(idTarea, inp.value); inp.value = ''; }
   }
+}
+
+// === Adjunto POR ACCIÓN (no obligatorio) ===
+// Sube un archivo a Drive y lo enlaza al item idx del checklist.
+function adjuntarItemChecklist(idTarea, idx, file) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !file) return;
+  if (!puedeMarcarResp(t) && !puedeMarcarDir(t)) {
+    toast('No tienes permiso para adjuntar.', 'error');
+    return;
+  }
+  if (!enAppScript() || !SESION_TOKEN) {
+    toast('Subir archivos requiere la versión con login.', 'error');
+    return;
+  }
+  const items = obtenerChecklist(t);
+  if (!items[idx]) return;
+  toast('Subiendo "' + file.name + '"…', 'ok');
+  const reader = new FileReader();
+  reader.onload = function () {
+    const base64 = String(reader.result).split(',')[1] || '';
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); return; }
+        items[idx].adjunto = res.url;
+        items[idx].adjunto_nombre = file.name;
+        persistirEstado(t);
+        abrirDetalle(t);
+        toast('Archivo adjuntado.', 'ok');
+      })
+      .withFailureHandler(function (e) { toast('Error: ' + (e && e.message ? e.message : e), 'error'); })
+      .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
+  };
+  reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
+  reader.readAsDataURL(file);
+}
+function quitarAdjuntoItem(idTarea, idx) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!puedeMarcarResp(t) && !puedeMarcarDir(t)) return;
+  const items = obtenerChecklist(t);
+  if (!items[idx]) return;
+  if (!confirm('¿Quitar el archivo adjunto de esta acción?\n(El archivo NO se borra de Drive, solo se desliga de la acción.)')) return;
+  items[idx].adjunto = '';
+  items[idx].adjunto_nombre = '';
+  persistirEstado(t);
+  abrirDetalle(t);
+}
+// Drag & drop handlers para cada celda de adjunto.
+function dzOverItem(e)  { e.preventDefault(); e.currentTarget.classList.add('dz-activo-item'); }
+function dzLeaveItem(e) { e.currentTarget.classList.remove('dz-activo-item'); }
+function dzDropItem(e, idTarea, idx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dz-activo-item');
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) adjuntarItemChecklist(idTarea, idx, files[0]);
+}
+// Click en la celda vacía → abre el selector de archivo.
+function dzPickItem(idTarea, idx) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.onchange = function () {
+    if (input.files && input.files.length) adjuntarItemChecklist(idTarea, idx, input.files[0]);
+  };
+  input.click();
 }
 
 // Recarga el catálogo de áreas desde el servidor (base + las agregadas).
