@@ -4873,6 +4873,17 @@ function renderizarTablero() {
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
   tablero.style.setProperty('--tablero-cols', cols.length);
+  // Cuando solo hay UNA columna (p. ej. Amanda en SA, Samanta en Staff, un jefe
+  // en su jefatura), no la estiramos a todo el ancho: la dejamos del tamaño de
+  // una columna normal y alineada a la izquierda — igual que se ve cuando un
+  // perfil tiene varias columnas.
+  if (cols.length === 1) {
+    tablero.style.gridTemplateColumns = 'minmax(0, 360px)';
+    tablero.style.justifyContent = 'start';
+  } else {
+    tablero.style.gridTemplateColumns = '';
+    tablero.style.justifyContent = '';
+  }
 
   cols.forEach(col => {
     const tareasCol = ordenarPorFecha(lista.filter(col.filtro));
