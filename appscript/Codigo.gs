@@ -29,7 +29,7 @@ function guardarConfiguracion() {
     HOJA_SUBDIR_PEST:     'SPAC',
 
     // Hoja de la Dirección (DPAC): tareas propias del Director.
-    HOJA_DPAC_ID:         '1uJaxAg2GMdjiaeTFdyeqfCPTKW290UNu0orp1F83XWktar',
+    HOJA_DPAC_ID:         '1uJaxAg2GMdjiaeTFdyeqfCPTKW290UNu0orp1F83XWk',
     HOJA_DPAC_PEST:       'DPAC',          // nombre exacto de la pestaña
 
     HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
