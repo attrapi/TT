@@ -1669,6 +1669,10 @@
     align-items: center;
     gap: 10px;
     border-bottom: 2px solid;
+    /* Altura fija para que la línea de abajo quede al mismo nivel en TODAS las
+       columnas, sin importar si el subtítulo se va a 1 o 2 líneas. */
+    min-height: 72px;
+    box-sizing: border-box;
   }
 
   .col-marca {
@@ -1687,8 +1691,8 @@
     letter-spacing: 0.12em;
     line-height: 1.1;
   }
-  /* Subtítulo: nombre completo del área en letra a la mitad de tamaño, en una
-     sola línea por columna (no se trunca, se permite envoltura suave). */
+  /* Subtítulo: nombre completo del área en letra a la mitad de tamaño. Si por
+     una pantalla muy angosta se va a 3+ líneas, lo cortamos a 2 con ellipsis. */
   .col-subtitulo {
     font-size: 6.5px;
     font-weight: 600;
@@ -1697,6 +1701,10 @@
     letter-spacing: 0.04em;
     line-height: 1.2;
     opacity: 0.92;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
   .col-conteo {
