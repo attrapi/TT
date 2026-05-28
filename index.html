@@ -2080,9 +2080,10 @@
   .tarjeta[data-sub="SGOI"]   .tarjeta-id { background: var(--sub-sgoi);   color: #fff; }
   .tarjeta[data-sub="SPAC"]   .tarjeta-id { background: #1d4ed8;   color: #fff; }
   .tarjeta[data-sub="ENLACE"] .tarjeta-id { background: var(--sub-enlace); color: #fff; }
-  /* Staff (DPAC + Enlace) → mismo morado de su columna para que se vea el
-     diseño consistente entre las dos. */
-  .tarjeta[data-sub="DPAC"]   .tarjeta-id { background: var(--sub-enlace); color: #fff; }
+  /* Staff (DPAC + Enlace) → IDs con color para que se vea el diseño igual que
+     las otras subdirecciones. DPAC en guinda (color institucional del Director)
+     y Enlace en morado, para distinguir las propias de Adrián de las de Samanta. */
+  .tarjeta[data-sub="DPAC"]   .tarjeta-id { background: var(--guinda); color: #fff; }
   /* Jefaturas con color propio (coincide con su indicador de Pendientes). */
   .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
   .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
