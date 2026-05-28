@@ -4312,9 +4312,14 @@ function iniciarSesionApp(ev) {
 // (hoja Bitacora) cuando hay sesión de Apps Script. "Dispara y olvida".
 // entrada: { accion, id_tarea, estatus_anterior, estatus_nuevo, comentario? }
 function registrarEnBitacora(entrada) {
+  // Guardamos el NOMBRE COMPLETO (no el email) para que la bitácora muestre
+  // "por Ing. Adrián Tavares" / "por Lic. Amanda Atenea …".
+  const quien = usuarioActual
+    ? formatearNombre(usuarioActual.nombre || usuarioActual.email || '')
+    : '';
   const e = {
     fecha: ahoraStamp(),
-    usuario: usuarioActual ? usuarioActual.email : '',
+    usuario: quien,
     accion: entrada.accion || '',
     id_tarea: entrada.id_tarea || '',
     estatus_anterior: entrada.estatus_anterior || '',
@@ -6548,12 +6553,26 @@ function toggleCheckResp(idTarea, idx, valor) {
   if (!t || !puedeMarcarResp(t)) return;
   const items = obtenerChecklist(t);
   if (!items[idx]) return;
+  const eraTodaCompletaAntes = items.length > 0 && items.every(i => i.check_resp);
   items[idx].check_resp = !!valor;
   if (valor) {
     items[idx].fecha_resp = ahoraStamp();
     items[idx].autor_resp = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   } else {
     items[idx].fecha_resp = ''; items[idx].autor_resp = '';
+  }
+  // Si AHORA todas las casillas del Responsable están en verde y antes no, la
+  // columna acaba de "validarse" — lo registramos en la bitácora.
+  const yaTodaCompleta = items.length > 0 && items.every(i => i.check_resp);
+  if (yaTodaCompleta && !eraTodaCompletaAntes) {
+    const etiquetaCol = t.subdireccion === 'ENLACE' ? 'Staff'
+                      : t.subdireccion === 'DPAC'   ? 'Dirección'
+                      : (t.subdireccion || 'Responsable');
+    registrarEnBitacora({
+      accion: 'validar', id_tarea: idTarea,
+      estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna ' + etiquetaCol + ' validada'
+    });
   }
   persistirEstado(t);  // ← guarda en la hoja Estados para que sobreviva al F5
   abrirDetalle(t);     // repintar el modal (puede aparecer el botón Completada)
@@ -6564,12 +6583,22 @@ function toggleCheckDir(idTarea, idx, valor) {
   if (!t || !puedeMarcarDir(t)) return;
   const items = obtenerChecklist(t);
   if (!items[idx]) return;
+  const eraTodaCompletaAntes = items.length > 0 && items.every(i => i.check_dir);
   items[idx].check_dir = !!valor;
   if (valor) {
     items[idx].fecha_dir = ahoraStamp();
     items[idx].autor_dir = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   } else {
     items[idx].fecha_dir = ''; items[idx].autor_dir = '';
+  }
+  // Misma lógica para la columna del Director.
+  const yaTodaCompleta = items.length > 0 && items.every(i => i.check_dir);
+  if (yaTodaCompleta && !eraTodaCompletaAntes) {
+    registrarEnBitacora({
+      accion: 'validar', id_tarea: idTarea,
+      estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna Director validada'
+    });
   }
   persistirEstado(t);
   abrirDetalle(t);
@@ -7230,7 +7259,7 @@ const ACCION_LABEL = {
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta',
-  completar:   'Completada'
+  completar:   'Finalizada'
 };
 
 // ¿Este movimiento de bitácora es visible para el usuario actual?
