@@ -5356,10 +5356,24 @@ function restaurarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
-  t.eliminada = false;
-  t.eliminado_por = '';
-  t.fecha_eliminacion = '';
-  registrarEnBitacora({ accion: 'restaurar', id_tarea: idTarea, estatus_anterior: 'Papelera', estatus_nuevo: t.estatus });
+  const estatusAnt = t.eliminada ? 'Papelera' : t.estatus;
+  // Si estaba eliminada, la sacamos de la papelera. Si solo estaba completada
+  // (Archivada), la mandamos de regreso a En Proceso para que aparezca en el tablero.
+  if (t.eliminada) {
+    t.eliminada = false;
+    t.eliminado_por = '';
+    t.fecha_eliminacion = '';
+  }
+  if (t.estatus === 'Archivada') {
+    t.estatus = 'En Proceso';
+    t.finalizado_por = '';
+    t.fecha_finalizacion = '';
+    // Si la tarea tiene hoja origen, regresamos el estatus a 'En Proceso' allá.
+    if (enAppScript() && SESION_TOKEN) {
+      google.script.run.withFailureHandler(function () {}).fijarEstatusHoja(SESION_TOKEN, t.id, 'En Proceso');
+    }
+  }
+  registrarEnBitacora({ accion: 'restaurar', id_tarea: idTarea, estatus_anterior: estatusAnt, estatus_nuevo: t.estatus });
   persistirEstado(t);
   renderizar();
   renderizarPapelera();
@@ -5394,9 +5408,19 @@ function eliminarDefinitivo(idTarea) {
 
 // Render de la vista Papelera.
 function tareasPapelera() {
-  let lista = TAREAS.filter(t => t.eliminada);
-  if (usuarioActual.rol === 'Director') lista = lista.filter(t => t.nivel !== 'jefatura');
-  else lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+  // Historial incluye DOS cosas: las tareas COMPLETADAS (estatus=Archivada)
+  // y las ELIMINADAS (eliminada=true). Antes solo mostraba las eliminadas, por
+  // eso al completar la tarjeta "desaparecía" (salía del tablero pero tampoco
+  // estaba en Historial).
+  let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
+  if (usuarioActual.rol === 'Director') return lista;
+  // Capturistas: solo las de su subdirección. Si son Jefes (jefatura asignada),
+  // solo las de su jefatura.
+  lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+  const codJef = jefaturaCodigo(usuarioActual.jefatura);
+  if (codJef) {
+    lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
+  }
   return lista;
 }
 
