@@ -2991,14 +2991,24 @@
     margin-top: 6px; background: #fff;
   }
   .checklist-cab, .checklist-fila {
-    display: grid; grid-template-columns: 1fr 110px 110px;
-    align-items: center; gap: 8px; padding: 8px 12px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 90px 90px;
+    align-items: center; gap: 12px; padding: 8px 12px;
   }
+  /* La acción ocupa todo el espacio disponible. Si el texto es muy largo se
+     envuelve a la siguiente línea (no se trunca). */
+  .checklist-texto {
+    display: flex; align-items: flex-start; gap: 6px;
+    min-width: 0; flex: 1;
+  }
+  .checklist-texto-valor { flex: 1; word-break: break-word; }
   .checklist-cab {
     background: var(--guinda-tenue); font-size: 10.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em; color: var(--guinda);
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--guinda);
   }
-  .checklist-cab-resp, .checklist-cab-dir { text-align: center; }
+  .checklist-cab-resp, .checklist-cab-dir {
+    text-align: center; font-size: 10px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .checklist-fila { border-top: 1px solid var(--linea); font-size: 13px; }
   .checklist-fila.completa { background: #f0fdf4; }
   .checklist-chk {
@@ -3019,12 +3029,14 @@
   .checklist-fila .checklist-texto {
     display: inline-flex; align-items: center; gap: 6px;
   }
-  .checklist-borrar {
+  .checklist-borrar, .checklist-editar {
     background: transparent; border: 0; cursor: pointer; padding: 0 4px;
-    color: var(--rojo, #b91c1c); font-size: 16px; line-height: 1; opacity: 0.5;
+    font-size: 14px; line-height: 1; opacity: 0.5;
     transition: opacity .15s;
   }
-  .checklist-borrar:hover { opacity: 1; }
+  .checklist-editar { color: var(--guinda); font-size: 13px; }
+  .checklist-borrar { color: var(--rojo, #b91c1c); font-size: 16px; }
+  .checklist-borrar:hover, .checklist-editar:hover { opacity: 1; }
   .checklist-borrar-vacio { display: inline-block; width: 14px; }
   /* Input para agregar una nueva acción al checklist desde el modal. */
   .checklist-agregar {
@@ -5290,23 +5302,24 @@ function abrirDetalle(t) {
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
     </div>
     <div class="modal-body">
+      <!-- Datos rápidos (mismo orden que la tarjeta) + complementos cortos. -->
       <dl class="modal-campos">
+        <dt>Tema</dt>
+        <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
+        <dt>Área responsable</dt>
+        <dd>${escapeHtml(areaResponsable(t))}</dd>
+        <dt>Responsable directo</dt>
+        <dd>${escapeHtml((t.responsable || '').trim() || '—')}</dd>
         <dt>Fecha de atención</dt>
         <dd class="${vencida ? 'modal-campo-fecha-vencida' : ''}">
           ${t.permanente
             ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
             : `${formatearFechaLarga(fechaAt)}`}
         </dd>
-        <dt>Tema</dt>
-        <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
         <dt>Áreas involucradas</dt>
         <dd>${escapeHtml(areas)}</dd>
         <dt>Acuerdos realizados</dt>
         <dd>${escapeHtml(acuerdos)}</dd>
-        <dt>Acciones · Checklist</dt>
-        <dd>${renderChecklistHTML(t)}</dd>
-        <dt>Observaciones</dt>
-        <dd>${renderObservacionesHTML(t)}</dd>
         ${t.url ? `
           <dt>Adjunto</dt>
           <dd>
@@ -5317,6 +5330,17 @@ function abrirDetalle(t) {
           </dd>
         ` : ''}
       </dl>
+
+      <!-- Checklist y Observaciones a TODO el ancho del modal (no caben bien
+           dentro del dl de dos columnas). Mismas secciones, más espacio. -->
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Acciones · Checklist</div>
+        ${renderChecklistHTML(t)}
+      </div>
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Observaciones</div>
+        ${renderObservacionesHTML(t)}
+      </div>
 
       ${false /* "Devuelta para corrección" eliminado: el flujo ya no usa Devolver/Reenviar (la validación es por checklist). */ ? `
         <div class="modal-seccion">
@@ -6070,9 +6094,12 @@ function renderChecklistHTML(t) {
   const puedeD = puedeMarcarDir(t);
   const puedeAgregar = puedeR || puedeD;     // cualquiera con acceso al checklist
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  // Nombres de los encabezados: el de la columna "Responsable" muestra el
+  // nombre del responsable directo de la tarea; el de "Director" muestra al
+  // Director (Adrián). Tooltips con el nombre completo por si se trunca.
+  const nombreResp = (t.responsable || '').trim() || 'Responsable';
+  const nombreDir  = 'Ing. Adrián Tavares';
 
-  // Cabecera y fila de "agregar acción" (input + botón) que aparece SOLO si el
-  // usuario puede agregar al checklist.
   const inputAgregar = puedeAgregar
     ? '<div class="checklist-agregar">' +
         '<input type="text" id="chk-nuevo-' + t.id + '" maxlength="200" placeholder="+ Agregar acción" onkeydown="nuevoItemChecklistTeclado(event, \'' + t.id + '\')">' +
@@ -6080,32 +6107,42 @@ function renderChecklistHTML(t) {
       '</div>'
     : '';
 
+  const cabecera =
+    '<div class="checklist-cab">' +
+      '<span>Acción</span>' +
+      '<span class="checklist-cab-resp" title="' + escapeHtml(nombreResp) + '">' + escapeHtml(nombreResp) + '</span>' +
+      '<span class="checklist-cab-dir"  title="' + escapeHtml(nombreDir)  + '">' + escapeHtml(nombreDir)  + '</span>' +
+    '</div>';
+
   if (items.length === 0) {
-    return '<div class="checklist-tabla">' +
-      '<div class="checklist-cab"><span>Acción</span><span class="checklist-cab-resp">Responsable</span><span class="checklist-cab-dir">Director</span></div>' +
+    return '<div class="checklist-tabla">' + cabecera +
       '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeAgregar ? 'Agrega la primera abajo ↓' : '') + '</div>' +
       '</div>' + inputAgregar;
   }
 
   const filas = items.map(function (item, i) {
     const completa = item.check_resp && item.check_dir;
-    const tipR = item.autor_resp ? ('Marcado por ' + item.autor_resp + (item.fecha_resp ? ' · ' + item.fecha_resp : '')) : 'Responsable';
-    const tipD = item.autor_dir  ? ('Marcado por ' + item.autor_dir  + (item.fecha_dir  ? ' · ' + item.fecha_dir  : '')) : 'Director';
-    // Color de fila según quién creó la acción (Director / Capturista / Enlace).
+    const tipR = item.autor_resp ? ('Marcado por ' + item.autor_resp + (item.fecha_resp ? ' · ' + item.fecha_resp : '')) : nombreResp;
+    const tipD = item.autor_dir  ? ('Marcado por ' + item.autor_dir  + (item.fecha_dir  ? ' · ' + item.fecha_dir  : '')) : nombreDir;
+    // Color de fila según quién creó la acción.
     const rolCreador = (item.creado_por_rol || '').toLowerCase();
     let claseFila = 'fila-creada-otro';
     if (rolCreador === 'director') claseFila = 'fila-creada-director';
     else if (item.creado_por_rol)  claseFila = 'fila-creada-capturista';
-    // Solo puede borrar el que lo creó (o si no tiene autor, cualquiera con acceso).
-    const puedeBorrar = puedeAgregar && (!item.creado_por_nombre || item.creado_por_nombre === yo);
-    const btnBorrar = puedeBorrar
-      ? '<button class="checklist-borrar" onclick="eliminarItemChecklist(\'' + t.id + '\', ' + i + ')" title="Borrar esta acción">×</button>'
-      : '<span class="checklist-borrar-vacio" title="Lo creó ' + escapeHtml(item.creado_por_nombre || 'otro usuario') + ' — no puedes borrarlo"></span>';
+    // Solo el creador puede editar o borrar su ítem.
+    const puedeMod = puedeAgregar && (!item.creado_por_nombre || item.creado_por_nombre === yo);
+    const acciones = puedeMod
+      ? '<button class="checklist-editar" onclick="event.stopPropagation(); hacerEditableChecklist(\'' + t.id + '\', ' + i + ')" title="Editar el texto">✎</button>' +
+        '<button class="checklist-borrar" onclick="event.stopPropagation(); eliminarItemChecklist(\'' + t.id + '\', ' + i + ')" title="Borrar esta acción">×</button>'
+      : '';
     const tooltipCreador = item.creado_por_nombre
       ? 'Creada por ' + item.creado_por_nombre + (item.creado_en ? ' · ' + item.creado_en : '')
       : '';
     return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
-      '<span class="checklist-texto">' + escapeHtml(item.texto) + btnBorrar + '</span>' +
+      '<span class="checklist-texto">' +
+        '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
+        acciones +
+      '</span>' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_resp ? ' checked' : '') + (puedeR ? '' : ' disabled') + ' onchange="toggleCheckResp(\'' + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipR) + '">' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_dir  ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
     '</div>';
@@ -6113,12 +6150,34 @@ function renderChecklistHTML(t) {
   const avance = checklistAvance(t);
   const completas = items.filter(function (i) { return i.check_resp && i.check_dir; }).length;
   return '<div class="checklist-tabla">' +
-    '<div class="checklist-cab"><span>Acción</span><span class="checklist-cab-resp">Responsable</span><span class="checklist-cab-dir">Director</span></div>' +
-    filas +
+    cabecera + filas +
     '</div>' +
     inputAgregar +
     '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>' +
     '<div class="checklist-leyenda"><span class="leyenda-punto leyenda-director"></span>Acción del Director · <span class="leyenda-punto leyenda-capturista"></span>Acción del Responsable</div>';
+}
+
+// Edita el texto de un ítem del checklist (solo el creador puede).
+function hacerEditableChecklist(idTarea, idx) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const items = obtenerChecklist(t);
+  const item = items[idx];
+  if (!item) return;
+  const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  if (item.creado_por_nombre && item.creado_por_nombre !== yo) {
+    toast('Solo puedes editar acciones que tú creaste.', 'error');
+    return;
+  }
+  const nuevo = prompt('Editar acción:', item.texto);
+  if (nuevo === null) return;     // cancelado
+  const limpio = String(nuevo).trim();
+  if (!limpio || limpio === item.texto) return;
+  item.texto = limpio;
+  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '✎ "' + limpio + '"' });
+  persistirEstado(t);
+  abrirDetalle(t);
+  renderizar();
 }
 function renderObservacionesHTML(t) {
   const puedeR = puedeEditarObsResp(t);
