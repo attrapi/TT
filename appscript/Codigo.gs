@@ -692,7 +692,7 @@ function guardarEstado(token, id, e) {
     sesion.nombre || sesion.email || '',
     ahoraStamp_(),
     e.comentario_devolucion || '',
-    e.confirmada ? 'Si' : '',
+    (e.confirmada === false ? 'No' : 'Si'),
     e.enviado_por || '',
     e.fecha_envio || '',
     e.eliminada ? 'Si' : '',
@@ -741,7 +741,7 @@ function leerEstados_() {
         validado_por: String(f[iVp] || '').trim(),
         fecha_validacion: fechaHora_(f[iFv]),
         comentario_devolucion: iCom >= 0 ? String(f[iCom] || '').trim() : '',
-        confirmada: iConf >= 0 ? norm_(f[iConf]) === 'si' : false,
+        confirmada: iConf >= 0 ? norm_(f[iConf]) !== 'no' : true,   // default sí (directo); 'No' = devuelta
         enviado_por: iEp >= 0 ? String(f[iEp] || '').trim() : '',
         fecha_envio: iFe >= 0 ? fechaHora_(f[iFe]) : '',
         eliminada: iElim >= 0 ? norm_(f[iElim]) === 'si' : false,
@@ -997,7 +997,7 @@ function parsearHoja_(filas, nivel, subCode) {
       accion_a_tomar: String(f[iAcc] || '').trim(),
       descripcion: String(f[iAcu] || '').trim(), observaciones: String(f[iAcc] || '').trim(),
       fecha_atencion: fecha, fecha_limite: fecha, permanente: perm,
-      estatus: est, avance: est === 'Archivada' ? 100 : 0, confirmada: false,
+      estatus: est, avance: est === 'Archivada' ? 100 : 0, confirmada: true,   // directo a "Para validar"; al devolver pasa a false
       url: String(f[iUrl] || '').trim(),
       validado_por: '', fecha_validacion: '', comentarios_director: '', fuente: 'sheet'
     });

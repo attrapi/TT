@@ -4012,7 +4012,7 @@ function persistirEstado(t) {
       estatus: t.estatus,
       validada: !!t.validada,
       en_validadas: !!t.en_validadas,
-      confirmada: !!t.confirmada,
+      confirmada: t.confirmada !== false,   // default sí; solo false si fue devuelta
       enviado_por: t.enviado_por || '',
       fecha_envio: t.fecha_envio || '',
       finalizado_por: t.finalizado_por || '',
@@ -4265,7 +4265,7 @@ function actualizarKPIs() {
   let colProc, colAtendida;
   if (esDir) {
     colProc = visible.filter(t => t.estatus === 'En Proceso' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
-    colAtendida = visible.filter(t => t.estatus === 'Atendida');   // todas las "Para validar"
+    colAtendida = visible.filter(t => t.estatus === 'Atendida' && t.confirmada !== false);   // "Para validar" sin devueltas
   } else {
     colProc = visible.filter(t => t.estatus === 'En Proceso');
     colAtendida = visible.filter(t => t.estatus === 'Atendida');
@@ -4418,6 +4418,11 @@ function renderizarTablero() {
     // perder ninguna (no tiene columna intermedia).
     if (esEnlace() && estatus === 'En Proceso') {
       tareasCol = lista.filter(t => t.estatus === 'En Proceso' || t.estatus === 'Atendida');
+    }
+    // El Director NO ve en "Para validar" las tareas que devolvió (confirmada
+    // === false): esas quedan con el subdirector en su "En Proceso".
+    if (esDir && estatus === 'Atendida') {
+      tareasCol = tareasCol.filter(t => t.confirmada !== false);
     }
     // "Para validar" (Atendida): el Director ve TODAS automáticamente — las
     // tareas de subdirección llegan directo, sin que el subdirector las envíe.
@@ -4658,10 +4663,12 @@ function crearTarjeta(t) {
       }
     }
   } else {
-    // SUBDIRECCIÓN: la tarea (Atendida) la ve el Director automáticamente en
-    // "Para validar"; él la Valida → Validadas o la Devuelve. El subdirector no
-    // tiene acción sobre ella (solo las de jefatura, que finaliza).
-    if (t.estatus === 'Atendida' && esDir2) {
+    // SUBDIRECCIÓN: la tarea (Atendida) la ve el Director en "Para validar"; él
+    // la Valida → Validadas o la Devuelve. Si la devolvió (confirmada=false),
+    // se queda con el subdirector, que la corrige y la REENVÍA.
+    if (t.estatus === 'Atendida' && t.confirmada === false && esMario) {
+      pills += `<button class="btn-pildora btn-pildora-enviar" onclick="event.stopPropagation(); reenviarAValidacion('${t.id}')" title="Reenviar al Director tras corregir.">${icoEnviar} Reenviar</button>`;
+    } else if (t.estatus === 'Atendida' && t.confirmada !== false && esDir2) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
       pills += `<button class="btn-pildora btn-pildora-devolver" onclick="event.stopPropagation(); devolver('${t.id}')" title="Regresar al responsable con un comentario.">${icoDevolver} Devolver</button>`;
     }
@@ -4899,20 +4906,36 @@ function devolver(idTarea) {
   if (comentario === null) return;             // canceló
   if (!comentario.trim()) { toast('Escribe un comentario para devolver.', 'error'); return; }
 
-  // Se queda en "Para validar" (no se atora): solo se marca con el comentario
-  // y se quita la validación. El subdirector ve el motivo, corrige, y el
-  // Director la vuelve a validar.
+  // Sale del "Para validar" del Director (confirmada=false) y se queda en
+  // "En Proceso" del subdirector (sigue Atendida). Mario ve el motivo, corrige
+  // y la reenvía.
+  t.confirmada = false;
   t.validada = false;
   t.validado_por = '';
   t.fecha_validacion = '';
   t.comentario_devolucion = comentario.trim();
 
-  registrarEnBitacora({ accion: 'devolver', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Atendida', comentario: comentario.trim() });
+  registrarEnBitacora({ accion: 'devolver', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'En Proceso', comentario: comentario.trim() });
 
   cerrarModal();
   persistirEstado(t);
   renderizar();
-  toast('Tarea ' + idTarea + ' devuelta con comentario', 'ok');
+  toast('Tarea ' + idTarea + ' devuelta a En Proceso del responsable', 'ok');
+}
+
+// Reenviar a validación: el subdirector corrige una tarea devuelta y la manda
+// de vuelta al Director (vuelve a aparecer en "Para validar").
+function reenviarAValidacion(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!confirm('¿Reenviar la tarea ' + idTarea + ' a validación del Director?')) return;
+  t.confirmada = true;
+  t.comentario_devolucion = '';
+  registrarEnBitacora({ accion: 'enviar', id_tarea: idTarea, estatus_anterior: 'En Proceso', estatus_nuevo: 'Atendida' });
+  cerrarModal();
+  persistirEstado(t);
+  renderizar();
+  toast('Tarea ' + idTarea + ' reenviada a validación', 'ok');
 }
 
 // Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
@@ -5089,9 +5112,11 @@ function abrirDetalle(t) {
               + `<button class="btn-modal" disabled style="cursor:default; background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb;">✓ Finalizada</button>`;
     }
   } else {
-    // Subdirección: la tarea (Atendida) la ve el Director en "Para validar"; él
-    // Valida o Devuelve. El subdirector no actúa sobre ella.
-    if (t.estatus === 'Atendida' && esDir) {
+    // Subdirección: el Director Valida/Devuelve en "Para validar". Si la devolvió
+    // (confirmada=false), el subdirector la corrige y la Reenvía.
+    if (t.estatus === 'Atendida' && t.confirmada === false && esMario) {
+      botones = `<button class="btn-modal btn-modal-primario" style="background:#0d9488; border-color:#0d9488;" onclick="reenviarAValidacion('${t.id}')">➤ Reenviar a validación</button>`;
+    } else if (t.estatus === 'Atendida' && t.confirmada !== false && esDir) {
       botones = `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`
               + `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
     }
