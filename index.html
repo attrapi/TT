@@ -4138,11 +4138,14 @@ function sinAcentos(s) {
 // ¿La tarea coincide con el término (ya normalizado sin acentos)?
 // Busca en: tema, responsable, ID, áreas, acuerdos realizados y acción a tomar.
 function coincideBusqueda(t, termino) {
+  // Incluimos mostrarAreas() para que el buscador encuentre también por
+  // ACRÓNIMO (ej. "SPAC" cae en "Subdirección ... (SPAC)").
   const txt = sinAcentos([
     t.tema || t.titulo || '',
     t.responsable || '',
     t.id || '',
     t.areas_involucradas || '',
+    mostrarAreas(t.areas_involucradas || ''),
     t.acuerdos_realizados || t.observaciones || '',
     t.accion_a_tomar || t.descripcion || ''
   ].join(' '));
@@ -4607,7 +4610,7 @@ function crearTarjeta(t) {
   // futuro se capturan campos dedicados (tema, areas_involucradas, etc.)
   // ya quedan reservados los nombres.
   const tema   = t.tema || t.titulo;
-  const areas  = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '—';
+  const areas  = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
   const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
   const fechaAt = t.fecha_atencion || t.fecha_limite;
@@ -5077,7 +5080,7 @@ function renderizarPapelera() {
     const card = document.createElement('div');
     card.className = 'tarjeta';
     card.onclick = () => abrirDetalle(t);   // clic en la tarjeta → ver detalle
-    const areas = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '—';
+    const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
     let html = `<div class="tarjeta-id">${t.id} · <span style="color:var(--tinta-suave)">${etiquetaEstatus(t.estatus)}</span></div>
       <dl class="tarjeta-campos">
         <dt>Tema</dt><dd class="campo-tema">${escapeHtml(t.tema || t.titulo)}</dd>
@@ -5164,7 +5167,7 @@ function abrirDetalle(t) {
   // Mismos campos que la tarjeta, mismo orden, mismas reglas de fallback
   // (sin Responsable; Fecha de atención va primero).
   const tema   = t.tema || t.titulo;
-  const areas  = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '—';
+  const areas  = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
   const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
   const fechaAt = t.fecha_atencion || t.fecha_limite;
@@ -5725,7 +5728,7 @@ function enviarRecordatorio(idTarea, canal) {
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = fechaAt ? formatearFechaLarga(fechaAt) : 'sin fecha';
   const tema = t.tema || t.titulo;
-  const areas = t.areas_involucradas || NOMBRE_SUB[t.subdireccion] || '';
+  const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '';
   const acuerdos = t.acuerdos_realizados || t.observaciones || '';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '');
 
@@ -5813,8 +5816,41 @@ let AREAS = [
   'Subdirección de Gestión de Obras Inducidas',
   'Jefatura de Departamento de Procedimientos de Construcción',
   'Jefatura de Departamento de Implementación de Manuales Administrativos',
+  'Jefatura de Departamento de Gestión Ambiental',
+  'Jefatura de Departamento de Gestión de Obras Inducidas',
   'Enlace del Director'
 ];
+
+// Acrónimos de áreas: al CAPTURAR la tarea solo se muestra el acrónimo (menos
+// texto en los chips). Al MOSTRAR la tarea (tarjeta, modal, compartir) sale el
+// nombre completo seguido del acrónimo entre paréntesis. El dato guardado en
+// `areas_involucradas` siempre es el nombre completo (separado por comas).
+const ACRONIMOS_AREA = {
+  'Dirección de Procesos Administrativos de Construcción': 'DPAC',
+  'Subdirección de Procesos Administrativos de Construcción': 'SPAC',
+  'Subdirección de Archivo': 'SA',
+  'Subdirección de Gestión de Obras Inducidas': 'SGOI',
+  'Jefatura de Departamento de Procedimientos de Construcción': 'JDPC',
+  'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
+  'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
+  'Jefatura de Departamento de Gestión de Obras Inducidas': 'JDGOI',
+  'Enlace del Director': 'ENLACE'
+};
+function acronimoArea(nombre) {
+  if (!nombre) return '';
+  return ACRONIMOS_AREA[String(nombre).trim()] || '';
+}
+// "Subdirección X, Jefatura Y" → "Subdirección X (SX), Jefatura Y (JY)".
+function mostrarAreas(areasStr) {
+  if (!areasStr) return '';
+  return String(areasStr).split(',').map(s => {
+    const a = s.trim();
+    if (!a) return '';
+    const acr = acronimoArea(a);
+    return acr ? a + ' (' + acr + ')' : a;
+  }).filter(Boolean).join(', ');
+}
+
 function areasDisponibles() { return AREAS; }
 
 // Recarga el catálogo de áreas desde el servidor (base + las agregadas).
@@ -5902,7 +5938,12 @@ function abrirNuevaTarea(tEdit) {
           <div class="form-campo full">
             <label>Áreas involucradas</label>
             <div class="areas-multi" id="nt_areas">
-              ${areasDisponibles().map(a => `<label class="area-chip"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(a)}</label>`).join('')}
+              ${areasDisponibles().map(a => {
+                // En el formulario solo mostramos el acrónimo (menos texto). Si
+                // un área no tiene acrónimo definido, mostramos el nombre.
+                const acr = acronimoArea(a) || a;
+                return `<label class="area-chip" title="${escapeHtml(a)}"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(acr)}</label>`;
+              }).join('')}
             </div>
             <input type="text" id="nt_areaOtra" maxlength="200" placeholder="Otra área (escríbela y se agregará a la lista)" style="margin-top:8px;">
             <div class="form-hint">Marca todas las que apliquen. Si falta alguna, escríbela en "Otra" y quedará disponible para la próxima.</div>
