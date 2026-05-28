@@ -840,6 +840,21 @@ function obtenerBitacora(token) {
   return { ok: true, bitacora: out.reverse() };   // más reciente primero
 }
 
+// ⚠️ REINICIO PARA PRUEBAS: vacía por completo las hojas Estados y Bitacora
+// (deja solo los encabezados). Con esto las tareas vuelven a su estado REAL
+// según los Excel (jefatura → En Proceso; subdirección → Para validar), sin
+// validaciones, envíos, papelera ni historial acumulado de pruebas.
+// NO toca las hojas de tareas (Jefaturas/SPAC/DPAC) ni la de Usuarios.
+// Córrela UNA vez desde el editor (Ejecutar ▶) y recarga la app.
+function reiniciarPruebas() {
+  var est = hojaEstados_(true);
+  if (est) { est.clearContents(); est.getRange(1, 1, 1, ESTADOS_HEADERS.length).setValues([ESTADOS_HEADERS]); }
+  var bit = hojaBitacora_(true);
+  if (bit) { bit.clearContents(); bit.getRange(1, 1, 1, BITACORA_HEADERS.length).setValues([BITACORA_HEADERS]); }
+  Logger.log('✅ Reinicio de pruebas: Estados y Bitacora vaciados (solo encabezados). Las tareas quedan como en los Excel.');
+  return { ok: true };
+}
+
 // ============================== HELPERS ===================================
 function leerHoja_(id, pestana) {
   var ss = SpreadsheetApp.openById(id);
