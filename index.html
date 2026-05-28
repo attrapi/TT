@@ -4112,6 +4112,9 @@ function cargarBitacora() {
 
 function persistirEstado(t) {
   if (!enAppScript() || !SESION_TOKEN || !t) return;
+  // El checklist se manda como JSON-string para que entre en una sola celda.
+  var checklistJson = '';
+  try { checklistJson = JSON.stringify(obtenerChecklist(t) || []); } catch (e) { checklistJson = ''; }
   google.script.run
     .withFailureHandler(function (e) { toast('No se pudo guardar el avance: ' + (e && e.message ? e.message : e), 'error'); })
     .guardarEstado(SESION_TOKEN, t.id, {
@@ -4130,7 +4133,10 @@ function persistirEstado(t) {
       creado_por: t.creado_por || '',
       fecha_creacion: t.fecha_creacion || '',
       eliminado_por: t.eliminado_por || '',
-      fecha_eliminacion: t.fecha_eliminacion || ''
+      fecha_eliminacion: t.fecha_eliminacion || '',
+      checklist_json: checklistJson,
+      observaciones_resp: t.observaciones_resp || '',
+      observaciones_dir:  t.observaciones_dir || ''
     });
 }
 
@@ -6042,6 +6048,7 @@ function toggleCheckResp(idTarea, idx, valor) {
   } else {
     items[idx].fecha_resp = ''; items[idx].autor_resp = '';
   }
+  persistirEstado(t);  // ← guarda en la hoja Estados para que sobreviva al F5
   abrirDetalle(t);     // repintar el modal (puede aparecer el botón Completada)
   renderizar();        // actualiza KPIs/tarjetas
 }
@@ -6057,18 +6064,25 @@ function toggleCheckDir(idTarea, idx, valor) {
   } else {
     items[idx].fecha_dir = ''; items[idx].autor_dir = '';
   }
+  persistirEstado(t);
   abrirDetalle(t);
   renderizar();
 }
 function guardarObsResp(idTarea, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || !puedeEditarObsResp(t)) return;
-  t.observaciones_resp = String(valor || '');
+  const nuevo = String(valor || '');
+  if (t.observaciones_resp === nuevo) return;   // sin cambios → no escribe
+  t.observaciones_resp = nuevo;
+  persistirEstado(t);
 }
 function guardarObsDir(idTarea, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || !puedeEditarObsDir(t)) return;
-  t.observaciones_dir = String(valor || '');
+  const nuevo = String(valor || '');
+  if (t.observaciones_dir === nuevo) return;
+  t.observaciones_dir = nuevo;
+  persistirEstado(t);
 }
 
 // Marca la tarea como Completada: cuando TODAS las casillas del checklist

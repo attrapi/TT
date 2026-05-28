@@ -652,7 +652,7 @@ function subirArchivo(token, nombre, mime, base64) {
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
 function estadosPestana_() { return CONFIG.HOJA_ESTADOS_PEST || 'Estados'; }
-var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio', 'Eliminada', 'CreadoPor', 'FechaCreacion', 'EliminadoPor', 'FechaEliminacion'];
+var ESTADOS_HEADERS = ['ID', 'Estatus', 'Validada', 'EnValidadas', 'FinalizadoPor', 'FechaFinalizacion', 'ValidadoPor', 'FechaValidacion', 'ActualizadoPor', 'ActualizadoEn', 'Comentario', 'Confirmada', 'EnviadoPor', 'FechaEnvio', 'Eliminada', 'CreadoPor', 'FechaCreacion', 'EliminadoPor', 'FechaEliminacion', 'Checklist', 'ObservacionesResp', 'ObservacionesDir'];
 
 function hojaEstados_(crear) {
   var ss = SpreadsheetApp.openById(estadosSpreadsheetId_());
@@ -673,10 +673,9 @@ function guardarEstado(token, id, e) {
   var datos = hoja.getDataRange().getValues();
   if (datos.length === 0 || norm_(datos[0][0]) !== 'id') {
     hoja.clear(); hoja.appendRow(ESTADOS_HEADERS); datos = [ESTADOS_HEADERS];
-  } else if (datos[0].map(norm_).indexOf('fechaeliminacion') === -1) {
-    // Hoja creada antes de agregar columnas nuevas (Comentario/Confirmada/
-    // EnviadoPor/FechaEnvio): repara el encabezado (no borra datos; las
-    // columnas nuevas quedan al final).
+  } else if (datos[0].map(norm_).indexOf('observacionesdir') === -1) {
+    // Hoja creada antes de agregar columnas nuevas (Checklist/Observaciones):
+    // repara el encabezado. No borra datos; las columnas nuevas quedan al final.
     hoja.getRange(1, 1, 1, ESTADOS_HEADERS.length).setValues([ESTADOS_HEADERS]);
     datos[0] = ESTADOS_HEADERS;
   }
@@ -699,7 +698,10 @@ function guardarEstado(token, id, e) {
     e.creado_por || '',
     e.fecha_creacion || '',
     e.eliminado_por || '',
-    e.fecha_eliminacion || ''
+    e.fecha_eliminacion || '',
+    e.checklist_json || '',           // checklist serializado (JSON string)
+    e.observaciones_resp || '',
+    e.observaciones_dir || ''
   ];
   var writeRow = -1;
   for (var r = 1; r < datos.length; r++) {
@@ -727,7 +729,8 @@ function leerEstados_() {
         iVp = enc.indexOf('validadopor'), iFv = enc.indexOf('fechavalidacion'), iCom = enc.indexOf('comentario'),
         iConf = enc.indexOf('confirmada'), iEp = enc.indexOf('enviadopor'), iFe = enc.indexOf('fechaenvio'),
         iElim = enc.indexOf('eliminada'), iCp = enc.indexOf('creadopor'), iFc = enc.indexOf('fechacreacion'),
-        iElp = enc.indexOf('eliminadopor'), iFel = enc.indexOf('fechaeliminacion');
+        iElp = enc.indexOf('eliminadopor'), iFel = enc.indexOf('fechaeliminacion'),
+        iChk = enc.indexOf('checklist'), iOR = enc.indexOf('observacionesresp'), iOD = enc.indexOf('observacionesdir');
     var map = {};
     for (var r = 1; r < datos.length; r++) {
       var f = datos[r], id = String(f[iId] || '').trim();
@@ -748,7 +751,11 @@ function leerEstados_() {
         creado_por: iCp >= 0 ? String(f[iCp] || '').trim() : '',
         fecha_creacion: iFc >= 0 ? fechaHora_(f[iFc]) : '',
         eliminado_por: iElp >= 0 ? String(f[iElp] || '').trim() : '',
-        fecha_eliminacion: iFel >= 0 ? fechaHora_(f[iFel]) : ''
+        fecha_eliminacion: iFel >= 0 ? fechaHora_(f[iFel]) : '',
+        // Checklist viene como JSON-string; el front lo parsea. Vacío = sin cambios.
+        checklist_json: iChk >= 0 ? String(f[iChk] || '').trim() : '',
+        observaciones_resp: iOR >= 0 ? String(f[iOR] || '').trim() : '',
+        observaciones_dir:  iOD >= 0 ? String(f[iOD] || '').trim() : ''
       };
     }
     return map;
@@ -778,6 +785,15 @@ function aplicarEstados_(tareas) {
     t.eliminado_por = e.eliminado_por || '';
     t.fecha_eliminacion = e.fecha_eliminacion || '';
     t.avance = (t.estatus === 'Atendida' || t.estatus === 'Archivada') ? 100 : t.avance;
+    // Checklist + observaciones (modelo nuevo de validación adentro de la tarea).
+    if (e.checklist_json) {
+      try {
+        var ck = JSON.parse(e.checklist_json);
+        if (Array.isArray(ck)) t.checklist = ck;
+      } catch (errCk) { /* JSON mal formado: ignora y deja el del Excel */ }
+    }
+    if (typeof e.observaciones_resp === 'string') t.observaciones_resp = e.observaciones_resp;
+    if (typeof e.observaciones_dir  === 'string') t.observaciones_dir  = e.observaciones_dir;
   });
   // Las tareas de JEFATURA nunca escalan: SIEMPRE quedan en 'En Proceso'
   // (datos del flujo anterior pudieron quedar como Atendida/Archivada). Si
