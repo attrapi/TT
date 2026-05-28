@@ -3164,9 +3164,9 @@
       </div>
 
       <!-- Papelera de reciclaje: anclada al fondo del menú (abajo a la izquierda). -->
-      <button class="sidebar-item sidebar-papelera" data-vista="papelera" onclick="cambiarVista('papelera')" title="Papelera de reciclaje">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        <span class="sidebar-label">Papelera</span>
+      <button class="sidebar-item sidebar-papelera" data-vista="papelera" onclick="cambiarVista('papelera')" title="Historial (tareas eliminadas)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+        <span class="sidebar-label">Historial</span>
         <span class="sidebar-conteo" id="sidebarConteoPapelera">0</span>
       </button>
     </aside>
@@ -3355,7 +3355,7 @@
 
   <div class="validadas-wrap" id="papeleraWrap">
     <div class="bitacora-titulo-fila">
-      <h2>🗑️ Papelera de reciclaje</h2>
+      <h2>🕘 Historial</h2>
       <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
     </div>
     <div class="reportes-subtitulo">Tareas eliminadas. Puedes <strong>restaurarlas</strong> a su columna o <strong>eliminarlas definitivamente</strong> del Excel.</div>
@@ -4154,6 +4154,10 @@ function filtrarValidadas(texto) {
 //   En Proceso  → "En Proceso"   (ambos roles)
 //   Atendida    → "Para validar" (Director) / "Por validar" (subdirección)
 //   Archivada   → "Validadas"    (ambos roles)
+function esEnlace() {
+  return usuarioActual && usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'ENLACE';
+}
+
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (esDir) {
@@ -4161,6 +4165,10 @@ function etiquetaEstatus(estatus) {
     if (estatus === 'En Proceso') return 'En Proceso';
     if (estatus === 'Atendida')   return 'Para validar';
     if (estatus === 'Archivada')  return 'Validadas';
+  } else if (esEnlace()) {
+    // Enlace: solo 2 columnas → En Proceso · Validadas
+    if (estatus === 'Archivada') return 'Validadas';
+    return 'En Proceso';   // En Proceso y Atendida se muestran como "En Proceso"
   } else {
     // Subdirector (Mario): Identificadas · En Proceso · Validadas
     if (estatus === 'En Proceso') return 'Identificadas';
@@ -4203,9 +4211,9 @@ function usuarioPuedeFinalizar(t) {
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual) return false;
-  if (usuarioActual.rol === 'Director') {
-    return t.nivel !== 'jefatura' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-  }
+  // El Director gestiona todo lo que ve en su tablero (no ve jefaturas), así que
+  // puede enviar al Historial cualquier tarea no-jefatura.
+  if (usuarioActual.rol === 'Director') return t.nivel !== 'jefatura';
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
@@ -4398,14 +4406,19 @@ function actualizarConteosTabs() {
 function renderizarTablero() {
   const lista = obtenerTareasFiltradas();
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
-  // 3 columnas para todos: En Proceso | Por/Para validar | Validadas.
-  const cols = ['En Proceso', 'Atendida', 'Archivada'];
+  // El Enlace solo ve 2 columnas (En Proceso · Validadas); los demás, 3.
+  const cols = esEnlace() ? ['En Proceso', 'Archivada'] : ['En Proceso', 'Atendida', 'Archivada'];
   const slugs = { 'En Proceso':'procesos', 'Atendida':'atendida', 'Archivada':'archivada' };
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
 
   cols.forEach(estatus => {
     let tareasCol = lista.filter(t => t.estatus === estatus);
+    // Enlace (2 columnas): su "En Proceso" agrupa En Proceso + Atendida, para no
+    // perder ninguna (no tiene columna intermedia).
+    if (esEnlace() && estatus === 'En Proceso') {
+      tareasCol = lista.filter(t => t.estatus === 'En Proceso' || t.estatus === 'Atendida');
+    }
     // "Para validar" (Atendida): el Director ve TODAS automáticamente — las
     // tareas de subdirección llegan directo, sin que el subdirector las envíe.
     // En "En Proceso", el Director solo ve sus propias áreas (DPAC/Enlace); las
@@ -4824,6 +4837,12 @@ function validar(idTarea) {
 
   registrarEnBitacora({ accion: 'validar', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Archivada' });
 
+  // Si es tarea del Enlace, además escribe "Atendida" en la columna Estatus de
+  // su Excel (es la marca de validada que pidió el flujo del Enlace).
+  if (enAppScript() && SESION_TOKEN && /^ENLACE-/i.test(t.id)) {
+    google.script.run.withFailureHandler(function () {}).fijarEstatusHoja(SESION_TOKEN, t.id, 'Atendida');
+  }
+
   cerrarModal();
   persistirEstado(t);
   renderizar();
@@ -4930,17 +4949,17 @@ function eliminarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso para eliminar esta tarea.', 'error'); return; }
-  if (!confirm('¿Enviar la tarea ' + idTarea + ' a la Papelera?\n\n"' + (t.tema || t.titulo) + '"\n\nPodrás restaurarla o eliminarla definitivamente desde la Papelera.')) return;
+  if (!confirm('¿Enviar la tarea ' + idTarea + ' al Historial?\n\n"' + (t.tema || t.titulo) + '"\n\nPodrás restaurarla o eliminarla definitivamente desde el Historial.')) return;
 
   t.eliminada = true;
   t.eliminado_por = usuarioActual.nombre;
   t.fecha_eliminacion = ahoraStamp();
-  registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Papelera' });
+  registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Historial' });
   cerrarModal();
   persistirEstado(t);
   renderizar();
   if (vistaActiva === 'papelera') renderizarPapelera();
-  toast('Tarea ' + idTarea + ' enviada a la Papelera', 'ok');
+  toast('Tarea ' + idTarea + ' enviada al Historial', 'ok');
 }
 
 // Restaurar desde la Papelera: vuelve a su columna (donde estaba).
@@ -5003,7 +5022,7 @@ function renderizarPapelera() {
 
   grid.innerHTML = '';
   if (!lista.length) {
-    grid.innerHTML = '<div class="validadas-vacio">La papelera está vacía.</div>';
+    grid.innerHTML = '<div class="validadas-vacio">El historial está vacío.</div>';
     return;
   }
   lista.forEach(t => {
@@ -5153,7 +5172,7 @@ function abrirDetalle(t) {
 
       ${bitacoraTarea.length > 0 ? `
         <div class="modal-seccion">
-          <div class="modal-seccion-titulo">Bitácora · trazabilidad</div>
+          <div class="modal-seccion-titulo">Bitácora</div>
           <div class="modal-bitacora">
             ${bitacoraTarea.slice().reverse().map(b => {
               const k = (b.accion || '').toLowerCase();
@@ -5434,7 +5453,7 @@ function cambiarVista(v) {
     reportes:   'Reportes',
     dashboard:  'Dashboard',
     validadas:  'Tareas Validadas',
-    papelera:   'Papelera de reciclaje'
+    papelera:   'Historial'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -6175,7 +6194,7 @@ const ACCION_LABEL = {
   reabrir:     'Reabierta',
   mover:       'Movida',
   enviar:      'Enviada a validación',
-  eliminar:    'Enviada a Papelera',
+  eliminar:    'Enviada al Historial',
   restaurar:   'Restaurada',
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado

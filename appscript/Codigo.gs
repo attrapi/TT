@@ -32,6 +32,10 @@ function guardarConfiguracion() {
     HOJA_DPAC_ID:         '1uJaxAg2GMdjiaeTFdyeqfCPTKW290UNu0orp1F83XWk',
     HOJA_DPAC_PEST:       'DPAC',          // nombre exacto de la pestaña
 
+    // Hoja del Enlace del Director.
+    HOJA_ENLACE_ID:       '16D_ngkurWeGS3nM2ewhUVgINvyKU_LXx2wYIxIA8QP0',
+    HOJA_ENLACE_PEST:     'Enlace',        // si no existe, usa la 1a pestaña
+
     HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
     HOJA_USUARIOS_PEST:   'Usuarios',
 
@@ -85,6 +89,8 @@ const CONFIG = (function () {
     HOJA_SUBDIR_PEST:    g('HOJA_SUBDIR_PEST', 'SPAC'),
     HOJA_DPAC_ID:        g('HOJA_DPAC_ID'),
     HOJA_DPAC_PEST:      g('HOJA_DPAC_PEST', 'DPAC'),
+    HOJA_ENLACE_ID:      g('HOJA_ENLACE_ID'),
+    HOJA_ENLACE_PEST:    g('HOJA_ENLACE_PEST', 'Enlace'),
     HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
@@ -209,6 +215,13 @@ function obtenerTareas(token) {
       tareas = tareas.concat(dpac);
     } catch (e) { /* hoja DPAC aún no lista: se ignora */ }
   }
+  // Tareas del Enlace del Director, si su hoja está configurada.
+  if (CONFIG.HOJA_ENLACE_ID) {
+    try {
+      var enl = parsearHoja_(leerHoja_(CONFIG.HOJA_ENLACE_ID, CONFIG.HOJA_ENLACE_PEST), 'subdireccion', 'ENLACE');
+      tareas = tareas.concat(enl);
+    } catch (e) { /* hoja Enlace aún no lista: se ignora */ }
+  }
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
   return { ok: true, tareas: tareas };
 }
@@ -227,6 +240,7 @@ function crearTarea(token, datos) {
   if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
   else if (sub === 'SPAC') { sheetId = CONFIG.HOJA_SUBDIR_ID; sheetPest = CONFIG.HOJA_SUBDIR_PEST; }
   else if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) { sheetId = CONFIG.HOJA_DPAC_ID; sheetPest = CONFIG.HOJA_DPAC_PEST; }
+  else if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) { sheetId = CONFIG.HOJA_ENLACE_ID; sheetPest = CONFIG.HOJA_ENLACE_PEST; }
   else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
 
   var ss = SpreadsheetApp.openById(sheetId);
@@ -445,13 +459,36 @@ function hojaDeId_(id) {
   if (/^(?:JDPC|JDIMA|JSPAC|SPACJ)-/i.test(id)) return { sheetId: CONFIG.HOJA_JEFATURAS_ID, sheetPest: CONFIG.HOJA_JEFATURAS_PEST, sub: 'SPAC', esJef: true };
   if (/^SPAC-/i.test(id))                       return { sheetId: CONFIG.HOJA_SUBDIR_ID,    sheetPest: CONFIG.HOJA_SUBDIR_PEST,    sub: 'SPAC', esJef: false };
   if (/^DPAC-/i.test(id) && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID,     sheetPest: CONFIG.HOJA_DPAC_PEST,     sub: 'DPAC', esJef: false };
+  if (/^ENLACE-/i.test(id) && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
   return null;
 }
 
-// ¿La sesión puede editar/eliminar tareas de esa hoja? DPAC → el Director;
-// las demás → el subdirector (Capturista) de esa subdirección.
+// Escribe un valor en la columna "Estatus" de la fila de una tarea, en su hoja
+// de origen. Lo usa el Director al Validar una tarea del Enlace (Estatus →
+// "Atendida" en el Excel del Enlace).
+function fijarEstatusHoja(token, id, valor) {
+  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
+  var dest = hojaDeId_(id);
+  if (!dest) return { ok: false, error: 'No se encontró la hoja de la tarea.' };
+  var ss = SpreadsheetApp.openById(dest.sheetId);
+  var hoja = ss.getSheetByName(dest.sheetPest) || ss.getSheets()[0];
+  if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
+  var valores = hoja.getDataRange().getValues();
+  var e = -1;
+  for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
+  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID).' };
+  var iEst = valores[e].map(norm_).indexOf('estatus');
+  if (iEst < 0) return { ok: false, error: 'No hay columna Estatus en la hoja.' };
+  var fila = localizarFila_(valores, e, id);
+  if (fila < 0) return { ok: false, error: 'No se encontró la tarea ' + id + '.' };
+  hoja.getRange(fila, iEst + 1).setValue(valor);
+  return { ok: true };
+}
+
+// ¿La sesión puede editar/eliminar tareas de esa hoja? El Director gestiona
+// todo lo que ve (subdirección, DPAC, Enlace); el subdirector, lo de su área.
 function puedeGestionar_(sesion, dest) {
-  if (dest.sub === 'DPAC') return sesion.rol === 'Director';
+  if (sesion.rol === 'Director') return true;
   return sesion.rol === 'Capturista' && sesion.subdireccion === dest.sub;
 }
 
@@ -897,8 +934,8 @@ var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
 // "En Proceso"; las demás subdirecciones nacen "Atendida" (Para validar).
 function estatusInicial_(nivel, sub) {
   if (nivel === 'jefatura') return 'En Proceso';
-  if (sub === 'DPAC' || sub === 'ENLACE') return 'En Proceso';
-  return 'Atendida';
+  if (sub === 'DPAC') return 'En Proceso';           // tareas propias del Director
+  return 'Atendida';   // subdirecciones y Enlace → "Para validar" (directo a Adrián)
 }
 
 function fechaNorm_(celda) {
@@ -946,7 +983,9 @@ function parsearHoja_(filas, nivel, subCode) {
     // Estatus inicial por origen (lo guardado en Estados lo sobreescribe). Si la
     // hoja marca 'Archivada' explícitamente, se respeta.
     var estHoja = normEstatus_(f[iEst]);
-    var est = estHoja === 'Archivada' ? 'Archivada' : estatusInicial_(nivel, subCode);
+    // En el Enlace, "Atendida" en el Excel significa VALIDADA (→ Validadas).
+    var est = (estHoja === 'Archivada' || (subCode === 'ENLACE' && estHoja === 'Atendida'))
+      ? 'Archivada' : estatusInicial_(nivel, subCode);
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
     var fecha = perm ? '' : fechaNorm_(raw);
