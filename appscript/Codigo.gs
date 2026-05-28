@@ -502,6 +502,15 @@ function actualizarTarea(token, id, datos) {
   if (!dest) return { ok: false, error: 'Esa subdirección aún no tiene hoja configurada.' };
   if (!puedeGestionar_(sesion, dest)) return { ok: false, error: 'No tienes permiso para editar esta tarea.' };
 
+  // Si el Director cambió la subdirección a una distinta, movemos la tarea
+  // entre hojas (la fila origen se borra y se inserta una nueva en destino).
+  var subNueva = String(datos.subdireccion || '').toUpperCase();
+  if (subNueva && subNueva !== dest.sub) {
+    var destNuevo = subToDest_(subNueva);
+    if (!destNuevo) return { ok: false, error: 'La subdirección "' + subNueva + '" aún no tiene hoja configurada.' };
+    return moverTareaEntreHojas_(id, dest, destNuevo, datos);
+  }
+
   var sheetId = dest.sheetId, sheetPest = dest.sheetPest, esJef = dest.esJef;
   var ss = SpreadsheetApp.openById(sheetId);
   var hoja = ss.getSheetByName(sheetPest);
@@ -532,6 +541,112 @@ function actualizarTarea(token, id, datos) {
   if (datos.url) setCell('url', datos.url);
   agregarAreas_(datos.areas);
   return { ok: true };
+}
+
+// Mapea código de subdirección (SPAC/SA/SGOI/DPAC/ENLACE) a su hoja destino.
+// Devuelve null si no hay hoja configurada para esa subdirección.
+function subToDest_(sub) {
+  sub = String(sub || '').toUpperCase();
+  if (sub === 'SPAC')   return { sheetId: CONFIG.HOJA_SUBDIR_ID,   sheetPest: CONFIG.HOJA_SUBDIR_PEST,   sub: 'SPAC',   esJef: false };
+  if (sub === 'DPAC'   && CONFIG.HOJA_DPAC_ID)   return { sheetId: CONFIG.HOJA_DPAC_ID,   sheetPest: CONFIG.HOJA_DPAC_PEST,   sub: 'DPAC',   esJef: false };
+  if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
+  return null;
+}
+
+// Mueve una tarea de su hoja origen a una hoja destino: lee la fila, crea una
+// nueva fila en destino con un ID nuevo (prefijo de la subdir destino), borra
+// la fila origen y renombra el registro en Estados/Bitácora.
+function moverTareaEntreHojas_(idViejo, destOrig, destNuevo, datos) {
+  var ssO = SpreadsheetApp.openById(destOrig.sheetId);
+  var hO = ssO.getSheetByName(destOrig.sheetPest);
+  if (!hO) return { ok: false, error: 'Hoja origen no existe.' };
+  var valOrig = hO.getDataRange().getValues();
+  var eO = -1;
+  for (var i = 0; i < valOrig.length; i++) { if (norm_(valOrig[i][0]) === 'id') { eO = i; break; } }
+  if (eO < 0) return { ok: false, error: 'Encabezado origen no encontrado.' };
+  var filaOrigIdx = localizarFila_(valOrig, eO, idViejo);
+  if (filaOrigIdx < 0) return { ok: false, error: 'Tarea no encontrada en origen.' };
+  var encOrig = valOrig[eO].map(norm_);
+  var filaOrig = valOrig[filaOrigIdx - 1];
+
+  var ssN = SpreadsheetApp.openById(destNuevo.sheetId);
+  var hN = ssN.getSheetByName(destNuevo.sheetPest);
+  if (!hN) return { ok: false, error: 'Hoja destino no existe.' };
+  var valNuevo = hN.getDataRange().getValues();
+  var eN = -1;
+  for (var j = 0; j < valNuevo.length; j++) { if (norm_(valNuevo[j][0]) === 'id') { eN = j; break; } }
+  if (eN < 0) return { ok: false, error: 'Encabezado destino no encontrado.' };
+  var encNuevo = valNuevo[eN].map(norm_);
+
+  var prefijo = destNuevo.sub + '-';
+  var idNuevo = siguienteIdSheet_(valNuevo, eN, prefijo);
+
+  function getO(nombre) {
+    var idx = encOrig.indexOf(nombre);
+    if (idx < 0) idx = encOrig.findIndex(function (h) { return h.indexOf(nombre) >= 0; });
+    return idx >= 0 ? filaOrig[idx] : '';
+  }
+  var filaNueva = [];
+  for (var c = 0; c < encNuevo.length; c++) filaNueva.push('');
+  function setN(nombre, val) {
+    var idx = encNuevo.indexOf(nombre);
+    if (idx < 0) idx = encNuevo.findIndex(function (h) { return h.indexOf(nombre) >= 0; });
+    if (idx >= 0) filaNueva[idx] = val;
+  }
+  setN('id', idNuevo);
+  setN('responsable', datos.responsable !== undefined ? datos.responsable : getO('responsable'));
+  setN('tema',        datos.tema !== undefined        ? datos.tema        : getO('tema'));
+  setN('areas',       datos.areas !== undefined       ? datos.areas       : getO('areas'));
+  setN('acuerdos realizados', datos.acuerdos !== undefined ? datos.acuerdos : getO('acuerdos realizados'));
+  setN('accion',      datos.accion !== undefined      ? datos.accion      : getO('accion'));
+  var fecha = datos.fecha !== undefined ? String(datos.fecha) : String(getO('fecha') || '');
+  var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
+  setN('fecha', fecha);
+  setN('estatus', String(getO('estatus') || 'En Proceso'));
+  setN('url', datos.url || getO('url'));
+
+  hN.appendRow(filaNueva);
+  hO.deleteRow(filaOrigIdx);
+  // Renombra el ID en Estados y Bitácora.
+  renombrarIdEstados_(idViejo, idNuevo);
+  return { ok: true, nuevoId: idNuevo, movido: true };
+}
+
+// Renombra (en su lugar) el ID viejo por el nuevo dentro de las hojas Estados
+// y Bitacora — así no se pierden las palomas/observaciones ni el historial.
+function renombrarIdEstados_(idViejo, idNuevo) {
+  try {
+    var hE = hojaEstados_(false);
+    if (hE) {
+      var dE = hE.getDataRange().getValues();
+      for (var r = 1; r < dE.length; r++) {
+        if (String(dE[r][0]).trim() === idViejo) {
+          hE.getRange(r + 1, 1).setValue(idNuevo);
+          break;
+        }
+      }
+    }
+  } catch (e1) { /* best effort */ }
+  try {
+    var ss = SpreadsheetApp.openById(CONFIG.HOJA_USUARIOS_ID);
+    var hB = ss.getSheetByName('Bitacora');
+    if (hB) {
+      var dB = hB.getDataRange().getValues();
+      if (dB.length > 0) {
+        var heads = dB[0].map(norm_);
+        var iId = heads.indexOf('idtarea');
+        if (iId < 0) iId = heads.findIndex(function (h) { return h.indexOf('id') >= 0 && h.indexOf('tarea') >= 0; });
+        if (iId >= 0) {
+          for (var rb = 1; rb < dB.length; rb++) {
+            if (String(dB[rb][iId]).trim() === idViejo) {
+              hB.getRange(rb + 1, iId + 1).setValue(idNuevo);
+            }
+          }
+        }
+      }
+    }
+  } catch (e2) { /* best effort */ }
 }
 
 // Elimina una tarea (borra su fila del Sheet). Solo el Subdirector de SPAC

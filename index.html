@@ -6183,6 +6183,20 @@ function acronimoArea(nombre) {
   if (!nombre) return '';
   return ACRONIMOS_AREA[String(nombre).trim()] || '';
 }
+
+// Etiqueta del CHIP en el formulario "Áreas involucradas". Para jefaturas
+// usamos un texto más descriptivo (con la palabra "Gestión" visible) en vez
+// del acrónimo corto; para subdirecciones se usa el acrónimo.
+function etiquetaChip(area) {
+  if (!area) return '';
+  const map = {
+    'Jefatura de Departamento de Gestión Ambiental':                        'JD Gestión Ambiental',
+    'Jefatura de Departamento de Gestión de Obras Inducidas':               'JD Gestión Obras Inducidas',
+    'Jefatura de Departamento de Procedimientos de Construcción':           'JD Procedimientos de Construcción',
+    'Jefatura de Departamento de Implementación de Manuales Administrativos':'JD Implementación de Manuales'
+  };
+  return map[String(area).trim()] || acronimoArea(area) || area;
+}
 // "Subdirección X, Jefatura Y" → "Subdirección X (SX), Jefatura Y (JY)".
 // Canonicaliza nombres viejos: "Enlace del Director" se muestra como "Staff".
 function mostrarAreas(areasStr) {
@@ -6829,10 +6843,10 @@ function abrirNuevaTarea(tEdit) {
             <label>Áreas involucradas</label>
             <div class="areas-multi" id="nt_areas">
               ${areasDisponibles().map(a => {
-                // En el formulario solo mostramos el acrónimo (menos texto). Si
-                // un área no tiene acrónimo definido, mostramos el nombre.
-                const acr = acronimoArea(a) || a;
-                return `<label class="area-chip" title="${escapeHtml(a)}"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(acr)}</label>`;
+                // Etiqueta visible del chip: jefaturas con texto descriptivo
+                // ("JD Gestión …"); subdirecciones con su acrónimo (SPAC, SGOI…).
+                const label = etiquetaChip(a);
+                return `<label class="area-chip" title="${escapeHtml(a)}"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(label)}</label>`;
               }).join('')}
             </div>
             <input type="text" id="nt_areaOtra" maxlength="200" placeholder="Otra área (escríbela y se agregará a la lista)" style="margin-top:8px;">
