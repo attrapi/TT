@@ -3012,6 +3012,45 @@
     padding: 14px; font-size: 12.5px; color: var(--tinta-suave);
     text-align: center; font-style: italic;
   }
+  /* Color de la fila según quién creó la acción del checklist. */
+  .checklist-fila.fila-creada-director  { border-left: 3px solid #b45309; background: #fffbeb; }
+  .checklist-fila.fila-creada-capturista { border-left: 3px solid var(--guinda); background: #fdf6f8; }
+  .checklist-fila.fila-creada-otro       { border-left: 3px solid #94a3b8; }
+  .checklist-fila .checklist-texto {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .checklist-borrar {
+    background: transparent; border: 0; cursor: pointer; padding: 0 4px;
+    color: var(--rojo, #b91c1c); font-size: 16px; line-height: 1; opacity: 0.5;
+    transition: opacity .15s;
+  }
+  .checklist-borrar:hover { opacity: 1; }
+  .checklist-borrar-vacio { display: inline-block; width: 14px; }
+  /* Input para agregar una nueva acción al checklist desde el modal. */
+  .checklist-agregar {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .checklist-agregar input {
+    flex: 1; padding: 7px 10px; border: 1px dashed var(--linea); border-radius: 6px;
+    font-family: var(--sans); font-size: 12.5px; background: #fff;
+  }
+  .checklist-agregar input:focus { outline: none; border-style: solid; border-color: var(--guinda); }
+  .checklist-agregar-btn {
+    background: var(--guinda); color: #fff; border: 0; border-radius: 6px;
+    padding: 0 14px; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .checklist-agregar-btn:hover { filter: brightness(1.05); }
+  /* Leyenda de colores del checklist (pequeña, al final). */
+  .checklist-leyenda {
+    margin-top: 6px; font-size: 10.5px; color: var(--tinta-suave);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .leyenda-punto {
+    display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 4px; vertical-align: middle;
+  }
+  .leyenda-director  { background: #fffbeb; border-left: 3px solid #b45309; }
+  .leyenda-capturista { background: #fdf6f8; border-left: 3px solid var(--guinda); }
   .checklist-avance {
     font-size: 11px; color: var(--tinta-suave); margin-top: 4px;
     display: flex; align-items: center; gap: 8px;
@@ -4712,15 +4751,11 @@ function crearTarjeta(t) {
     : 'estatus-identificadas';
   card.classList.add(claseEstatus);
 
-  // Campos del nuevo modelo de tarjeta. Los datos viven en TAREAS con sus
-  // claves originales (titulo, observaciones, descripcion, fecha_limite);
-  // aquí los exponemos con los nombres que pidió el cliente. Si en el
-  // futuro se capturan campos dedicados (tema, areas_involucradas, etc.)
-  // ya quedan reservados los nombres.
+  // Campos visibles en la tarjeta (las cosas largas como áreas involucradas,
+  // acuerdos y checklist se ven al abrir el modal).
   const tema   = t.tema || t.titulo;
-  const areas  = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
-  const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
-  const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
+  const areaResp = areaResponsable(t);                              // SPAC / JDPC / JDIMA / DPAC / ENLACE…
+  const respDirecto = (t.responsable || '').trim() || '—';
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
 
@@ -4742,9 +4777,18 @@ function crearTarjeta(t) {
       ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
       ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}`;
   }
+  // Orden de la tarjeta (lo que se ve sin abrir el modal):
+  //   Tema → Área responsable → Responsable directo → Fecha de atención.
+  // Las "Áreas involucradas" y el resto del detalle aparecen al abrir el modal.
   html += `
     <div class="tarjeta-id">${t.id}</div>
-    <dl class="tarjeta-campos">`;
+    <dl class="tarjeta-campos">
+      <dt>Tema</dt>
+      <dd class="campo-tema">${escapeHtml(tema)}</dd>
+      <dt>Área responsable</dt>
+      <dd>${escapeHtml(areaResp)}</dd>
+      <dt>Responsable directo</dt>
+      <dd>${escapeHtml(respDirecto)}</dd>`;
   if (!esValidada) {
     html += `
       <dt>Fecha de atención</dt>
@@ -4754,13 +4798,7 @@ function crearTarjeta(t) {
           : `${fechaTxt}`}
       </dd>`;
   }
-  html += `
-      <dt>Tema</dt>
-      <dd class="campo-tema">${escapeHtml(tema)}</dd>
-      <dt>Áreas involucradas</dt>
-      <dd>${escapeHtml(areas)}</dd>
-    </dl>
-  `;
+  html += `</dl>`;
   // El resto de los datos (acuerdos, acción a tomar, adjunto, seguimiento) se
   // muestran al abrir la tarjeta (modal), para que las tarjetas queden compactas.
 
@@ -5936,10 +5974,35 @@ function obtenerChecklist(t) {
   if (!Array.isArray(t.checklist)) t.checklist = [];
   return t.checklist;
 }
+
+// Acrónimo del área responsable de la tarea (lo que se ve en la tarjeta).
+// Si es jefatura, regresa el acrónimo de la jefatura (JDPC / JDIMA / JDGA /
+// JDGOI); si es subdirección, regresa el acrónimo de la subdirección
+// (DPAC / SPAC / SA / SGOI / ENLACE).
+function areaResponsable(t) {
+  if (!t) return '';
+  if (t.nivel === 'jefatura') {
+    if (t.jefatura === 'PROCEDIMIENTOS')      return 'JDPC';
+    if (t.jefatura === 'MANUALES')            return 'JDIMA';
+    if (t.jefatura === 'GESTION_AMBIENTAL')   return 'JDGA';
+    if (t.jefatura === 'GESTION_OBRAS')       return 'JDGOI';
+  }
+  return t.subdireccion || '';
+}
+
+// Quién es el "creador" para el checklist (se guarda en cada renglón nuevo).
+function autorChecklistActual() {
+  if (!usuarioActual) return { nombre: '', rol: '' };
+  return {
+    nombre: formatearNombre(usuarioActual.nombre || usuarioActual.email || ''),
+    rol: usuarioActual.rol || 'Capturista'
+  };
+}
 // Construye un checklist a partir del texto de "Acciones a tomar" (un punto
 // por renglón). Se llama al crear o editar la tarea.
 function checklistDesdeTexto(texto) {
   if (!texto) return [];
+  const aut = autorChecklistActual();
   return String(texto).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(linea => ({
     texto: linea,
     check_resp: false,
@@ -5947,7 +6010,10 @@ function checklistDesdeTexto(texto) {
     fecha_resp: '',
     fecha_dir: '',
     autor_resp: '',
-    autor_dir: ''
+    autor_dir: '',
+    creado_por_nombre: aut.nombre,
+    creado_por_rol: aut.rol,
+    creado_en: ahoraStamp()
   }));
 }
 // Texto plano del checklist (uno por renglón) para volverlo a editar.
@@ -6001,15 +6067,44 @@ function renderChecklistHTML(t) {
   const items = obtenerChecklist(t);
   const puedeR = puedeMarcarResp(t);
   const puedeD = puedeMarcarDir(t);
+  const puedeAgregar = puedeR || puedeD;     // cualquiera con acceso al checklist
+  const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+
+  // Cabecera y fila de "agregar acción" (input + botón) que aparece SOLO si el
+  // usuario puede agregar al checklist.
+  const inputAgregar = puedeAgregar
+    ? '<div class="checklist-agregar">' +
+        '<input type="text" id="chk-nuevo-' + t.id + '" maxlength="200" placeholder="+ Agregar acción" onkeydown="nuevoItemChecklistTeclado(event, \'' + t.id + '\')">' +
+        '<button class="checklist-agregar-btn" onclick="agregarItemChecklist(\'' + t.id + '\', document.getElementById(\'chk-nuevo-' + t.id + '\').value); document.getElementById(\'chk-nuevo-' + t.id + '\').value=\'\'">+</button>' +
+      '</div>'
+    : '';
+
   if (items.length === 0) {
-    return '<div class="checklist-vacio">Sin acciones definidas. Edita la tarea y agrega un punto por renglón en "Acciones a tomar".</div>';
+    return '<div class="checklist-tabla">' +
+      '<div class="checklist-cab"><span>Acción</span><span class="checklist-cab-resp">Responsable</span><span class="checklist-cab-dir">Director</span></div>' +
+      '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeAgregar ? 'Agrega la primera abajo ↓' : '') + '</div>' +
+      '</div>' + inputAgregar;
   }
+
   const filas = items.map(function (item, i) {
     const completa = item.check_resp && item.check_dir;
     const tipR = item.autor_resp ? ('Marcado por ' + item.autor_resp + (item.fecha_resp ? ' · ' + item.fecha_resp : '')) : 'Responsable';
     const tipD = item.autor_dir  ? ('Marcado por ' + item.autor_dir  + (item.fecha_dir  ? ' · ' + item.fecha_dir  : '')) : 'Director';
-    return '<div class="checklist-fila' + (completa ? ' completa' : '') + '">' +
-      '<span class="checklist-texto">' + escapeHtml(item.texto) + '</span>' +
+    // Color de fila según quién creó la acción (Director / Capturista / Enlace).
+    const rolCreador = (item.creado_por_rol || '').toLowerCase();
+    let claseFila = 'fila-creada-otro';
+    if (rolCreador === 'director') claseFila = 'fila-creada-director';
+    else if (item.creado_por_rol)  claseFila = 'fila-creada-capturista';
+    // Solo puede borrar el que lo creó (o si no tiene autor, cualquiera con acceso).
+    const puedeBorrar = puedeAgregar && (!item.creado_por_nombre || item.creado_por_nombre === yo);
+    const btnBorrar = puedeBorrar
+      ? '<button class="checklist-borrar" onclick="eliminarItemChecklist(\'' + t.id + '\', ' + i + ')" title="Borrar esta acción">×</button>'
+      : '<span class="checklist-borrar-vacio" title="Lo creó ' + escapeHtml(item.creado_por_nombre || 'otro usuario') + ' — no puedes borrarlo"></span>';
+    const tooltipCreador = item.creado_por_nombre
+      ? 'Creada por ' + item.creado_por_nombre + (item.creado_en ? ' · ' + item.creado_en : '')
+      : '';
+    return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
+      '<span class="checklist-texto">' + escapeHtml(item.texto) + btnBorrar + '</span>' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_resp ? ' checked' : '') + (puedeR ? '' : ' disabled') + ' onchange="toggleCheckResp(\'' + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipR) + '">' +
       '<input type="checkbox" class="checklist-chk"' + (item.check_dir  ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
     '</div>';
@@ -6020,7 +6115,9 @@ function renderChecklistHTML(t) {
     '<div class="checklist-cab"><span>Acción</span><span class="checklist-cab-resp">Responsable</span><span class="checklist-cab-dir">Director</span></div>' +
     filas +
     '</div>' +
-    '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>';
+    inputAgregar +
+    '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>' +
+    '<div class="checklist-leyenda"><span class="leyenda-punto leyenda-director"></span>Acción del Director · <span class="leyenda-punto leyenda-capturista"></span>Acción del Responsable</div>';
 }
 function renderObservacionesHTML(t) {
   const puedeR = puedeEditarObsResp(t);
@@ -6122,14 +6219,70 @@ function completarTarea(idTarea) {
 // se borró, desaparece. Así editar el texto no pierde el avance ya marcado.
 function mergearChecklist(viejo, textoNuevo) {
   const v = Array.isArray(viejo) ? viejo : [];
+  const aut = autorChecklistActual();
   const lineas = String(textoNuevo || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   return lineas.map(linea => {
     const previo = v.find(i => i && i.texto === linea);
     return previo || {
       texto: linea, check_resp: false, check_dir: false,
-      fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: ''
+      fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: '',
+      creado_por_nombre: aut.nombre, creado_por_rol: aut.rol,
+      creado_en: ahoraStamp()
     };
   });
+}
+
+// Agrega un nuevo ítem al checklist (desde el modal de detalle).
+function agregarItemChecklist(idTarea, texto) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const textoLimpio = String(texto || '').trim();
+  if (!textoLimpio) return;
+  // Permiso: cualquiera con acceso al checklist (responsable o director).
+  if (!puedeMarcarResp(t) && !puedeMarcarDir(t)) {
+    toast('No tienes permiso para agregar acciones a esta tarea.', 'error');
+    return;
+  }
+  const aut = autorChecklistActual();
+  obtenerChecklist(t).push({
+    texto: textoLimpio, check_resp: false, check_dir: false,
+    fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: '',
+    creado_por_nombre: aut.nombre, creado_por_rol: aut.rol,
+    creado_en: ahoraStamp()
+  });
+  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + textoLimpio + '"' });
+  persistirEstado(t);
+  abrirDetalle(t);
+  renderizar();
+}
+
+// Borra un ítem del checklist, SOLO si lo creó el usuario actual.
+function eliminarItemChecklist(idTarea, idx) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const items = obtenerChecklist(t);
+  const item = items[idx];
+  if (!item) return;
+  const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  if (item.creado_por_nombre && item.creado_por_nombre !== yo) {
+    toast('Solo puedes borrar acciones que tú creaste.', 'error');
+    return;
+  }
+  if (!confirm('¿Borrar la acción "' + item.texto + '" del checklist?')) return;
+  items.splice(idx, 1);
+  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '− "' + item.texto + '"' });
+  persistirEstado(t);
+  abrirDetalle(t);
+  renderizar();
+}
+
+// Maneja el Enter en el input de "agregar acción" del checklist (en el modal).
+function nuevoItemChecklistTeclado(ev, idTarea) {
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    const inp = document.getElementById('chk-nuevo-' + idTarea);
+    if (inp) { agregarItemChecklist(idTarea, inp.value); inp.value = ''; }
+  }
 }
 
 // Recarga el catálogo de áreas desde el servidor (base + las agregadas).
@@ -6173,7 +6326,8 @@ function abrirNuevaTarea(tEdit) {
   ].map(o => `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`).join('');
 
   // Para el Enlace, el campo no es una "Subdirección" sino la Dirección.
-  const etiquetaCampoSub = subDefault === 'ENLACE' ? 'Dirección' : 'Subdirección';
+  // Etiqueta unificada para el campo de área dueña de la tarea.
+  const etiquetaCampoSub = 'Área responsable';
 
   // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
   // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
@@ -6207,16 +6361,23 @@ function abrirNuevaTarea(tEdit) {
     <div class="modal-body">
       <form id="formNuevaTarea" onsubmit="event.preventDefault(); guardarNuevaTarea();">
         <div class="form-grid">
-          ${campoSub}
-
-          <div class="form-campo">
-            <label>Responsable <span class="req">*</span></label>
-            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Nombre del responsable">
-          </div>
-
+          <!-- Orden de captura solicitado: Tema → Área responsable → Responsable directo → Fecha.
+               Lo demás (Áreas involucradas, Acuerdos, Acciones/Checklist, Adjunto) va después. -->
           <div class="form-campo full">
             <label>Tema <span class="req">*</span></label>
             <input type="text" id="nt_tema" required maxlength="200" value="${escapeHtml(valTema)}" placeholder="Ej. Matriz de licitaciones">
+          </div>
+
+          ${campoSub}
+
+          <div class="form-campo">
+            <label>Responsable directo <span class="req">*</span></label>
+            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Nombre del responsable">
+          </div>
+
+          <div class="form-campo">
+            <label>Fecha de atención <span class="req">*</span></label>
+            <input type="date" id="nt_fecha" required value="${valFecha}">
           </div>
 
           <div class="form-campo full">
@@ -6242,11 +6403,6 @@ function abrirNuevaTarea(tEdit) {
             <label>Acciones a tomar (checklist) <span class="req">*</span></label>
             <textarea id="nt_accion" required maxlength="1500" rows="5" placeholder="Una acción por renglón. Ej.&#10;Revisar documento&#10;Firmar oficio&#10;Subir a Drive" style="font-family:var(--sans); line-height:1.6;">${escapeHtml(valAccion)}</textarea>
             <div class="form-hint">Cada renglón se convierte en un punto del checklist. Adentro de la tarea cada acción tendrá dos casillas: una del responsable y una del director.</div>
-          </div>
-
-          <div class="form-campo">
-            <label>Fecha de atención <span class="req">*</span></label>
-            <input type="date" id="nt_fecha" required value="${valFecha}">
           </div>
 
           <div class="form-campo full">
