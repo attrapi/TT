@@ -3987,12 +3987,18 @@ function aplicarSesion() {
 
   document.getElementById('userAvatar').textContent = usuarioActual.iniciales;
   document.getElementById('userNombre').textContent = formatearNombre(usuarioActual.nombre);
-  // Etiqueta visual del rol que ve el usuario en el header. La lógica
-  // interna sigue usando usuarioActual.rol = 'Director' / 'Capturista',
-  // pero aquí mostramos un cargo más representativo.
-  const rolDisplay = usuarioActual.rol === 'Director'
-    ? 'Director'
-    : (usuarioActual.subdireccion === 'ENLACE' ? 'Enlace' : 'Subdirector');
+  // Etiqueta visual del rol. Si el usuario tiene una jefatura asignada en
+  // Usuarios, se muestra como "Jefe/Jefa de departamento" en vez de subdirector.
+  let rolDisplay;
+  if (usuarioActual.rol === 'Director') {
+    rolDisplay = 'Director';
+  } else if (usuarioActual.subdireccion === 'ENLACE') {
+    rolDisplay = 'Staff';
+  } else if (jefaturaCodigo(usuarioActual.jefatura)) {
+    rolDisplay = 'Jefe(a) de Departamento';
+  } else {
+    rolDisplay = 'Subdirector(a)';
+  }
   document.getElementById('userRol').textContent = rolDisplay;
 
   // === CONTROL DE VISTAS POR ROL ===
@@ -4033,9 +4039,18 @@ function aplicarSesion() {
       'SA': 'Subdirección de Archivo',
       'SGOI': 'Subdirección de Gestión de Obras Inducidas',
       'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-      'ENLACE': 'Enlace administrativo del Director'
+      'ENLACE': 'Staff de Dirección'
     };
-    document.getElementById('navTitulo').textContent = nombresSubs[usuarioActual.subdireccion];
+    const nombresJef = {
+      'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
+      'MANUALES':         'Jefatura de Departamento de Implementación de Manuales Administrativos',
+      'GESTION_AMBIENTAL':'Jefatura de Departamento de Gestión Ambiental',
+      'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
+    };
+    const codJefSesion = jefaturaCodigo(usuarioActual.jefatura);
+    document.getElementById('navTitulo').textContent = codJefSesion
+      ? (nombresJef[codJefSesion] || nombresSubs[usuarioActual.subdireccion])
+      : nombresSubs[usuarioActual.subdireccion];
 
     tabActiva = usuarioActual.subdireccion;
   }
@@ -4140,6 +4155,16 @@ function estiloIconoLogin(u) {
 }
 function cargoLogin(u) {
   if (u.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
+  // Si tiene jefatura asignada, su "cargo" es la jefatura, no la subdirección.
+  const codJef = jefaturaCodigo(u.jefatura);
+  if (codJef) {
+    return ({
+      PROCEDIMIENTOS:    'Jefatura de Departamento de Procesos de Construcción',
+      MANUALES:          'Jefatura de Departamento de Implementación de Manuales Administrativos',
+      GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental',
+      GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas'
+    })[codJef] || 'Jefatura';
+  }
   return ({
     SA: 'Subdirección de Archivo',
     SGOI: 'Subdirección de Gestión de Obras Inducidas',
@@ -4402,12 +4427,14 @@ function obtenerTareasFiltradas() {
   // adentro de la tarea.
 
   // === CONTROL DE ACCESO POR ROL ===
-  // Capturistas: SIEMPRE filtrar por su subdirección, sin importar qué tab esté activa.
-  // Esto es defensa en profundidad: aunque manipulen el DOM, no ven otras subdirecciones.
+  // Capturistas: SIEMPRE filtrar por su subdirección. Si además son JEFE
+  // (tienen Jefatura asignada en Usuarios), solo ven SU jefatura.
   if (usuarioActual.rol === 'Capturista') {
-    // El subdirector ve TODAS las tareas de su subdirección, incluidas las de
-    // jefatura (ya no hay apartado separado de jefaturas: se muestran juntas).
     lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+    const codJef = jefaturaCodigo(usuarioActual.jefatura);
+    if (codJef) {
+      lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
+    }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica
     lista = lista.filter(t => t.subdireccion === tabActiva);
@@ -4763,31 +4790,39 @@ function columnasPorRol() {
               filtro: t => t.subdireccion === 'ENLACE' }];
   }
   const sub = usuarioActual.subdireccion;
+  const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
+
+  // Catálogo de TODAS las columnas posibles de SPAC y SGOI (subdir + jefaturas).
+  // Si el usuario tiene jefatura asignada, filtramos a SU columna; si no
+  // (es subdirector), las ve todas.
+  const colsSPAC = [
+    { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+      color: 'azul', filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
+    { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
+      color: 'indigo', jefCod: 'PROCEDIMIENTOS',
+      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
+    { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
+      color: 'ambar', jefCod: 'MANUALES',
+      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
+  ];
+  const colsSGOI = [
+    { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+      color: 'olivo', filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
+    { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
+      color: 'verdeoscuro', jefCod: 'GESTION_AMBIENTAL',
+      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
+    { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
+      color: 'cafe', jefCod: 'GESTION_OBRAS',
+      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
+  ];
+
   if (sub === 'SPAC') {
-    return [
-      { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
-        color: 'azul',
-        filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
-      { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
-        color: 'indigo',
-        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
-      { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
-        color: 'ambar',
-        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
-    ];
+    if (codJefUser) return colsSPAC.filter(c => c.jefCod === codJefUser);
+    return colsSPAC;
   }
   if (sub === 'SGOI') {
-    return [
-      { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
-        color: 'olivo',
-        filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
-      { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
-        color: 'verdeoscuro',
-        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
-      { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
-        color: 'cafe',
-        filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
-    ];
+    if (codJefUser) return colsSGOI.filter(c => c.jefCod === codJefUser);
+    return colsSGOI;
   }
   // Default: una sola columna con todo lo del perfil.
   return [{ id: sub, titulo: sub, subtitulo: '', color: 'olivo',
@@ -6241,17 +6276,35 @@ function checklistAvance(t) {
   items.forEach(i => { if (i.check_resp) marcadas++; if (i.check_dir) marcadas++; });
   return Math.round((marcadas / (items.length * 2)) * 100);
 }
-// Permisos del checklist.
-// Columna 1: SOLO el SUBDIRECTOR de la subdirección de la tarea (Capturista de
-// esa subdirección, SIN jefatura asignada en la hoja Usuarios). Las personas
-// de jefatura (con Jefatura no vacía) ven la paloma pero NO la marcan.
-// Caso especial: las tareas DPAC son del Director (Adrián) y no tienen
-// subdirector — Adrián marca ambas columnas para que pueda completarse.
+// Normaliza el texto de la celda "Jefatura" de la hoja Usuarios a un código
+// estable (mismo que produce detectarJefatura_ en el backend para tareas).
+// Acepta tanto el código corto ("PROCEDIMIENTOS") como el nombre completo
+// ("Jefatura de Departamento de Procedimientos de Construcción").
+function jefaturaCodigo(raw) {
+  if (!raw) return '';
+  const n = String(raw).toLowerCase().replace(/\s+/g, ' ');
+  if (n.indexOf('procedimiento') >= 0) return 'PROCEDIMIENTOS';
+  if (n.indexOf('manual') >= 0)        return 'MANUALES';
+  if (n.indexOf('ambient') >= 0)       return 'GESTION_AMBIENTAL';
+  if (n.indexOf('obras inducid') >= 0) return 'GESTION_OBRAS';
+  return String(raw).toUpperCase().trim();
+}
+
+// Permisos del checklist (columna 1):
+//   • Tarea de SUBDIRECCIÓN (no jefatura) → la marca el subdirector
+//     (Capturista de esa subdirección con Jefatura VACÍA en Usuarios).
+//   • Tarea de JEFATURA → la marca el JEFE específico de esa jefatura
+//     (Capturista de esa subdirección con Jefatura = código de la jefatura).
+//   • Tarea DPAC (del propio Director) → Adrián marca ambas columnas.
 function puedeMarcarResp(t) {
   if (!usuarioActual || !t) return false;
   if (usuarioActual.rol === 'Director') return t.subdireccion === 'DPAC';
-  return usuarioActual.subdireccion === t.subdireccion
-      && !usuarioActual.jefatura;
+  if (usuarioActual.subdireccion !== t.subdireccion) return false;
+  if (t.nivel === 'jefatura') {
+    return jefaturaCodigo(usuarioActual.jefatura) === String(t.jefatura || '').toUpperCase();
+  }
+  // Tarea de subdirección: solo el subdirector (sin jefatura asignada).
+  return !usuarioActual.jefatura;
 }
 function puedeMarcarDir(t) {
   return !!(usuarioActual && usuarioActual.rol === 'Director');
