@@ -4144,7 +4144,7 @@ function cargoLogin(u) {
     SA: 'Subdirección de Archivo',
     SGOI: 'Subdirección de Gestión de Obras Inducidas',
     SPAC: 'Subdirección de Procesos Administrativos de Construcción',
-    ENLACE: 'Enlace del Director'
+    ENLACE: 'Staff del Director'
   })[u.subdireccion] || 'Subdirector';
 }
 
@@ -6123,7 +6123,7 @@ let AREAS = [
   'Jefatura de Departamento de Implementación de Manuales Administrativos',
   'Jefatura de Departamento de Gestión Ambiental',
   'Jefatura de Departamento de Gestión de Obras Inducidas',
-  'Enlace del Director'
+  'Staff'
 ];
 
 // Acrónimos de áreas: al CAPTURAR la tarea solo se muestra el acrónimo (menos
@@ -6139,18 +6139,23 @@ const ACRONIMOS_AREA = {
   'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
   'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
   'Jefatura de Departamento de Gestión de Obras Inducidas': 'JDGOI',
-  'Enlace del Director': 'ENLACE'
+  'Staff': 'STAFF',
+  // Legacy: tareas viejas pueden tener el nombre anterior; lo mapeamos al
+  // mismo acrónimo STAFF para que sigan saliendo bien al mostrar.
+  'Enlace del Director': 'STAFF'
 };
 function acronimoArea(nombre) {
   if (!nombre) return '';
   return ACRONIMOS_AREA[String(nombre).trim()] || '';
 }
 // "Subdirección X, Jefatura Y" → "Subdirección X (SX), Jefatura Y (JY)".
+// Canonicaliza nombres viejos: "Enlace del Director" se muestra como "Staff".
 function mostrarAreas(areasStr) {
   if (!areasStr) return '';
   return String(areasStr).split(',').map(s => {
-    const a = s.trim();
+    let a = s.trim();
     if (!a) return '';
+    if (a === 'Enlace del Director') a = 'Staff';
     const acr = acronimoArea(a);
     return acr ? a + ' (' + acr + ')' : a;
   }).filter(Boolean).join(', ');
@@ -6679,7 +6684,15 @@ function abrirNuevaTarea(tEdit) {
     : '';
   const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
   const valUrl = ed ? (ed.url || '') : '';
-  const areasEd = ed ? (ed.areas_involucradas || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+  // Para marcar bien los chips al editar: canonicalizamos los nombres viejos
+  // (p. ej. "Enlace del Director" → "Staff") para que coincidan con AREAS.
+  const areasEd = ed
+    ? (ed.areas_involucradas || '').split(',')
+        .map(s => s.trim())
+        .map(s => s === 'Enlace del Director' ? 'Staff' : s)
+        .map(s => s.toLowerCase())
+        .filter(Boolean)
+    : [];
 
   // Opciones para "Área responsable". Por ahora solo las 3 subdirecciones
   // (SGOI · SPAC · SA), en el mismo orden que las columnas del tablero. Si la
@@ -6691,7 +6704,7 @@ function abrirNuevaTarea(tEdit) {
     {v:'SA',   n:'SA · Subdirección de Archivo'}
   ];
   if (subDefault === 'DPAC')   baseOpciones.push({v:'DPAC',   n:'DPAC · Dirección (mi tarea)'});
-  if (subDefault === 'ENLACE') baseOpciones.push({v:'ENLACE', n:'Staff · Enlace de Dirección'});
+  if (subDefault === 'ENLACE') baseOpciones.push({v:'ENLACE', n:'Staff · Dirección'});
   const opcionesSub = baseOpciones.map(o =>
     `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`
   ).join('');
