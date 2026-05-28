@@ -1954,6 +1954,15 @@
     animation: pulso-hoy 1.6s ease-in-out infinite;
   }
 
+  /* Fila del ID + chips de Vencida/Hoy a la derecha (en la misma línea). */
+  .tarjeta-id-fila {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .tarjeta-id-fila .tarjeta-id { margin-bottom: 0; }
+  .tarjeta-id-fila .vencida-chip,
+  .tarjeta-id-fila .vence-hoy-chip { margin: 0; }
+
   /* Chip "Vencida": rojo y palpitando para llamar la atención de un pendiente
      que ya pasó su fecha límite. */
   @keyframes pulso-vencida {
@@ -2071,6 +2080,9 @@
   .tarjeta[data-sub="SGOI"]   .tarjeta-id { background: var(--sub-sgoi);   color: #fff; }
   .tarjeta[data-sub="SPAC"]   .tarjeta-id { background: #1d4ed8;   color: #fff; }
   .tarjeta[data-sub="ENLACE"] .tarjeta-id { background: var(--sub-enlace); color: #fff; }
+  /* Staff (DPAC + Enlace) → mismo morado de su columna para que se vea el
+     diseño consistente entre las dos. */
+  .tarjeta[data-sub="DPAC"]   .tarjeta-id { background: var(--sub-enlace); color: #fff; }
   /* Jefaturas con color propio (coincide con su indicador de Pendientes). */
   .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
   .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
@@ -5009,16 +5021,18 @@ function crearTarjeta(t) {
   const esValidada = t.estatus === 'Archivada';
 
   let html = `${btnEliminar}`;
-  if (!esValidada) {
-    html += `
-      ${vencida ? '<div class="vencida-chip">⚠ Vencida</div>' : ''}
-      ${venceEsteDia ? '<div class="vence-hoy-chip">⏰ Ocurriendo hoy</div>' : ''}`;
-  }
+  // El chip "Vencida" (palpitando) y el "Ocurriendo hoy" ahora viven a la
+  // DERECHA del ID, en la misma fila, en lugar de arriba sueltos.
+  const chipVencida   = !esValidada && vencida       ? '<span class="vencida-chip">⚠ Vencida</span>' : '';
+  const chipVenceHoy  = !esValidada && venceEsteDia  ? '<span class="vence-hoy-chip">⏰ Hoy</span>'   : '';
   // Orden de la tarjeta (lo que se ve sin abrir el modal):
   //   Tema → Área responsable → Responsable directo → Fecha de atención.
   // Las "Áreas involucradas" y el resto del detalle aparecen al abrir el modal.
   html += `
-    <div class="tarjeta-id">${t.id}</div>
+    <div class="tarjeta-id-fila">
+      <span class="tarjeta-id">${t.id}</span>
+      ${chipVencida}${chipVenceHoy}
+    </div>
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
