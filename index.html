@@ -6681,12 +6681,20 @@ function abrirNuevaTarea(tEdit) {
   const valUrl = ed ? (ed.url || '') : '';
   const areasEd = ed ? (ed.areas_involucradas || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
 
-  const opcionesSub = [
-    {v:'SA', n:'SA · Subdirección de Archivo'},
-    {v:'SGOI', n:'SGOI · Gestión de Obras Inducidas'},
-    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción'},
-    {v:'ENLACE', n:'Enlace de Dirección'}
-  ].map(o => `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`).join('');
+  // Opciones para "Área responsable". Por ahora solo las 3 subdirecciones
+  // (SGOI · SPAC · SA), en el mismo orden que las columnas del tablero. Si la
+  // tarea es DPAC o ENLACE, agregamos esa opción para que el <select> respete
+  // el valor actual (antes caía por default en SA y "movía" la tarea sin querer).
+  const baseOpciones = [
+    {v:'SGOI', n:'SGOI · Subdirección de Gestión de Obras Inducidas'},
+    {v:'SPAC', n:'SPAC · Subdirección de Procesos Administrativos de Construcción'},
+    {v:'SA',   n:'SA · Subdirección de Archivo'}
+  ];
+  if (subDefault === 'DPAC')   baseOpciones.push({v:'DPAC',   n:'DPAC · Dirección (mi tarea)'});
+  if (subDefault === 'ENLACE') baseOpciones.push({v:'ENLACE', n:'Staff · Enlace de Dirección'});
+  const opcionesSub = baseOpciones.map(o =>
+    `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`
+  ).join('');
 
   // Para el Enlace, el campo no es una "Subdirección" sino la Dirección.
   // Etiqueta unificada para el campo de área dueña de la tarea.
@@ -6709,8 +6717,8 @@ function abrirNuevaTarea(tEdit) {
        </div>`
     : `<div class="form-campo">
          <label>${etiquetaCampoSub} <span class="req">*</span></label>
-         <select id="nt_sub" required ${(esCapturista || ed) ? 'disabled' : ''}>${opcionesSub}</select>
-         ${(esCapturista || ed) ? '<div class="form-hint">No se cambia desde aquí.</div>' : ''}
+         <select id="nt_sub" required ${esCapturista ? 'disabled' : ''}>${opcionesSub}</select>
+         ${esCapturista ? '<div class="form-hint">No se cambia desde aquí.</div>' : (ed ? '<div class="form-hint">Cambiar el área responsable moverá la tarea a esa subdirección.</div>' : '')}
        </div>`;
 
   document.getElementById('modal').innerHTML = `
