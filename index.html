@@ -1679,12 +1679,24 @@
     flex-shrink: 0;
   }
 
+  .col-titulo-wrap { flex: 1; min-width: 0; }
   .col-titulo {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    flex: 1;
+    line-height: 1.1;
+  }
+  /* Subtítulo: nombre completo del área en letra a la mitad de tamaño, en una
+     sola línea por columna (no se trunca, se permite envoltura suave). */
+  .col-subtitulo {
+    font-size: 6.5px;
+    font-weight: 600;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    opacity: 0.92;
   }
 
   .col-conteo {
@@ -1714,6 +1726,64 @@
   .col-atendida .col-marca   { background: var(--verde); }
   .col-atendida .col-titulo  { color: var(--verde); }
   .col-atendida .col-conteo  { color: var(--verde); }
+
+  /* === Colores por columna del tablero NUEVO (por área) === */
+  /* Staff (DPAC + Enlace) — morado */
+  .col-color-morado .col-header {
+    background: #ede9fe; border-bottom-color: #7c3aed;
+  }
+  .col-color-morado .col-marca  { background: #7c3aed; }
+  .col-color-morado .col-titulo,
+  .col-color-morado .col-subtitulo,
+  .col-color-morado .col-conteo  { color: #5b21b6; }
+
+  /* SGOI — olivo */
+  .col-color-olivo .col-header {
+    background: #f1f5e3; border-bottom-color: #6b8e23;
+  }
+  .col-color-olivo .col-marca  { background: #6b8e23; }
+  .col-color-olivo .col-titulo,
+  .col-color-olivo .col-subtitulo,
+  .col-color-olivo .col-conteo  { color: #4d6817; }
+
+  /* SPAC — azul (mismo tono que sus píldoras) */
+  .col-color-azul .col-header {
+    background: #dbeafe; border-bottom-color: #1d4ed8;
+  }
+  .col-color-azul .col-marca  { background: #1d4ed8; }
+  .col-color-azul .col-titulo,
+  .col-color-azul .col-subtitulo,
+  .col-color-azul .col-conteo  { color: #1e3a8a; }
+
+  /* SA — naranja */
+  .col-color-naranja .col-header {
+    background: #ffedd5; border-bottom-color: #c2410c;
+  }
+  .col-color-naranja .col-marca  { background: #c2410c; }
+  .col-color-naranja .col-titulo,
+  .col-color-naranja .col-subtitulo,
+  .col-color-naranja .col-conteo  { color: #9a3412; }
+
+  /* === Colores de TARJETA según el avance del Director (urgencia) === */
+  /* Naranja: aún no hay ningún check del Director (Adrián). */
+  .tarjeta.tarjeta-color-pendiente {
+    background: #fff7ed;
+    border-color: #fb923c;
+  }
+  /* Amarillo: Adrián ya marcó al menos un check. */
+  .tarjeta.tarjeta-color-progreso {
+    background: #fefce8;
+    border-color: #eab308;
+  }
+  /* Rojo: vencida — gana sobre los anteriores. */
+  .tarjeta.tarjeta-color-vencida {
+    background: #fef2f2;
+    border-color: #dc2626;
+  }
+  /* Borde izquierdo más marcado para reforzar el color de toda la tarjeta. */
+  .tarjeta.tarjeta-color-pendiente { border-left: 4px solid #fb923c; }
+  .tarjeta.tarjeta-color-progreso  { border-left: 4px solid #eab308; }
+  .tarjeta.tarjeta-color-vencida   { border-left: 4px solid #dc2626; }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
@@ -4595,43 +4665,55 @@ function columnasPorRol() {
   if (!usuarioActual) return [];
   if (usuarioActual.rol === 'Director') {
     return [
-      { id: 'STAFF', titulo: 'Staff',
+      { id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
+        color: 'morado',
         filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' },
-      { id: 'SGOI', titulo: 'SGOI · Gestión de Obras Inducidas',
+      { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+        color: 'olivo',
         filtro: t => t.subdireccion === 'SGOI' },
-      { id: 'SPAC', titulo: 'SPAC · Procesos Adm. de Construcción',
+      { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+        color: 'azul',
         filtro: t => t.subdireccion === 'SPAC' },
-      { id: 'SA',   titulo: 'SA · Subdirección de Archivo',
+      { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
+        color: 'naranja',
         filtro: t => t.subdireccion === 'SA' }
     ];
   }
   if (esEnlace()) {
-    return [{ id: 'STAFF', titulo: 'Staff',
+    return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Enlace de Dirección',
+              color: 'morado',
               filtro: t => t.subdireccion === 'ENLACE' }];
   }
   const sub = usuarioActual.subdireccion;
   if (sub === 'SPAC') {
     return [
-      { id: 'SPAC',  titulo: 'SPAC · Subdirección',
+      { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+        color: 'azul',
         filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
-      { id: 'JDPC',  titulo: 'JDPC · Procedimientos de Construcción',
+      { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
+        color: 'azul',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
-      { id: 'JDIMA', titulo: 'JDIMA · Implementación de Manuales',
+      { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
+        color: 'azul',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
     ];
   }
   if (sub === 'SGOI') {
     return [
-      { id: 'SGOI',  titulo: 'SGOI · Subdirección',
+      { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+        color: 'olivo',
         filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
-      { id: 'JDGA',  titulo: 'JDGA · Gestión Ambiental',
+      { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
+        color: 'olivo',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
-      { id: 'JDGOI', titulo: 'JDGOI · Gestión de Obras Inducidas',
+      { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
+        color: 'olivo',
         filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
     ];
   }
   // Default: una sola columna con todo lo del perfil.
-  return [{ id: sub, titulo: sub, filtro: t => t.subdireccion === sub }];
+  return [{ id: sub, titulo: sub, subtitulo: '', color: 'olivo',
+            filtro: t => t.subdireccion === sub }];
 }
 
 function renderizarTablero() {
@@ -4644,11 +4726,18 @@ function renderizarTablero() {
   cols.forEach(col => {
     const tareasCol = ordenarPorFecha(lista.filter(col.filtro));
     const colEl = document.createElement('div');
-    colEl.className = 'columna col-' + col.id.toLowerCase();
+    // Color de la columna: morado/olivo/azul/naranja según el área.
+    colEl.className = 'columna col-' + col.id.toLowerCase() + ' col-color-' + (col.color || 'olivo');
+    const subt = col.subtitulo
+      ? '<div class="col-subtitulo" title="' + escapeHtml(col.subtitulo) + '">' + escapeHtml(col.subtitulo) + '</div>'
+      : '';
     colEl.innerHTML = `
       <div class="col-header">
         <div class="col-marca"></div>
-        <div class="col-titulo">${escapeHtml(col.titulo)}</div>
+        <div class="col-titulo-wrap">
+          <div class="col-titulo">${escapeHtml(col.titulo)}</div>
+          ${subt}
+        </div>
         <div class="col-conteo">${tareasCol.length}</div>
       </div>
       <div class="col-cuerpo" data-col="${col.id}"></div>
@@ -4757,12 +4846,22 @@ function crearTarjeta(t) {
   if (venceEsteDia) card.classList.add('vence-hoy');
   if (vencida) card.classList.add('es-vencida');
 
-  // Borde izquierdo coloreado según la columna/estatus donde está la tarea:
-  // Identificadas = ámbar, Por validar = verde, Validadas = grafito.
-  const claseEstatus = t.estatus === 'Atendida' ? 'estatus-validar'
-    : t.estatus === 'Archivada' ? 'estatus-validadas'
-    : 'estatus-identificadas';
-  card.classList.add(claseEstatus);
+  // Color de la TARJETA según el avance del Director (Adrián):
+  //   • Sin ningún check de Adrián → NARANJA (pendiente).
+  //   • Al menos un check de Adrián → AMARILLO (en progreso).
+  //   • Vencida → ROJO (gana sobre todo).
+  // El borde izquierdo viejo por estatus se reemplaza por este color.
+  const _itemsT = obtenerChecklist(t);
+  const _checksDir = _itemsT.filter(it => it.check_dir).length;
+  let claseColorTarjeta;
+  if (vencida) {
+    claseColorTarjeta = 'tarjeta-color-vencida';
+  } else if (_checksDir > 0) {
+    claseColorTarjeta = 'tarjeta-color-progreso';
+  } else {
+    claseColorTarjeta = 'tarjeta-color-pendiente';
+  }
+  card.classList.add(claseColorTarjeta);
 
   // Campos visibles en la tarjeta (las cosas largas como áreas involucradas,
   // acuerdos y checklist se ven al abrir el modal).
