@@ -1646,7 +1646,10 @@
     margin: 24px auto 48px;
     padding: 0 32px;
     display: grid;
-    grid-template-columns: repeat(var(--tablero-cols, 3), minmax(220px, 1fr));
+    /* minmax(0, 1fr) garantiza que TODAS las columnas tengan exactamente el
+       mismo ancho aunque alguna tenga muchas tarjetas (SA estaba creciendo
+       más que las demás). El 0 deja a las tarjetas hacerse chicas si hace falta. */
+    grid-template-columns: repeat(var(--tablero-cols, 3), minmax(0, 1fr));
     gap: 20px;
   }
 
@@ -1658,6 +1661,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* min-width: 0 con minmax(0, 1fr) en el grid evita que el contenido
+       (tarjetas con tema largo, etc.) "empuje" la columna y la haga más ancha
+       que las demás. */
+    min-width: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     transition: box-shadow 0.18s ease;
   }
