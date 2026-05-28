@@ -6329,14 +6329,15 @@ function jefaturaCodigo(raw) {
 }
 
 // Permisos del checklist (columna 1):
-//   • Tarea de SUBDIRECCIÓN (no jefatura) → la marca el subdirector
+//   • DIRECTOR (Adrián): puede palomear la columna 1 de CUALQUIER tarea de
+//     cualquier subdirección o jefatura — es el único con ese poder universal.
+//   • Tarea de SUBDIRECCIÓN (no jefatura) → la marca también el subdirector
 //     (Capturista de esa subdirección con Jefatura VACÍA en Usuarios).
 //   • Tarea de JEFATURA → la marca el JEFE específico de esa jefatura
 //     (Capturista de esa subdirección con Jefatura = código de la jefatura).
-//   • Tarea DPAC (del propio Director) → Adrián marca ambas columnas.
 function puedeMarcarResp(t) {
   if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return t.subdireccion === 'DPAC';
+  if (usuarioActual.rol === 'Director') return true;
   if (usuarioActual.subdireccion !== t.subdireccion) return false;
   if (t.nivel === 'jefatura') {
     return jefaturaCodigo(usuarioActual.jefatura) === String(t.jefatura || '').toUpperCase();
