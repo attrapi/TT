@@ -4242,7 +4242,7 @@ function actualizarKPIs() {
   let colProc, colAtendida;
   if (esDir) {
     colProc = visible.filter(t => t.estatus === 'En Proceso' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
-    colAtendida = visible.filter(t => t.estatus === 'Atendida' && (t.confirmada || t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
+    colAtendida = visible.filter(t => t.estatus === 'Atendida');   // todas las "Para validar"
   } else {
     colProc = visible.filter(t => t.estatus === 'En Proceso');
     colAtendida = visible.filter(t => t.estatus === 'Atendida');
@@ -4391,15 +4391,10 @@ function renderizarTablero() {
 
   cols.forEach(estatus => {
     let tareasCol = lista.filter(t => t.estatus === estatus);
-    // El Director solo ve en "Por validar" las tareas que el subdirector ya
-    // ENVIÓ a validación (confirmada). Sus propias áreas (DPAC/Enlace) no
-    // requieren ese paso, así que siempre se muestran.
-    if (esDir && estatus === 'Atendida') {
-      tareasCol = tareasCol.filter(t => t.confirmada || t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-    }
-    // En "En Proceso", el Director solo ve sus propias áreas: las tareas de las
-    // subdirecciones en En Proceso (devueltas o jefatura) las gestiona el
-    // subdirector, no él.
+    // "Para validar" (Atendida): el Director ve TODAS automáticamente — las
+    // tareas de subdirección llegan directo, sin que el subdirector las envíe.
+    // En "En Proceso", el Director solo ve sus propias áreas (DPAC/Enlace); las
+    // de subdirección en En Proceso (devueltas) las gestiona el subdirector.
     if (esDir && estatus === 'En Proceso') {
       tareasCol = tareasCol.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
     }
@@ -4600,23 +4595,14 @@ function crearTarjeta(t) {
   // El resto de los datos (acuerdos, acción a tomar, adjunto, seguimiento) se
   // muestran al abrir la tarjeta (modal), para que las tarjetas queden compactas.
 
-  // Aviso de devolución: si la tarea fue regresada al responsable con un
-  // comentario, lo mostramos mientras siga en Identificadas (En Proceso).
-  if (t.estatus === 'En Proceso' && t.comentario_devolucion) {
+  // Aviso de devolución: si el Director la regresó con un comentario, lo
+  // mostramos mientras no esté validada/archivada (para que el responsable lo vea).
+  if (t.comentario_devolucion && t.estatus !== 'Archivada') {
     html += `<div class="tarjeta-devuelta-info">↩ Devuelta: ${escapeHtml(t.comentario_devolucion)}</div>`;
   }
 
-  // Sello al pie de la tarjeta: SOLO "Enviada por" (subdirección). El
-  // seguimiento de jefatura ("Finalizada por…") NO va en la tarjeta —la píldora
-  // gris "Finalizada" ya lo indica—; el detalle se ve dentro del modal.
-  let sello = '';
-  if (!esValidada) {
-    if (t.nivel !== 'jefatura' && t.enviado_por) {
-      sello += (sello ? '<br>' : '') + '📨 Enviada por ' + escapeHtml(t.enviado_por);
-      if (t.fecha_envio) sello += '<br>' + formatearStamp(t.fecha_envio);
-    }
-  }
-  if (sello) html += `<div class="tarjeta-validada-info">${sello}</div>`;
+  // (Las tarjetas NO muestran "seguimiento" —enviada/finalizada/validada por—;
+  //  ese rastro vive en la Bitácora, dentro del modal.)
 
   // Acciones de la tarjeta como píldoras (misma forma para todas; el color
   // marca la acción). Íconos reutilizados:
@@ -4644,14 +4630,10 @@ function crearTarjeta(t) {
       }
     }
   } else {
-    // SUBDIRECCIÓN: nace retenida en "Para validar". Mario la ENVÍA a validación;
-    // el Director Valida → Validadas. Si fue devuelta, vuelve a En Proceso y
-    // Mario la reenvía.
-    if ((t.estatus === 'Atendida' || t.estatus === 'En Proceso') && esMario && !t.confirmada) {
-      pills += `<button class="btn-pildora btn-pildora-enviar" onclick="event.stopPropagation(); enviarAValidacion('${t.id}')" title="Enviar la tarea a validación del Director.">${icoEnviar} Enviar a validación</button>`;
-    } else if (t.estatus === 'Atendida' && esMario && t.confirmada) {
-      pills += `<button class="btn-pildora btn-pildora-off" disabled title="Enviada a validación; espera al Director.">${icoReloj} Enviada</button>`;
-    } else if (t.estatus === 'Atendida' && esDir2 && t.confirmada) {
+    // SUBDIRECCIÓN: la tarea (Atendida) la ve el Director automáticamente en
+    // "Para validar"; él la Valida → Validadas o la Devuelve. El subdirector no
+    // tiene acción sobre ella (solo las de jefatura, que finaliza).
+    if (t.estatus === 'Atendida' && esDir2) {
       pills += `<button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); validar('${t.id}')">${icoCheck} Validar</button>`;
       pills += `<button class="btn-pildora btn-pildora-devolver" onclick="event.stopPropagation(); devolver('${t.id}')" title="Regresar al responsable con un comentario.">${icoDevolver} Devolver</button>`;
     }
@@ -4878,30 +4860,25 @@ function archivar(idTarea) {
 function devolver(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
-  if (t.estatus !== 'Atendida' || !usuarioEsValidador(t)) { toast('Solo se puede devolver una tarea Por validar.', 'error'); return; }
+  if (t.estatus !== 'Atendida' || !usuarioEsValidador(t)) { toast('Solo se puede devolver una tarea Para validar.', 'error'); return; }
   const comentario = prompt('Motivo / comentario de la devolución (lo verá el responsable):', '');
   if (comentario === null) return;             // canceló
   if (!comentario.trim()) { toast('Escribe un comentario para devolver.', 'error'); return; }
 
-  t.estatus = 'En Proceso';
+  // Se queda en "Para validar" (no se atora): solo se marca con el comentario
+  // y se quita la validación. El subdirector ve el motivo, corrige, y el
+  // Director la vuelve a validar.
   t.validada = false;
-  t.en_validadas = false;
-  t.confirmada = false;       // vuelve a Mario para corregir y reenviar
-  t.enviado_por = '';
-  t.fecha_envio = '';
-  t.finalizado_por = '';
-  t.fecha_finalizacion = '';
   t.validado_por = '';
   t.fecha_validacion = '';
   t.comentario_devolucion = comentario.trim();
-  t.avance = 0;
 
-  registrarEnBitacora({ accion: 'devolver', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'En Proceso', comentario: comentario.trim() });
+  registrarEnBitacora({ accion: 'devolver', id_tarea: idTarea, estatus_anterior: 'Atendida', estatus_nuevo: 'Atendida', comentario: comentario.trim() });
 
   cerrarModal();
   persistirEstado(t);
   renderizar();
-  toast('Tarea ' + idTarea + ' devuelta a En Proceso', 'ok');
+  toast('Tarea ' + idTarea + ' devuelta con comentario', 'ok');
 }
 
 // Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
@@ -5078,12 +5055,9 @@ function abrirDetalle(t) {
               + `<button class="btn-modal" disabled style="cursor:default; background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb;">✓ Finalizada</button>`;
     }
   } else {
-    // Subdirección: Mario ENVÍA a validación; el Director Valida o Devuelve.
-    if ((t.estatus === 'Atendida' || t.estatus === 'En Proceso') && esMario && !t.confirmada) {
-      botones = `<button class="btn-modal btn-modal-primario" style="background:#0d9488; border-color:#0d9488;" onclick="enviarAValidacion('${t.id}')">➤ Enviar a validación</button>`;
-    } else if (t.estatus === 'Atendida' && esMario && t.confirmada) {
-      botones = `<button class="btn-modal" disabled style="opacity:.55; cursor:default;">⏳ Enviada a validación</button>`;
-    } else if (t.estatus === 'Atendida' && esDir && t.confirmada) {
+    // Subdirección: la tarea (Atendida) la ve el Director en "Para validar"; él
+    // Valida o Devuelve. El subdirector no actúa sobre ella.
+    if (t.estatus === 'Atendida' && esDir) {
       botones = `<button class="btn-modal" style="background:#fff7ed; color:#9a3412; border-color:#fed7aa;" onclick="devolver('${t.id}')" title="Regresar al responsable con un comentario.">↩ Devolver</button>`
               + `<button class="btn-modal btn-modal-primario" onclick="validar('${t.id}')">✓ Validar</button>`;
     }
@@ -5158,20 +5132,6 @@ function abrirDetalle(t) {
           <div class="modal-seccion-titulo">Devuelta para corrección</div>
           <div class="modal-comentarios" style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:10px; border-radius:8px;">
             ↩ ${escapeHtml(t.comentario_devolucion)}
-          </div>
-        </div>
-      ` : ''}
-
-      ${(t.creado_por || (t.nivel === 'jefatura' && t.finalizado_por) || (t.nivel !== 'jefatura' && t.enviado_por) || (t.estatus === 'Archivada' && t.validado_por) || (t.eliminada && t.eliminado_por)) ? `
-        <div class="modal-seccion">
-          <div class="modal-seccion-titulo">Seguimiento</div>
-          <div class="modal-comentarios">
-            ${t.creado_por ? '<strong>🆕 Creada por:</strong> ' + escapeHtml(t.creado_por) + (t.fecha_creacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_creacion)) + '</span>' : '') + '<br>' : ''}
-            ${(t.nivel === 'jefatura' && t.finalizado_por) ? '<strong>✓ Finalizada por:</strong> ' + escapeHtml(t.finalizado_por) + (t.fecha_finalizacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_finalizacion)) + '</span>' : '') + '<br>' : ''}
-            ${(t.nivel !== 'jefatura' && t.enviado_por) ? '<strong>📨 Enviada por:</strong> ' + escapeHtml(t.enviado_por) + (t.fecha_envio ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_envio)) + '</span>' : '') + '<br>' : ''}
-            ${(t.estatus === 'Archivada' && t.validado_por) ? '<strong>✓ Validada por:</strong> ' + escapeHtml(t.validado_por) + (t.fecha_validacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_validacion)) + '</span>' : '') + '<br>' : ''}
-            ${(t.eliminada && t.eliminado_por) ? '<strong>🗑 Eliminada por:</strong> ' + escapeHtml(t.eliminado_por) + (t.fecha_eliminacion ? ' · <span class="modal-fecha-mono">' + escapeHtml(formatearStamp(t.fecha_eliminacion)) + '</span>' : '') : ''}
-            ${t.comentarios_director ? '<br><br><strong>Comentarios:</strong> ' + escapeHtml(t.comentarios_director) : ''}
           </div>
         </div>
       ` : ''}
