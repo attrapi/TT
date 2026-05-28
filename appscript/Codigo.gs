@@ -40,6 +40,10 @@ function guardarConfiguracion() {
     HOJA_SGOI_ID:         '1Dap06TzpYoKnPKmRiDowRFO1EsHyJZHHbOsg7lod70s',
     HOJA_SGOI_PEST:       'SGOI',          // si no existe, usa la 1a pestaña
 
+    // Hoja de la Subdirección de Archivo (SA).
+    HOJA_SA_ID:           '1qggjIjePJKV2CiDHcmL0MlRnotA8Kydqkh40Riy_ij8',
+    HOJA_SA_PEST:         'SA',            // si no existe, usa la 1a pestaña
+
     HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
     HOJA_USUARIOS_PEST:   'Usuarios',
 
@@ -97,6 +101,8 @@ const CONFIG = (function () {
     HOJA_ENLACE_PEST:    g('HOJA_ENLACE_PEST', 'Enlace'),
     HOJA_SGOI_ID:        g('HOJA_SGOI_ID'),
     HOJA_SGOI_PEST:      g('HOJA_SGOI_PEST', 'SGOI'),
+    HOJA_SA_ID:          g('HOJA_SA_ID'),
+    HOJA_SA_PEST:        g('HOJA_SA_PEST', 'SA'),
     HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
@@ -235,6 +241,13 @@ function obtenerTareas(token) {
       tareas = tareas.concat(sgoi);
     } catch (e) { /* hoja SGOI aún no lista: se ignora */ }
   }
+  // Tareas de la Subdirección de Archivo (SA).
+  if (CONFIG.HOJA_SA_ID) {
+    try {
+      var sa = parsearHoja_(leerHoja_(CONFIG.HOJA_SA_ID, CONFIG.HOJA_SA_PEST), 'subdireccion', 'SA');
+      tareas = tareas.concat(sa);
+    } catch (e) { /* hoja SA aún no lista: se ignora */ }
+  }
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
   return { ok: true, tareas: tareas };
 }
@@ -255,6 +268,7 @@ function crearTarea(token, datos) {
   else if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) { sheetId = CONFIG.HOJA_DPAC_ID; sheetPest = CONFIG.HOJA_DPAC_PEST; }
   else if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) { sheetId = CONFIG.HOJA_ENLACE_ID; sheetPest = CONFIG.HOJA_ENLACE_PEST; }
   else if (sub === 'SGOI' && CONFIG.HOJA_SGOI_ID) { sheetId = CONFIG.HOJA_SGOI_ID; sheetPest = CONFIG.HOJA_SGOI_PEST; }
+  else if (sub === 'SA'   && CONFIG.HOJA_SA_ID)   { sheetId = CONFIG.HOJA_SA_ID;   sheetPest = CONFIG.HOJA_SA_PEST; }
   else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
 
   var ss = SpreadsheetApp.openById(sheetId);
@@ -475,6 +489,7 @@ function hojaDeId_(id) {
   if (/^DPAC-/i.test(id) && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID,     sheetPest: CONFIG.HOJA_DPAC_PEST,     sub: 'DPAC', esJef: false };
   if (/^ENLACE-/i.test(id) && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
   if (/^SGOI-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,   sub: 'SGOI',   esJef: false };
+  if (/^SA-/i.test(id)     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,     sub: 'SA',     esJef: false };
   return null;
 }
 
@@ -566,6 +581,7 @@ function subToDest_(sub) {
   if (sub === 'DPAC'   && CONFIG.HOJA_DPAC_ID)   return { sheetId: CONFIG.HOJA_DPAC_ID,   sheetPest: CONFIG.HOJA_DPAC_PEST,   sub: 'DPAC',   esJef: false };
   if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
   if (sub === 'SGOI'   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,   sub: 'SGOI',   esJef: false };
+  if (sub === 'SA'     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,     sub: 'SA',     esJef: false };
   return null;
 }
 
