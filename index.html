@@ -5848,8 +5848,12 @@ function abrirNuevaTarea(tEdit) {
   const opcionesSub = [
     {v:'SA', n:'SA · Subdirección de Archivo'},
     {v:'SGOI', n:'SGOI · Gestión de Obras Inducidas'},
-    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción'}
+    {v:'SPAC', n:'SPAC · Procesos Adm. de Construcción'},
+    {v:'ENLACE', n:'Enlace de Dirección'}
   ].map(o => `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`).join('');
+
+  // Para el Enlace, el campo no es una "Subdirección" sino la Dirección.
+  const etiquetaCampoSub = subDefault === 'ENLACE' ? 'Dirección' : 'Subdirección';
 
   // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
   // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
@@ -5867,7 +5871,7 @@ function abrirNuevaTarea(tEdit) {
          <div class="form-hint">DPAC = tu tarea (queda en tu panel, En Proceso). Una subdirección = se la asignas y entra a su "Para validar"; cuando la revisen y la manden, te llega a "Por validar".</div>
        </div>`
     : `<div class="form-campo">
-         <label>Subdirección <span class="req">*</span></label>
+         <label>${etiquetaCampoSub} <span class="req">*</span></label>
          <select id="nt_sub" required ${(esCapturista || ed) ? 'disabled' : ''}>${opcionesSub}</select>
          ${(esCapturista || ed) ? '<div class="form-hint">No se cambia desde aquí.</div>' : ''}
        </div>`;
