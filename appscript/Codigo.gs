@@ -858,8 +858,11 @@ function reiniciarPruebas() {
 // ============================== HELPERS ===================================
 function leerHoja_(id, pestana) {
   var ss = SpreadsheetApp.openById(id);
-  var hoja = pestana ? ss.getSheetByName(pestana) : ss.getSheets()[0];
-  if (!hoja) throw new Error('No existe la pestaña "' + pestana + '" en la hoja ' + id);
+  // Si se pidió una pestaña por nombre y no existe, usa la PRIMERA como respaldo
+  // (así no truena si el nombre no coincide exacto, p.ej. la hoja DPAC).
+  var hoja = pestana ? ss.getSheetByName(pestana) : null;
+  if (!hoja) hoja = ss.getSheets()[0];
+  if (!hoja) throw new Error('La hoja ' + id + ' no tiene pestañas.');
   return hoja.getDataRange().getValues();
 }
 
