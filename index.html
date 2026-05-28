@@ -3264,14 +3264,11 @@
     </div>
   </div>
 
+  <!-- "Nueva Tarea" y el buscador, juntos en la misma fila (a la izquierda). -->
   <div class="filtros">
-    <div class="filtros-spacer"></div>
-    <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
-  </div>
-
-  <!-- Nueva Tarea: a la izquierda, debajo de los filtros de Prioridad. -->
-  <div class="filtros-acciones">
     <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevaTarea()">+ Nueva Tarea</button>
+    <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
+    <div class="filtros-spacer"></div>
   </div>
 
   <div class="tablero" id="tablero"></div>
