@@ -2377,12 +2377,25 @@
   .modal-header-info { flex: 1; }
 
   .modal-id {
-    font-family: 'SF Mono', monospace;
+    font-family: 'SF Mono', 'Consolas', monospace;
     font-size: 11px;
-    color: var(--tinta-tenue);
+    font-weight: 700;
     letter-spacing: 0.05em;
     margin-bottom: 6px;
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: var(--grafito-tenue);
+    color: var(--tinta-suave);
   }
+  /* El ID del modal toma el color de su área (igual que las tarjetas). */
+  .modal-id[data-sub="SA"]     { background: var(--sub-sa);     color: #fff; }
+  .modal-id[data-sub="SGOI"]   { background: var(--sub-sgoi);   color: #fff; }
+  .modal-id[data-sub="SPAC"]   { background: #1d4ed8;           color: #fff; }
+  .modal-id[data-sub="ENLACE"] { background: var(--sub-enlace); color: #fff; }
+  .modal-id[data-sub="DPAC"]   { background: var(--guinda);     color: #fff; }
+  .modal-id[data-pre="JDPC"]   { background: var(--jef-jdpc);   color: #fff; }
+  .modal-id[data-pre="JDIMA"]  { background: var(--jef-jdima);  color: #fff; }
 
   .modal-titulo {
     font-family: var(--serif);
@@ -5554,7 +5567,7 @@ function abrirDetalle(t) {
   modal.innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id">${t.id} · ${t.nivel === 'jefatura' ? (t.jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos') : t.subdireccion}</div>
+        <div class="modal-id" data-sub="${t.subdireccion}" data-pre="${(String(t.id).split('-')[0] || '').toUpperCase()}">${t.id}</div>
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
           <span class="modal-estatus modal-estatus-${t.estatus === 'Atendida' ? 'atendida' : (t.estatus === 'Archivada' ? 'archivada' : 'proceso')}">${etiquetaEstatus(t.estatus)}</span>
