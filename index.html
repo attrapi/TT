@@ -3798,7 +3798,9 @@ function inicialesDe(nombre) {
 // Normaliza el nombre para mostrarlo: convierte "Ing," → "Ing." (coma tras un
 // título → punto). Aplica a todos los usuarios, presentes y futuros.
 function formatearNombre(nombre) {
-  return String(nombre || '').replace(/\b(ing|lic|mtra?|mtro|dr|dra|arq|profa?|c)\s*,/gi, '$1.');
+  return String(nombre || '')
+    .replace(/\b(ing|lic|mtra?|mtro|dr|dra|arq|profa?|c)\s*,/gi, '$1.')
+    .replace(/tavarez/gi, 'Tavares');   // corrige el apellido (dato con typo)
 }
 
 // Lista de usuarios cargada del servidor para las tarjetas, y el usuario
