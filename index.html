@@ -4170,15 +4170,16 @@ function aplicarSesion() {
     tabActiva = usuarioActual.subdireccion;
   }
 
-  // El ENLACE tiene un panel mínimo: conserva su grupo de Subdirección (con un
-  // único ítem "Enlace"), pero SIN Gestión y SIN Historial. Su tablero es de 2
-  // columnas. Los demás perfiles ven todo normal.
+  // Staff (ENLACE) tiene un panel mínimo SIN el grupo "Gestión", pero AHORA
+  // SÍ tiene el botón "Historial" (igual que subdirectores y jefes). Los demás
+  // perfiles ven todo normal.
   const grupoSubs = document.getElementById('sidebarGrupoSubs');
   const btnHistorial = document.querySelector('.sidebar-papelera');
   const lblEnlace = document.querySelector('.sidebar-sub[data-sub="ENLACE"] .sidebar-label');
   const enlaceUser = esEnlace();
   if (grupoSubs) grupoSubs.style.display = '';
-  if (btnHistorial) btnHistorial.style.display = enlaceUser ? 'none' : '';
+  // Historial visible para TODOS los perfiles (cada quien ve solo lo suyo).
+  if (btnHistorial) btnHistorial.style.display = '';
   if (enlaceUser) {
     grupoDir.style.display = 'none';
     tituloSubs.textContent = 'Enlace de Subdirección';
