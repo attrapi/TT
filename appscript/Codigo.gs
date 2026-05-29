@@ -307,9 +307,8 @@ function crearTarea(token, datos) {
   else if (sub === 'SA'   && CONFIG.HOJA_SA_ID)   { sheetId = CONFIG.HOJA_SA_ID;   sheetPest = CONFIG.HOJA_SA_PEST; }
   else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
 
-  var ss = SpreadsheetApp.openById(sheetId);
-  var hoja = ss.getSheetByName(sheetPest);
-  if (!hoja) return { ok: false, error: 'No existe la pestaña destino "' + sheetPest + '".' };
+  var hoja = obtenerHojaEscritura_(sheetId, sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe ninguna pestaña en la hoja destino.' };
 
   var valores = hoja.getDataRange().getValues();
   var e = -1;
@@ -578,9 +577,8 @@ function actualizarTarea(token, id, datos) {
   }
 
   var sheetId = dest.sheetId, sheetPest = dest.sheetPest, esJef = dest.esJef;
-  var ss = SpreadsheetApp.openById(sheetId);
-  var hoja = ss.getSheetByName(sheetPest);
-  if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
+  var hoja = obtenerHojaEscritura_(sheetId, sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe ninguna pestaña en la hoja destino.' };
   var valores = hoja.getDataRange().getValues();
   var e = -1;
   for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
@@ -639,8 +637,7 @@ function subToDest_(sub) {
 // nueva fila en destino con un ID nuevo (prefijo de la subdir destino), borra
 // la fila origen y renombra el registro en Estados/Bitácora.
 function moverTareaEntreHojas_(idViejo, destOrig, destNuevo, datos) {
-  var ssO = SpreadsheetApp.openById(destOrig.sheetId);
-  var hO = ssO.getSheetByName(destOrig.sheetPest);
+  var hO = obtenerHojaEscritura_(destOrig.sheetId, destOrig.sheetPest);
   if (!hO) return { ok: false, error: 'Hoja origen no existe.' };
   var valOrig = hO.getDataRange().getValues();
   var eO = -1;
@@ -651,8 +648,7 @@ function moverTareaEntreHojas_(idViejo, destOrig, destNuevo, datos) {
   var encOrig = valOrig[eO].map(norm_);
   var filaOrig = valOrig[filaOrigIdx - 1];
 
-  var ssN = SpreadsheetApp.openById(destNuevo.sheetId);
-  var hN = ssN.getSheetByName(destNuevo.sheetPest);
+  var hN = obtenerHojaEscritura_(destNuevo.sheetId, destNuevo.sheetPest);
   if (!hN) return { ok: false, error: 'Hoja destino no existe.' };
   var valNuevo = hN.getDataRange().getValues();
   var eN = -1;
@@ -1114,6 +1110,16 @@ function leerHoja_(id, pestana) {
   if (!hoja) hoja = ss.getSheets()[0];
   if (!hoja) throw new Error('La hoja ' + id + ' no tiene pestañas.');
   return hoja.getDataRange().getValues();
+}
+
+// Versión de getSheetByName que cae a la primera pestaña si no encuentra la
+// nombrada. Para usar en operaciones de ESCRITURA (crearTarea, actualizarTarea,
+// moverTareaEntreHojas_) y que no truenen porque la pestaña se llame distinto.
+function obtenerHojaEscritura_(sheetId, pestana) {
+  var ss = SpreadsheetApp.openById(sheetId);
+  var hoja = pestana ? ss.getSheetByName(pestana) : null;
+  if (!hoja) hoja = ss.getSheets()[0];
+  return hoja || null;
 }
 
 function norm_(s) {
