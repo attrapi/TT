@@ -4692,11 +4692,10 @@ function actualizarKPIs() {
   const atendidas  = colAtendida.length;
 
   // En el modelo NUEVO la validación es por checklist (no hay un estatus
-  // intermedio "Para validar"). Por eso TODOS los Capturistas (subdirectoras,
-  // jefes, Enlace) solo ven 2 círculos: "En Proceso" + "Validadas". El círculo
-  // del medio se oculta y los pendientes se suman al primero. El Director sí
-  // mantiene los 3 círculos por si quiere ver el desglose.
-  const dosCirculos = !esDir;
+  // intermedio "Para validar") — TODOS los perfiles, incluido el Director,
+  // ven 2 círculos: "En Proceso" + "Validadas". El del medio se oculta y los
+  // pendientes se suman al primero.
+  const dosCirculos = true;
   const kpiMedio = document.getElementById('kpiSemana').parentElement;
   if (kpiMedio) kpiMedio.style.display = dosCirculos ? 'none' : '';
   const procTotal = dosCirculos ? enProcesos + atendidas : enProcesos;

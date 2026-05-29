@@ -1187,10 +1187,13 @@ function prefijoJef_(jefatura) {
 // Regex que reconoce un ID estable (incluye prefijos viejos por compatibilidad).
 var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JDGA|JDGOI|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
 
-// Estatus inicial de una tarea según su origen (lo guardado en Estados lo
-// sobreescribe): jefatura y tareas propias del Director (DPAC/Enlace) nacen
-// "En Proceso"; las demás subdirecciones nacen "Atendida" (Para validar).
+// Estatus inicial de una tarea: en el modelo NUEVO todas las activas nacen
+// "En Proceso" (la validación es por checklist, ya no hay un estado intermedio
+// "Atendida / Para validar"). Estados sobreescribe si hay avance guardado.
 function estatusInicial_(nivel, sub) {
+  return 'En Proceso';
+}
+function _legacyEstatusInicial_(nivel, sub) {
   if (nivel === 'jefatura') return 'En Proceso';
   if (sub === 'DPAC') return 'En Proceso';           // tareas propias del Director
   return 'Atendida';   // subdirecciones y Enlace → "Para validar" (directo a Adrián)
