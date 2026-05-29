@@ -39,6 +39,8 @@ function guardarConfiguracion() {
     // Hoja de la Subdirección de Gestión de Obras Inducidas (SGOI · Fabiola).
     HOJA_SGOI_ID:         '1Dap06TzpYoKnPKmRiDowRFO1EsHyJZHHbOsg7lod70s',
     HOJA_SGOI_PEST:       'SGOI',          // si no existe, usa la 1a pestaña
+    HOJA_SGOI_PEST_JDGA:  'JDGA',          // pestaña dentro del mismo archivo SGOI
+    HOJA_SGOI_PEST_JDGOI: 'JDGOI',         // pestaña dentro del mismo archivo SGOI
 
     // Hoja de la Subdirección de Archivo (SA).
     HOJA_SA_ID:           '1qggjIjePJKV2CiDHcmL0MlRnotA8Kydqkh40Riy_ij8',
@@ -101,6 +103,8 @@ const CONFIG = (function () {
     HOJA_ENLACE_PEST:    g('HOJA_ENLACE_PEST', 'Enlace'),
     HOJA_SGOI_ID:        g('HOJA_SGOI_ID'),
     HOJA_SGOI_PEST:      g('HOJA_SGOI_PEST', 'SGOI'),
+    HOJA_SGOI_PEST_JDGA: g('HOJA_SGOI_PEST_JDGA', 'JDGA'),
+    HOJA_SGOI_PEST_JDGOI:g('HOJA_SGOI_PEST_JDGOI', 'JDGOI'),
     HOJA_SA_ID:          g('HOJA_SA_ID'),
     HOJA_SA_PEST:        g('HOJA_SA_PEST', 'SA'),
     HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
@@ -271,11 +275,22 @@ function obtenerTareas(token) {
     } catch (e) { /* hoja Enlace aún no lista: se ignora */ }
   }
   // Tareas de la Subdirección de Gestión de Obras Inducidas (Fabiola).
+  // Lee TRES pestañas dentro del mismo archivo: SGOI (subdir), JDGA (Gestión
+  // Ambiental) y JDGOI (Gestión de Obras Inducidas). Las dos últimas se leen
+  // como jefatura con el código forzado por la pestaña.
   if (CONFIG.HOJA_SGOI_ID) {
     try {
       var sgoi = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST), 'subdireccion', 'SGOI');
       tareas = tareas.concat(sgoi);
     } catch (e) { /* hoja SGOI aún no lista: se ignora */ }
+    try {
+      var jdga = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST_JDGA), 'jefatura', 'SGOI', 'GESTION_AMBIENTAL');
+      tareas = tareas.concat(jdga);
+    } catch (e) { /* pestaña JDGA aún no lista: se ignora */ }
+    try {
+      var jdgoi = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST_JDGOI), 'jefatura', 'SGOI', 'GESTION_OBRAS');
+      tareas = tareas.concat(jdgoi);
+    } catch (e) { /* pestaña JDGOI aún no lista: se ignora */ }
   }
   // Tareas de la Subdirección de Archivo (SA).
   if (CONFIG.HOJA_SA_ID) {
@@ -299,7 +314,18 @@ function crearTarea(token, datos) {
   var esJef = datos.nivel === 'jefatura';
 
   var sheetId, sheetPest;
-  if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
+  // SPAC: jefaturas viven en la hoja central de jefaturas, subdir en su hoja.
+  if (esJef && sub === 'SPAC') { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
+  // SGOI: las jefaturas viven en pestañas DENTRO del mismo archivo SGOI.
+  else if (esJef && sub === 'SGOI' && CONFIG.HOJA_SGOI_ID) {
+    sheetId = CONFIG.HOJA_SGOI_ID;
+    var codJef = String(datos.jefatura || '').toUpperCase();
+    if (codJef === 'GESTION_AMBIENTAL') sheetPest = CONFIG.HOJA_SGOI_PEST_JDGA;
+    else if (codJef === 'GESTION_OBRAS') sheetPest = CONFIG.HOJA_SGOI_PEST_JDGOI;
+    else sheetPest = CONFIG.HOJA_SGOI_PEST;
+  }
+  // Compatibilidad: si pasan `esJef` sin sub, usa la central como antes.
+  else if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
   else if (sub === 'SPAC') { sheetId = CONFIG.HOJA_SUBDIR_ID; sheetPest = CONFIG.HOJA_SUBDIR_PEST; }
   else if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) { sheetId = CONFIG.HOJA_DPAC_ID; sheetPest = CONFIG.HOJA_DPAC_PEST; }
   else if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) { sheetId = CONFIG.HOJA_ENLACE_ID; sheetPest = CONFIG.HOJA_ENLACE_PEST; }
@@ -523,8 +549,10 @@ function hojaDeId_(id) {
   if (/^SPAC-/i.test(id))                       return { sheetId: CONFIG.HOJA_SUBDIR_ID,    sheetPest: CONFIG.HOJA_SUBDIR_PEST,    sub: 'SPAC', esJef: false };
   if (/^DPAC-/i.test(id) && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID,     sheetPest: CONFIG.HOJA_DPAC_PEST,     sub: 'DPAC', esJef: false };
   if (/^ENLACE-/i.test(id) && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
-  if (/^SGOI-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,   sub: 'SGOI',   esJef: false };
-  if (/^SA-/i.test(id)     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,     sub: 'SA',     esJef: false };
+  if (/^SGOI-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,         sub: 'SGOI',   esJef: false };
+  if (/^JDGA-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST_JDGA,    sub: 'SGOI',   esJef: true,  jefatura: 'GESTION_AMBIENTAL' };
+  if (/^JDGOI-/i.test(id)  && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST_JDGOI,   sub: 'SGOI',   esJef: true,  jefatura: 'GESTION_OBRAS' };
+  if (/^SA-/i.test(id)     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,           sub: 'SA',     esJef: false };
   return null;
 }
 
@@ -1180,7 +1208,7 @@ function fechaNorm_(celda) {
 // Parsea el rango de valores de una hoja al mismo formato de tarea que usa la
 // app. `nivel` es 'jefatura' o 'subdireccion'; `subCode` es la subdirección
 // dueña de la hoja (SPAC por defecto; DPAC para la hoja de la Dirección).
-function parsearHoja_(filas, nivel, subCode) {
+function parsearHoja_(filas, nivel, subCode, jefForzada) {
   subCode = subCode || 'SPAC';
   var e = -1;
   for (var i = 0; i < filas.length; i++) { if (norm_(filas[i][0]) === 'id') { e = i; break; } }
@@ -1208,8 +1236,15 @@ function parsearHoja_(filas, nivel, subCode) {
     var jefDetect = textoJef ? detectarJefatura_(textoJef) : '';
     var nivelFila = nivel;
     var jefatura = '';
-    if (jefDetect) { nivelFila = 'jefatura'; jefatura = jefDetect; }
-    else if (nivel === 'jefatura') {
+    if (jefForzada) {
+      // La pestaña ya define la jefatura (ej. JDGA/JDGOI). Cualquier fila va
+      // como tarea de esa jefatura, sin importar el contenido de la celda.
+      jefatura = jefForzada;
+      nivelFila = 'jefatura';
+    } else if (jefDetect) {
+      nivelFila = 'jefatura';
+      jefatura = jefDetect;
+    } else if (nivel === 'jefatura') {
       jefatura = detectarJefatura_(textoJef || String(f[iAreas] || ''));
     }
     var prefijo = nivelFila === 'jefatura' ? prefijoJef_(jefatura) : (subCode + '-');
