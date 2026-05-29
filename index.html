@@ -3172,18 +3172,10 @@
   }
   .login-volver:hover { text-decoration: underline; }
 
-  /* Caja del Historial: borde negro grueso para diferenciarlo del tablero
-     principal. Adentro, columnas por subdirección. */
-  .historial-caja {
-    border: 3px solid #111827;
-    border-radius: 14px;
-    padding: 18px 22px 22px;
-    background: #f3f4f6;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.10);
-    position: relative;
-  }
+  /* Historial: SIN caja con borde. Solo columnas y tarjetas con look apagado
+     para que se sientan "muertas / pueden revivir" pero sin parecerse al
+     tablero principal. */
   .historial-caja > .bitacora-titulo-fila h2 {
-    color: #111827;
     letter-spacing: 0.06em;
   }
   .historial-cols {
@@ -3192,7 +3184,6 @@
     gap: 14px;
     margin-top: 8px;
   }
-  /* Cada columna del Historial usa los mismos colores que el tablero */
   .historial-col {
     background: #fff;
     border: 1px solid var(--linea);
@@ -3206,15 +3197,38 @@
     display: flex; flex-direction: column; gap: 12px;
     align-content: start;
     min-height: 80px;
+    background: #f3f4f6;     /* fondo grafito tenue del cuerpo de la columna */
   }
-  .historial-col-body .tarjeta { width: 100%; }
   .historial-col .vacio {
-    color: var(--tinta-suave);
+    color: #9ca3af;
     font-size: 12px;
     text-align: center;
     padding: 10px;
     font-style: italic;
   }
+  /* TARJETAS dentro del Historial: look "apagado" (gris oscuro con texto claro)
+     para que se vean como tareas terminadas / archivadas, no como activas. */
+  .historial-col-body .tarjeta {
+    width: 100%;
+    background: #374151 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #4b5563 !important;
+    border-left: 4px solid #6b7280 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25) !important;
+    filter: none;
+  }
+  .historial-col-body .tarjeta:hover { filter: brightness(1.08); }
+  .historial-col-body .tarjeta dt { color: #9ca3af !important; }
+  .historial-col-body .tarjeta dd { color: #f3f4f6 !important; }
+  .historial-col-body .tarjeta .campo-tema { color: #fff !important; }
+  /* La pildora del origen ("Completada" / "Eliminada") más contrastada */
+  .historial-col-body .tarjeta-origen-hist {
+    background: #1f2937;
+    color: #d1d5db;
+    border: 1px solid #4b5563;
+  }
+  /* Los IDs mantienen su color de área pero un poco más apagados */
+  .historial-col-body .tarjeta .tarjeta-id { opacity: 0.92; }
 
   /* Indicador "Actualizando datos…" arriba a la derecha cuando se pintó
      desde caché y se está esperando la respuesta fresca del servidor. */
