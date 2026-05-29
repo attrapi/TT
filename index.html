@@ -4327,10 +4327,32 @@ function aplicarUsuarioServidor(res) {
     iniciales: inicialesDe(u.nombre)
   };
   aplicarSesion();
-  cargarTareasAppScript(false);       // primera carga de datos desde el servidor
+  // RENDER INSTANTÁNEO: si hay tareas cacheadas de la sesión anterior, las
+  // dibujamos primero para que el tablero aparezca en milisegundos. En paralelo
+  // se piden las frescas y al llegar se reemplazan + re-renderizan.
+  try {
+    const cached = localStorage.getItem('tt_tareas_cache_v1');
+    if (cached) {
+      const arr = JSON.parse(cached);
+      if (Array.isArray(arr) && arr.length) {
+        TAREAS.length = 0;
+        arr.forEach(asegurarCamposChecklist);
+        TAREAS.push(...arr);
+        renderizar();
+      }
+    }
+    const cachedAreas = localStorage.getItem('tt_areas_cache_v1');
+    if (cachedAreas) {
+      const a = JSON.parse(cachedAreas);
+      if (Array.isArray(a) && a.length) AREAS = a;
+    }
+  } catch (e) { /* cache vieja inválida → ignorar */ }
+
+  cargarTareasAppScript(false);       // jala las frescas y reemplaza el cache
   cargarAreas();                      // catálogo de áreas (base + agregadas)
-  cargarBitacora();                   // historial persistido
-  cargarTelefonos();                  // mapa de teléfonos por área (para WhatsApp)
+  // Bitácora y teléfonos NO bloquean el render del tablero — los cargamos sin
+  // prisa, después de unos ms (defer), para que el primer pintado sea rápido.
+  setTimeout(function () { cargarBitacora(); cargarTelefonos(); }, 250);
 }
 
 // Mapa { "SUBDIRECCION|JEFATURA": { telefono, nombre } } cargado desde la hoja
@@ -4505,6 +4527,9 @@ function cargarTareasAppScript(preservar) {
       nuevas.forEach(asegurarCamposChecklist);
       TAREAS.length = 0;
       TAREAS.push(...nuevas);
+      // Cache para render instantáneo en la próxima carga (best-effort: si
+      // localStorage está lleno, se ignora).
+      try { localStorage.setItem('tt_tareas_cache_v1', JSON.stringify(nuevas)); } catch (e) {}
       renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       if (vistaActiva === 'carga') renderizarCarga();
@@ -6958,7 +6983,12 @@ function dzPickItem(idTarea, idx) {
 function cargarAreas() {
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
-    .withSuccessHandler(function (res) { if (res && res.ok && res.areas && res.areas.length) AREAS = res.areas; })
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && res.areas && res.areas.length) {
+        AREAS = res.areas;
+        try { localStorage.setItem('tt_areas_cache_v1', JSON.stringify(AREAS)); } catch (e) {}
+      }
+    })
     .obtenerAreas(SESION_TOKEN);
 }
 

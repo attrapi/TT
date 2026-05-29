@@ -121,8 +121,24 @@ const CONFIG = (function () {
 })();
 // ==========================================================================
 
+// Limpia el caché del HTML para que la siguiente carga traiga la versión
+// nueva de GitHub Pages. Ejecútalo manualmente cuando empujes cambios
+// importantes y quieras que se reflejen en menos de 5 min.
+function vaciarCacheHtml() {
+  try { CacheService.getScriptCache().remove('idx_html_v1'); return 'OK'; }
+  catch (e) { return 'Error: ' + e; }
+}
+
 function doGet() {
-  var html = UrlFetchApp.fetch(CONFIG.APP_HTML_URL, { muteHttpExceptions: true }).getContentText();
+  // Cache de 5 min para no traer el index.html de GitHub Pages en cada carga.
+  // (UrlFetchApp.fetch toma ~1-1.5s cada vez.) Cuando subas cambios al HTML,
+  // tardan hasta 5 min en aparecer, o llama vaciarCacheHtml() para forzar.
+  var cache = CacheService.getScriptCache();
+  var html = cache.get('idx_html_v1');
+  if (!html) {
+    html = UrlFetchApp.fetch(CONFIG.APP_HTML_URL, { muteHttpExceptions: true }).getContentText();
+    try { cache.put('idx_html_v1', html, 300); } catch (e) { /* >100KB no entra; sin caché */ }
+  }
   return HtmlService.createHtmlOutput(html)
     .setTitle('TT · Sistema de Gestión y Validación de Tareas')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
