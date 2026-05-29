@@ -4715,9 +4715,12 @@ function actualizarKPIs() {
   if (vencidasChip) vencidasChip.classList.toggle('oculto', vencidas === 0);
 
   // Donut: para los Capturistas (2 círculos) las "atendidas" ya están dentro
-  // de "En Proceso", por eso el segmento de Para validar va en 0.
+  // de "En Proceso", así que ocultamos su renglón en la leyenda para no
+  // duplicar el texto "En Proceso".
   const lblAt = document.getElementById('kpiPieLblAtendidas');
   if (lblAt) lblAt.textContent = etiquetaEstatus('Atendida');
+  const filaLeyendaAt = lblAt ? lblAt.parentElement : null;
+  if (filaLeyendaAt) filaLeyendaAt.style.display = dosCirculos ? 'none' : '';
   renderDonut(procTotal - vencidas, vencidas, dosCirculos ? 0 : atendidas, archivadas);
 
   // Pendientes: el Director por subdirección; el subdirector por jefatura.
