@@ -4559,18 +4559,37 @@ function cargarTelefonos() {
     .listarTelefonos(SESION_TOKEN);
 }
 // Lista de responsables (subdirectoras, jefes, staff) para el autocompletado
-// del campo "Responsable directo". Se llena al iniciar sesión.
+// del campo "Responsable directo". Se llena al iniciar sesión y se completa
+// con los nombres ya presentes en las tareas si el backend no tiene la
+// función listarResponsables.
 let RESPONSABLES = [];
 function cargarResponsables() {
+  // Fallback inicial: lo que ya conocemos por las tareas cargadas.
+  responsablesDesdeTAREAS();
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
     .withSuccessHandler(function (res) {
-      if (res && res.ok && Array.isArray(res.responsables)) {
+      if (res && res.ok && Array.isArray(res.responsables) && res.responsables.length) {
         RESPONSABLES = res.responsables;
       }
     })
-    .withFailureHandler(function () { /* sin sugerencias si truena */ })
+    .withFailureHandler(function () { /* deja el fallback que ya armamos */ })
     .listarResponsables(SESION_TOKEN);
+}
+// Fallback: extrae nombres únicos del campo `responsable` de las tareas ya
+// cargadas. Útil cuando el backend aún no tiene listarResponsables.
+function responsablesDesdeTAREAS() {
+  if (!Array.isArray(TAREAS)) return;
+  const set = new Set();
+  TAREAS.forEach(function (t) {
+    const r = (t && t.responsable || '').trim();
+    if (r) set.add(r);
+  });
+  if (!RESPONSABLES.length) {
+    RESPONSABLES = Array.from(set).map(function (n) {
+      return { nombreCompleto: n, subdireccion: '', jefatura: '' };
+    });
+  }
 }
 // Extrae los NOMBRES (sin apellidos) de un nombre completo:
 //   "Ing. Mario Alberto Ramírez Franca"   → "Mario Alberto"
