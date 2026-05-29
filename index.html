@@ -6755,7 +6755,18 @@ function autorChecklistActual() {
 function checklistDesdeTexto(texto) {
   if (!texto) return [];
   const aut = autorChecklistActual();
-  return String(texto).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(linea => ({
+  let lineas = String(texto).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  // Fallback: si TODO el texto vino en una sola línea pero tiene
+  //   • saltos con ";" o "•" o numeración tipo "1)", "1.-"
+  // lo separamos para no quedarnos con un solo bloque largo. Las comas NO se
+  // usan como separador porque suelen ser parte natural de las acciones.
+  if (lineas.length === 1) {
+    const único = lineas[0];
+    let cortes = único.split(/\s*[;•]\s*|\s*\d+[\)\.\-]\s+/g)
+                       .map(s => s.trim()).filter(Boolean);
+    if (cortes.length > 1) lineas = cortes;
+  }
+  return lineas.map(linea => ({
     texto: linea,
     check_resp: false,
     check_dir: false,
