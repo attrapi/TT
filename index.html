@@ -7459,19 +7459,19 @@ function abrirNuevaTarea(tEdit) {
   // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
   // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
   const esDirNuevo = !esCapturista && !ed;
-  // Destino de la tarea (Director, creando): subdirecciones primero, jefaturas
-  // después. DPAC y Staff arriba (área del Director).
+  // Destino de la tarea (Director, creando): solo los acrónimos para que los
+  // chips queden compactos. El nombre completo va en el tooltip.
   const asignablesHTML = [
-    {v:'DPAC',   n:'DPAC · Dirección (mi tarea)'},
-    {v:'ENLACE', n:'STAFF · Dirección'},
-    {v:'SGOI',   n:'SGOI · Subdirección de Gestión de Obras Inducidas'},
-    {v:'SPAC',   n:'SPAC · Subdirección de Procesos Administrativos de Construcción'},
-    {v:'SA',     n:'SA · Subdirección de Archivo'},
-    {v:'JDGA',   n:'JDGA · Jefatura de Gestión Ambiental'},
-    {v:'JDGOI',  n:'JDGOI · Jefatura de Gestión de Obras Inducidas'},
-    {v:'JDPC',   n:'JDPC · Jefatura de Procesos de Construcción'},
-    {v:'JDIMA',  n:'JDIMA · Jefatura de Implementación de Manuales'}
-  ].map(o => `<label class="area-chip"><input type="checkbox" value="${o.v}" ${o.v==='DPAC'?'checked':''}>${o.n}</label>`).join('');
+    {v:'DPAC',   n:'DPAC',   tip:'Dirección (mi tarea)'},
+    {v:'ENLACE', n:'STAFF',  tip:'Dirección · Staff'},
+    {v:'SGOI',   n:'SGOI',   tip:'Subdirección de Gestión de Obras Inducidas'},
+    {v:'SPAC',   n:'SPAC',   tip:'Subdirección de Procesos Administrativos de Construcción'},
+    {v:'SA',     n:'SA',     tip:'Subdirección de Archivo'},
+    {v:'JDGA',   n:'JDGA',   tip:'Jefatura de Gestión Ambiental'},
+    {v:'JDGOI',  n:'JDGOI',  tip:'Jefatura de Gestión de Obras Inducidas'},
+    {v:'JDPC',   n:'JDPC',   tip:'Jefatura de Procesos de Construcción'},
+    {v:'JDIMA',  n:'JDIMA',  tip:'Jefatura de Implementación de Manuales'}
+  ].map(o => `<label class="area-chip" title="${escapeHtml(o.tip)}"><input type="checkbox" value="${o.v}" ${o.v==='DPAC'?'checked':''}>${o.n}</label>`).join('');
   const campoSub = esDirNuevo
     ? `<div class="form-campo full">
          <label>Destino de la tarea <span class="req">*</span></label>
