@@ -3141,6 +3141,11 @@
     display: grid; grid-template-columns: minmax(0, 1fr) 75px 75px 105px;
     align-items: center; gap: 10px; padding: 8px 12px;
   }
+  /* Variante Staff (DPAC + Enlace): solo 1 casilla (Director) + adjunto. */
+  .checklist-cab.checklist-cab-staff,
+  .checklist-fila.checklist-fila-staff {
+    grid-template-columns: minmax(0, 1fr) 90px 105px;
+  }
   /* La acción ocupa todo el espacio disponible. Si el texto es muy largo se
      envuelve a la siguiente línea (no se trunca). */
   .checklist-texto {
@@ -6392,16 +6397,25 @@ function checklistDesdeTexto(texto) {
 function checklistATexto(t) {
   return obtenerChecklist(t).map(i => i.texto).join('\n');
 }
-// ¿Todas las casillas marcadas (ambas columnas, todos los renglones)?
+// ¿Todas las casillas marcadas? Para Staff (DPAC/ENLACE) basta con que
+// Adrián haya marcado todos los renglones (su única columna). Para el resto,
+// ambas columnas (Responsable + Director).
 function checklistTodoMarcado(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return false;
+  const esStaff = t && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+  if (esStaff) return items.every(i => i.check_dir);
   return items.every(i => i.check_resp && i.check_dir);
 }
-// % de avance combinado (cuántas casillas marcadas de las posibles).
+// % de avance: en Staff solo cuenta la columna del Director.
 function checklistAvance(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return 0;
+  const esStaff = t && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+  if (esStaff) {
+    const m = items.filter(i => i.check_dir).length;
+    return Math.round((m / items.length) * 100);
+  }
   let marcadas = 0;
   items.forEach(i => { if (i.check_resp) marcadas++; if (i.check_dir) marcadas++; });
   return Math.round((marcadas / (items.length * 2)) * 100);
@@ -6464,10 +6478,9 @@ function renderChecklistHTML(t) {
   const puedeD = puedeMarcarDir(t);
   const puedeAgregar = puedeR || puedeD;     // cualquiera con acceso al checklist
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  // Encabezados de las columnas del checklist:
-  // - Col 1: acrónimo de la subdirección dueña (la marca el SUBDIRECTOR).
-  //          Para ENLACE muestra "Staff"; para DPAC, "Dirección".
-  // - Col 2: la marca el Director (Adrián) — usamos el título genérico.
+  // Tareas de STAFF (DPAC + ENLACE): solo una columna en el checklist — la
+  // del Director — porque el único que valida ahí es Adrián.
+  const esStaff = t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
   let nombreResp;
   if (t.subdireccion === 'ENLACE')      nombreResp = 'Staff';
   else if (t.subdireccion === 'DPAC')   nombreResp = 'Dirección';
@@ -6481,13 +6494,18 @@ function renderChecklistHTML(t) {
       '</div>'
     : '';
 
-  const cabecera =
-    '<div class="checklist-cab">' +
-      '<span>Acción</span>' +
-      '<span class="checklist-cab-resp" title="' + escapeHtml(nombreResp) + '">' + escapeHtml(nombreResp) + '</span>' +
-      '<span class="checklist-cab-dir"  title="' + escapeHtml(nombreDir)  + '">' + escapeHtml(nombreDir)  + '</span>' +
-      '<span class="checklist-cab-adj">Adjunto</span>' +
-    '</div>';
+  const cabecera = esStaff
+    ? '<div class="checklist-cab checklist-cab-staff">' +
+        '<span>Acción</span>' +
+        '<span class="checklist-cab-dir" title="' + escapeHtml(nombreDir) + '">' + escapeHtml(nombreDir) + '</span>' +
+        '<span class="checklist-cab-adj">Adjunto</span>' +
+      '</div>'
+    : '<div class="checklist-cab">' +
+        '<span>Acción</span>' +
+        '<span class="checklist-cab-resp" title="' + escapeHtml(nombreResp) + '">' + escapeHtml(nombreResp) + '</span>' +
+        '<span class="checklist-cab-dir"  title="' + escapeHtml(nombreDir)  + '">' + escapeHtml(nombreDir)  + '</span>' +
+        '<span class="checklist-cab-adj">Adjunto</span>' +
+      '</div>';
 
   if (items.length === 0) {
     return '<div class="checklist-tabla">' + cabecera +
@@ -6531,6 +6549,17 @@ function renderChecklistHTML(t) {
         ' title="Arrastra un archivo aquí o haz clic">📎 Arrastra</div>';
     } else {
       celdaAdj = '<div class="checklist-adj-cell" style="cursor:default;opacity:.4">—</div>';
+    }
+    if (esStaff) {
+      // Solo una casilla (Director).
+      return '<div class="checklist-fila checklist-fila-staff ' + claseFila + (item.check_dir ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
+        '<span class="checklist-texto">' +
+          '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
+          acciones +
+        '</span>' +
+        '<input type="checkbox" class="checklist-chk"' + (item.check_dir ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
+        celdaAdj +
+      '</div>';
     }
     return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
       '<span class="checklist-texto">' +
@@ -6888,7 +6917,17 @@ function abrirNuevaTarea(tEdit) {
   const hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
 
   // Valores precargados (edición) o por defecto (nueva).
-  const subDefault = ed ? ed.subdireccion : (subFija || 'SA');
+  // Código del área para el <select>: si la tarea es jefatura usa el código
+  // de la jefatura (JDGA/JDGOI/JDPC/JDIMA) en vez de su subdir.
+  const _codigoEd = function (t) {
+    if (!t) return '';
+    if (t.nivel === 'jefatura') {
+      const m = {'PROCEDIMIENTOS':'JDPC','MANUALES':'JDIMA','GESTION_AMBIENTAL':'JDGA','GESTION_OBRAS':'JDGOI'};
+      return m[t.jefatura] || t.subdireccion;
+    }
+    return t.subdireccion;
+  };
+  const subDefault = ed ? _codigoEd(ed) : (subFija || 'SA');
   const valResp = ed ? (ed.responsable || '') : (esCapturista ? usuarioActual.nombre : '');
   const valTema = ed ? (ed.tema || ed.titulo || '') : '';
   const valAcuerdos = ed ? (ed.acuerdos_realizados || '') : '';
@@ -6910,18 +6949,41 @@ function abrirNuevaTarea(tEdit) {
         .filter(Boolean)
     : [];
 
-  // Opciones para "Área responsable". Por ahora solo las 3 subdirecciones
-  // (SGOI · SPAC · SA), en el mismo orden que las columnas del tablero. Si la
-  // tarea es DPAC o ENLACE, agregamos esa opción para que el <select> respete
-  // el valor actual (antes caía por default en SA y "movía" la tarea sin querer).
-  const baseOpciones = [
-    {v:'SGOI', n:'SGOI · Subdirección de Gestión de Obras Inducidas'},
-    {v:'SPAC', n:'SPAC · Subdirección de Procesos Administrativos de Construcción'},
-    {v:'SA',   n:'SA · Subdirección de Archivo'}
+  // Opciones del campo "Área responsable":
+  //   • El Director ve TODO (3 subdirs + 4 jefaturas + DPAC + Staff).
+  //   • Cada subdirectora ve SU subdir + las jefaturas que dependen de ella.
+  //   • Una jefa ve solo SU jefatura (no puede reasignar).
+  // El value es un código (SGOI/JDGA/JDPC/...) que se decodifica al guardar.
+  const catalogoArea = [
+    { v:'DPAC',   sub:'DPAC',   nivel:'subdireccion', jef:'',                  n:'DPAC · Dirección (mi tarea)' },
+    { v:'ENLACE', sub:'ENLACE', nivel:'subdireccion', jef:'',                  n:'Staff · Dirección' },
+    { v:'SGOI',  sub:'SGOI', nivel:'subdireccion', jef:'',                     n:'SGOI · Subdirección de Gestión de Obras Inducidas' },
+    { v:'JDGA',  sub:'SGOI', nivel:'jefatura',     jef:'GESTION_AMBIENTAL',    n:'JDGA · Jefatura de Departamento de Gestión Ambiental' },
+    { v:'JDGOI', sub:'SGOI', nivel:'jefatura',     jef:'GESTION_OBRAS',        n:'JDGOI · Jefatura de Departamento de Gestión de Obras Inducidas' },
+    { v:'SPAC',  sub:'SPAC', nivel:'subdireccion', jef:'',                     n:'SPAC · Subdirección de Procesos Administrativos de Construcción' },
+    { v:'JDPC',  sub:'SPAC', nivel:'jefatura',     jef:'PROCEDIMIENTOS',       n:'JDPC · Jefatura de Departamento de Procesos de Construcción' },
+    { v:'JDIMA', sub:'SPAC', nivel:'jefatura',     jef:'MANUALES',             n:'JDIMA · Jefatura de Departamento de Implementación de Manuales Administrativos' },
+    { v:'SA',    sub:'SA',   nivel:'subdireccion', jef:'',                     n:'SA · Subdirección de Archivo' }
   ];
-  if (subDefault === 'DPAC')   baseOpciones.push({v:'DPAC',   n:'DPAC · Dirección (mi tarea)'});
-  if (subDefault === 'ENLACE') baseOpciones.push({v:'ENLACE', n:'Staff · Dirección'});
-  const opcionesSub = baseOpciones.map(o =>
+  // Filtra según el rol del usuario.
+  let opcionesPermitidas;
+  if (usuarioActual.rol === 'Director') {
+    opcionesPermitidas = catalogoArea;
+  } else {
+    opcionesPermitidas = catalogoArea.filter(o => o.sub === usuarioActual.subdireccion);
+    // Si la usuaria es Jefa (Jefatura asignada), solo su propia jefatura.
+    const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
+    if (codJefUser) {
+      opcionesPermitidas = opcionesPermitidas.filter(o => o.jef === codJefUser);
+    }
+  }
+  // Si el valor actual no está en las permitidas (p. ej. DPAC editado por un
+  // subdirector), lo agregamos para preservar el valor original.
+  if (!opcionesPermitidas.find(o => o.v === subDefault)) {
+    const extra = catalogoArea.find(o => o.v === subDefault);
+    if (extra) opcionesPermitidas.push(extra);
+  }
+  const opcionesSub = opcionesPermitidas.map(o =>
     `<option value="${o.v}" ${o.v === subDefault ? 'selected' : ''}>${o.n}</option>`
   ).join('');
 
@@ -7097,7 +7159,25 @@ function guardarNuevaTarea() {
     const selSub = document.getElementById('nt_sub');
     subsAsignadas = selSub ? [selSub.value] : [];
   }
-  const sub = subsAsignadas[0] || '';
+  // El value del select puede ser un código de jefatura (JDGA/JDGOI/JDPC/JDIMA);
+  // lo decodificamos al modelo {sub, nivel, jefatura}. Para checkboxes del
+  // Director se reciben solo códigos de subdir.
+  const _CAT = {
+    'SGOI':  { sub:'SGOI',  nivel:'subdireccion', jef:'' },
+    'JDGA':  { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_AMBIENTAL' },
+    'JDGOI': { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_OBRAS' },
+    'SPAC':  { sub:'SPAC',  nivel:'subdireccion', jef:'' },
+    'JDPC':  { sub:'SPAC',  nivel:'jefatura',     jef:'PROCEDIMIENTOS' },
+    'JDIMA': { sub:'SPAC',  nivel:'jefatura',     jef:'MANUALES' },
+    'SA':    { sub:'SA',    nivel:'subdireccion', jef:'' },
+    'DPAC':  { sub:'DPAC',  nivel:'subdireccion', jef:'' },
+    'ENLACE':{ sub:'ENLACE',nivel:'subdireccion', jef:'' }
+  };
+  const codElegido = subsAsignadas[0] || '';
+  const _info = _CAT[codElegido] || { sub: codElegido, nivel: 'subdireccion', jef: '' };
+  const sub = _info.sub;
+  const nivelElegido = _info.nivel;
+  const jefaturaElegida = _info.jef;
   const responsable = document.getElementById('nt_responsable').value.trim();
   const tema = document.getElementById('nt_tema').value.trim();
   const areasMarcadas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value);
@@ -7121,7 +7201,8 @@ function guardarNuevaTarea() {
   const textoBtn = editando ? 'Guardar cambios' : 'Crear Tarea';
   const datos = {
     subdireccion: sub,
-    nivel: (editando && tareaEditando.nivel) ? tareaEditando.nivel : 'subdireccion',
+    nivel: nivelElegido,
+    jefatura: jefaturaElegida,
     responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada
   };
 

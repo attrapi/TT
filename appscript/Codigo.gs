@@ -605,6 +605,20 @@ function actualizarTarea(token, id, datos) {
   if (datos.accion !== undefined) setCell('accion', datos.accion);
   if (datos.fecha !== undefined) setCell('fecha', fecha);
   if (datos.url) setCell('url', datos.url);
+  // Si la tarea ahora es JEFATURA, escribimos el nombre legible en la columna
+  // "Jefatura" para que la próxima lectura la reconozca como tal. Si volvió a
+  // subdirección, limpiamos la celda.
+  if (datos.nivel === 'jefatura' && datos.jefatura) {
+    var nombreJef = ({
+      'PROCEDIMIENTOS':   'Jefatura de Departamento de Procedimientos de Construcción',
+      'MANUALES':         'Jefatura de Departamento de Implementación de Manuales Administrativos',
+      'GESTION_AMBIENTAL':'Jefatura de Departamento de Gestión Ambiental',
+      'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
+    })[String(datos.jefatura).toUpperCase()] || datos.jefatura;
+    setCell('jefatura', nombreJef);
+  } else if (datos.nivel === 'subdireccion') {
+    setCell('jefatura', '');
+  }
   agregarAreas_(datos.areas);
   return { ok: true };
 }
@@ -1115,18 +1129,29 @@ function normEstatus_(s) {
 
 function detectarJefatura_(texto) {
   var v = norm_(texto);
-  if (/manual/.test(v)) return 'MANUALES';
+  if (!v) return '';
+  if (/manual/.test(v))                            return 'MANUALES';
   if (/procedimiento|procesos de construc/.test(v)) return 'PROCEDIMIENTOS';
-  return 'PROCEDIMIENTOS';
+  if (/ambient/.test(v))                           return 'GESTION_AMBIENTAL';
+  if (/obras inducid|inducidas/.test(v))           return 'GESTION_OBRAS';
+  // Códigos cortos también funcionan.
+  if (v === 'jdpc')  return 'PROCEDIMIENTOS';
+  if (v === 'jdima') return 'MANUALES';
+  if (v === 'jdga')  return 'GESTION_AMBIENTAL';
+  if (v === 'jdgoi') return 'GESTION_OBRAS';
+  return '';
 }
 
-// Prefijo de ID según la jefatura:
-//   • Procesos de Construcción (PROCEDIMIENTOS)          → JDPC-
-//   • Implementación de Manuales Admin. (MANUALES)       → JDIMA-
-function prefijoJef_(jefatura) { return jefatura === 'MANUALES' ? 'JDIMA-' : 'JDPC-'; }
+// Prefijo de ID según la jefatura.
+function prefijoJef_(jefatura) {
+  if (jefatura === 'MANUALES')          return 'JDIMA-';
+  if (jefatura === 'GESTION_AMBIENTAL') return 'JDGA-';
+  if (jefatura === 'GESTION_OBRAS')     return 'JDGOI-';
+  return 'JDPC-';
+}
 
 // Regex que reconoce un ID estable (incluye prefijos viejos por compatibilidad).
-var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
+var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JDGA|JDGOI|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
 
 // Estatus inicial de una tarea según su origen (lo guardado en Estados lo
 // sobreescribe): jefatura y tareas propias del Director (DPAC/Enlace) nacen
@@ -1169,13 +1194,19 @@ function parsearHoja_(filas, nivel, subCode) {
     var f = filas[r];
     var tema = String(f[iTema] || '').trim();
     if (!tema) continue;
-    // La jefatura define el prefijo del ID (JDPC- / JDIMA-). Se toma de la
-    // COLUMNA "Jefatura"; solo si está vacía se usa "Áreas" como respaldo.
+    // Detección por fila: si la columna "Jefatura" tiene un código reconocible
+    // tratamos la fila como JEFATURA aunque la hoja sea de subdirección. Eso
+    // permite que Fabiola/Mario asignen tareas a sus jefaturas desde su misma
+    // hoja sin necesitar una pestaña aparte.
     var textoJef = String(iJef >= 0 ? f[iJef] : '').trim();
-    var jefatura = nivel === 'jefatura'
-      ? detectarJefatura_(textoJef || String(f[iAreas] || ''))
-      : '';
-    var prefijo = nivel === 'jefatura' ? prefijoJef_(jefatura) : (subCode + '-');
+    var jefDetect = textoJef ? detectarJefatura_(textoJef) : '';
+    var nivelFila = nivel;
+    var jefatura = '';
+    if (jefDetect) { nivelFila = 'jefatura'; jefatura = jefDetect; }
+    else if (nivel === 'jefatura') {
+      jefatura = detectarJefatura_(textoJef || String(f[iAreas] || ''));
+    }
+    var prefijo = nivelFila === 'jefatura' ? prefijoJef_(jefatura) : (subCode + '-');
     // ID FIJO: usa el de la columna ID si ya es estable; si no, usa el posicional.
     var idCell = String(f[0] || '').trim();
     var id = RE_ID_ESTABLE.test(idCell) ? idCell : (prefijo + String(r - e).padStart(3, '0'));
