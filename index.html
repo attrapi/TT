@@ -3207,10 +3207,9 @@
     padding: 14px; font-size: 12.5px; color: var(--tinta-suave);
     text-align: center; font-style: italic;
   }
-  /* Color de la fila según quién creó la acción del checklist. */
-  .checklist-fila.fila-creada-director  { border-left: 3px solid #b45309; background: #fffbeb; }
-  .checklist-fila.fila-creada-capturista { border-left: 3px solid var(--guinda); background: #fdf6f8; }
-  .checklist-fila.fila-creada-otro       { border-left: 3px solid #94a3b8; }
+  /* Las filas del checklist se ven limpias, sin franja de color por creador
+     (antes había un border-left/background tenue). El creador se sabe por el
+     tooltip de la fila y la fecha en la bitácora. */
   .checklist-fila .checklist-texto {
     display: inline-flex; align-items: center; gap: 6px;
   }
@@ -6616,8 +6615,7 @@ function renderChecklistHTML(t) {
     cabecera + filas +
     '</div>' +
     inputAgregar +
-    '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>' +
-    '<div class="checklist-leyenda"><span class="leyenda-punto leyenda-director"></span>Acción del Director · <span class="leyenda-punto leyenda-capturista"></span>Acción del Responsable</div>';
+    '<div class="checklist-avance"><div class="checklist-avance-barra"><div class="checklist-avance-relleno" style="width:' + avance + '%"></div></div><span>' + avance + '% · ' + completas + '/' + items.length + ' completadas</span></div>';
 }
 
 // Edita el texto de un ítem del checklist EN LA MISMA FILA (inline, sin
