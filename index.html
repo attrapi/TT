@@ -2084,6 +2084,14 @@
      las otras subdirecciones. DPAC en guinda (color institucional del Director)
      y Enlace en morado, para distinguir las propias de Adrián de las de Samanta. */
   .tarjeta[data-sub="DPAC"]   .tarjeta-id { background: var(--guinda); color: #fff; }
+
+  /* Etiqueta del origen en Historial ("Completada" / "Eliminada"). */
+  .tarjeta-origen-hist {
+    display: inline-block; padding: 1px 8px; margin: 4px 0 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: #f3f4f6; color: var(--tinta-suave); border-radius: 999px;
+  }
   /* Jefaturas con color propio (coincide con su indicador de Pendientes). */
   .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
   .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
@@ -4675,21 +4683,15 @@ function actualizarKPIs() {
     if (lbl) lbl.textContent = texto;
   };
 
-  // Conteos por columna CON LA MISMA VISIBILIDAD QUE EL TABLERO (si no, no
-  // coinciden: el Director solo ve sus áreas en En Proceso y lo confirmado en
-  // Por validar).
-  let colProc, colAtendida;
-  if (esDir) {
-    colProc = visible.filter(t => t.estatus === 'En Proceso' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
-    colAtendida = visible.filter(t => t.estatus === 'Atendida' && t.confirmada !== false);   // "Para validar" sin devueltas
-  } else {
-    colProc = visible.filter(t => t.estatus === 'En Proceso');
-    colAtendida = visible.filter(t => t.estatus === 'Atendida');
-  }
+  // Conteos del Resumen general — MISMO CRITERIO que el tablero del modelo
+  // NUEVO: las activas son TODAS las no Archivadas (vivan en estatus interno
+  // 'En Proceso' o 'Atendida' por compatibilidad). Vencidas se cuentan sobre
+  // esa misma base; Archivadas son las que están en Historial.
+  const activas = visible.filter(t => t.estatus !== 'Archivada');
   const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
-  const vencidas   = colProc.filter(t => esVencida(t.fecha_limite)).length;
-  const enProcesos = colProc.length;
-  const atendidas  = colAtendida.length;
+  const vencidas   = activas.filter(t => esVencida(t.fecha_limite)).length;
+  const enProcesos = activas.filter(t => t.estatus === 'En Proceso').length;
+  const atendidas  = activas.filter(t => t.estatus === 'Atendida').length;
 
   // En el modelo NUEVO la validación es por checklist (no hay un estatus
   // intermedio "Para validar") — TODOS los perfiles, incluido el Director,
@@ -5532,9 +5534,18 @@ function renderizarPapelera() {
   lista.forEach(t => {
     const card = document.createElement('div');
     card.className = 'tarjeta';
+    // Hereda los mismos atributos que en el tablero para que el ID tome el
+    // color de su área (SPAC azul, SGOI olivo, SA naranja, Staff morado, etc.)
+    card.setAttribute('data-sub', t.subdireccion || '');
+    card.setAttribute('data-pre', (String(t.id).split('-')[0] || '').toUpperCase());
     card.onclick = () => abrirDetalle(t);   // clic en la tarjeta → ver detalle
     const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
-    let html = `<div class="tarjeta-id">${t.id} · <span style="color:var(--tinta-suave)">${etiquetaEstatus(t.estatus)}</span></div>
+    // Etiqueta legible del origen en el Historial: si fue eliminada, "Eliminada";
+    // si fue completada, "Completada"; los demás estatus se mapean igual.
+    const origenHist = t.eliminada ? 'Eliminada'
+                     : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
+    let html = `<div class="tarjeta-id">${t.id}</div>
+      <div class="tarjeta-origen-hist">${origenHist}</div>
       <dl class="tarjeta-campos">
         <dt>Tema</dt><dd class="campo-tema">${escapeHtml(t.tema || t.titulo)}</dd>
         <dt>Áreas involucradas</dt><dd>${escapeHtml(areas)}</dd>
