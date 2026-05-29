@@ -1927,6 +1927,14 @@
     outline: 2px dashed var(--guinda);
     outline-offset: -8px;
   }
+  /* Cuerpo de una columna ÚNICA (SA, jefatura sola, Staff de Samanta): las
+     tarjetas se acomodan en grid (varias por fila) para aprovechar el ancho. */
+  .col-cuerpo.col-cuerpo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    align-content: start;
+  }
 
   /* Tarjetas que vencen HOY: borde rojo y un pulso sutil para llamar la
      atención. Si el usuario abre la app el día del vencimiento, los pendientes
@@ -5068,13 +5076,13 @@ function renderizarTablero() {
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
   tablero.style.setProperty('--tablero-cols', cols.length);
-  // Cuando solo hay UNA columna (p. ej. Amanda en SA, Samanta en Staff, un jefe
-  // en su jefatura), no la estiramos a todo el ancho: la dejamos del tamaño de
-  // una columna normal y alineada a la izquierda — igual que se ve cuando un
-  // perfil tiene varias columnas.
-  if (cols.length === 1) {
-    tablero.style.gridTemplateColumns = 'minmax(0, 360px)';
-    tablero.style.justifyContent = 'start';
+  // Cuando hay UNA sola columna (SA, jefatura sola, Staff de Samanta), la
+  // dejamos a TODO el ancho — el título se ve grande arriba y las tarjetas
+  // adentro se acomodan en grid (varias por fila si caben).
+  const colUnica = cols.length === 1;
+  if (colUnica) {
+    tablero.style.gridTemplateColumns = 'minmax(0, 1fr)';
+    tablero.style.justifyContent = '';
   } else {
     tablero.style.gridTemplateColumns = '';
     tablero.style.justifyContent = '';
@@ -5088,6 +5096,10 @@ function renderizarTablero() {
     const subt = col.subtitulo
       ? '<div class="col-subtitulo" title="' + escapeHtml(col.subtitulo) + '">' + escapeHtml(col.subtitulo) + '</div>'
       : '';
+    // Para columna ÚNICA, el cuerpo usa grid (multi-tarjeta por fila) para no
+    // desperdiciar el ancho total. Para múltiples columnas, sigue como antes
+    // (flex column — una tarjeta tras otra).
+    const claseCuerpo = colUnica ? 'col-cuerpo col-cuerpo-grid' : 'col-cuerpo';
     colEl.innerHTML = `
       <div class="col-header">
         <div class="col-marca"></div>
@@ -5097,7 +5109,7 @@ function renderizarTablero() {
         </div>
         <div class="col-conteo">${tareasCol.length}</div>
       </div>
-      <div class="col-cuerpo" data-col="${col.id}"></div>
+      <div class="${claseCuerpo}" data-col="${col.id}"></div>
     `;
     tablero.appendChild(colEl);
 
