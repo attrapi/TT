@@ -5634,13 +5634,15 @@ function abrirDetalle(t) {
     botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
   }
 
+  // Orden de los botones (izq → der):
+  //   WhatsApp · Editar  ·  (espacio)  ·  Acciones primarias (Completada/Restaurar/Eliminar) · Cerrar
   const acciones = `
     <div class="modal-acciones">
-      <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
       ${btnWA}
-      <div style="flex:1"></div>
       ${btnIcs}
+      <div style="flex:1"></div>
       ${botones}
+      <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
     </div>
   `;
 
