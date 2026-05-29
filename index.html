@@ -2397,6 +2397,7 @@
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;   /* nunca scroll horizontal aunque el contenido sea ancho */
     border-radius: 2px;
     border-top: 4px solid var(--guinda);
   }
@@ -2958,8 +2959,21 @@
     font-size: 13px;
     color: var(--tinta);
     border-radius: 5px;
+    /* Nunca desbordar el ancho del campo aunque el contenido sea largo. */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
+  /* El select muestra ellipsis si el texto de la opción seleccionada es muy largo. */
+  .form-campo select {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  /* form-campo en sí también tiene que respetar el ancho del grid. */
+  .form-campo { min-width: 0; }
+  .form-grid { min-width: 0; }
   .form-campo input:focus,
   .form-campo select:focus,
   .form-campo textarea:focus {
