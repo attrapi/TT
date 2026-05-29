@@ -6994,10 +6994,13 @@ function abrirNuevaTarea(tEdit) {
   // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
   // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
   const esDirNuevo = !esCapturista && !ed;
-  // Destino de la tarea (Director, creando): SOLO DPAC y SPAC por ahora.
+  // Destino de la tarea (Director, creando): las 4 subdirecciones ya tienen
+  // hoja configurada — DPAC, SPAC, SA y SGOI. Cualquiera se puede asignar.
   const asignablesHTML = [
     {v:'DPAC', n:'DPAC · Dirección (mi tarea)'},
-    {v:'SPAC', n:'SPAC · Subdirección de Procesos Administrativos de Construcción'}
+    {v:'SPAC', n:'SPAC · Subdirección de Procesos Administrativos de Construcción'},
+    {v:'SA',   n:'SA · Subdirección de Archivo'},
+    {v:'SGOI', n:'SGOI · Subdirección de Gestión de Obras Inducidas'}
   ].map(o => `<label class="area-chip"><input type="checkbox" value="${o.v}" ${o.v==='DPAC'?'checked':''}>${o.n}</label>`).join('');
   const campoSub = esDirNuevo
     ? `<div class="form-campo full">
