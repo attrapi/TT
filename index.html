@@ -3254,6 +3254,47 @@
   /* Los IDs mantienen su color de área pero un poco más apagados */
   .historial-col-body .tarjeta .tarjeta-id { opacity: 0.92; }
 
+  /* Editor visual de acciones en el formulario de Nueva Tarea / Editar. */
+  .acciones-lista {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .accion-item {
+    display: flex; align-items: center; gap: 6px;
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    padding: 4px 4px 4px 8px;
+  }
+  .accion-item-input {
+    flex: 1; border: 0; padding: 6px 4px;
+    font-family: var(--sans); font-size: 13px;
+    background: transparent; color: var(--tinta);
+  }
+  .accion-item-input:focus { outline: none; }
+  .accion-item-del {
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--rojo, #b91c1c); font-size: 16px;
+    padding: 2px 8px; line-height: 1;
+    border-radius: 4px;
+  }
+  .accion-item-del:hover { background: #fee2e2; }
+  .acciones-agregar {
+    display: flex; gap: 6px;
+  }
+  .acciones-agregar input {
+    flex: 1; padding: 8px 12px;
+    border: 1.5px dashed var(--linea); border-radius: 6px;
+    font-family: var(--sans); font-size: 13px;
+  }
+  .acciones-agregar input:focus { outline: none; border-style: solid; border-color: var(--guinda); }
+  .acciones-agregar-btn {
+    background: var(--guinda); color: #fff; border: 0;
+    border-radius: 6px; padding: 8px 14px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .acciones-agregar-btn:hover { filter: brightness(1.08); }
+
   /* Indicador "Actualizando datos…" arriba a la derecha cuando se pintó
      desde caché y se está esperando la respuesta fresca del servidor. */
   .refresh-indicator {
@@ -7486,8 +7527,19 @@ function abrirNuevaTarea(tEdit) {
 
           <div class="form-campo full">
             <label>Acciones <span class="req">*</span></label>
-            <textarea id="nt_accion" required maxlength="1500" rows="5" placeholder="Una acción por renglón. Ej.&#10;Revisar documento&#10;Firmar oficio&#10;Subir a Drive" style="font-family:var(--sans); line-height:1.6;">${escapeHtml(valAccion)}</textarea>
-            <div class="form-hint">Cada renglón se convierte en una acción. Adentro de la tarea cada acción tendrá dos casillas: una del responsable y una del director.</div>
+            <div id="nt_acciones_lista" class="acciones-lista">${
+              (valAccion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+                .map(a => '<div class="accion-item">' +
+                  '<input type="text" class="accion-item-input" value="' + escapeHtml(a) + '" maxlength="200">' +
+                  '<button type="button" class="accion-item-del" title="Quitar" onclick="this.parentElement.remove(); sincAcciones();">×</button>' +
+                '</div>').join('')
+            }</div>
+            <div class="acciones-agregar">
+              <input type="text" id="nt_acciones_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarAccionForm();}">
+              <button type="button" class="acciones-agregar-btn" onclick="agregarAccionForm()">+ Agregar</button>
+            </div>
+            <textarea id="nt_accion" required style="display:none">${escapeHtml(valAccion)}</textarea>
+            <div class="form-hint">Cada acción tendrá su propia casilla. Mínimo 1.</div>
           </div>
 
           <div class="form-campo full">
@@ -7532,6 +7584,35 @@ function abrirEditarTarea(id) {
 // Archivo "en espera": NO se sube al arrastrar, sino al CREAR la tarea. Así,
 // si se cancela, no queda ningún archivo huérfano en Drive.
 let archivoPendiente = null;
+
+// === Editor visual de acciones del checklist en el formulario ===
+// Agrega el texto del input "+ Agregar acción" a la lista visual y limpia el input.
+function agregarAccionForm() {
+  const inp = document.getElementById('nt_acciones_input');
+  if (!inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  const lista = document.getElementById('nt_acciones_lista');
+  if (!lista) return;
+  const item = document.createElement('div');
+  item.className = 'accion-item';
+  item.innerHTML =
+    '<input type="text" class="accion-item-input" value="' + escapeHtml(txt) + '" maxlength="200">' +
+    '<button type="button" class="accion-item-del" title="Quitar" onclick="this.parentElement.remove(); sincAcciones();">×</button>';
+  lista.appendChild(item);
+  inp.value = '';
+  inp.focus();
+  sincAcciones();
+}
+// Sincroniza la lista visual con el <textarea> oculto que se manda al guardar.
+function sincAcciones() {
+  const lista = document.getElementById('nt_acciones_lista');
+  const ta = document.getElementById('nt_accion');
+  if (!lista || !ta) return;
+  const items = Array.from(lista.querySelectorAll('.accion-item-input'))
+    .map(i => (i.value || '').trim()).filter(Boolean);
+  ta.value = items.join('\n');
+}
 
 function dzOver(e) { e.preventDefault(); const d = document.getElementById('nt_dropzone'); if (d) d.classList.add('dz-activo'); }
 function dzLeave(e) { const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo'); }
@@ -7608,6 +7689,8 @@ function guardarNuevaTarea() {
   if (otraArea) areasMarcadas.push(otraArea);
   const areas = areasMarcadas.join(', ');
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
+  // El textarea oculto se sincroniza desde la lista visual antes de leerlo.
+  sincAcciones();
   const accion = document.getElementById('nt_accion').value.trim();
   const fecha = document.getElementById('nt_fecha').value;
   const urlPegada = document.getElementById('nt_url').value.trim();
