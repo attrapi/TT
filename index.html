@@ -3142,8 +3142,11 @@
 
   /* ===== Checklist (validación dentro de la tarea) ===== */
   .checklist-tabla {
-    border: 1px solid var(--linea); border-radius: 8px; overflow: hidden;
+    /* Borde más marcado para que se vea claramente dónde empieza y termina
+       el cuadro de Acciones. */
+    border: 2px solid var(--guinda); border-radius: 8px; overflow: hidden;
     margin-top: 6px; background: #fff;
+    box-shadow: 0 1px 4px rgba(105,28,50,0.08);
   }
   .checklist-cab, .checklist-fila {
     display: grid; grid-template-columns: minmax(0, 1fr) 75px 75px 105px;
@@ -4730,17 +4733,24 @@ function actualizarKPIs() {
   if (esDir) {
     if (subCard) subCard.style.display = '';
     if (jefCard) jefCard.style.display = 'none';
-    const pend = sub => TAREAS.filter(t => !t.eliminada && t.subdireccion === sub && t.nivel !== 'jefatura' && t.estatus === 'En Proceso').length;
+    // Pendientes por subdirección = TAREAS ACTIVAS (no Archivadas, no
+    // eliminadas), incluyendo las jefaturas dentro de su subdirección madre.
+    // Las validadas/completadas ya se cuentan en "Validadas" del Resumen.
+    const pend = sub => TAREAS.filter(t =>
+        !t.eliminada && t.estatus !== 'Archivada' && t.subdireccion === sub).length;
     document.getElementById('kpiPendSA').textContent = pend('SA');
     document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
     document.getElementById('kpiPendSPAC').textContent = pend('SPAC');
-    document.getElementById('kpiPendENLACE').textContent = pend('ENLACE');
+    // Staff suma DPAC + ENLACE como en la columna del tablero.
+    document.getElementById('kpiPendENLACE').textContent = pend('DPAC') + pend('ENLACE');
   } else {
     if (subCard) subCard.style.display = 'none';
     const tieneJef = usuarioActual.subdireccion === 'SPAC';
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
-      const pendJef = cod => TAREAS.filter(t => !t.eliminada && t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod && t.estatus === 'En Proceso').length;
+      const pendJef = cod => TAREAS.filter(t =>
+          !t.eliminada && t.estatus !== 'Archivada'
+          && t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod).length;
       document.getElementById('kpiPendJDPC').textContent = pendJef('PROCEDIMIENTOS');
       document.getElementById('kpiPendJDIMA').textContent = pendJef('MANUALES');
     }
