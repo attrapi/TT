@@ -1815,26 +1815,30 @@
   .col-color-cafe .col-subtitulo,
   .col-color-cafe .col-conteo  { color: #78350f; }
 
-  /* === Colores de TARJETA según el avance del Director (urgencia) === */
+  /* === Colores de TARJETA según el avance del Director (urgencia) ===
+     Fondos más SATURADOS para que el estado se vea de un vistazo, con
+     borde marcado y borde izquierdo grueso. */
   /* Naranja: aún no hay ningún check del Director (Adrián). */
   .tarjeta.tarjeta-color-pendiente {
-    background: #fff7ed;
-    border-color: #fb923c;
+    background: #ffd9b3;
+    border: 2px solid #ea580c;
+    border-left: 6px solid #c2410c;
+    box-shadow: 0 2px 8px rgba(234,88,12,0.18);
   }
   /* Amarillo: Adrián ya marcó al menos un check. */
   .tarjeta.tarjeta-color-progreso {
-    background: #fefce8;
-    border-color: #eab308;
+    background: #fef08a;
+    border: 2px solid #ca8a04;
+    border-left: 6px solid #a16207;
+    box-shadow: 0 2px 8px rgba(202,138,4,0.18);
   }
   /* Rojo: vencida — gana sobre los anteriores. */
   .tarjeta.tarjeta-color-vencida {
-    background: #fef2f2;
-    border-color: #dc2626;
+    background: #fecaca;
+    border: 2px solid #dc2626;
+    border-left: 6px solid #991b1b;
+    box-shadow: 0 2px 8px rgba(220,38,38,0.22);
   }
-  /* Borde izquierdo más marcado para reforzar el color de toda la tarjeta. */
-  .tarjeta.tarjeta-color-pendiente { border-left: 4px solid #fb923c; }
-  .tarjeta.tarjeta-color-progreso  { border-left: 4px solid #eab308; }
-  .tarjeta.tarjeta-color-vencida   { border-left: 4px solid #dc2626; }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
