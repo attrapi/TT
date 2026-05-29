@@ -7550,7 +7550,7 @@ function abrirNuevaTarea(tEdit) {
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id">${ed ? 'EDITAR TAREA · ' + ed.id : 'NUEVA TAREA'}</div>
+        <div class="modal-id" data-sub="${ed ? (ed.subdireccion || '') : ''}" data-pre="${ed ? (String(ed.id).split('-')[0] || '').toUpperCase() : ''}">${ed ? ed.id : 'NUEVA TAREA'}</div>
         <div class="modal-titulo">${ed ? 'Editar tarea' : 'Captura de tarea'}</div>
       </div>
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
