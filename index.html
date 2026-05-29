@@ -6153,22 +6153,36 @@ function abrirDetalle(t) {
         <div class="modal-seccion">
           <div class="modal-seccion-titulo">Bitácora</div>
           <div class="modal-bitacora">
-            ${bitacoraTarea.slice().reverse().map(b => {
-              const k = (b.accion || '').toLowerCase();
-              const etApp = ACCION_LABEL[k] || b.accion;
-              const quien = (b.usuario || '').split('@')[0];
-              const cambio = (b.estatus_anterior && b.estatus_nuevo && b.estatus_anterior !== b.estatus_nuevo)
-                ? etiquetaEstatus(b.estatus_anterior) + ' → ' + etiquetaEstatus(b.estatus_nuevo) : '';
-              return `
-              <div class="bitacora-item">
-                <div class="bitacora-item-top">
-                  <span class="bitacora-accion ${k}">${etApp}</span>
-                  <span class="bitacora-fecha">${b.fecha}</span>
-                </div>
-                <div class="bitacora-item-quien">por <strong>${escapeHtml(quien)}</strong>${cambio ? ' · ' + cambio : ''}</div>
-                ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
-              </div>`;
-            }).join('')}
+            ${(function () {
+              // Deduplicamos eventos 'validar' con el mismo comentario para esta
+              // tarea — quedando solo el MÁS RECIENTE. Si la usuaria marcó/des-
+              // marcó la misma columna varias veces, solo se muestra una vez.
+              const seen = new Set();
+              const limpia = bitacoraTarea.slice().reverse().filter(b => {
+                if ((b.accion || '').toLowerCase() === 'validar') {
+                  const key = (b.id_tarea || '') + '|' + (b.comentario || '');
+                  if (seen.has(key)) return false;
+                  seen.add(key);
+                }
+                return true;
+              });
+              return limpia.map(b => {
+                const k = (b.accion || '').toLowerCase();
+                const etApp = ACCION_LABEL[k] || b.accion;
+                const quien = (b.usuario || '').split('@')[0];
+                const cambio = (b.estatus_anterior && b.estatus_nuevo && b.estatus_anterior !== b.estatus_nuevo)
+                  ? etiquetaEstatus(b.estatus_anterior) + ' → ' + etiquetaEstatus(b.estatus_nuevo) : '';
+                return `
+                <div class="bitacora-item">
+                  <div class="bitacora-item-top">
+                    <span class="bitacora-accion ${k}">${etApp}</span>
+                    <span class="bitacora-fecha">${b.fecha}</span>
+                  </div>
+                  <div class="bitacora-item-quien">por <strong>${escapeHtml(quien)}</strong>${cambio ? ' · ' + cambio : ''}</div>
+                  ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
+                </div>`;
+              }).join('');
+            })()}
           </div>
         </div>
       ` : ''}
