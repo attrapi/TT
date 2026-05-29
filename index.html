@@ -3157,6 +3157,40 @@
   }
   .login-volver:hover { text-decoration: underline; }
 
+  /* Indicador "Actualizando datos…" arriba a la derecha cuando se pintó
+     desde caché y se está esperando la respuesta fresca del servidor. */
+  .refresh-indicator {
+    position: fixed;
+    top: 16px; right: 16px;
+    background: var(--guinda);
+    color: #fff;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 14px rgba(105,28,50,0.25);
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .refresh-indicator.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .refresh-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: refresh-spin 0.9s linear infinite;
+  }
+  @keyframes refresh-spin { to { transform: rotate(360deg); } }
+
   /* ===== Checklist (validación dentro de la tarea) ===== */
   .checklist-tabla {
     /* Borde más marcado para que se vea claramente dónde empieza y termina
@@ -4330,6 +4364,7 @@ function aplicarUsuarioServidor(res) {
   // RENDER INSTANTÁNEO: si hay tareas cacheadas de la sesión anterior, las
   // dibujamos primero para que el tablero aparezca en milisegundos. En paralelo
   // se piden las frescas y al llegar se reemplazan + re-renderizan.
+  let pintoDesdeCache = false;
   try {
     const cached = localStorage.getItem('tt_tareas_cache_v1');
     if (cached) {
@@ -4339,6 +4374,7 @@ function aplicarUsuarioServidor(res) {
         arr.forEach(asegurarCamposChecklist);
         TAREAS.push(...arr);
         renderizar();
+        pintoDesdeCache = true;
       }
     }
     const cachedAreas = localStorage.getItem('tt_areas_cache_v1');
@@ -4347,6 +4383,9 @@ function aplicarUsuarioServidor(res) {
       if (Array.isArray(a) && a.length) AREAS = a;
     }
   } catch (e) { /* cache vieja inválida → ignorar */ }
+  // Si pintamos algo desde caché, avisamos con el chip "Actualizando…" para
+  // que el usuario sepa que en breve se refrescan los datos.
+  if (pintoDesdeCache) mostrarActualizando();
 
   cargarTareasAppScript(false);       // jala las frescas y reemplaza el cache
   cargarAreas();                      // catálogo de áreas (base + agregadas)
@@ -4530,6 +4569,8 @@ function cargarTareasAppScript(preservar) {
       // Cache para render instantáneo en la próxima carga (best-effort: si
       // localStorage está lleno, se ignora).
       try { localStorage.setItem('tt_tareas_cache_v1', JSON.stringify(nuevas)); } catch (e) {}
+      // Datos frescos en pantalla → quitamos el chip "Actualizando…".
+      ocultarActualizando();
       renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       if (vistaActiva === 'carga') renderizarCarga();
@@ -5874,6 +5915,25 @@ function toast(mensaje, tipo) {
   el.textContent = mensaje;
   el.className = 'toast ' + (tipo === 'error' ? 'error' : '') + ' mostrar';
   setTimeout(() => el.classList.remove('mostrar'), 3000);
+}
+
+// Indicador chiquito "🔄 Actualizando…" arriba a la derecha. Aparece cuando
+// pintamos desde caché y se quita cuando llegan los datos frescos del servidor.
+function mostrarActualizando(mensaje) {
+  let el = document.getElementById('refreshIndicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'refreshIndicator';
+    el.className = 'refresh-indicator';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<span class="refresh-spinner"></span> ' + (mensaje || 'Actualizando datos…');
+  // requestAnimationFrame para que la transición ocurra
+  requestAnimationFrame(() => el.classList.add('visible'));
+}
+function ocultarActualizando() {
+  const el = document.getElementById('refreshIndicator');
+  if (el) el.classList.remove('visible');
 }
 
 // ============== VISTA: DASHBOARD ==============
