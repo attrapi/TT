@@ -4745,7 +4745,11 @@ function usuarioPuedeEliminar(t) {
   // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
   // Puede enviar cualquiera al Historial.
   if (usuarioActual.rol === 'Director') return true;
-  return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
+  if (usuarioActual.rol !== 'Capturista') return false;
+  // Staff (Samanta) puede gestionar tanto sus tareas (ENLACE) como las propias
+  // de Adrián (DPAC), por ser un grupo compartido.
+  if (esEnlace() && (t.subdireccion === 'ENLACE' || t.subdireccion === 'DPAC')) return true;
+  return usuarioActual.subdireccion === t.subdireccion;
 }
 
 // ¿El usuario puede "Reabrir" (regresar a Identificadas)? SOLO en Gestión →
