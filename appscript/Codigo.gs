@@ -785,9 +785,8 @@ function eliminarTarea(token, id) {
   if (!puedeGestionar_(sesion, dest)) return { ok: false, error: 'No tienes permiso para eliminar esta tarea.' };
 
   var sheetId = dest.sheetId, sheetPest = dest.sheetPest;
-  var ss = SpreadsheetApp.openById(sheetId);
-  var hoja = ss.getSheetByName(sheetPest);
-  if (!hoja) return { ok: false, error: 'No existe la pestaña destino.' };
+  var hoja = obtenerHojaEscritura_(sheetId, sheetPest);
+  if (!hoja) return { ok: false, error: 'No existe ninguna pestaña en la hoja destino.' };
 
   var valores = hoja.getDataRange().getValues();
   var e = -1;

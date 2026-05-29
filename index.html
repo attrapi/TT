@@ -3172,6 +3172,50 @@
   }
   .login-volver:hover { text-decoration: underline; }
 
+  /* Caja del Historial: borde negro grueso para diferenciarlo del tablero
+     principal. Adentro, columnas por subdirección. */
+  .historial-caja {
+    border: 3px solid #111827;
+    border-radius: 14px;
+    padding: 18px 22px 22px;
+    background: #f3f4f6;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10);
+    position: relative;
+  }
+  .historial-caja > .bitacora-titulo-fila h2 {
+    color: #111827;
+    letter-spacing: 0.06em;
+  }
+  .historial-cols {
+    display: grid;
+    grid-template-columns: repeat(var(--hist-cols, 4), minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 8px;
+  }
+  /* Cada columna del Historial usa los mismos colores que el tablero */
+  .historial-col {
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+  .historial-col-body {
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 12px;
+    align-content: start;
+    min-height: 80px;
+  }
+  .historial-col-body .tarjeta { width: 100%; }
+  .historial-col .vacio {
+    color: var(--tinta-suave);
+    font-size: 12px;
+    text-align: center;
+    padding: 10px;
+    font-style: italic;
+  }
+
   /* Indicador "Actualizando datos…" arriba a la derecha cuando se pintó
      desde caché y se está esperando la respuesta fresca del servidor. */
   .refresh-indicator {
@@ -3753,13 +3797,13 @@
     </div>
   </div>
 
-  <div class="validadas-wrap" id="papeleraWrap">
+  <div class="validadas-wrap historial-caja" id="papeleraWrap">
     <div class="bitacora-titulo-fila">
-      <h2>🕘 Historial</h2>
+      <h2>🗑️ HISTORIAL</h2>
       <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
     </div>
-    <div class="reportes-subtitulo">Tareas eliminadas. Puedes <strong>restaurarlas</strong> a su columna o <strong>eliminarlas definitivamente</strong> del Excel.</div>
-    <div class="validadas-grid" id="papeleraGrid"></div>
+    <div class="reportes-subtitulo">Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.</div>
+    <div class="historial-cols" id="papeleraGrid"></div>
   </div>
 
     </main>
@@ -5713,6 +5757,26 @@ function tareasPapelera() {
   return lista;
 }
 
+// Columnas del Historial — mismo orden y colores que el tablero principal
+// para que se vea coherente. Cada perfil ve sus columnas según su rol.
+function columnasHistorial() {
+  if (!usuarioActual) return [];
+  if (usuarioActual.rol === 'Director') {
+    return [
+      { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+        color: 'olivo',  filtro: t => t.subdireccion === 'SGOI' },
+      { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+        color: 'azul',   filtro: t => t.subdireccion === 'SPAC' },
+      { id: 'SA',   titulo: 'SA',   subtitulo: 'Subdirección de Archivo',
+        color: 'naranja',filtro: t => t.subdireccion === 'SA' },
+      { id: 'STAFF',titulo: 'Staff',subtitulo: 'Dirección + Enlace',
+        color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }
+    ];
+  }
+  // Subdirectoras, jefes, staff: reutilizan la configuración de su tablero.
+  return columnasPorRol();
+}
+
 function renderizarPapelera() {
   const grid = document.getElementById('papeleraGrid');
   const meta = document.getElementById('papeleraMeta');
@@ -5727,47 +5791,63 @@ function renderizarPapelera() {
     grid.innerHTML = '<div class="validadas-vacio">El historial está vacío.</div>';
     return;
   }
-  let nRender = 0;
-  lista.forEach(t => {
-    try {
-      const card = document.createElement('div');
-      card.className = 'tarjeta';
-      // Hereda los mismos atributos que en el tablero para que el ID tome el
-      // color de su área (SPAC azul, SGOI olivo, SA naranja, Staff morado, etc.)
-      card.setAttribute('data-sub', t.subdireccion || '');
-      card.setAttribute('data-pre', (String(t.id || '').split('-')[0] || '').toUpperCase());
-      card.onclick = () => abrirDetalle(t);   // clic en la tarjeta → ver detalle
-      const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
-      const tema  = (t.tema || t.titulo || '— sin tema —');
-      const idVis = (t.id || '???');
-      const origenHist = t.eliminada ? 'Eliminada'
-                       : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
-      let html = '<div class="tarjeta-id">' + escapeHtml(idVis) + '</div>' +
-        '<div class="tarjeta-origen-hist">' + escapeHtml(origenHist) + '</div>' +
-        '<dl class="tarjeta-campos">' +
-          '<dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd>' +
-          '<dt>Áreas involucradas</dt><dd>' + escapeHtml(areas) + '</dd>' +
-        '</dl>';
-      // Solo subdirectoras y Director pueden Restaurar / Eliminar definitivo.
-      // Jefas y Staff (Samanta) solo VEN las tarjetas, sin botones.
-      if (puedeGestionarHistorial(t)) {
-        html += '<div class="tarjeta-acciones">' +
-          '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')">↺ Restaurar</button>' +
-          '<button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
-        '</div>';
-      }
-      card.innerHTML = html;
-      grid.appendChild(card);
-      nRender++;
-    } catch (err) {
-      console.warn('Historial: no pude pintar la tarea', t && t.id, err);
+  // Si solo hay 1 columna, se expande a todo el ancho; si hay más, se reparten.
+  const cols = columnasHistorial();
+  grid.style.setProperty('--hist-cols', cols.length || 1);
+
+  cols.forEach(col => {
+    const tareasCol = lista.filter(col.filtro);
+    const colEl = document.createElement('div');
+    colEl.className = 'historial-col col-color-' + (col.color || 'olivo');
+    const subt = col.subtitulo
+      ? '<div class="col-subtitulo" title="' + escapeHtml(col.subtitulo) + '">' + escapeHtml(col.subtitulo) + '</div>'
+      : '';
+    colEl.innerHTML =
+      '<div class="col-header">' +
+        '<div class="col-marca"></div>' +
+        '<div class="col-titulo-wrap">' +
+          '<div class="col-titulo">' + escapeHtml(col.titulo) + '</div>' + subt +
+        '</div>' +
+        '<div class="col-conteo">' + tareasCol.length + '</div>' +
+      '</div>' +
+      '<div class="historial-col-body"></div>';
+    const cuerpo = colEl.querySelector('.historial-col-body');
+    if (!tareasCol.length) {
+      cuerpo.innerHTML = '<div class="vacio">— sin tareas —</div>';
+    } else {
+      tareasCol.forEach(t => {
+        try {
+          const card = document.createElement('div');
+          card.className = 'tarjeta';
+          card.setAttribute('data-sub', t.subdireccion || '');
+          card.setAttribute('data-pre', (String(t.id || '').split('-')[0] || '').toUpperCase());
+          card.onclick = () => abrirDetalle(t);
+          const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
+          const tema  = (t.tema || t.titulo || '— sin tema —');
+          const idVis = (t.id || '???');
+          const origenHist = t.eliminada ? 'Eliminada'
+                           : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
+          let html = '<div class="tarjeta-id">' + escapeHtml(idVis) + '</div>' +
+            '<div class="tarjeta-origen-hist">' + escapeHtml(origenHist) + '</div>' +
+            '<dl class="tarjeta-campos">' +
+              '<dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd>' +
+              '<dt>Áreas involucradas</dt><dd>' + escapeHtml(areas) + '</dd>' +
+            '</dl>';
+          if (puedeGestionarHistorial(t)) {
+            html += '<div class="tarjeta-acciones">' +
+              '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')">↺ Restaurar</button>' +
+              '<button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
+            '</div>';
+          }
+          card.innerHTML = html;
+          cuerpo.appendChild(card);
+        } catch (err) {
+          console.warn('Historial: no pude pintar la tarea', t && t.id, err);
+        }
+      });
     }
+    grid.appendChild(colEl);
   });
-  // Si por alguna razón se filtraron 0 tarjetas pero la lista tenía items,
-  // mostramos el mensaje vacío en vez de quedar en blanco.
-  if (!nRender) {
-    grid.innerHTML = '<div class="validadas-vacio">El historial está vacío.</div>';
-  }
 }
 
 // ============== MODAL ==============
