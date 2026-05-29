@@ -4803,6 +4803,8 @@ function actualizarKPIs() {
       return tabActiva === 'TODAS' || t.subdireccion === tabActiva
           || (tabActiva === 'ENLACE' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
     }
+    // Staff (Samanta) ve DPAC + ENLACE.
+    if (esEnlace()) return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
     return t.subdireccion === usuarioActual.subdireccion;
   });
   const archivadas = enHistorial.length;
@@ -4938,13 +4940,16 @@ function actualizarConteosTabs() {
 
   // Contador del botón Historial: debe coincidir con lo que se ve al entrar
   // a esa vista — INCLUYE tanto las completadas (Archivada) como las
-  // eliminadas. Antes solo contaba eliminadas, por eso decia 3 mientras
-  // que el Historial mostraba 4 al hacer click.
+  // eliminadas. Staff (Samanta) ve DPAC + ENLACE (grupo compartido).
   const contPap = document.getElementById('sidebarConteoPapelera');
   if (contPap) {
     const esEnHist = t => t.eliminada || t.estatus === 'Archivada';
-    const nPap = TAREAS.filter(t => esEnHist(t)
-        && (usuarioActual.rol === 'Director' || t.subdireccion === usuarioActual.subdireccion)).length;
+    const matchSamanta = t => esEnlace() && (t.subdireccion === 'ENLACE' || t.subdireccion === 'DPAC');
+    const nPap = TAREAS.filter(t => esEnHist(t) && (
+        usuarioActual.rol === 'Director'
+        || matchSamanta(t)
+        || t.subdireccion === usuarioActual.subdireccion
+    )).length;
     contPap.textContent = nPap;
   }
 
@@ -5672,13 +5677,16 @@ function eliminarDefinitivo(idTarea) {
 // Render de la vista Papelera.
 function tareasPapelera() {
   // Historial incluye DOS cosas: las tareas COMPLETADAS (estatus=Archivada)
-  // y las ELIMINADAS (eliminada=true). Antes solo mostraba las eliminadas, por
-  // eso al completar la tarjeta "desaparecía" (salía del tablero pero tampoco
-  // estaba en Historial).
+  // y las ELIMINADAS (eliminada=true).
   let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
   if (usuarioActual.rol === 'Director') return lista;
-  // Capturistas: solo las de su subdirección. Si son Jefes (jefatura asignada),
-  // solo las de su jefatura.
+  // Staff (Samanta): grupo compartido DPAC + ENLACE (mismo criterio que la
+  // columna Staff del tablero). Así ve el historial completo de la dirección.
+  if (esEnlace()) {
+    return lista.filter(t => t.subdireccion === 'ENLACE' || t.subdireccion === 'DPAC');
+  }
+  // Otros Capturistas: solo las de su subdirección. Si son Jefes (jefatura
+  // asignada), solo las de su jefatura.
   lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
   const codJef = jefaturaCodigo(usuarioActual.jefatura);
   if (codJef) {
