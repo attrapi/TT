@@ -6011,11 +6011,20 @@ function abrirDetalle(t) {
            dentro del dl de dos columnas). Mismas secciones, más espacio. -->
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Acciones</div>
-        ${renderChecklistHTML(t)}
+        ${(function(){
+          try { return renderChecklistHTML(t); }
+          catch (err) {
+            console.warn('No se pudo renderizar el checklist', err);
+            return '<div class="checklist-vacio">No se pudo cargar el checklist. Cierra y vuelve a abrir la tarea.</div>';
+          }
+        })()}
       </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Observaciones</div>
-        ${renderObservacionesHTML(t)}
+        ${(function(){
+          try { return renderObservacionesHTML(t); }
+          catch (err) { return ''; }
+        })()}
       </div>
 
       ${false /* "Devuelta para corrección" eliminado: el flujo ya no usa Devolver/Reenviar (la validación es por checklist). */ ? `
