@@ -2630,15 +2630,22 @@
   .modal-comentar:focus { outline: none; border-color: var(--guinda); }
 
   .btn-modal {
-    padding: 10px 20px;
-    border: 1px solid var(--linea);
+    padding: 9px 20px;
+    /* Borde más marcado para que se note que son botones (antes 1px gris claro). */
+    border: 1.5px solid var(--guinda);
     background: white;
+    color: var(--guinda);
     cursor: pointer;
     font-family: var(--sans);
     font-size: 13px;
-    font-weight: 500;
-    border-radius: 2px;
+    font-weight: 600;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     transition: all 0.15s;
+  }
+  .btn-modal:hover {
+    background: var(--guinda); color: #fff;
+    box-shadow: 0 2px 6px rgba(105,28,50,0.18);
   }
 
   .btn-modal:hover { border-color: var(--tinta); }
@@ -5756,14 +5763,15 @@ function abrirDetalle(t) {
   }
 
   // Orden de los botones (izq → der):
-  //   WhatsApp · Editar  ·  (espacio)  ·  Acciones primarias (Completada/Restaurar/Eliminar) · Cerrar
+  //   WhatsApp · Editar  ·  (espacio)  ·  Cerrar · Acciones primarias (Completada/Restaurar/Eliminar)
+  // Completada / Restaurar quedan al final del todo para que sean el último foco.
   const acciones = `
     <div class="modal-acciones">
       ${btnWA}
       ${btnIcs}
       <div style="flex:1"></div>
-      ${botones}
       <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+      ${botones}
     </div>
   `;
 
