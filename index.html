@@ -4858,7 +4858,11 @@ function actualizarKPIs() {
     document.getElementById('kpiPendENLACE').textContent = pend('DPAC') + pend('ENLACE');
   } else {
     if (subCard) subCard.style.display = 'none';
-    const tieneJef = usuarioActual.subdireccion === 'SPAC';
+    // "Pendientes por jefatura" SOLO se muestra al SUBDIRECTOR (Capturista sin
+    // jefatura asignada). Los jefes (Guillermo JDPC, Dolores JDIMA, JDGA, JDGOI)
+    // no lo ven — ellos solo gestionan SU jefatura, no necesitan el desglose.
+    const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
+    const tieneJef = usuarioActual.subdireccion === 'SPAC' && !codJefUser;
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
       const pendJef = cod => TAREAS.filter(t =>
