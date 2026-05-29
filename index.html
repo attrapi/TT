@@ -4604,8 +4604,13 @@ function obtenerTareasFiltradas() {
       lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
     }
   } else if (tabActiva !== 'TODAS') {
-    // Director con tab específica
-    lista = lista.filter(t => t.subdireccion === tabActiva);
+    // Director con tab específica. El tab "ENLACE" representa la columna
+    // STAFF, que agrupa DPAC + ENLACE, así que incluimos las dos.
+    if (tabActiva === 'ENLACE') {
+      lista = lista.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+    } else {
+      lista = lista.filter(t => t.subdireccion === tabActiva);
+    }
   }
   // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
 
