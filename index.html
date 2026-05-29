@@ -3199,6 +3199,15 @@
     min-height: 80px;
     background: #f3f4f6;     /* fondo grafito tenue del cuerpo de la columna */
   }
+  /* Cuando solo hay UNA columna en el Historial (Samanta/Staff, jefes, SA),
+     las tarjetas se acomodan en grid auto-fill: pequeñas, una al lado de otra,
+     y cuando ya no caben se pasan al renglón de abajo. */
+  .historial-cols[style*="--hist-cols: 1"] .historial-col-body,
+  .historial-col-body.col-body-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
   .historial-col .vacio {
     color: #9ca3af;
     font-size: 12px;
@@ -4212,7 +4221,7 @@ function aplicarSesion() {
       'SA': 'Subdirección de Archivo',
       'SGOI': 'Subdirección de Gestión de Obras Inducidas',
       'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-      'ENLACE': 'Staff de Dirección'
+      'ENLACE': 'Staff'
     };
     const nombresJef = {
       'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
@@ -5816,6 +5825,9 @@ function renderizarPapelera() {
     const subt = col.subtitulo
       ? '<div class="col-subtitulo" title="' + escapeHtml(col.subtitulo) + '">' + escapeHtml(col.subtitulo) + '</div>'
       : '';
+    // Si solo hay una columna en el Historial, las tarjetas van en grid (varias
+    // por fila) para no estirarse a todo el ancho.
+    const claseCuerpo = (cols.length === 1) ? 'historial-col-body col-body-grid' : 'historial-col-body';
     colEl.innerHTML =
       '<div class="col-header">' +
         '<div class="col-marca"></div>' +
@@ -5824,7 +5836,7 @@ function renderizarPapelera() {
         '</div>' +
         '<div class="col-conteo">' + tareasCol.length + '</div>' +
       '</div>' +
-      '<div class="historial-col-body"></div>';
+      '<div class="' + claseCuerpo + '"></div>';
     const cuerpo = colEl.querySelector('.historial-col-body');
     if (!tareasCol.length) {
       cuerpo.innerHTML = '<div class="vacio">— sin tareas —</div>';
@@ -6406,7 +6418,7 @@ function tituloCapturista() {
     'SA': 'Subdirección de Archivo',
     'SGOI': 'Subdirección de Gestión de Obras Inducidas',
     'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-    'ENLACE': 'Enlace administrativo del Director'
+    'ENLACE': 'Staff'
   };
   return nombres[usuarioActual.subdireccion] || 'Tablero de Tareas';
 }
@@ -7920,11 +7932,11 @@ function renderizarCarga() {
 // ============== VISTA: REPORTES ==============
 
 const NOMBRE_SUB = {
-  TODAS:  'Vista Consolidada · Tres Subdirecciones + Enlace',
+  TODAS:  'Vista Consolidada · Tres Subdirecciones + Staff',
   SA:     'Subdirección de Archivo',
   SGOI:   'Subdirección de Gestión de Obras Inducidas',
   SPAC:   'Subdirección de Procesos Administrativos de Construcción',
-  ENLACE: 'Enlace administrativo del Director'
+  ENLACE: 'Staff'
 };
 
 const COLOR_SUB = {
