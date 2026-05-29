@@ -4752,6 +4752,20 @@ function usuarioPuedeEliminar(t) {
   return usuarioActual.subdireccion === t.subdireccion;
 }
 
+// ¿El usuario puede usar los botones del Historial (Restaurar / Eliminar
+// definitivo / Reabrir)? Solo el Director y los SUBDIRECTORES (Capturistas
+// con Jefatura VACÍA y subdirección ≠ ENLACE). Las jefas y Staff (Samanta)
+// solo VEN sus tareas en el Historial.
+function puedeGestionarHistorial(t) {
+  if (!usuarioActual || !t) return false;
+  if (usuarioActual.rol === 'Director') return true;
+  if (usuarioActual.rol !== 'Capturista') return false;
+  if (esEnlace()) return false;                            // Staff: solo ver
+  if (jefaturaCodigo(usuarioActual.jefatura)) return false;// Jefes: solo ver
+  // Subdirectoras solo restauran/eliminan dentro de SU subdirección.
+  return usuarioActual.subdireccion === t.subdireccion;
+}
+
 // ¿El usuario puede "Reabrir" (regresar a Identificadas)? SOLO en Gestión →
 // Validadas (tareas ya archivadas/validadas), no en "Para validar" ni en el
 // tablero. Y solo quien la gestiona.
@@ -5734,7 +5748,9 @@ function renderizarPapelera() {
           '<dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd>' +
           '<dt>Áreas involucradas</dt><dd>' + escapeHtml(areas) + '</dd>' +
         '</dl>';
-      if (usuarioPuedeEliminar(t)) {
+      // Solo subdirectoras y Director pueden Restaurar / Eliminar definitivo.
+      // Jefas y Staff (Samanta) solo VEN las tarjetas, sin botones.
+      if (puedeGestionarHistorial(t)) {
         html += '<div class="tarjeta-acciones">' +
           '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')">↺ Restaurar</button>' +
           '<button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
@@ -5789,7 +5805,7 @@ function abrirDetalle(t) {
   const todoListo = !t.eliminada && t.estatus !== 'Archivada' && checklistTodoMarcado(t);
 
   if (t.eliminada) {
-    if (usuarioPuedeEliminar(t)) {
+    if (puedeGestionarHistorial(t)) {
       botones = `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>`
               + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
     }
@@ -5797,8 +5813,9 @@ function abrirDetalle(t) {
     botones = `<button class="btn-modal btn-completada" onclick="completarTarea('${t.id}')">✓ Completada</button>`;
   }
 
-  // Reabrir sigue disponible para tareas que ya están en el Historial.
-  if (!t.eliminada && t.estatus === 'Archivada' && usuarioPuedeReabrir(t)) {
+  // Reabrir sigue disponible para tareas Completadas, solo para Director y
+  // Subdirectoras (mismo criterio que Restaurar / Eliminar definitivo).
+  if (!t.eliminada && t.estatus === 'Archivada' && puedeGestionarHistorial(t)) {
     botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
   }
 
