@@ -4955,8 +4955,41 @@ function actualizarConteosTabs() {
 function columnasPorRol() {
   if (!usuarioActual) return [];
   if (usuarioActual.rol === 'Director') {
-    // Orden de columnas del Director: SGOI · SPAC · SA · Staff (mismo que el
-    // menú izquierdo). Staff agrupa DPAC + Enlace y va al final.
+    // Vista por TAB:
+    //   • TODAS → vista consolidada de 4 columnas por subdirección.
+    //   • SPAC  → mismas 3 columnas que Mario (SPAC · JDPC · JDIMA).
+    //   • SGOI  → mismas 3 columnas que Fabiola (SGOI · JDGA · JDGOI).
+    //   • SA    → solo la columna SA.
+    //   • ENLACE/STAFF → solo la columna Staff (DPAC + Enlace).
+    if (tabActiva === 'SPAC') {
+      return [
+        { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+          color: 'azul',  filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
+        { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
+          color: 'indigo', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
+        { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
+          color: 'ambar', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
+      ];
+    }
+    if (tabActiva === 'SGOI') {
+      return [
+        { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+          color: 'olivo', filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
+        { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
+          color: 'verdeoscuro', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
+        { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
+          color: 'cafe',  filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
+      ];
+    }
+    if (tabActiva === 'SA') {
+      return [{ id: 'SA', titulo: 'SA', subtitulo: 'Subdirección de Archivo',
+        color: 'naranja', filtro: t => t.subdireccion === 'SA' }];
+    }
+    if (tabActiva === 'ENLACE') {
+      return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
+        color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }];
+    }
+    // Default (TODAS): vista consolidada de 4 columnas.
     return [
       { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
         color: 'olivo',
