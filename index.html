@@ -4539,9 +4539,10 @@ function aplicarUsuarioServidor(res) {
 
   cargarTareasAppScript(false);       // jala las frescas y reemplaza el cache
   cargarAreas();                      // catálogo de áreas (base + agregadas)
-  // Bitácora y teléfonos NO bloquean el render del tablero — los cargamos sin
-  // prisa, después de unos ms (defer), para que el primer pintado sea rápido.
-  setTimeout(function () { cargarBitacora(); cargarTelefonos(); }, 250);
+  // Bitácora, teléfonos y responsables NO bloquean el render del tablero — los
+  // cargamos sin prisa, después de unos ms (defer), para que el primer pintado
+  // sea rápido.
+  setTimeout(function () { cargarBitacora(); cargarTelefonos(); cargarResponsables(); }, 250);
 }
 
 // Mapa { "SUBDIRECCION|JEFATURA": { telefono, nombre } } cargado desde la hoja
@@ -4557,6 +4558,33 @@ function cargarTelefonos() {
     .withFailureHandler(function () { /* sin teléfonos: el WA abre vacío */ })
     .listarTelefonos(SESION_TOKEN);
 }
+// Lista de responsables (subdirectoras, jefes, staff) para el autocompletado
+// del campo "Responsable directo". Se llena al iniciar sesión.
+let RESPONSABLES = [];
+function cargarResponsables() {
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && Array.isArray(res.responsables)) {
+        RESPONSABLES = res.responsables;
+      }
+    })
+    .withFailureHandler(function () { /* sin sugerencias si truena */ })
+    .listarResponsables(SESION_TOKEN);
+}
+// Extrae los NOMBRES (sin apellidos) de un nombre completo:
+//   "Ing. Mario Alberto Ramírez Franca"   → "Mario Alberto"
+//   "Lic. María Dolores Carrasco Zamora"  → "María Dolores"
+//   "Arq. Luis Guillermo Favila Hernández"→ "Luis Guillermo"
+//   "Adrián Tavares"                      → "Adrián"
+function nombresSinApellidos(nombre) {
+  if (!nombre) return '';
+  var n = String(nombre).replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|prof\.|profa\.)\s*/i, '').trim();
+  var p = n.split(/\s+/);
+  if (p.length <= 2) return p[0] || '';
+  return p.slice(0, p.length - 2).join(' ');
+}
+
 // Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
 //   - Jefaturas: busca por subdirección + jefatura.
 //   - Subdirección sin jefatura: busca por subdirección.
@@ -7508,7 +7536,10 @@ function abrirNuevaTarea(tEdit) {
 
           <div class="form-campo">
             <label>Responsable directo <span class="req">*</span></label>
-            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Nombre del responsable">
+            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Escribe o elige…" list="dl_responsables" autocomplete="off">
+            <datalist id="dl_responsables">
+              ${(RESPONSABLES || []).map(r => '<option value="' + escapeHtml(nombresSinApellidos(r.nombreCompleto)) + '">' + escapeHtml(r.nombreCompleto) + '</option>').join('')}
+            </datalist>
           </div>
 
           <div class="form-campo">

@@ -223,6 +223,41 @@ function sesionValida_(token) {
   return v ? JSON.parse(v) : null;
 }
 
+// Lista los nombres de los usuarios activos (subdirectoras, jefes y staff)
+// para el autocompletado del campo "Responsable directo". Director excluido.
+// Devuelve [{ nombreCompleto, primerosNombres, subdireccion, jefatura }].
+function listarResponsables(token) {
+  var sesion = sesionValida_(token);
+  if (!sesion) return { ok: false, error: 'Sesión no válida.' };
+  try {
+    var filas = leerHoja_(CONFIG.HOJA_USUARIOS_ID, CONFIG.HOJA_USUARIOS_PEST);
+    if (!filas.length) return { ok: true, responsables: [] };
+    var enc = filas[0].map(norm_);
+    var iNom = enc.indexOf('nombre'),
+        iRol = enc.indexOf('rol'),
+        iSub = enc.indexOf('subdireccion'),
+        iJef = enc.indexOf('jefatura'),
+        iAct = enc.indexOf('activo');
+    var out = [];
+    for (var r = 1; r < filas.length; r++) {
+      var f = filas[r];
+      if (iAct >= 0 && norm_(f[iAct]) === 'no') continue;
+      var rol = norm_(iRol >= 0 ? f[iRol] : '');
+      if (rol === 'director') continue;  // Adrián no se autosugiere
+      var nombre = String(iNom >= 0 ? (f[iNom] || '') : '').trim();
+      if (!nombre) continue;
+      out.push({
+        nombreCompleto: nombre,
+        subdireccion: String(iSub >= 0 ? (f[iSub] || '') : '').trim().toUpperCase(),
+        jefatura: String(iJef >= 0 ? (f[iJef] || '') : '').trim()
+      });
+    }
+    return { ok: true, responsables: out };
+  } catch (err) {
+    return { ok: false, error: err && err.message ? err.message : String(err) };
+  }
+}
+
 // Mapa de teléfonos por (subdirección + jefatura) para mandar WhatsApp al
 // responsable correcto desde la app. Lee la columna "Telefono" de Usuarios.
 // Devuelve { ok: true, telefonos: { "SPAC|": "521234567890", ... } }.
@@ -809,7 +844,9 @@ var AREAS_BASE = [
   'Subdirección de Gestión de Obras Inducidas',
   'Jefatura de Departamento de Procedimientos de Construcción',
   'Jefatura de Departamento de Implementación de Manuales Administrativos',
-  'Enlace del Director'
+  'Jefatura de Departamento de Gestión Ambiental',
+  'Jefatura de Departamento de Gestión de Obras Inducidas',
+  'Staff'
 ];
 
 function obtenerAreas(token) {
