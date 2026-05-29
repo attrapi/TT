@@ -3561,12 +3561,8 @@
 
     <div class="kpi-card sub-card" id="kpisSubGrupo">
       <div class="kpis-grupo-titulo">Pendientes por subdirección</div>
+      <!-- Orden: SGOI · SPAC · SA · Staff (mismo que las columnas del tablero). -->
       <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-sub="SA" onclick="cambiarTab('SA')">
-          <div class="kpi-valor" id="kpiPendSA">0</div>
-          <div class="kpi-clave">SA</div>
-          <div class="kpi-label">Archivo</div>
-        </div>
         <div class="kpi kpi-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')">
           <div class="kpi-valor" id="kpiPendSGOI">0</div>
           <div class="kpi-clave">SGOI</div>
@@ -3577,10 +3573,15 @@
           <div class="kpi-clave">SPAC</div>
           <div class="kpi-label">Procesos Construcción</div>
         </div>
+        <div class="kpi kpi-sub" data-sub="SA" onclick="cambiarTab('SA')">
+          <div class="kpi-valor" id="kpiPendSA">0</div>
+          <div class="kpi-clave">SA</div>
+          <div class="kpi-label">Archivo</div>
+        </div>
         <div class="kpi kpi-sub" data-sub="ENLACE" onclick="cambiarTab('ENLACE')">
           <div class="kpi-valor" id="kpiPendENLACE">0</div>
-          <div class="kpi-clave">ENLACE</div>
-          <div class="kpi-label">Enlace Director</div>
+          <div class="kpi-clave">Staff</div>
+          <div class="kpi-label">DPAC + Enlace</div>
         </div>
       </div>
     </div>
@@ -4689,9 +4690,19 @@ function actualizarKPIs() {
   // Conteos del Resumen general — MISMO CRITERIO que el tablero del modelo
   // NUEVO: las activas son TODAS las no Archivadas (vivan en estatus interno
   // 'En Proceso' o 'Atendida' por compatibilidad). Vencidas se cuentan sobre
-  // esa misma base; Archivadas son las que están en Historial.
+  // esa misma base; las "Validadas" del Resumen incluyen TODO lo del Historial
+  // (Completadas + Eliminadas) para que coincida con el conteo del sidebar y
+  // las tarjetas que se ven en el Historial.
   const activas = visible.filter(t => t.estatus !== 'Archivada');
-  const archivadas = visible.filter(t => t.estatus === 'Archivada').length;
+  const enHistorial = TAREAS.filter(t => {
+    if (!(t.eliminada || t.estatus === 'Archivada')) return false;
+    if (usuarioActual.rol === 'Director') {
+      return tabActiva === 'TODAS' || t.subdireccion === tabActiva
+          || (tabActiva === 'ENLACE' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
+    }
+    return t.subdireccion === usuarioActual.subdireccion;
+  });
+  const archivadas = enHistorial.length;
   const vencidas   = activas.filter(t => esVencida(t.fecha_limite)).length;
   const enProcesos = activas.filter(t => t.estatus === 'En Proceso').length;
   const atendidas  = activas.filter(t => t.estatus === 'Atendida').length;
@@ -4818,10 +4829,15 @@ function actualizarConteosTabs() {
       !t.eliminada && t.estatus !== 'Archivada' && t.subdireccion === sub).length;
   const totalActivas = TAREAS.filter(t => !t.eliminada && t.estatus !== 'Archivada').length;
 
-  // Contador del botón Papelera (las que el usuario puede ver en su papelera).
+  // Contador del botón Historial: debe coincidir con lo que se ve al entrar
+  // a esa vista — INCLUYE tanto las completadas (Archivada) como las
+  // eliminadas. Antes solo contaba eliminadas, por eso decia 3 mientras
+  // que el Historial mostraba 4 al hacer click.
   const contPap = document.getElementById('sidebarConteoPapelera');
   if (contPap) {
-    const nPap = TAREAS.filter(t => t.eliminada && (usuarioActual.rol === 'Director' ? t.nivel !== 'jefatura' : t.subdireccion === usuarioActual.subdireccion)).length;
+    const esEnHist = t => t.eliminada || t.estatus === 'Archivada';
+    const nPap = TAREAS.filter(t => esEnHist(t)
+        && (usuarioActual.rol === 'Director' || t.subdireccion === usuarioActual.subdireccion)).length;
     contPap.textContent = nPap;
   }
 
