@@ -7008,8 +7008,10 @@ function abrirNuevaTarea(tEdit) {
        </div>`
     : `<div class="form-campo">
          <label>${etiquetaCampoSub} <span class="req">*</span></label>
-         <select id="nt_sub" required ${esCapturista ? 'disabled' : ''}>${opcionesSub}</select>
-         ${esCapturista ? '<div class="form-hint">No se cambia desde aquí.</div>' : (ed ? '<div class="form-hint">Cambiar el área responsable moverá la tarea a esa subdirección.</div>' : '')}
+         <select id="nt_sub" required ${opcionesPermitidas.length <= 1 ? 'disabled' : ''}>${opcionesSub}</select>
+         <div class="form-hint">${opcionesPermitidas.length > 1
+           ? 'Puedes delegar la tarea a tu subdirección o a alguna de tus jefaturas.'
+           : 'Tu único destino disponible.'}</div>
        </div>`;
 
   document.getElementById('modal').innerHTML = `
