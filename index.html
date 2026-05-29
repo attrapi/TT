@@ -6995,6 +6995,24 @@ function completarTarea(idTarea) {
     accion: 'completar', id_tarea: idTarea,
     estatus_anterior: estatusAnterior, estatus_nuevo: 'Archivada'
   });
+  // Registro adicional: ¿se terminó EN TIEMPO o FUERA DE TIEMPO? Se compara
+  // la fecha de hoy contra la fecha de atención de la tarea. Si la tarea era
+  // permanente o no tiene fecha, no se registra mensaje.
+  const fechaVence = t.fecha_atencion || t.fecha_limite;
+  if (fechaVence && !t.permanente) {
+    const hoy = new Date(new Date().toDateString());
+    const limite = new Date(fechaVence + 'T00:00:00');
+    const aTiempo = limite >= hoy;
+    const fechaTxt = formatearFechaLarga ? formatearFechaLarga(fechaVence) : fechaVence;
+    registrarEnBitacora({
+      accion: aTiempo ? 'a_tiempo' : 'fuera_tiempo',
+      id_tarea: idTarea,
+      estatus_anterior: '', estatus_nuevo: '',
+      comentario: aTiempo
+        ? 'Tarea finalizada en tiempo (vencía el ' + fechaTxt + ')'
+        : 'La tarea NO fue concluida en su tiempo (vencía el ' + fechaTxt + ')'
+    });
+  }
   // Si hay hoja origen, escribe "Atendida" en la columna Estatus (igual que el
   // Enlace: marca de validada en el Excel).
   if (enAppScript() && SESION_TOKEN) {
@@ -7187,6 +7205,11 @@ function abrirNuevaTarea(tEdit) {
     ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.accion_a_tomar || ''))
     : '';
   const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
+  // Solo el CREADOR de la tarea puede cambiar su fecha de atención. Al crear,
+  // siempre se permite (eres tú la que la pone). Al editar, se compara
+  // creado_por contra el usuario actual.
+  const yoNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  const puedeCambiarFecha = !ed || !ed.creado_por || ed.creado_por === yoNombre;
   const valUrl = ed ? (ed.url || '') : '';
   // Para marcar bien los chips al editar: canonicalizamos los nombres viejos
   // (p. ej. "Enlace del Director" → "Staff") para que coincidan con AREAS.
@@ -7292,7 +7315,8 @@ function abrirNuevaTarea(tEdit) {
 
           <div class="form-campo">
             <label>Fecha de atención <span class="req">*</span></label>
-            <input type="date" id="nt_fecha" required value="${valFecha}">
+            <input type="date" id="nt_fecha" required value="${valFecha}" ${puedeCambiarFecha ? '' : 'disabled'}>
+            ${puedeCambiarFecha ? '' : '<div class="form-hint">Solo quien creó la tarea puede cambiar la fecha.</div>'}
           </div>
 
           <div class="form-campo full">
@@ -7673,7 +7697,9 @@ const ACCION_LABEL = {
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta',
-  completar:   'Finalizada'
+  completar:   'Finalizada',
+  a_tiempo:    'En tiempo',
+  fuera_tiempo:'Fuera de tiempo'
 };
 
 // ¿Este movimiento de bitácora es visible para el usuario actual?
