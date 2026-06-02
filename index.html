@@ -5507,11 +5507,12 @@ function crearTarjeta(t) {
   //   • Vencida → ROJO (gana sobre todo).
   // El borde izquierdo viejo por estatus se reemplaza por este color.
   const _itemsT = obtenerChecklist(t);
-  const _checksDir = _itemsT.filter(it => it.check_dir).length;
+  // Amarillo en cuanto haya AL MENOS UNA paloma, sea de Mario (resp) o de Adrián (dir).
+  const _algunCheck = _itemsT.some(it => it.check_dir || it.check_resp);
   let claseColorTarjeta;
   if (vencida) {
     claseColorTarjeta = 'tarjeta-color-vencida';
-  } else if (_checksDir > 0) {
+  } else if (_algunCheck) {
     claseColorTarjeta = 'tarjeta-color-progreso';
   } else {
     claseColorTarjeta = 'tarjeta-color-pendiente';
