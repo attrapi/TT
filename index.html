@@ -636,7 +636,7 @@
   }
   .bitacora-row {
     display: grid;
-    grid-template-columns: 170px 110px 1.4fr 1fr;
+    grid-template-columns: 1.6fr 130px 190px 64px;
     align-items: center;
     gap: 16px;
     padding: 12px 20px;
@@ -644,6 +644,20 @@
     font-size: 13px;
   }
   .bitacora-row:last-child { border-bottom: none; }
+  /* Renglón agrupado por actividad: clic abre el historial completo en un modal. */
+  .bitacora-row.bitacora-row-click { cursor: pointer; transition: background .12s; }
+  .bitacora-row.bitacora-row-click:hover { background: var(--crema); }
+  .bitacora-movs-badge {
+    display: inline-block; min-width: 22px; text-align: center;
+    background: var(--grafito-tenue); color: var(--tinta-suave);
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  }
+  /* Timeline del historial de UNA tarea (dentro del modal). */
+  .bita-timeline { display: flex; flex-direction: column; gap: 10px; }
+  .bita-tl-item { border-left: 3px solid var(--linea); padding: 4px 0 6px 12px; }
+  .bita-tl-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .bita-tl-fecha { font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: var(--tinta-suave); }
+  .bita-tl-cambio { font-size: 12px; color: var(--tinta-suave); margin-top: 4px; }
   .bitacora-row.cabecera {
     background: var(--crema);
     font-size: 10px;
@@ -8190,52 +8204,82 @@ function bitacoraVisible(b) {
 
 function renderizarBitacora() {
   const lista = document.getElementById('bitacoraLista');
-  // Contar y mostrar SOLO los movimientos visibles para este usuario (antes el
-  // contador usaba BITACORA.length completo y aparecía "1" con la lista vacía).
   const visibles = BITACORA.filter(bitacoraVisible);
-  document.getElementById('bitacoraMeta').textContent = visibles.length + ' movimiento' + (visibles.length === 1 ? '' : 's');
+  // Agrupa por TAREA (actividad). BITACORA viene de más reciente a más antiguo,
+  // así que dentro de cada grupo el primer elemento es el movimiento más nuevo.
+  const grupos = new Map();
+  visibles.forEach(b => {
+    const k = b.id_tarea || '(sin id)';
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(b);
+  });
+  document.getElementById('bitacoraMeta').textContent =
+    grupos.size + ' actividad' + (grupos.size === 1 ? '' : 'es') + ' · ' + visibles.length + ' movimiento' + (visibles.length === 1 ? '' : 's');
   const conteo = document.getElementById('sidebarConteoBitacora');
-  if (conteo) conteo.textContent = visibles.length;
+  if (conteo) conteo.textContent = grupos.size;
 
-  if (visibles.length === 0) {
+  if (grupos.size === 0) {
     lista.innerHTML = '<div class="bitacora-vacio">Sin movimientos registrados todavía.</div>';
     return;
   }
 
   let html = `
     <div class="bitacora-row cabecera">
-      <div>Fecha y hora</div>
-      <div>Acción</div>
       <div>Tarea</div>
-      <div>Cambio</div>
+      <div>Última acción</div>
+      <div>Última actualización</div>
+      <div>Movs.</div>
     </div>
   `;
-  visibles.forEach(b => {
-    const tarea = TAREAS.find(t => t.id === b.id_tarea);
+  grupos.forEach((movs, idTarea) => {
+    const tarea = TAREAS.find(t => t.id === idTarea);
     const sub = tarea ? tarea.subdireccion : '';
     const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
-    const accionKey = (b.accion || '').toLowerCase();
+    const ultimo = movs[0];                       // más reciente
+    const accionKey = (ultimo.accion || '').toLowerCase();
     html += `
-      <div class="bitacora-row">
-        <div class="bitacora-fecha-cell">${b.fecha}</div>
-        <div><span class="bitacora-accion ${accionKey}">${ACCION_LABEL[accionKey] || b.accion}</span></div>
+      <div class="bitacora-row bitacora-row-click" onclick="abrirBitacoraTarea('${idTarea}')" title="Ver historial completo">
         <div class="bitacora-tarea" data-sub="${sub}">
-          <span class="bitacora-tarea-id">${b.id_tarea}</span>
-          <span class="bitacora-tarea-titulo">${titulo}</span>
+          <span class="bitacora-tarea-id">${idTarea}</span>
+          <span class="bitacora-tarea-titulo">${escapeHtml(titulo)}</span>
         </div>
-        <div>
-          <div class="bitacora-cambio">
-            <span>${etiquetaEstatus(b.estatus_anterior)}</span>
-            <span class="bitacora-cambio-arrow">→</span>
-            <span>${etiquetaEstatus(b.estatus_nuevo)}</span>
-          </div>
-          <div class="bitacora-usuario">${b.usuario}</div>
-          ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
-        </div>
+        <div><span class="bitacora-accion ${accionKey}">${ACCION_LABEL[accionKey] || ultimo.accion}</span></div>
+        <div class="bitacora-fecha-cell">${ultimo.fecha}<div class="bitacora-usuario">${escapeHtml(ultimo.usuario || '')}</div></div>
+        <div><span class="bitacora-movs-badge">${movs.length}</span></div>
       </div>
     `;
   });
   lista.innerHTML = html;
+}
+
+// Modal con el historial COMPLETO (cronológico) de una sola tarea.
+function abrirBitacoraTarea(idTarea) {
+  const movs = BITACORA.filter(b => b.id_tarea === idTarea && bitacoraVisible(b)).slice().reverse(); // antiguo→reciente
+  const tarea = TAREAS.find(t => t.id === idTarea);
+  const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
+  const sub = tarea ? tarea.subdireccion : '';
+  const timeline = movs.map(b => {
+    const accionKey = (b.accion || '').toLowerCase();
+    return `<div class="bita-tl-item">
+        <div class="bita-tl-top">
+          <span class="bitacora-accion ${accionKey}">${ACCION_LABEL[accionKey] || b.accion}</span>
+          <span class="bita-tl-fecha">${b.fecha}</span>
+        </div>
+        <div class="bita-tl-cambio">${etiquetaEstatus(b.estatus_anterior)} → ${etiquetaEstatus(b.estatus_nuevo)} · ${escapeHtml(b.usuario || '')}</div>
+        ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
+      </div>`;
+  }).join('') || '<div class="bitacora-vacio">Sin movimientos.</div>';
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id" data-sub="${sub}">${idTarea}</div>
+        <div class="modal-titulo">Historial · ${escapeHtml(titulo)}</div>
+      </div>
+      <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body"><div class="bita-timeline">${timeline}</div></div>
+    <div class="modal-acciones"><button class="btn-modal" onclick="cerrarModal()">Cerrar</button></div>`;
+  document.getElementById('modalFondo').classList.add('activo');
 }
 
 // ============== VISTA: CARGA POR RESPONSABLE ==============
