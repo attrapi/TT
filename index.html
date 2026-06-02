@@ -888,24 +888,59 @@
   .reporte-titulo { font-size: 15px; font-weight: 600; color: var(--tinta); margin-bottom: 6px; }
   .reporte-desc { font-size: 12px; color: var(--tinta-suave); line-height: 1.55; }
 
-  /* En móviles colapsamos el sidebar a una fila horizontal arriba */
+  /* Botón ☰ y fondo oscuro: ocultos en escritorio (solo aparecen en móvil). */
+  .nav-hamburguesa { display: none; }
+  .sidebar-backdrop { display: none; }
+
+  /* En móvil/tablet el sidebar se convierte en un CAJÓN deslizante (off-canvas)
+     que se abre con el botón ☰. Así no alarga la pantalla ni deja menús largos. */
   @media (max-width: 860px) {
-    .app-body { grid-template-columns: 1fr; }
-    .sidebar {
-      position: static;
-      height: auto;
-      border-right: none;
-      border-bottom: 1px solid var(--linea);
-      padding: 12px;
-      flex-direction: row;
-      gap: 8px;
-      overflow-x: auto;
+    body { overflow-x: hidden; }                  /* nada se sale a la derecha */
+    .app-body { grid-template-columns: 1fr; }     /* contenido a todo el ancho */
+
+    /* --- Header compacto con botón de menú --- */
+    .nav-hamburguesa {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: none; width: 40px; height: 40px;
+      background: rgba(255,255,255,0.16); color: #fff; border: none;
+      border-radius: 8px; cursor: pointer;
     }
-    .sidebar-grupo { flex-direction: row; flex-wrap: nowrap; gap: 6px; }
-    .sidebar-grupo-titulo { display: none; }
-    .sidebar-item { padding: 8px 12px; white-space: nowrap; }
-    .sidebar-item.activa::before { display: none; }
-    .sidebar-conteo { display: none; }
+    .nav-hamburguesa svg { width: 22px; height: 22px; }
+    .nav-inner { display: flex; align-items: center; gap: 10px; height: auto; padding: 10px 14px; }
+    .nav-marca { display: none; }                 /* la marca larga se oculta en móvil */
+    .nav-titulo { flex: 1; min-width: 0; }
+    .nav-usuario-info { display: none; }           /* solo el avatar */
+    .nav-actualizar span { display: none; }        /* el botón Actualizar solo el ícono */
+    .nav-actualizar { padding: 8px; }
+
+    /* --- Sidebar como cajón --- */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      height: 100vh; width: 84vw; max-width: 320px;
+      z-index: 200;
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.22);
+      flex-direction: column; gap: 14px;
+      overflow-y: auto; overflow-x: hidden;
+      border-right: 1px solid var(--linea);
+      padding: 16px 12px;
+    }
+    body.menu-abierto .sidebar { transform: translateX(0); }
+
+    /* dentro del cajón, el menú vertical y completo */
+    .sidebar-grupo { flex-direction: column; flex-wrap: nowrap; gap: 4px; }
+    .sidebar-grupo-titulo { display: block; }
+    .sidebar-item { padding: 10px 12px; white-space: normal; }
+    .sidebar-conteo { display: inline-flex; }
+
+    /* fondo oscuro al abrir el cajón */
+    .sidebar-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 199;
+      background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    body.menu-abierto .sidebar-backdrop { opacity: 1; pointer-events: auto; }
   }
 
   /* === NAV === */
@@ -3699,6 +3734,9 @@
 
   <nav class="nav">
     <div class="nav-inner">
+      <button class="nav-hamburguesa" onclick="toggleSidebar()" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
       <div class="nav-marca">
         <div class="nav-marca-titulo">ATTRAPI · SPAC</div>
         <div class="nav-marca-sub">Dirección de Procesos Administrativos de Construcción</div>
@@ -3723,6 +3761,8 @@
       </div>
     </div>
   </nav>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="cerrarSidebar()"></div>
 
   <div class="app-body">
     <aside class="sidebar" id="sidebar">
@@ -8697,6 +8737,17 @@ document.addEventListener('keydown', (e) => {
     // Modo demo: arranca el polling de la hoja SPAC publicada.
     iniciarSincronizacionSPAC();
   }
+})();
+
+// ===== Menú lateral en móvil (cajón ☰) =====
+function toggleSidebar() { document.body.classList.toggle('menu-abierto'); }
+function cerrarSidebar() { document.body.classList.remove('menu-abierto'); }
+// Al elegir cualquier opción del menú, el cajón se cierra solo.
+(function () {
+  var sb = document.getElementById('sidebar');
+  if (sb) sb.addEventListener('click', function (e) {
+    if (e.target.closest('.sidebar-item')) cerrarSidebar();
+  });
 })();
 </script>
 
