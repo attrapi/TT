@@ -4597,10 +4597,30 @@ function opcionesResponsableHTML(valSel) {
   if (valSel && valSel !== '__OTRO__' && vals.indexOf(valSel) < 0) {
     html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(valSel) + '</option>';
   }
-  html += lista.map(r => {
+  // Agrupado por ÁREA (subdirección), en orden fijo. "Otros" cae lo que no tenga área.
+  const CONOCIDAS = ['DPAC', 'SPAC', 'SGOI', 'SA', 'ENLACE', 'STAFF'];
+  const GRUPOS = [
+    { cod: 'DPAC',   label: 'Dirección (DPAC)' },
+    { cod: 'SPAC',   label: 'SPAC' },
+    { cod: 'SGOI',   label: 'SGOI' },
+    { cod: 'SA',     label: 'SA' },
+    { cod: 'STAFF',  label: 'Staff' },
+    { cod: '',       label: 'Otros' }
+  ];
+  const opcion = r => {
     const v = nombresSinApellidos(r.nombreCompleto);
     return '<option value="' + escapeHtml(v) + '"' + (v === valSel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
-  }).join('');
+  };
+  GRUPOS.forEach(g => {
+    const items = lista.filter(r => {
+      const sub = String(r.subdireccion || '').toUpperCase();
+      if (g.cod === '')      return CONOCIDAS.indexOf(sub) < 0;           // sin área conocida
+      if (g.cod === 'STAFF') return sub === 'STAFF' || sub === 'ENLACE'; // Staff = ENLACE interno
+      return sub === g.cod;
+    });
+    if (!items.length) return;
+    html += '<optgroup label="' + escapeHtml(g.label) + '">' + items.map(opcion).join('') + '</optgroup>';
+  });
   html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
   return html;
 }
