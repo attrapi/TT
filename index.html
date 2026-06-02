@@ -3056,6 +3056,16 @@
     overflow: hidden;
     white-space: nowrap;
   }
+  /* Input de FECHA: quitar la apariencia nativa para que respete el borde/recuadro
+     y su fondo blanco NO se salga del marco (pasa en iOS/Android). */
+  .form-campo input[type="date"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-clip: padding-box;
+    min-height: 38px;
+    line-height: 1.2;
+  }
   /* form-campo en sí también tiene que respetar el ancho del grid. */
   .form-campo { min-width: 0; }
   .form-grid { min-width: 0; }
