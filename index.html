@@ -7974,7 +7974,7 @@ function guardarNuevaTarea() {
           finalizar(res.url);
         })
         .withFailureHandler(function (e) { toast('Error al subir: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; })
-        .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
+        .subirArchivo(SESION_TOKEN, file.name, file.type, base64, codElegido);
     };
     reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
     reader.readAsDataURL(file);

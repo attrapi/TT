@@ -886,12 +886,35 @@ function carpetaDe_(sesion) {
   return (id && String(id).trim()) ? id : CONFIG.DRIVE_CARPETA_ID;
 }
 
+// Carpeta de Drive según el ÁREA DESTINO de la tarea (el código elegido en el
+// formulario: SPAC/JDPC/JDIMA/SGOI/JDGA/JDGOI/SA/DPAC/ENLACE). Devuelve '' si esa
+// área no tiene carpeta configurada (para que el llamador caiga al respaldo).
+function carpetaDeArea_(cod) {
+  var m = {
+    DPAC:  CONFIG.DRIVE_CARPETA_DPAC,
+    SPAC:  CONFIG.DRIVE_CARPETA_SPAC,
+    JDPC:  CONFIG.DRIVE_CARPETA_JDPC,
+    JDIMA: CONFIG.DRIVE_CARPETA_JDIMA,
+    SGOI:  CONFIG.DRIVE_CARPETA_SGOI,
+    JDGA:  CONFIG.DRIVE_CARPETA_JDGA,
+    JDGOI: CONFIG.DRIVE_CARPETA_JDGOI,
+    SA:    CONFIG.DRIVE_CARPETA_SA,
+    STAFF: CONFIG.DRIVE_CARPETA_STAFF,
+    ENLACE:CONFIG.DRIVE_CARPETA_STAFF
+  };
+  var id = m[String(cod || '').toUpperCase()];
+  return (id && String(id).trim()) ? id : '';
+}
+
 // Sube un archivo (en base64) a la carpeta de la subdirección del usuario y
 // devuelve su enlace. Lo usa el arrastrar-y-soltar del formulario de nueva tarea.
-function subirArchivo(token, nombre, mime, base64) {
+function subirArchivo(token, nombre, mime, base64, destino) {
   var sesion = sesionValida_(token);
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
-  var carpetaId = carpetaDe_(sesion);
+  // 1º por el ÁREA DESTINO de la tarea (lo que se eligió en el formulario);
+  // si esa área no tiene carpeta, cae a la del usuario que sube; y si tampoco,
+  // a la general. Así el adjunto vive en la carpeta del área dueña de la tarea.
+  var carpetaId = (destino ? carpetaDeArea_(destino) : '') || carpetaDe_(sesion);
   if (!carpetaId) return { ok: false, error: 'Falta configurar la carpeta de Drive.' };
   try {
     var bytes = Utilities.base64Decode(base64);
