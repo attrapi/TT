@@ -5970,7 +5970,7 @@ function eliminarDefinitivo(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
-  if (!confirm('¿ELIMINAR DEFINITIVAMENTE la tarea ' + idTarea + '?\n\n"' + (t.tema || t.titulo) + '"\n\nSe borrará del Excel. Esta acción NO se puede deshacer.')) return;
+  if (!confirm('¿ELIMINAR DEFINITIVAMENTE la tarea ' + idTarea + '?\n\n"' + (t.tema || t.titulo) + '"\n\nSe borrará de forma permanente. Esta acción NO se puede deshacer.')) return;
 
   if (enAppScript()) {
     google.script.run
@@ -5988,7 +5988,7 @@ function eliminarDefinitivo(idTarea) {
         try { const c = JSON.parse(localStorage.getItem('tt_tareas_cache_v2') || '[]'); localStorage.setItem('tt_tareas_cache_v2', JSON.stringify(c.filter(x => x.id !== idTarea))); } catch (e) {}
         renderizar();
         if (vistaActiva === 'papelera') renderizarPapelera();
-        toast(yaNoEstaba ? ('La tarea ' + idTarea + ' ya no estaba en el Excel; se quitó del Historial') : ('Tarea ' + idTarea + ' eliminada del Excel'), 'ok');
+        toast(yaNoEstaba ? ('La tarea ' + idTarea + ' ya no existía; se quitó del Historial') : ('Tarea ' + idTarea + ' eliminada'), 'ok');
       })
       .withFailureHandler(function (e) { toast('Error al eliminar: ' + (e && e.message ? e.message : e), 'error'); })
       .eliminarTarea(SESION_TOKEN, idTarea);
@@ -8077,7 +8077,7 @@ function enviarCrearTarea(datos, btn) {
       cerrarModal();
       cargarTareasAppScript(true);
       cargarAreas();   // por si se agregó un área nueva con "Otra"
-      toast('Tarea creada y guardada en el Excel', 'ok');
+      toast('Tarea creada y guardada', 'ok');
     })
     .withFailureHandler(function (e) {
       toast('Error: ' + (e && e.message ? e.message : e), 'error');
