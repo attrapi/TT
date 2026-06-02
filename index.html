@@ -7493,10 +7493,18 @@ function quitarAdjuntoItem(idTarea, idx) {
   if (!puedeMarcarResp(t) && !puedeMarcarDir(t)) return;
   const items = obtenerChecklist(t);
   if (!items[idx]) return;
-  if (!confirm('¿Quitar el archivo adjunto de esta acción?\n(El archivo NO se borra de Drive, solo se desliga de la acción.)')) return;
+  if (!confirm('¿Quitar el archivo adjunto de esta acción?\n(También se enviará a la papelera de Drive; se puede recuperar ~30 días.)')) return;
+  const urlAdj = items[idx].adjunto || '';
   items[idx].adjunto = '';
   items[idx].adjunto_nombre = '';
   persistirEstado(t);
+  // Manda el archivo a la papelera de Drive (best-effort: si falla, al menos
+  // quedó desligado de la acción).
+  if (enAppScript() && SESION_TOKEN && urlAdj) {
+    google.script.run
+      .withFailureHandler(function () {})
+      .borrarArchivoDrive(SESION_TOKEN, urlAdj);
+  }
   abrirDetalle(t);
 }
 // Drag & drop handlers para cada celda de adjunto.

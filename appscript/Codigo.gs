@@ -928,6 +928,29 @@ function subirArchivo(token, nombre, mime, base64, destino) {
   }
 }
 
+// Manda a la PAPELERA de Drive el archivo de una URL (cuando se quita un adjunto
+// de una acción). Va a la papelera (recuperable ~30 días), NO se borra para
+// siempre. Best-effort: si el archivo ya no existe o no es accesible, no truena.
+function borrarArchivoDrive(token, url) {
+  if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida.' };
+  var id = idDeUrlDrive_(url);
+  if (!id) return { ok: false, error: 'No se reconoció el archivo.' };
+  try {
+    DriveApp.getFileById(id).setTrashed(true);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+// Extrae el ID de archivo de una URL de Drive: .../d/ID/..., ...?id=ID, o el
+// token largo que aparezca en la URL.
+function idDeUrlDrive_(url) {
+  var s = String(url || '');
+  var m = s.match(/\/d\/([-\w]{20,})/) || s.match(/[?&]id=([-\w]{20,})/) || s.match(/([-\w]{25,})/);
+  return m ? m[1] : '';
+}
+
 // ====================== ESTADOS (guardar avances) =========================
 // La hoja Estados vive en el mismo archivo que Usuarios.
 function estadosSpreadsheetId_() { return CONFIG.HOJA_USUARIOS_ID; }
