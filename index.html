@@ -1854,6 +1854,13 @@
     border-left: 6px solid #991b1b;
     box-shadow: 0 2px 8px rgba(220,38,38,0.22);
   }
+  /* Naranja fuerte: vence HOY (gana sobre pendiente/progreso; pierde ante vencida). */
+  .tarjeta.tarjeta-color-hoy {
+    background: #fdba74;
+    border: 2px solid #ea580c;
+    border-left: 6px solid #c2410c;
+    box-shadow: 0 2px 8px rgba(234,88,12,0.22);
+  }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
@@ -1955,21 +1962,21 @@
      atención. Si el usuario abre la app el día del vencimiento, los pendientes
      palpitan. La animación se desactiva cuando la tarea está Atendida. */
   @keyframes pulso-hoy {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(185,28,28,0); }
-    50%      { box-shadow: 0 0 0 6px rgba(185,28,28,0.18); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(234,88,12,0); }
+    50%      { box-shadow: 0 0 0 6px rgba(234,88,12,0.20); }
   }
   .tarjeta.vence-hoy {
-    border-color: var(--rojo);
-    border-left-color: var(--rojo);
+    border-color: #ea580c;
+    border-left-color: #c2410c;
     animation: pulso-hoy 1.6s ease-in-out infinite;
   }
   .tarjeta.vence-hoy:hover {
-    border-color: var(--rojo);
-    border-left-color: var(--rojo);
+    border-color: #ea580c;
+    border-left-color: #c2410c;
   }
   .vence-hoy-chip {
     display: inline-block;
-    background: var(--rojo);
+    background: #ea580c;
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -1989,6 +1996,12 @@
   .tarjeta-id-fila .tarjeta-id { margin-bottom: 0; }
   .tarjeta-id-fila .vencida-chip,
   .tarjeta-id-fila .vence-hoy-chip { margin: 0; }
+
+  /* Chips de Vencida/Hoy en su PROPIO renglón (debajo del ID) para que el botón
+     de eliminar (arriba a la derecha) no se les encime. */
+  .tarjeta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+  .tarjeta-chips .vencida-chip,
+  .tarjeta-chips .vence-hoy-chip { margin: 0; }
 
   /* Chip "Vencida": rojo y palpitando para llamar la atención de un pendiente
      que ya pasó su fecha límite. */
@@ -5512,6 +5525,8 @@ function crearTarjeta(t) {
   let claseColorTarjeta;
   if (vencida) {
     claseColorTarjeta = 'tarjeta-color-vencida';
+  } else if (venceEsteDia) {
+    claseColorTarjeta = 'tarjeta-color-hoy';        // vence HOY → naranja
   } else if (_checksDir > 0) {
     claseColorTarjeta = 'tarjeta-color-progreso';
   } else {
@@ -5550,8 +5565,8 @@ function crearTarjeta(t) {
   html += `
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
-      ${chipVencida}${chipVenceHoy}
     </div>
+    ${(chipVencida || chipVenceHoy) ? `<div class="tarjeta-chips">${chipVencida}${chipVenceHoy}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -6286,7 +6301,12 @@ function cerrarModal() {
 
 function esVencida(fecha) {
   if (!fecha) return false;
-  return new Date(fecha) < new Date(new Date().toDateString());
+  // Compara como texto yyyy-mm-dd (sin zonas horarias): vencida SOLO si la fecha
+  // es estrictamente anterior a hoy. La fecha de HOY no está vencida (vence hoy);
+  // empieza a contar como vencida hasta el día siguiente.
+  const hoy = new Date();
+  const hoyISO = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  return String(fecha) < hoyISO;
 }
 
 // Devuelve true si la fecha límite cae exactamente hoy. Se usa para
