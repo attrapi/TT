@@ -346,6 +346,14 @@ function reanudarSesion(token) {
 // solo si el token de sesión es válido.
 function obtenerTareas(token) {
   if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida. Vuelve a iniciar sesión.' };
+  // Caché de ~30 s: si varias cargas (o varios usuarios) piden las tareas seguido,
+  // se devuelven al instante en vez de releer las 9 hojas. Se INVALIDA en cuanto
+  // alguien crea/edita/elimina/valida/mueve (invalidarCacheTareas_), así nadie ve
+  // datos viejos por sus propios cambios.
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('tt_tareas_v1');
+  if (hit) { try { return { ok: true, tareas: JSON.parse(hit) }; } catch (eC) { /* caché corrupta: recalcula */ } }
+
   var tareas = [];
   // Cada área es su propio archivo. Se lee de forma independiente: si una hoja
   // aún no está lista, se ignora y las demás siguen cargando.
@@ -369,7 +377,14 @@ function obtenerTareas(token) {
     } catch (e) { /* hoja aún no lista o sin acceso: se ignora */ }
   });
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
+  try { cache.put('tt_tareas_v1', JSON.stringify(tareas), 30); } catch (ePut) { /* >100KB: se sirve sin caché */ }
   return { ok: true, tareas: tareas };
+}
+
+// Borra la caché de tareas para que la próxima lectura traiga datos frescos. Se
+// llama tras CUALQUIER escritura (crear/editar/eliminar/validar/mover/estado).
+function invalidarCacheTareas_() {
+  try { CacheService.getScriptCache().remove('tt_tareas_v1'); } catch (e) {}
 }
 
 // Crea una tarea NUEVA escribiendo una fila en la hoja que corresponde.
@@ -447,6 +462,7 @@ function crearTarea(token, datos) {
   try { guardarEstado(token, nuevoId, { creado_por: autor, fecha_creacion: stamp }); } catch (e2) {}
   try { registrarBitacora(token, { fecha: stamp, usuario: autor, accion: 'crear', id_tarea: nuevoId, estatus_anterior: '—', estatus_nuevo: estIni }); } catch (e3) {}
 
+  invalidarCacheTareas_();
   return { ok: true, id: nuevoId };
 }
 
@@ -603,6 +619,7 @@ function fijarEstatusHoja(token, id, valor) {
   var fila = localizarFila_(valores, e, id);
   if (fila < 0) return { ok: false, error: 'No se encontró la tarea ' + id + '.' };
   hoja.getRange(fila, iEst + 1).setValue(valor);
+  invalidarCacheTareas_();
   return { ok: true };
 }
 
@@ -674,6 +691,7 @@ function actualizarTarea(token, id, datos) {
     setCell('jefatura', '');
   }
   agregarAreas_(datos.areas);
+  invalidarCacheTareas_();
   return { ok: true };
 }
 
@@ -738,6 +756,7 @@ function moverTareaEntreHojas_(idViejo, destOrig, destNuevo, datos) {
   hO.deleteRow(filaOrigIdx);
   // Renombra el ID en Estados y Bitácora.
   renombrarIdEstados_(idViejo, idNuevo);
+  invalidarCacheTareas_();
   return { ok: true, nuevoId: idNuevo, movido: true };
 }
 
@@ -803,6 +822,7 @@ function eliminarTarea(token, id) {
   if (filaSheet < 0) return { ok: false, error: 'No se encontró la fila de la tarea.' };
 
   hoja.deleteRow(filaSheet);
+  invalidarCacheTareas_();
   return { ok: true };
 }
 
@@ -1016,6 +1036,7 @@ function guardarEstado(token, id, e) {
   var rng = hoja.getRange(writeRow, 1, 1, fila.length);
   rng.setNumberFormat('@');
   rng.setValues([fila]);
+  invalidarCacheTareas_();
   return { ok: true };
 }
 
