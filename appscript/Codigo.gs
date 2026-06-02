@@ -391,40 +391,54 @@ function crearTarea(token, datos) {
   var hoja = obtenerHojaEscritura_(sheetId, sheetPest);
   if (!hoja) return { ok: false, error: 'No existe ninguna pestaña en la hoja destino.' };
 
-  var valores = hoja.getDataRange().getValues();
-  var e = -1;
-  for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
-  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja.' };
+  // Candado: serializa la asignación de ID + escritura para que dos creaciones
+  // casi simultáneas (doble clic o reintento por internet) NO generen el mismo
+  // ID dos veces. La 2a espera, lee la hoja YA actualizada y toma el ID siguiente.
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(20000); }
+  catch (eLock) { return { ok: false, error: 'El sistema está ocupado, intenta de nuevo en unos segundos.' }; }
 
-  var enc = valores[e].map(norm_);
-  var fila = [];
-  for (var c = 0; c < enc.length; c++) fila.push('');
-  function set(nombre, val) {
-    var idx = enc.indexOf(nombre);
-    if (idx < 0) idx = enc.findIndex(function (h) { return h.indexOf(nombre) >= 0; });
-    if (idx >= 0) fila[idx] = val;
+  var nuevoId, estIni;
+  try {
+    var valores = hoja.getDataRange().getValues();
+    var e = -1;
+    for (var i = 0; i < valores.length; i++) { if (norm_(valores[i][0]) === 'id') { e = i; break; } }
+    if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja.' };
+
+    var enc = valores[e].map(norm_);
+    var fila = [];
+    for (var c = 0; c < enc.length; c++) fila.push('');
+    var set = function (nombre, val) {
+      var idx = enc.indexOf(nombre);
+      if (idx < 0) idx = enc.findIndex(function (h) { return h.indexOf(nombre) >= 0; });
+      if (idx >= 0) fila[idx] = val;
+    };
+    // Fecha: la app manda yyyy-mm-dd; la hoja usa dd/mm/yyyy.
+    var fecha = String(datos.fecha || '');
+    var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
+
+    nuevoId = siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : (sub + '-'));
+    set('id', nuevoId);   // ID FIJO
+    set('responsable', datos.responsable || '');
+    if (esJef) set('jefatura', datos.jefatura || '');
+    set('tema', datos.tema || '');
+    set('areas', datos.areas || '');
+    set('acuerdos realizados', datos.acuerdos || '');
+    set('accion', datos.accion || '');
+    set('fecha', fecha);
+    // Estatus inicial: jefatura y tareas propias del Director (DPAC) nacen "En
+    // Proceso"; las demás subdirecciones en "Para validar" (Atendida, retenida).
+    estIni = estatusInicial_(datos.nivel, sub);
+    set('estatus', estIni);
+    set('url', datos.url || '');
+
+    hoja.appendRow(fila);
+    SpreadsheetApp.flush();   // confirma la escritura ANTES de soltar el candado
+  } finally {
+    lock.releaseLock();
   }
-  // Fecha: la app manda yyyy-mm-dd; la hoja usa dd/mm/yyyy.
-  var fecha = String(datos.fecha || '');
-  var mm = fecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (mm) fecha = mm[3] + '/' + mm[2] + '/' + mm[1];
 
-  var nuevoId = siguienteIdSheet_(valores, e, esJef ? prefijoJef_(datos.jefatura) : (sub + '-'));
-  set('id', nuevoId);   // ID FIJO
-  set('responsable', datos.responsable || '');
-  if (esJef) set('jefatura', datos.jefatura || '');
-  set('tema', datos.tema || '');
-  set('areas', datos.areas || '');
-  set('acuerdos realizados', datos.acuerdos || '');
-  set('accion', datos.accion || '');
-  set('fecha', fecha);
-  // Estatus inicial: jefatura y tareas propias del Director (DPAC) nacen "En
-  // Proceso"; las demás subdirecciones en "Para validar" (Atendida, retenida).
-  var estIni = estatusInicial_(datos.nivel, sub);
-  set('estatus', estIni);
-  set('url', datos.url || '');
-
-  hoja.appendRow(fila);
   agregarAreas_(datos.areas);   // registra áreas nuevas (las escritas en "Otra")
 
   // Seguimiento: guarda QUIÉN creó la tarea (hoja Estados) y déjalo en bitácora.

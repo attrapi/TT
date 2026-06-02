@@ -6221,6 +6221,7 @@ function cerrarModal() {
   tareaAbierta = null;
   tareaEditando = null;
   archivoPendiente = null;
+  creandoTarea = false;   // libera el candado anti-doble-envío
 }
 
 // ============== UTILIDADES ==============
@@ -7757,7 +7758,10 @@ function actualizarIdSugerido() {
   document.getElementById('nt_idPreview').textContent = generarSiguienteId(sub);
 }
 
+let creandoTarea = false;   // candado anti-doble-envío al crear/editar tareas
+
 function guardarNuevaTarea() {
+  if (creandoTarea) return;   // ya hay un guardado en curso → ignora el 2o clic (evita duplicados)
   // El Director (creando) ASIGNA a una o varias subdirecciones (checkboxes);
   // los demás usan su subdirección fija (select).
   const esDirNuevo = usuarioActual.rol === 'Director' && !tareaEditando;
@@ -7807,6 +7811,7 @@ function guardarNuevaTarea() {
     return;
   }
 
+  creandoTarea = true;   // de aquí en adelante, bloquea reenvíos hasta cerrar/error
   const editando = !!tareaEditando;
   const btn = document.getElementById('nt_btnCrear');
   const textoBtn = editando ? 'Guardar cambios' : 'Crear Tarea';
@@ -7878,10 +7883,10 @@ function guardarNuevaTarea() {
       const base64 = String(reader.result).split(',')[1] || '';
       google.script.run
         .withSuccessHandler(function (res) {
-          if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } return; }
+          if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; return; }
           finalizar(res.url);
         })
-        .withFailureHandler(function (e) { toast('Error al subir: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } })
+        .withFailureHandler(function (e) { toast('Error al subir: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; })
         .subirArchivo(SESION_TOKEN, file.name, file.type, base64);
     };
     reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
@@ -7897,14 +7902,14 @@ function enviarEditarTarea(datos, btn, textoBtn) {
   const id = tareaEditando ? tareaEditando.id : '';
   google.script.run
     .withSuccessHandler(function (res) {
-      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } return; }
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } creandoTarea = false; return; }
       tareaEditando = null; archivoPendiente = null;
       cerrarModal();
       cargarTareasAppScript(true);
       cargarAreas();
       toast('Tarea ' + id + ' actualizada', 'ok');
     })
-    .withFailureHandler(function (e) { toast('Error: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } })
+    .withFailureHandler(function (e) { toast('Error: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } creandoTarea = false; })
     .actualizarTarea(SESION_TOKEN, id, datos);
 }
 
@@ -7916,6 +7921,7 @@ function enviarCrearTarea(datos, btn) {
       if (!res || !res.ok) {
         toast((res && res.error) || 'No se pudo crear la tarea', 'error');
         if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+        creandoTarea = false;
         return;
       }
       archivoPendiente = null;
@@ -7927,6 +7933,7 @@ function enviarCrearTarea(datos, btn) {
     .withFailureHandler(function (e) {
       toast('Error: ' + (e && e.message ? e.message : e), 'error');
       if (btn) { btn.disabled = false; btn.textContent = 'Crear Tarea'; }
+      creandoTarea = false;
     })
     .crearTarea(SESION_TOKEN, datos);
 }
