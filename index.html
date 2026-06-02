@@ -4587,17 +4587,51 @@ function cargarTelefonos() {
 // con los nombres ya presentes en las tareas si el backend no tiene la
 // función listarResponsables.
 let RESPONSABLES = [];
+
+// Construye el HTML de opciones del dropdown "Responsable directo".
+function opcionesResponsableHTML(valSel) {
+  const lista = RESPONSABLES || [];
+  const vals = lista.map(r => nombresSinApellidos(r.nombreCompleto));
+  let html = '<option value="">Selecciona responsable…</option>';
+  // Conserva un valor que no esté en la lista (p. ej. al editar una tarea vieja).
+  if (valSel && valSel !== '__OTRO__' && vals.indexOf(valSel) < 0) {
+    html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(valSel) + '</option>';
+  }
+  html += lista.map(r => {
+    const v = nombresSinApellidos(r.nombreCompleto);
+    return '<option value="' + escapeHtml(v) + '"' + (v === valSel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
+  }).join('');
+  html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
+  return html;
+}
+
+// Rellena el <select> de responsable (si el modal está abierto), conservando lo elegido.
+function poblarSelectResponsables() {
+  const sel = document.getElementById('nt_responsable');
+  if (!sel) return;
+  sel.innerHTML = opcionesResponsableHTML(sel.value);
+}
+
 function cargarResponsables() {
-  // Fallback inicial: lo que ya conocemos por las tareas cargadas.
+  // 1) Hidrata del caché local: así el dropdown NUNCA sale vacío mientras llega
+  //    la respuesta del servidor (esto evita el "solo aparece Otro").
+  if (!RESPONSABLES.length) {
+    try { const c = JSON.parse(localStorage.getItem('tt_responsables_v1') || '[]'); if (Array.isArray(c) && c.length) RESPONSABLES = c; } catch (e) {}
+  }
+  // 2) Fallback: nombres ya presentes en las tareas cargadas.
   responsablesDesdeTAREAS();
+  poblarSelectResponsables();
+  // 3) Refresca desde el servidor y guarda en caché para la próxima vez.
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
     .withSuccessHandler(function (res) {
       if (res && res.ok && Array.isArray(res.responsables) && res.responsables.length) {
         RESPONSABLES = res.responsables;
+        try { localStorage.setItem('tt_responsables_v1', JSON.stringify(RESPONSABLES)); } catch (e) {}
+        poblarSelectResponsables();
       }
     })
-    .withFailureHandler(function () { /* deja el fallback que ya armamos */ })
+    .withFailureHandler(function () { /* deja el fallback/caché que ya armamos */ })
     .listarResponsables(SESION_TOKEN);
 }
 // Fallback: extrae nombres únicos del campo `responsable` de las tareas ya
@@ -7582,16 +7616,10 @@ function abrirNuevaTarea(tEdit) {
            : 'Tu único destino disponible.'}</div>
        </div>`;
 
-  // Opciones del dropdown "Responsable directo" (subdirectoras/jefes/staff).
-  // Si el responsable actual (al editar) no está en la lista, se agrega para no perderlo.
-  const respVals = (RESPONSABLES || []).map(r => nombresSinApellidos(r.nombreCompleto));
-  let responsableOpts = '<option value="">Selecciona responsable…</option>';
-  if (valResp && respVals.indexOf(valResp) < 0) responsableOpts += '<option value="' + escapeHtml(valResp) + '" selected>' + escapeHtml(valResp) + '</option>';
-  responsableOpts += (RESPONSABLES || []).map(r => {
-    const v = nombresSinApellidos(r.nombreCompleto);
-    return '<option value="' + escapeHtml(v) + '"' + (v === valResp ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
-  }).join('');
-  responsableOpts += '<option value="__OTRO__">✏️ Otro (escribir)…</option>';
+  // Asegura tener responsables (hidrata del caché al instante + refresca del
+  // servidor por detrás) y arma las opciones del dropdown ya pobladas.
+  cargarResponsables();
+  const responsableOpts = opcionesResponsableHTML(valResp);
 
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
