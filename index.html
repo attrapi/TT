@@ -1854,6 +1854,13 @@
     border-left: 6px solid #991b1b;
     box-shadow: 0 2px 8px rgba(220,38,38,0.22);
   }
+  /* Verde olivo: TODO palomeado (lista/concluida). Gana sobre cualquier otro. */
+  .tarjeta.tarjeta-color-olivo {
+    background: #dce8bf;
+    border: 2px solid #6b8e23;
+    border-left: 6px solid #3f5713;
+    box-shadow: 0 2px 8px rgba(107,142,35,0.22);
+  }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
@@ -5509,8 +5516,11 @@ function crearTarjeta(t) {
   const _itemsT = obtenerChecklist(t);
   // Amarillo en cuanto haya AL MENOS UNA paloma, sea de Mario (resp) o de Adrián (dir).
   const _algunCheck = _itemsT.some(it => it.check_dir || it.check_resp);
+  const _todoPalomeado = checklistTodoMarcado(t);   // todas las acciones completas
   let claseColorTarjeta;
-  if (vencida) {
+  if (_todoPalomeado) {
+    claseColorTarjeta = 'tarjeta-color-olivo';        // todo palomeado → verde olivo (gana sobre todo, incl. vencida)
+  } else if (vencida) {
     claseColorTarjeta = 'tarjeta-color-vencida';
   } else if (_algunCheck) {
     claseColorTarjeta = 'tarjeta-color-progreso';
