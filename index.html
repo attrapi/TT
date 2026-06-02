@@ -7582,6 +7582,17 @@ function abrirNuevaTarea(tEdit) {
            : 'Tu único destino disponible.'}</div>
        </div>`;
 
+  // Opciones del dropdown "Responsable directo" (subdirectoras/jefes/staff).
+  // Si el responsable actual (al editar) no está en la lista, se agrega para no perderlo.
+  const respVals = (RESPONSABLES || []).map(r => nombresSinApellidos(r.nombreCompleto));
+  let responsableOpts = '<option value="">Selecciona responsable…</option>';
+  if (valResp && respVals.indexOf(valResp) < 0) responsableOpts += '<option value="' + escapeHtml(valResp) + '" selected>' + escapeHtml(valResp) + '</option>';
+  responsableOpts += (RESPONSABLES || []).map(r => {
+    const v = nombresSinApellidos(r.nombreCompleto);
+    return '<option value="' + escapeHtml(v) + '"' + (v === valResp ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
+  }).join('');
+  responsableOpts += '<option value="__OTRO__">✏️ Otro (escribir)…</option>';
+
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
@@ -7604,10 +7615,8 @@ function abrirNuevaTarea(tEdit) {
 
           <div class="form-campo">
             <label>Responsable directo <span class="req">*</span></label>
-            <input type="text" id="nt_responsable" required maxlength="80" value="${escapeHtml(valResp)}" placeholder="Escribe o elige…" list="dl_responsables" autocomplete="off">
-            <datalist id="dl_responsables">
-              ${(RESPONSABLES || []).map(r => '<option value="' + escapeHtml(nombresSinApellidos(r.nombreCompleto)) + '">' + escapeHtml(r.nombreCompleto) + '</option>').join('')}
-            </datalist>
+            <select id="nt_responsable" required onchange="onCambioResponsable(this)">${responsableOpts}</select>
+            <input type="text" id="nt_responsableOtro" maxlength="80" placeholder="Nombre del responsable" autocomplete="off" style="display:none; margin-top:8px;">
           </div>
 
           <div class="form-campo">
@@ -7762,6 +7771,15 @@ function actualizarIdSugerido() {
   document.getElementById('nt_idPreview').textContent = generarSiguienteId(sub);
 }
 
+// Dropdown de "Responsable directo": al elegir "Otro (escribir)…" muestra un
+// campo de texto para capturar un nombre que no esté en la lista.
+function onCambioResponsable(sel) {
+  const otro = document.getElementById('nt_responsableOtro');
+  if (!otro) return;
+  if (sel.value === '__OTRO__') { otro.style.display = ''; otro.focus(); }
+  else { otro.style.display = 'none'; otro.value = ''; }
+}
+
 let creandoTarea = false;   // candado anti-doble-envío al crear/editar tareas
 
 function guardarNuevaTarea() {
@@ -7795,7 +7813,9 @@ function guardarNuevaTarea() {
   const sub = _info.sub;
   const nivelElegido = _info.nivel;
   const jefaturaElegida = _info.jef;
-  const responsable = document.getElementById('nt_responsable').value.trim();
+  const selResp = document.getElementById('nt_responsable');
+  let responsable = selResp ? selResp.value.trim() : '';
+  if (responsable === '__OTRO__') responsable = (document.getElementById('nt_responsableOtro').value || '').trim();
   const tema = document.getElementById('nt_tema').value.trim();
   const areasMarcadas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value);
   const otraArea = (document.getElementById('nt_areaOtra').value || '').trim();
