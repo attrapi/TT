@@ -31,29 +31,42 @@ Anota el **ID** de ese archivo (de la URL: `.../spreadsheets/d/`**`ESTE_ID`**`/e
 
 ---
 
-## Paso 2 — Tener a la mano los IDs de tus hojas de SPAC
+## Paso 2 — Estructura: un archivo por área
 
-- ID de la hoja de **Jefaturas** (la que hoy es la URL1).
-- ID de la hoja de **Subdirección SPAC** (la URL2).
-- El **nombre exacto de la pestaña** de cada una (p. ej. `Hoja 1`).
+Desde la migración al Drive nuevo, **cada área es su propio Google Sheet**
+(antes había un archivo central de jefaturas y SGOI tenía 3 pestañas juntas).
+Las áreas y su pestaña son: **DPAC, SPAC, JDPC, JDIMA, SGOI, JDGA, JDGOI, SA,
+STAFF**. Las pestañas de sistema (**Usuarios, Estados, Bitacora, Areas**) viven
+dentro del archivo de **SPAC**.
 
-> Con el login privado ya **no necesitas** "Publicar en la web" esas hojas;
-> el script las lee con tu permiso de dueño. Puedes dejarlas privadas.
+Los **IDs ya están puestos** dentro de `guardarConfiguracion()` en `Codigo.gs`
+(no hay que copiar nada a mano salvo que cambie algún archivo).
+
+> Nota — "Staff" antes era "Enlace". El archivo/carpeta se llaman **STAFF**,
+> pero el **código interno sigue siendo `ENLACE`** (lo que la app ya entiende).
+> ⚠️ En la hoja **Usuarios**, a la gente de Staff ponle **Subdireccion =
+> `ENLACE`** (no `STAFF`), o el front no los reconocerá.
+
+> Con el login privado **no necesitas** "Publicar en la web" estas hojas; el
+> script las lee con tu permiso de dueño. Pueden quedar privadas.
 
 ---
 
 ## Paso 3 — Crear el proyecto de Apps Script y guardar la configuración
 
-1. Entra a <https://script.google.com> → **Nuevo proyecto**.
+1. Con la **cuenta nueva** (la dueña del Drive), entra a
+   <https://script.google.com> → **Nuevo proyecto**.
 2. Borra lo que traiga y **pega** el contenido de `Codigo.gs` (este repo).
-3. Hasta arriba está la función **`guardarConfiguracion()`**. Ahí pon tus
-   **IDs** y **nombres de pestaña** (Paso 1 y 2), reemplazando los textos
-   `PEGA_AQUI...`.
-4. Guarda (💾). Arriba, en el selector de función, elige
-   **`guardarConfiguracion`** y pulsa **Ejecutar ▶** (autoriza si lo pide).
-   - Esto guarda los datos en las **Propiedades del script**.
+3. Guarda (💾). En el selector de función elige **`guardarConfiguracion`** y
+   pulsa **Ejecutar ▶** (autoriza si lo pide). Esto guarda los IDs en las
+   **Propiedades del script**.
    - 🎉 A partir de aquí, **re-pegar el código ya NO borra los IDs**. Solo
      vuelve a correr `guardarConfiguracion` si quieres **cambiar** algún dato.
+4. Elige **`autorizar`** y **Ejecutar ▶**: obliga a Google a pedir TODOS los
+   permisos (incluido escribir en Drive para los adjuntos). Acepta el diálogo.
+5. (Solo si las hojas nuevas traen filas **sin ID** en la columna ID) elige
+   **`asignarIds`** y **Ejecutar ▶** una vez: le pone ID fijo a cada tarea
+   existente según su área. Re-correrla es seguro.
 
 ---
 

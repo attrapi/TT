@@ -22,45 +22,66 @@
 //    Solo vuelve a correrla si quieres CAMBIAR algún dato.
 function guardarConfiguracion() {
   var valores = {
-    HOJA_JEFATURAS_ID:    'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_JEFATURAS',
-    HOJA_JEFATURAS_PEST:  'Jefaturas',   // nombre exacto de la pestaña
+    // ===== HOJAS — un archivo (Sheet) por área =====
+    // Dirección (DPAC): tareas propias del Director.
+    HOJA_DPAC_ID:    '1sBFNoqzlEVZMEZ5qUbzmUkJnmxxyfrKEt533ha-L6ME',
+    HOJA_DPAC_PEST:  'DPAC',
 
-    HOJA_SUBDIR_ID:       'PEGA_AQUI_EL_ID_DE_LA_HOJA_DE_SUBDIRECCION',
-    HOJA_SUBDIR_PEST:     'SPAC',
+    // Subdirección de Procesos Administrativos de Construcción (SPAC · Mario).
+    // ESTE archivo aloja TAMBIÉN las pestañas Usuarios/Estados/Bitacora/Areas.
+    HOJA_SPAC_ID:    '1jXNZwLW4NvChsf7Cn9TdODKksrRv3QqbwaKFKQceNBE',
+    HOJA_SPAC_PEST:  'SPAC',
 
-    // Hoja de la Dirección (DPAC): tareas propias del Director.
-    HOJA_DPAC_ID:         '1uJaxAg2GMdjiaeTFdyeqfCPTKW290UNu0orp1F83XWk',
-    HOJA_DPAC_PEST:       'DPAC',          // nombre exacto de la pestaña
+    // Jefatura de Procedimientos de Construcción (JDPC) — jefatura de SPAC.
+    HOJA_JDPC_ID:    '19AYybHod11wkvSoIfv1r3W8Cogyrq_5nbch-kjy_d74',
+    HOJA_JDPC_PEST:  'JDPC',
 
-    // Hoja del Enlace del Director.
-    HOJA_ENLACE_ID:       '16D_ngkurWeGS3nM2ewhUVgINvyKU_LXx2wYIxIA8QP0',
-    HOJA_ENLACE_PEST:     'Enlace',        // si no existe, usa la 1a pestaña
+    // Jefatura de Implementación de Manuales Administrativos (JDIMA) — jefatura de SPAC.
+    HOJA_JDIMA_ID:   '1HDMC0AwJYT7Br_JV5WqExpvdoMOF5tAip_ghu16MsS4',
+    HOJA_JDIMA_PEST: 'JDIMA',
 
-    // Hoja de la Subdirección de Gestión de Obras Inducidas (SGOI · Fabiola).
-    HOJA_SGOI_ID:         '1Dap06TzpYoKnPKmRiDowRFO1EsHyJZHHbOsg7lod70s',
-    HOJA_SGOI_PEST:       'SGOI',          // si no existe, usa la 1a pestaña
-    HOJA_SGOI_PEST_JDGA:  'JDGA',          // pestaña dentro del mismo archivo SGOI
-    HOJA_SGOI_PEST_JDGOI: 'JDGOI',         // pestaña dentro del mismo archivo SGOI
+    // Subdirección de Gestión de Obras Inducidas (SGOI · Fabiola).
+    HOJA_SGOI_ID:    '1bxbmxSaT-BU5-9_mkKCxVaLQFLie3MpTWTSk1qhLf9c',
+    HOJA_SGOI_PEST:  'SGOI',
 
-    // Hoja de la Subdirección de Archivo (SA).
-    HOJA_SA_ID:           '1qggjIjePJKV2CiDHcmL0MlRnotA8Kydqkh40Riy_ij8',
-    HOJA_SA_PEST:         'SA',            // si no existe, usa la 1a pestaña
+    // Jefatura de Gestión Ambiental (JDGA) — jefatura de SGOI.
+    HOJA_JDGA_ID:    '1IfFKZr_JBTqJ5XNzw7Uevzb5-gAPOPLLXFibceHkZZU',
+    HOJA_JDGA_PEST:  'JDGA',
 
-    HOJA_USUARIOS_ID:     'PEGA_AQUI_EL_ID_DE_LA_HOJA_USUARIOS',
-    HOJA_USUARIOS_PEST:   'Usuarios',
+    // Jefatura de Gestión de Obras Inducidas (JDGOI) — jefatura de SGOI.
+    HOJA_JDGOI_ID:   '1ouEYN2YX63UtxEtGtkoMPRAkJZZmnI7n7Oo8AnCEOPw',
+    HOJA_JDGOI_PEST: 'JDGOI',
 
-    APP_HTML_URL:         'https://attrapi.github.io/TT/index.html',
-    HOJA_ESTADOS_PEST:    'Estados',
-    // Carpeta de Drive donde se suben los adjuntos arrastrados (debe ser
-    // accesible por esta cuenta). ID que va en la URL de la carpeta.
-    // Carpeta general (Director / respaldo) y una por subdirección. El adjunto
-    // se guarda en la carpeta de la subdirección de quien lo sube.
-    DRIVE_CARPETA_ID:     '1kF3hbcJMnFSceeAv8MXiYzNSA4yYhz2q',   // DPAC (general)
-    DRIVE_CARPETA_SPAC:   '1He1CRd5FMMO563v7DeyB_SBmChbxYfmo',   // carpeta SPAC
-    DRIVE_CARPETA_SA:     'PEGA_AQUI_ID_CARPETA_SA',
-    DRIVE_CARPETA_SGOI:   'PEGA_AQUI_ID_CARPETA_SGOI',
-    DRIVE_CARPETA_ENLACE: 'PEGA_AQUI_ID_CARPETA_ENLACE',
-    HORAS_SESION:         '8'
+    // Subdirección de Archivo (SA).
+    HOJA_SA_ID:      '1JhYHSUSmSe0_yz0rJ6ijM8Y7uAm6AXzIxc2O8g_QqlQ',
+    HOJA_SA_PEST:    'SA',
+
+    // Staff del Director (antes "Enlace"). Captura tareas igual que una subdir.
+    HOJA_STAFF_ID:   '13c7C4rkeMAN5TVfZSSsWhcyON3KrvzoAYi89v7NNsGE',
+    HOJA_STAFF_PEST: 'STAFF',
+
+    // Lista de login + pestañas de sistema (Estados/Bitacora/Areas). Vive en el
+    // mismo archivo que SPAC.
+    HOJA_USUARIOS_ID:   '1jXNZwLW4NvChsf7Cn9TdODKksrRv3QqbwaKFKQceNBE',
+    HOJA_USUARIOS_PEST: 'Usuarios',
+
+    APP_HTML_URL:       'https://attrapi.github.io/TT/index.html',
+    HOJA_ESTADOS_PEST:  'Estados',
+
+    // ===== CARPETAS DE DRIVE (adjuntos) — una por área =====
+    // El adjunto se guarda en la carpeta del área de quien lo sube. La general
+    // (DRIVE_CARPETA_ID) es el respaldo si un área no tiene carpeta propia.
+    DRIVE_CARPETA_ID:    '1K9iW3yOVozBjJKQmi9_dOgTvNf7F7KAw',   // general (= DPAC)
+    DRIVE_CARPETA_DPAC:  '1K9iW3yOVozBjJKQmi9_dOgTvNf7F7KAw',
+    DRIVE_CARPETA_SPAC:  '19_RKC4qcix5bhWNMitT9-o-GEnpjPIsW',
+    DRIVE_CARPETA_JDPC:  '1ZLSp0_JWdYZu0-6L4SiFDxTpewnaFc6t',
+    DRIVE_CARPETA_JDIMA: '13jTWS3dTu-fFEh4w98Vk6IWhsVr1g6vG',
+    DRIVE_CARPETA_SGOI:  '1RQY-EKlr0Hbzy7TKkuypBIINhrg3g2oZ',
+    DRIVE_CARPETA_JDGA:  '1f5gO6VlSPxUOYo3_nM3MsMM3NDGYc5nD',
+    DRIVE_CARPETA_JDGOI: '177G1h-8HEuQJYRecOKFGKSxfHAFLe836',
+    DRIVE_CARPETA_SA:    '1QmUDp_bCYSOA0Cg73ghe7DbXWV2N1xQ3',
+    DRIVE_CARPETA_STAFF: '1PCGU3TxYFPzkT2aiTCl9Hde4zByb1XhD',
+    HORAS_SESION:        '8'
   };
   // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
   // configuración ya existente. Así re-correr esta función es seguro.
@@ -93,29 +114,38 @@ const CONFIG = (function () {
   var p = PropertiesService.getScriptProperties();
   function g(k, def) { var v = p.getProperty(k); return (v === null || v === '') ? (def || '') : v; }
   return {
-    HOJA_JEFATURAS_ID:   g('HOJA_JEFATURAS_ID'),
-    HOJA_JEFATURAS_PEST: g('HOJA_JEFATURAS_PEST', 'Jefaturas'),
-    HOJA_SUBDIR_ID:      g('HOJA_SUBDIR_ID'),
-    HOJA_SUBDIR_PEST:    g('HOJA_SUBDIR_PEST', 'SPAC'),
     HOJA_DPAC_ID:        g('HOJA_DPAC_ID'),
     HOJA_DPAC_PEST:      g('HOJA_DPAC_PEST', 'DPAC'),
-    HOJA_ENLACE_ID:      g('HOJA_ENLACE_ID'),
-    HOJA_ENLACE_PEST:    g('HOJA_ENLACE_PEST', 'Enlace'),
+    HOJA_SPAC_ID:        g('HOJA_SPAC_ID'),
+    HOJA_SPAC_PEST:      g('HOJA_SPAC_PEST', 'SPAC'),
+    HOJA_JDPC_ID:        g('HOJA_JDPC_ID'),
+    HOJA_JDPC_PEST:      g('HOJA_JDPC_PEST', 'JDPC'),
+    HOJA_JDIMA_ID:       g('HOJA_JDIMA_ID'),
+    HOJA_JDIMA_PEST:     g('HOJA_JDIMA_PEST', 'JDIMA'),
     HOJA_SGOI_ID:        g('HOJA_SGOI_ID'),
     HOJA_SGOI_PEST:      g('HOJA_SGOI_PEST', 'SGOI'),
-    HOJA_SGOI_PEST_JDGA: g('HOJA_SGOI_PEST_JDGA', 'JDGA'),
-    HOJA_SGOI_PEST_JDGOI:g('HOJA_SGOI_PEST_JDGOI', 'JDGOI'),
+    HOJA_JDGA_ID:        g('HOJA_JDGA_ID'),
+    HOJA_JDGA_PEST:      g('HOJA_JDGA_PEST', 'JDGA'),
+    HOJA_JDGOI_ID:       g('HOJA_JDGOI_ID'),
+    HOJA_JDGOI_PEST:     g('HOJA_JDGOI_PEST', 'JDGOI'),
     HOJA_SA_ID:          g('HOJA_SA_ID'),
     HOJA_SA_PEST:        g('HOJA_SA_PEST', 'SA'),
+    HOJA_STAFF_ID:       g('HOJA_STAFF_ID'),
+    HOJA_STAFF_PEST:     g('HOJA_STAFF_PEST', 'STAFF'),
     HOJA_USUARIOS_ID:    g('HOJA_USUARIOS_ID'),
     HOJA_USUARIOS_PEST:  g('HOJA_USUARIOS_PEST', 'Usuarios'),
     APP_HTML_URL:        g('APP_HTML_URL', 'https://attrapi.github.io/TT/index.html'),
     HOJA_ESTADOS_PEST:   g('HOJA_ESTADOS_PEST', 'Estados'),
-    DRIVE_CARPETA_ID:     g('DRIVE_CARPETA_ID'),
-    DRIVE_CARPETA_SPAC:   g('DRIVE_CARPETA_SPAC'),
-    DRIVE_CARPETA_SA:     g('DRIVE_CARPETA_SA'),
-    DRIVE_CARPETA_SGOI:   g('DRIVE_CARPETA_SGOI'),
-    DRIVE_CARPETA_ENLACE: g('DRIVE_CARPETA_ENLACE'),
+    DRIVE_CARPETA_ID:    g('DRIVE_CARPETA_ID'),
+    DRIVE_CARPETA_DPAC:  g('DRIVE_CARPETA_DPAC'),
+    DRIVE_CARPETA_SPAC:  g('DRIVE_CARPETA_SPAC'),
+    DRIVE_CARPETA_JDPC:  g('DRIVE_CARPETA_JDPC'),
+    DRIVE_CARPETA_JDIMA: g('DRIVE_CARPETA_JDIMA'),
+    DRIVE_CARPETA_SGOI:  g('DRIVE_CARPETA_SGOI'),
+    DRIVE_CARPETA_JDGA:  g('DRIVE_CARPETA_JDGA'),
+    DRIVE_CARPETA_JDGOI: g('DRIVE_CARPETA_JDGOI'),
+    DRIVE_CARPETA_SA:    g('DRIVE_CARPETA_SA'),
+    DRIVE_CARPETA_STAFF: g('DRIVE_CARPETA_STAFF'),
     HORAS_SESION:        Number(g('HORAS_SESION', '8'))
   };
 })();
@@ -308,48 +338,28 @@ function reanudarSesion(token) {
 // solo si el token de sesión es válido.
 function obtenerTareas(token) {
   if (!sesionValida_(token)) return { ok: false, error: 'Sesión no válida. Vuelve a iniciar sesión.' };
-  var jef = parsearHoja_(leerHoja_(CONFIG.HOJA_JEFATURAS_ID, CONFIG.HOJA_JEFATURAS_PEST), 'jefatura', 'SPAC');
-  var sub = parsearHoja_(leerHoja_(CONFIG.HOJA_SUBDIR_ID,    CONFIG.HOJA_SUBDIR_PEST),    'subdireccion', 'SPAC');
-  var tareas = jef.concat(sub);
-  // Tareas propias de la Dirección (DPAC), si la hoja está configurada.
-  if (CONFIG.HOJA_DPAC_ID) {
+  var tareas = [];
+  // Cada área es su propio archivo. Se lee de forma independiente: si una hoja
+  // aún no está lista, se ignora y las demás siguen cargando.
+  // [ID hoja, pestaña, nivel, subCode, jefatura forzada (o null) ]
+  var FUENTES = [
+    [CONFIG.HOJA_DPAC_ID,  CONFIG.HOJA_DPAC_PEST,  'subdireccion', 'DPAC',  null],
+    [CONFIG.HOJA_SPAC_ID,  CONFIG.HOJA_SPAC_PEST,  'subdireccion', 'SPAC',  null],
+    [CONFIG.HOJA_JDPC_ID,  CONFIG.HOJA_JDPC_PEST,  'jefatura',     'SPAC',  'PROCEDIMIENTOS'],
+    [CONFIG.HOJA_JDIMA_ID, CONFIG.HOJA_JDIMA_PEST, 'jefatura',     'SPAC',  'MANUALES'],
+    [CONFIG.HOJA_SGOI_ID,  CONFIG.HOJA_SGOI_PEST,  'subdireccion', 'SGOI',  null],
+    [CONFIG.HOJA_JDGA_ID,  CONFIG.HOJA_JDGA_PEST,  'jefatura',     'SGOI',  'GESTION_AMBIENTAL'],
+    [CONFIG.HOJA_JDGOI_ID, CONFIG.HOJA_JDGOI_PEST, 'jefatura',     'SGOI',  'GESTION_OBRAS'],
+    [CONFIG.HOJA_SA_ID,    CONFIG.HOJA_SA_PEST,    'subdireccion', 'SA',    null],
+    // Staff: archivo "STAFF", pero código interno 'ENLACE' (el que ya usa el front).
+    [CONFIG.HOJA_STAFF_ID, CONFIG.HOJA_STAFF_PEST, 'subdireccion', 'ENLACE', null]
+  ];
+  FUENTES.forEach(function (f) {
+    if (!f[0]) return;   // hoja sin configurar
     try {
-      var dpac = parsearHoja_(leerHoja_(CONFIG.HOJA_DPAC_ID, CONFIG.HOJA_DPAC_PEST), 'subdireccion', 'DPAC');
-      tareas = tareas.concat(dpac);
-    } catch (e) { /* hoja DPAC aún no lista: se ignora */ }
-  }
-  // Tareas del Enlace del Director, si su hoja está configurada.
-  if (CONFIG.HOJA_ENLACE_ID) {
-    try {
-      var enl = parsearHoja_(leerHoja_(CONFIG.HOJA_ENLACE_ID, CONFIG.HOJA_ENLACE_PEST), 'subdireccion', 'ENLACE');
-      tareas = tareas.concat(enl);
-    } catch (e) { /* hoja Enlace aún no lista: se ignora */ }
-  }
-  // Tareas de la Subdirección de Gestión de Obras Inducidas (Fabiola).
-  // Lee TRES pestañas dentro del mismo archivo: SGOI (subdir), JDGA (Gestión
-  // Ambiental) y JDGOI (Gestión de Obras Inducidas). Las dos últimas se leen
-  // como jefatura con el código forzado por la pestaña.
-  if (CONFIG.HOJA_SGOI_ID) {
-    try {
-      var sgoi = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST), 'subdireccion', 'SGOI');
-      tareas = tareas.concat(sgoi);
-    } catch (e) { /* hoja SGOI aún no lista: se ignora */ }
-    try {
-      var jdga = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST_JDGA), 'jefatura', 'SGOI', 'GESTION_AMBIENTAL');
-      tareas = tareas.concat(jdga);
-    } catch (e) { /* pestaña JDGA aún no lista: se ignora */ }
-    try {
-      var jdgoi = parsearHoja_(leerHoja_(CONFIG.HOJA_SGOI_ID, CONFIG.HOJA_SGOI_PEST_JDGOI), 'jefatura', 'SGOI', 'GESTION_OBRAS');
-      tareas = tareas.concat(jdgoi);
-    } catch (e) { /* pestaña JDGOI aún no lista: se ignora */ }
-  }
-  // Tareas de la Subdirección de Archivo (SA).
-  if (CONFIG.HOJA_SA_ID) {
-    try {
-      var sa = parsearHoja_(leerHoja_(CONFIG.HOJA_SA_ID, CONFIG.HOJA_SA_PEST), 'subdireccion', 'SA');
-      tareas = tareas.concat(sa);
-    } catch (e) { /* hoja SA aún no lista: se ignora */ }
-  }
+      tareas = tareas.concat(parsearHoja_(leerHoja_(f[0], f[1]), f[2], f[3], f[4]));
+    } catch (e) { /* hoja aún no lista o sin acceso: se ignora */ }
+  });
   aplicarEstados_(tareas);   // combina con los avances guardados (hoja Estados)
   return { ok: true, tareas: tareas };
 }
@@ -364,25 +374,11 @@ function crearTarea(token, datos) {
   var sub = String(datos.subdireccion || '').toUpperCase();
   var esJef = datos.nivel === 'jefatura';
 
-  var sheetId, sheetPest;
-  // SPAC: jefaturas viven en la hoja central de jefaturas, subdir en su hoja.
-  if (esJef && sub === 'SPAC') { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
-  // SGOI: las jefaturas viven en pestañas DENTRO del mismo archivo SGOI.
-  else if (esJef && sub === 'SGOI' && CONFIG.HOJA_SGOI_ID) {
-    sheetId = CONFIG.HOJA_SGOI_ID;
-    var codJef = String(datos.jefatura || '').toUpperCase();
-    if (codJef === 'GESTION_AMBIENTAL') sheetPest = CONFIG.HOJA_SGOI_PEST_JDGA;
-    else if (codJef === 'GESTION_OBRAS') sheetPest = CONFIG.HOJA_SGOI_PEST_JDGOI;
-    else sheetPest = CONFIG.HOJA_SGOI_PEST;
-  }
-  // Compatibilidad: si pasan `esJef` sin sub, usa la central como antes.
-  else if (esJef) { sheetId = CONFIG.HOJA_JEFATURAS_ID; sheetPest = CONFIG.HOJA_JEFATURAS_PEST; }
-  else if (sub === 'SPAC') { sheetId = CONFIG.HOJA_SUBDIR_ID; sheetPest = CONFIG.HOJA_SUBDIR_PEST; }
-  else if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) { sheetId = CONFIG.HOJA_DPAC_ID; sheetPest = CONFIG.HOJA_DPAC_PEST; }
-  else if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) { sheetId = CONFIG.HOJA_ENLACE_ID; sheetPest = CONFIG.HOJA_ENLACE_PEST; }
-  else if (sub === 'SGOI' && CONFIG.HOJA_SGOI_ID) { sheetId = CONFIG.HOJA_SGOI_ID; sheetPest = CONFIG.HOJA_SGOI_PEST; }
-  else if (sub === 'SA'   && CONFIG.HOJA_SA_ID)   { sheetId = CONFIG.HOJA_SA_ID;   sheetPest = CONFIG.HOJA_SA_PEST; }
-  else { return { ok: false, error: 'Aún no hay una hoja configurada para la subdirección ' + sub + '.' }; }
+  // Cada área es su propio archivo. Si es jefatura, manda a la hoja de esa
+  // jefatura (sin importar la subdirección); si no, a la hoja de la subdir.
+  var destino = esJef ? hojaDeJefatura_(datos.jefatura) : hojaDeSubdir_(sub);
+  if (!destino) return { ok: false, error: 'Aún no hay una hoja configurada para ' + (esJef ? ('la jefatura ' + datos.jefatura) : ('la subdirección ' + sub)) + '.' };
+  var sheetId = destino.sheetId, sheetPest = destino.sheetPest;
 
   var hoja = obtenerHojaEscritura_(sheetId, sheetPest);
   if (!hoja) return { ok: false, error: 'No existe ninguna pestaña en la hoja destino.' };
@@ -460,14 +456,29 @@ function localizarFila_(valores, e, id) {
   return -1;
 }
 
-// Asigna IDs fijos a las filas que aún no lo tienen (córrela UNA vez para
-// migrar las tareas existentes). Después, crear/editar/eliminar usan ese ID.
+// Asigna IDs fijos a las filas que aún no lo tienen (córrela UNA vez por área
+// para migrar las tareas existentes). Recorre TODOS los archivos: a cada fila
+// con "tema" pero sin ID estable le pone el prefijo de su área (DPAC-, SPAC-,
+// JDPC-, JDIMA-, SGOI-, JDGA-, JDGOI-, SA-, STAFF-). Después, crear/editar/
+// eliminar usan ese ID. Re-correrla es seguro (las que ya tienen ID se saltan).
 function asignarIds() {
-  var hechos = 0;
-  [{ id: CONFIG.HOJA_JEFATURAS_ID, pest: CONFIG.HOJA_JEFATURAS_PEST, pre: 'JSPAC-' },
-   { id: CONFIG.HOJA_SUBDIR_ID, pest: CONFIG.HOJA_SUBDIR_PEST, pre: 'SPAC-' }].forEach(function (h) {
-    var ss = SpreadsheetApp.openById(h.id);
-    var hoja = ss.getSheetByName(h.pest);
+  var FUENTES = [
+    [CONFIG.HOJA_DPAC_ID,  CONFIG.HOJA_DPAC_PEST,  'DPAC-'],
+    [CONFIG.HOJA_SPAC_ID,  CONFIG.HOJA_SPAC_PEST,  'SPAC-'],
+    [CONFIG.HOJA_JDPC_ID,  CONFIG.HOJA_JDPC_PEST,  'JDPC-'],
+    [CONFIG.HOJA_JDIMA_ID, CONFIG.HOJA_JDIMA_PEST, 'JDIMA-'],
+    [CONFIG.HOJA_SGOI_ID,  CONFIG.HOJA_SGOI_PEST,  'SGOI-'],
+    [CONFIG.HOJA_JDGA_ID,  CONFIG.HOJA_JDGA_PEST,  'JDGA-'],
+    [CONFIG.HOJA_JDGOI_ID, CONFIG.HOJA_JDGOI_PEST, 'JDGOI-'],
+    [CONFIG.HOJA_SA_ID,    CONFIG.HOJA_SA_PEST,    'SA-'],
+    [CONFIG.HOJA_STAFF_ID, CONFIG.HOJA_STAFF_PEST, 'ENLACE-']
+  ];
+  var hechos = 0, detalle = [];
+  FUENTES.forEach(function (h) {
+    if (!h[0]) return;   // área sin configurar
+    var hoja;
+    try { var ss = SpreadsheetApp.openById(h[0]); hoja = ss.getSheetByName(h[1]) || ss.getSheets()[0]; }
+    catch (e0) { return; }
     if (!hoja) return;
     var vals = hoja.getDataRange().getValues();
     var e = -1;
@@ -477,107 +488,20 @@ function asignarIds() {
     var max = 0;
     for (var r = e + 1; r < vals.length; r++) {
       var v = String(vals[r][0] || '').trim();
-      if (v.indexOf(h.pre) === 0) { var n = parseInt(v.slice(h.pre.length), 10); if (!isNaN(n) && n > max) max = n; }
+      if (v.indexOf(h[2]) === 0) { var n = parseInt(v.slice(h[2].length), 10); if (!isNaN(n) && n > max) max = n; }
     }
+    var enArea = 0;
     for (var r2 = e + 1; r2 < vals.length; r2++) {
-      if (!String(vals[r2][iTema] || '').trim()) continue;
-      if (/^(?:JDPC|JDIMA|JSPAC|SPACJ|SPAC)-\d+/i.test(String(vals[r2][0] || '').trim())) continue;
+      if (iTema >= 0 && !String(vals[r2][iTema] || '').trim()) continue;     // fila vacía
+      if (RE_ID_ESTABLE.test(String(vals[r2][0] || '').trim())) continue;    // ya tiene ID estable
       max++;
-      hoja.getRange(r2 + 1, 1).setValue(h.pre + String(max).padStart(3, '0'));
-      hechos++;
+      hoja.getRange(r2 + 1, 1).setValue(h[2] + String(max).padStart(3, '0'));
+      hechos++; enArea++;
     }
+    detalle.push(h[2] + ' +' + enArea + ' (hasta ' + h[2] + String(max).padStart(3, '0') + ')');
   });
-  Logger.log('✅ IDs fijos asignados: ' + hechos);
-  return { ok: true, asignados: hechos };
-}
-
-// Migra los IDs de jefatura al nuevo prefijo JSPAC-### y limpia sufijos viejos
-// (p. ej. "SPACJ-001.jef.procedimientos" -> "JSPAC-001"). Conserva el número
-// cuando existe. Reajusta también las hojas Estados y Bitacora para no perder el
-// avance ni el historial. Córrela UNA vez después de actualizar el código.
-function migrarIdsJefatura() {
-  var ss = SpreadsheetApp.openById(CONFIG.HOJA_JEFATURAS_ID);
-  var hoja = ss.getSheetByName(CONFIG.HOJA_JEFATURAS_PEST);
-  if (!hoja) return { ok: false, error: 'No existe la hoja de jefaturas.' };
-  var vals = hoja.getDataRange().getValues();
-  var e = -1;
-  for (var i = 0; i < vals.length; i++) { if (norm_(vals[i][0]) === 'id') { e = i; break; } }
-  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja de jefaturas.' };
-  var iTema = vals[e].map(norm_).indexOf('tema');
-
-  var mapa = {}, usados = {}, max = 0;
-  // Calcula el número máximo ya presente (para asignar los faltantes después).
-  for (var r = e + 1; r < vals.length; r++) {
-    var mm0 = String(vals[r][0] || '').trim().match(/-0*(\d+)/);
-    if (mm0) { var n0 = parseInt(mm0[1], 10); if (!isNaN(n0) && n0 > max) max = n0; }
-  }
-  var cambios = 0;
-  for (var r2 = e + 1; r2 < vals.length; r2++) {
-    if (iTema >= 0 && !String(vals[r2][iTema] || '').trim()) continue;   // fila vacía
-    var oldId = String(vals[r2][0] || '').trim();
-    var mm = oldId.match(/-0*(\d+)/);
-    var num;
-    if (mm && !usados[parseInt(mm[1], 10)]) num = parseInt(mm[1], 10);
-    else num = ++max;
-    usados[num] = true;
-    if (num > max) max = num;
-    var newId = 'JSPAC-' + String(num).padStart(3, '0');
-    if (oldId === newId) continue;                 // ya está bien
-    hoja.getRange(r2 + 1, 1).setValue(newId);
-    if (oldId) mapa[oldId] = newId;                // para reajustar Estados/Bitacora
-    cambios++;
-  }
-
-  var renEstados = renombrarEnHoja_(hojaEstados_(false), 0, mapa);    // col ID
-  var renBitacora = renombrarEnHoja_(hojaBitacora_(false), 3, mapa);  // col IdTarea
-  Logger.log('✅ Migración JSPAC: IDs=' + cambios + ', Estados=' + renEstados + ', Bitacora=' + renBitacora);
-  return { ok: true, ids: cambios, estados: renEstados, bitacora: renBitacora };
-}
-
-// Reasigna TODOS los IDs de jefatura desde cero, según la jefatura de cada fila:
-//   • Procesos de Construcción      → JDPC-001, JDPC-002, ...
-//   • Implementación de Manuales    → JDIMA-001, JDIMA-002, ...
-// Borra los IDs actuales de la hoja de jefaturas y los vuelve a asignar fijos.
-// Reajusta Estados y Bitacora (viejo -> nuevo) para no perder avance ni
-// historial. CÓRRELA UNA VEZ después de actualizar el código.
-function reasignarIdsJefatura() {
-  var ss = SpreadsheetApp.openById(CONFIG.HOJA_JEFATURAS_ID);
-  var hoja = ss.getSheetByName(CONFIG.HOJA_JEFATURAS_PEST);
-  if (!hoja) return { ok: false, error: 'No existe la hoja de jefaturas.' };
-  var vals = hoja.getDataRange().getValues();
-  var e = -1;
-  for (var i = 0; i < vals.length; i++) { if (norm_(vals[i][0]) === 'id') { e = i; break; } }
-  if (e < 0) return { ok: false, error: 'No se encontró el encabezado (ID) en la hoja de jefaturas.' };
-  var enc = vals[e].map(norm_);
-  var iTema = enc.indexOf('tema');
-  var iResp = enc.indexOf('responsable');
-  // Columna "Jefatura": exacta y, si no, la primera cuyo encabezado la contenga.
-  var iJef = enc.indexOf('jefatura');
-  if (iJef < 0) iJef = enc.findIndex(function (c) { return c.indexOf('jefatura') >= 0; });
-  var iAreas = enc.findIndex(function (c) { return c.indexOf('areas') >= 0; });
-
-  var mapa = {}, cont = { JDPC: 0, JDIMA: 0 }, cambios = 0, detalle = [];
-  for (var r = e + 1; r < vals.length; r++) {
-    if (iTema >= 0 && !String(vals[r][iTema] || '').trim()) continue;   // fila vacía
-    // Clasifica por la COLUMNA "Jefatura" (solo usa "Áreas" si está vacía).
-    var jefCol = String(iJef >= 0 ? vals[r][iJef] : '').trim();
-    var jef = detectarJefatura_(jefCol || String(iAreas >= 0 ? vals[r][iAreas] : ''));
-    var pre = (jef === 'MANUALES') ? 'JDIMA' : 'JDPC';
-    var newId = pre + '-' + String(++cont[pre]).padStart(3, '0');
-    var oldId = String(vals[r][0] || '').trim();
-    hoja.getRange(r + 1, 1).setValue(newId);
-    if (oldId && oldId !== newId) mapa[oldId] = newId;   // para reajustar Estados/Bitacora
-    cambios++;
-    detalle.push((oldId || '(sin id)') + ' → ' + newId + '  | Resp: ' + String(iResp >= 0 ? vals[r][iResp] : '') +
-      '  | Jefatura leída: "' + jefCol + '" → ' + jef);
-  }
-
-  var renEstados = renombrarEnHoja_(hojaEstados_(false), 0, mapa);
-  var renBitacora = renombrarEnHoja_(hojaBitacora_(false), 3, mapa);
-  Logger.log('Columna Jefatura usada: índice ' + iJef + ' (encabezado "' + (iJef >= 0 ? vals[e][iJef] : '—') + '")');
-  Logger.log(detalle.join('\n'));
-  Logger.log('✅ Reasignación jefatura: JDPC=' + cont.JDPC + ', JDIMA=' + cont.JDIMA + ', Estados=' + renEstados + ', Bitacora=' + renBitacora);
-  return { ok: true, jdpc: cont.JDPC, jdima: cont.JDIMA, estados: renEstados, bitacora: renBitacora, detalle: detalle };
+  Logger.log('✅ IDs fijos asignados: ' + hechos + '\n' + detalle.join('\n'));
+  return { ok: true, asignados: hechos, detalle: detalle };
 }
 
 // Reemplaza, en la columna `colIdx` (0-based) de `hoja`, los valores presentes
@@ -596,14 +520,45 @@ function renombrarEnHoja_(hoja, colIdx, mapa) {
 // Determina a qué hoja pertenece un ID y la subdirección dueña.
 function hojaDeId_(id) {
   id = String(id || '').trim();
-  if (/^(?:JDPC|JDIMA|JSPAC|SPACJ)-/i.test(id)) return { sheetId: CONFIG.HOJA_JEFATURAS_ID, sheetPest: CONFIG.HOJA_JEFATURAS_PEST, sub: 'SPAC', esJef: true };
-  if (/^SPAC-/i.test(id))                       return { sheetId: CONFIG.HOJA_SUBDIR_ID,    sheetPest: CONFIG.HOJA_SUBDIR_PEST,    sub: 'SPAC', esJef: false };
-  if (/^DPAC-/i.test(id) && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID,     sheetPest: CONFIG.HOJA_DPAC_PEST,     sub: 'DPAC', esJef: false };
-  if (/^ENLACE-/i.test(id) && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
-  if (/^SGOI-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,         sub: 'SGOI',   esJef: false };
-  if (/^JDGA-/i.test(id)   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST_JDGA,    sub: 'SGOI',   esJef: true,  jefatura: 'GESTION_AMBIENTAL' };
-  if (/^JDGOI-/i.test(id)  && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST_JDGOI,   sub: 'SGOI',   esJef: true,  jefatura: 'GESTION_OBRAS' };
-  if (/^SA-/i.test(id)     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,           sub: 'SA',     esJef: false };
+  // Jefaturas — cada una su propio archivo. JDGOI debe probarse antes que JDGA
+  // no es necesario (prefijos distintos), pero el orden es claro de leer.
+  if (/^JDPC-/i.test(id)  && CONFIG.HOJA_JDPC_ID)  return { sheetId: CONFIG.HOJA_JDPC_ID,  sheetPest: CONFIG.HOJA_JDPC_PEST,  sub: 'SPAC', esJef: true, jefatura: 'PROCEDIMIENTOS' };
+  if (/^JDIMA-/i.test(id) && CONFIG.HOJA_JDIMA_ID) return { sheetId: CONFIG.HOJA_JDIMA_ID, sheetPest: CONFIG.HOJA_JDIMA_PEST, sub: 'SPAC', esJef: true, jefatura: 'MANUALES' };
+  if (/^JDGOI-/i.test(id) && CONFIG.HOJA_JDGOI_ID) return { sheetId: CONFIG.HOJA_JDGOI_ID, sheetPest: CONFIG.HOJA_JDGOI_PEST, sub: 'SGOI', esJef: true, jefatura: 'GESTION_OBRAS' };
+  if (/^JDGA-/i.test(id)  && CONFIG.HOJA_JDGA_ID)  return { sheetId: CONFIG.HOJA_JDGA_ID,  sheetPest: CONFIG.HOJA_JDGA_PEST,  sub: 'SGOI', esJef: true, jefatura: 'GESTION_AMBIENTAL' };
+  // IDs viejos de jefatura de SPAC (archivo central) → ahora caen en JDPC.
+  if (/^(?:JSPAC|SPACJ)-/i.test(id) && CONFIG.HOJA_JDPC_ID) return { sheetId: CONFIG.HOJA_JDPC_ID, sheetPest: CONFIG.HOJA_JDPC_PEST, sub: 'SPAC', esJef: true, jefatura: 'PROCEDIMIENTOS' };
+  // Subdirecciones.
+  if (/^SPAC-/i.test(id)  && CONFIG.HOJA_SPAC_ID)  return { sheetId: CONFIG.HOJA_SPAC_ID, sheetPest: CONFIG.HOJA_SPAC_PEST, sub: 'SPAC', esJef: false };
+  if (/^DPAC-/i.test(id)  && CONFIG.HOJA_DPAC_ID)  return { sheetId: CONFIG.HOJA_DPAC_ID, sheetPest: CONFIG.HOJA_DPAC_PEST, sub: 'DPAC', esJef: false };
+  if (/^SGOI-/i.test(id)  && CONFIG.HOJA_SGOI_ID)  return { sheetId: CONFIG.HOJA_SGOI_ID, sheetPest: CONFIG.HOJA_SGOI_PEST, sub: 'SGOI', esJef: false };
+  if (/^SA-/i.test(id)    && CONFIG.HOJA_SA_ID)    return { sheetId: CONFIG.HOJA_SA_ID,   sheetPest: CONFIG.HOJA_SA_PEST,   sub: 'SA',   esJef: false };
+  // Staff (archivo "STAFF"): el código interno sigue siendo 'ENLACE' (lo que el
+  // front entiende). Reconoce ambos prefijos de ID por compatibilidad.
+  if (/^(?:STAFF|ENLACE)-/i.test(id) && CONFIG.HOJA_STAFF_ID) return { sheetId: CONFIG.HOJA_STAFF_ID, sheetPest: CONFIG.HOJA_STAFF_PEST, sub: 'ENLACE', esJef: false };
+  return null;
+}
+
+// Destino de escritura de una SUBDIRECCIÓN (su propio archivo). null si no hay.
+function hojaDeSubdir_(sub) {
+  sub = String(sub || '').toUpperCase();
+  if (sub === 'SPAC' && CONFIG.HOJA_SPAC_ID) return { sheetId: CONFIG.HOJA_SPAC_ID, sheetPest: CONFIG.HOJA_SPAC_PEST, sub: 'SPAC', esJef: false };
+  if (sub === 'DPAC' && CONFIG.HOJA_DPAC_ID) return { sheetId: CONFIG.HOJA_DPAC_ID, sheetPest: CONFIG.HOJA_DPAC_PEST, sub: 'DPAC', esJef: false };
+  if (sub === 'SGOI' && CONFIG.HOJA_SGOI_ID) return { sheetId: CONFIG.HOJA_SGOI_ID, sheetPest: CONFIG.HOJA_SGOI_PEST, sub: 'SGOI', esJef: false };
+  if (sub === 'SA'   && CONFIG.HOJA_SA_ID)   return { sheetId: CONFIG.HOJA_SA_ID,   sheetPest: CONFIG.HOJA_SA_PEST,   sub: 'SA',   esJef: false };
+  if ((sub === 'STAFF' || sub === 'ENLACE') && CONFIG.HOJA_STAFF_ID) return { sheetId: CONFIG.HOJA_STAFF_ID, sheetPest: CONFIG.HOJA_STAFF_PEST, sub: 'ENLACE', esJef: false };
+  return null;
+}
+
+// Destino de escritura de una JEFATURA (su propio archivo). Acepta el código
+// (PROCEDIMIENTOS/MANUALES/GESTION_AMBIENTAL/GESTION_OBRAS) o el nombre largo.
+function hojaDeJefatura_(jefatura) {
+  var j = String(jefatura || '').toUpperCase();
+  if (!/^(PROCEDIMIENTOS|MANUALES|GESTION_AMBIENTAL|GESTION_OBRAS)$/.test(j)) j = detectarJefatura_(jefatura);
+  if (j === 'PROCEDIMIENTOS'    && CONFIG.HOJA_JDPC_ID)  return { sheetId: CONFIG.HOJA_JDPC_ID,  sheetPest: CONFIG.HOJA_JDPC_PEST,  sub: 'SPAC', esJef: true, jefatura: 'PROCEDIMIENTOS' };
+  if (j === 'MANUALES'          && CONFIG.HOJA_JDIMA_ID) return { sheetId: CONFIG.HOJA_JDIMA_ID, sheetPest: CONFIG.HOJA_JDIMA_PEST, sub: 'SPAC', esJef: true, jefatura: 'MANUALES' };
+  if (j === 'GESTION_AMBIENTAL' && CONFIG.HOJA_JDGA_ID)  return { sheetId: CONFIG.HOJA_JDGA_ID,  sheetPest: CONFIG.HOJA_JDGA_PEST,  sub: 'SGOI', esJef: true, jefatura: 'GESTION_AMBIENTAL' };
+  if (j === 'GESTION_OBRAS'     && CONFIG.HOJA_JDGOI_ID) return { sheetId: CONFIG.HOJA_JDGOI_ID, sheetPest: CONFIG.HOJA_JDGOI_PEST, sub: 'SGOI', esJef: true, jefatura: 'GESTION_OBRAS' };
   return null;
 }
 
@@ -700,16 +655,10 @@ function actualizarTarea(token, id, datos) {
   return { ok: true };
 }
 
-// Mapea código de subdirección (SPAC/SA/SGOI/DPAC/ENLACE) a su hoja destino.
+// Mapea código de subdirección (SPAC/SA/SGOI/DPAC/STAFF) a su hoja destino.
 // Devuelve null si no hay hoja configurada para esa subdirección.
 function subToDest_(sub) {
-  sub = String(sub || '').toUpperCase();
-  if (sub === 'SPAC')   return { sheetId: CONFIG.HOJA_SUBDIR_ID,   sheetPest: CONFIG.HOJA_SUBDIR_PEST,   sub: 'SPAC',   esJef: false };
-  if (sub === 'DPAC'   && CONFIG.HOJA_DPAC_ID)   return { sheetId: CONFIG.HOJA_DPAC_ID,   sheetPest: CONFIG.HOJA_DPAC_PEST,   sub: 'DPAC',   esJef: false };
-  if (sub === 'ENLACE' && CONFIG.HOJA_ENLACE_ID) return { sheetId: CONFIG.HOJA_ENLACE_ID, sheetPest: CONFIG.HOJA_ENLACE_PEST, sub: 'ENLACE', esJef: false };
-  if (sub === 'SGOI'   && CONFIG.HOJA_SGOI_ID)   return { sheetId: CONFIG.HOJA_SGOI_ID,   sheetPest: CONFIG.HOJA_SGOI_PEST,   sub: 'SGOI',   esJef: false };
-  if (sub === 'SA'     && CONFIG.HOJA_SA_ID)     return { sheetId: CONFIG.HOJA_SA_ID,     sheetPest: CONFIG.HOJA_SA_PEST,     sub: 'SA',     esJef: false };
-  return null;
+  return hojaDeSubdir_(sub);
 }
 
 // Mueve una tarea de su hoja origen a una hoja destino: lee la fila, crea una
@@ -891,14 +840,27 @@ function agregarAreas_(areasStr) {
 
 // Carpeta de Drive según la subdirección de quien sube. Si esa subdirección
 // no tiene carpeta configurada, usa la general (DPAC).
-function carpetaDe_(subdireccion) {
-  var m = {
-    SPAC: CONFIG.DRIVE_CARPETA_SPAC,
-    SA: CONFIG.DRIVE_CARPETA_SA,
-    SGOI: CONFIG.DRIVE_CARPETA_SGOI,
-    ENLACE: CONFIG.DRIVE_CARPETA_ENLACE
+function carpetaDe_(sesion) {
+  sesion = sesion || {};
+  // Si quien sube es de una jefatura, usa la carpeta de esa jefatura.
+  var jef = detectarJefatura_(sesion.jefatura);
+  var mj = {
+    PROCEDIMIENTOS:    CONFIG.DRIVE_CARPETA_JDPC,
+    MANUALES:          CONFIG.DRIVE_CARPETA_JDIMA,
+    GESTION_AMBIENTAL: CONFIG.DRIVE_CARPETA_JDGA,
+    GESTION_OBRAS:     CONFIG.DRIVE_CARPETA_JDGOI
   };
-  var id = m[subdireccion];
+  if (jef && mj[jef] && String(mj[jef]).trim()) return mj[jef];
+  // Si no, la carpeta de su subdirección. STAFF/ENLACE comparten carpeta.
+  var ms = {
+    DPAC:   CONFIG.DRIVE_CARPETA_DPAC,
+    SPAC:   CONFIG.DRIVE_CARPETA_SPAC,
+    SGOI:   CONFIG.DRIVE_CARPETA_SGOI,
+    SA:     CONFIG.DRIVE_CARPETA_SA,
+    STAFF:  CONFIG.DRIVE_CARPETA_STAFF,
+    ENLACE: CONFIG.DRIVE_CARPETA_STAFF
+  };
+  var id = ms[String(sesion.subdireccion || '').toUpperCase()];
   return (id && String(id).trim()) ? id : CONFIG.DRIVE_CARPETA_ID;
 }
 
@@ -907,7 +869,7 @@ function carpetaDe_(subdireccion) {
 function subirArchivo(token, nombre, mime, base64) {
   var sesion = sesionValida_(token);
   if (!sesion) return { ok: false, error: 'Sesión no válida.' };
-  var carpetaId = carpetaDe_(sesion.subdireccion);
+  var carpetaId = carpetaDe_(sesion);
   if (!carpetaId) return { ok: false, error: 'Falta configurar la carpeta de Drive.' };
   try {
     var bytes = Utilities.base64Decode(base64);
@@ -1237,7 +1199,7 @@ function prefijoJef_(jefatura) {
 }
 
 // Regex que reconoce un ID estable (incluye prefijos viejos por compatibilidad).
-var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JDGA|JDGOI|JSPAC|SPACJ|SPAC|DPAC|ENLACE|SA|SGOI)-\d+/i;
+var RE_ID_ESTABLE = /^(?:JDPC|JDIMA|JDGA|JDGOI|JSPAC|SPACJ|SPAC|DPAC|STAFF|ENLACE|SA|SGOI)-\d+/i;
 
 // Estatus inicial de una tarea: en el modelo NUEVO todas las activas nacen
 // "En Proceso" (la validación es por checklist, ya no hay un estado intermedio
@@ -1309,8 +1271,8 @@ function parsearHoja_(filas, nivel, subCode, jefForzada) {
     // Estatus inicial por origen (lo guardado en Estados lo sobreescribe). Si la
     // hoja marca 'Archivada' explícitamente, se respeta.
     var estHoja = normEstatus_(f[iEst]);
-    // En el Enlace, "Atendida" en el Excel significa VALIDADA (→ Validadas).
-    var est = (estHoja === 'Archivada' || (subCode === 'ENLACE' && estHoja === 'Atendida'))
+    // En Staff/Enlace, "Atendida" en el Excel significa VALIDADA (→ Validadas).
+    var est = (estHoja === 'Archivada' || ((subCode === 'ENLACE' || subCode === 'STAFF') && estHoja === 'Atendida'))
       ? 'Archivada' : estatusInicial_(nivel, subCode);
     var raw = f[iFecha];
     var perm = /^permanente$/i.test(String(raw).trim());
