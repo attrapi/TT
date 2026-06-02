@@ -193,6 +193,10 @@
       return { ok: true };
     },
     eliminarTarea: async function (token, id) {
+      // Borra PRIMERO la bitácora de esa tarea (mientras aún existe, para que la
+      // regla de permiso la deje) y luego la tarea. Así, si el ID se reutiliza,
+      // la nueva tarea no hereda el historial de la anterior.
+      try { await sb.from('bitacora').delete().eq('tarea_codigo', id); } catch (e) {}
       var r = await sb.from('tareas').delete().eq('codigo', id);
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };

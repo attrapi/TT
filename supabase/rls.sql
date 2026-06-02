@@ -60,6 +60,12 @@ create policy bitacora_sel on public.bitacora for select to authenticated
   using (public.puede_ver_cod(tarea_codigo));
 create policy bitacora_ins on public.bitacora for insert to authenticated
   with check (true);   -- cualquiera autenticado puede registrar un movimiento
+-- Permite BORRAR la bitácora de una tarea que el usuario puede ver. Lo usa el
+-- borrado definitivo: la app elimina la bitácora ANTES que la tarea, así no se
+-- queda registrada si el ID se reutiliza.
+drop policy if exists bitacora_del on public.bitacora;
+create policy bitacora_del on public.bitacora for delete to authenticated
+  using (public.puede_ver_cod(tarea_codigo));
 
 -- ---------- PERFILES: todos leen (para listas de responsables); solo Director edita ----------
 drop policy if exists perfiles_sel on public.perfiles;
