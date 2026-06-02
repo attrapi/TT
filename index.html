@@ -3562,6 +3562,42 @@
     .obs-doble { grid-template-columns: 1fr; }
     .checklist-cab, .checklist-fila { grid-template-columns: 1fr 70px 70px; }
   }
+
+  /* === RESPONSIVE · refuerzo para celular (≤640px) === */
+  @media (max-width: 640px) {
+    /* Nada se desborda a lo ancho. */
+    html, body { overflow-x: hidden; }
+
+    /* BITÁCORA: la tabla de 4 columnas se desbordaba en pantallas chicas.
+       Aquí cada renglón se APILA como tarjeta (una cosa debajo de otra). */
+    .bitacora-row.cabecera { display: none; }
+    .bitacora-row {
+      grid-template-columns: 1fr; gap: 6px; padding: 12px 14px;
+      border-bottom: 1px solid var(--linea);
+    }
+    .bitacora-tarea { flex-wrap: wrap; }
+
+    /* HISTORIAL: una sola columna. */
+    .historial-cols { grid-template-columns: 1fr !important; }
+
+    /* Botones/píldoras: que envuelvan y no se encimen. */
+    .tarjeta-acciones { flex-wrap: wrap; }
+    .modal-acciones { flex-wrap: wrap; gap: 8px; }
+    .filtros, .filtros-acciones { flex-wrap: wrap; gap: 8px; }
+
+    /* Modal casi a todo el ancho. */
+    #modal { max-width: 96vw; }
+
+    /* Tarjetas del tablero a todo el ancho disponible. */
+    .col-cuerpo.col-cuerpo-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Teléfonos angostos. */
+  @media (max-width: 420px) {
+    .subheader h1 { font-size: 20px; }
+    .kpi-valor { width: 54px; height: 54px; font-size: 20px; }
+    .tab { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
