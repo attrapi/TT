@@ -19,6 +19,19 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var USUARIO_ACTUAL = null;   // perfil del usuario logueado (para creado_por, etc.)
 
+  // --- Tiempo real: cuando cambian las tareas en la base, refrescar en pantalla ---
+  var canalRT = null;
+  function suscribirRealtime() {
+    if (canalRT) return;   // ya suscrito
+    try {
+      canalRT = sb.channel('tt-tareas')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tareas' }, function () {
+          if (typeof window.ttRefrescar === 'function') window.ttRefrescar();
+        })
+        .subscribe();
+    } catch (e) { /* si realtime no está habilitado, la app sigue normal */ }
+  }
+
   var AREAS_BASE = [
     'Dirección de Procesos Administrativos de Construcción',
     'Subdirección de Procesos Administrativos de Construcción',
@@ -102,6 +115,7 @@
       if (pf.error || !pf.data) return { ok: false, error: 'No se encontró el perfil del usuario.' };
       if (pf.data.activo === false) { await sb.auth.signOut(); return { ok: false, error: 'Usuario inactivo.' }; }
       USUARIO_ACTUAL = perfilAUsuario(pf.data, email);
+      suscribirRealtime();
       return { ok: true, token: r.data.session.access_token, usuario: USUARIO_ACTUAL };
     },
     reanudarSesion: async function (token) {
@@ -111,6 +125,7 @@
       var pf = await sb.from('perfiles').select('*').eq('id', session.user.id).single();
       if (pf.error || !pf.data) return { ok: false };
       USUARIO_ACTUAL = perfilAUsuario(pf.data, session.user.email);
+      suscribirRealtime();
       return { ok: true, token: session.access_token, usuario: USUARIO_ACTUAL };
     },
     cerrarSesion: async function () { try { await sb.auth.signOut(); } catch (e) {} return { ok: true }; },
@@ -279,6 +294,15 @@
     },
 
     // ---- no-ops (existían en Apps Script, aquí no aplican) ----
+    // Cambiar la contraseña del usuario logueado.
+    cambiarContrasena: async function (token, nueva) {
+      nueva = String(nueva || '');
+      if (nueva.length < 6) return { ok: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+      var r = await sb.auth.updateUser({ password: nueva });
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+
     vaciarCacheHtml: async function () { return { ok: true }; }
   };
 

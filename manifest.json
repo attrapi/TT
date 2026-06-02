@@ -1,0 +1,14 @@
+{
+  "name": "TT · Gestión de Tareas",
+  "short_name": "TT",
+  "description": "Sistema de Gestión y Validación de Tareas — ATTRAPI DPAC",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#691C32",
+  "theme_color": "#691C32",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
