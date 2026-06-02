@@ -86,6 +86,14 @@ function guardarConfiguracion() {
   // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
   // configuración ya existente. Así re-correr esta función es seguro.
   var p = PropertiesService.getScriptProperties();
+  // Si este proyecto reusó configuración del Drive ANTERIOR, borra esas claves
+  // viejas para que no quede rastro del Drive pasado (estructura combinada y
+  // Enlace ya no existen). Las claves nuevas se escriben justo debajo.
+  var OBSOLETAS = ['HOJA_JEFATURAS_ID', 'HOJA_JEFATURAS_PEST', 'HOJA_SUBDIR_ID',
+    'HOJA_SUBDIR_PEST', 'HOJA_ENLACE_ID', 'HOJA_ENLACE_PEST',
+    'HOJA_SGOI_PEST_JDGA', 'HOJA_SGOI_PEST_JDGOI', 'DRIVE_CARPETA_ENLACE'];
+  OBSOLETAS.forEach(function (k) { try { p.deleteProperty(k); } catch (e) {} });
+
   var aplicados = [];
   Object.keys(valores).forEach(function (k) {
     var v = String(valores[k]);
@@ -93,7 +101,7 @@ function guardarConfiguracion() {
     p.setProperty(k, v);
     aplicados.push(k);
   });
-  Logger.log('✅ Guardado: ' + aplicados.join(', '));
+  Logger.log('✅ Guardado: ' + aplicados.join(', ') + '\n🧹 Limpiadas (Drive viejo): ' + OBSOLETAS.join(', '));
 }
 
 // ⚙️ Córrela UNA vez (Ejecutar ▶) para que Google pida autorizar TODOS los
