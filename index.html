@@ -906,20 +906,28 @@
       border-radius: 8px; cursor: pointer;
     }
     .nav-hamburguesa svg { width: 22px; height: 22px; }
-    .nav-inner { display: flex; align-items: center; gap: 10px; height: auto; padding: 10px 14px; }
+    /* UNA sola fila, sin que nada se encime ni salte de línea:
+       [☰]  [Título …]  [avatar] [🔄] [Salir] */
+    .nav-inner {
+      display: flex; flex-wrap: nowrap; align-items: center;
+      gap: 8px; height: auto; padding: 10px 12px;
+    }
     .nav-marca { display: none; }                 /* la marca larga se oculta en móvil */
-    /* Título pegado a la izquierda (junto al ☰) y recortado con … si no cabe,
-       no centrado/empujado a la derecha. */
+    /* Título pegado a la izquierda (junto al ☰), recortado con … si no cabe. */
     .nav-titulo {
-      flex: 1; min-width: 0;
+      flex: 1 1 auto; min-width: 0;
       justify-self: start; justify-content: flex-start;
-      font-size: 14px; gap: 8px;
+      font-size: 14px; gap: 8px; overflow: hidden;
     }
     .nav-titulo #navTitulo { overflow: hidden; text-overflow: ellipsis; }
     .nav-tt-badge { width: 26px; height: 26px; font-size: 12px; }
+    /* Lado derecho compacto y que NO se encoja. */
+    .nav-right { flex: none; gap: 6px; }
+    .nav-usuario { padding: 2px; }
     .nav-usuario-info { display: none; }           /* solo el avatar */
     .nav-actualizar span { display: none; }        /* el botón Actualizar solo el ícono */
     .nav-actualizar { padding: 8px; }
+    .nav-salir { padding: 7px 12px; }
 
     /* --- Sidebar como cajón --- */
     .sidebar {
@@ -3210,8 +3218,6 @@
 
   @media (max-width: 700px) {
     .tablero { grid-template-columns: 1fr; }
-    .nav-inner { padding: 0 16px; gap: 12px; flex-wrap: wrap; height: auto; padding-top: 12px; padding-bottom: 12px; }
-    .nav-marca { border-right: none; padding-right: 0; }
     .subheader { padding: 16px; }
     .subheader h1 { font-size: 24px; }
     .filtros { padding: 0 16px; }
