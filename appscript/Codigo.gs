@@ -183,6 +183,38 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+// ============== doPost: ADJUNTOS para la versión Supabase ==============
+// La app nueva (tt.html, servida por GitHub Pages) habla con Supabase para los
+// datos, pero los ADJUNTOS siguen en Google Drive. Como el navegador no puede
+// escribir en Drive directo, manda el archivo aquí por fetch y este doPost lo
+// sube/borra usando la cuenta dueña del Drive. Devuelve JSON.
+//   { accion:'subir',  nombre, mime, base64, destino }  -> { ok, url, nombre }
+//   { accion:'borrar', url }                            -> { ok }
+function doPost(e) {
+  var out = { ok: false, error: 'Solicitud no reconocida.' };
+  try {
+    var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (req.accion === 'subir') {
+      var carpetaId = carpetaDeArea_(req.destino) || CONFIG.DRIVE_CARPETA_ID;
+      if (!carpetaId) { out = { ok: false, error: 'Falta configurar la carpeta de Drive.' }; }
+      else {
+        var bytes = Utilities.base64Decode(req.base64);
+        var blob = Utilities.newBlob(bytes, req.mime || 'application/octet-stream', req.nombre || 'adjunto');
+        var archivo = DriveApp.getFolderById(carpetaId).createFile(blob);
+        try { archivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e2) {}
+        out = { ok: true, url: archivo.getUrl(), nombre: archivo.getName() };
+      }
+    } else if (req.accion === 'borrar') {
+      var id = idDeUrlDrive_(req.url);
+      if (!id) { out = { ok: false, error: 'No se reconoció el archivo.' }; }
+      else { DriveApp.getFileById(id).setTrashed(true); out = { ok: true }; }
+    }
+  } catch (err) {
+    out = { ok: false, error: String(err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
 // ============================== LOGIN =====================================
 // Recibe usuario y contraseña; valida contra la hoja Usuarios. Devuelve un
 // token de sesión (válido HORAS_SESION) y los datos del usuario.
