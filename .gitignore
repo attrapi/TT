@@ -2,3 +2,7 @@ node_modules/
 package*.json
 # Documentos sueltos que no van al repo
 Comparativo-TT-vs-Monday.*
+# NUNCA subir credenciales al repo (es publico)
+Credenciales-TT.*
+*credenciales*
+*contrasenas*
