@@ -1,2 +1,4 @@
 node_modules/
 package*.json
+# Documentos sueltos que no van al repo
+Comparativo-TT-vs-Monday.*
