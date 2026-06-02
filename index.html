@@ -5589,8 +5589,14 @@ function crearTarjeta(t) {
     const _avance = checklistAvance(t);
     const _completas = _items.filter(i => i.check_resp && i.check_dir).length;
     if (_completas === _items.length) {
-      html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Lista para completar</button></div>';
+      const _svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+      if (puedeCompletar(t)) {
+        html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
+          _svgCheck + ' Lista para completar</button></div>';
+      } else {
+        html += '<div class="tarjeta-acciones"><span class="btn-pildora btn-pildora-ok" style="cursor:default; opacity:.9" title="Lista — la marca quien corresponde">' +
+          _svgCheck + ' Lista</span></div>';
+      }
     } else {
       html += '<div class="tarjeta-progreso" title="Avance de acciones">' +
         '<div class="tarjeta-progreso-barra"><div class="tarjeta-progreso-relleno" style="width:' + _avance + '%"></div></div>' +
@@ -6128,7 +6134,12 @@ function abrirDetalle(t) {
               + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
     }
   } else if (todoListo) {
-    botones = `<button class="btn-modal btn-completada" onclick="completarTarea('${t.id}')">✓ Completada</button>`;
+    if (puedeCompletar(t)) {
+      botones = `<button class="btn-modal btn-completada" onclick="completarTarea('${t.id}')">✓ Completada</button>`;
+    } else {
+      const _quien = t.nivel === 'jefatura' ? 'el subdirector del área' : 'el Director';
+      botones = `<div style="font-size:12px; color:var(--tinta-suave); padding:8px 0;">✓ Lista para completar — la marca ${_quien}.</div>`;
+    }
   }
 
   // Reabrir sigue disponible para tareas Completadas, solo para Director y
@@ -7333,11 +7344,30 @@ function guardarObsDir(idTarea, valor) {
 }
 
 // Marca la tarea como Completada: cuando TODAS las casillas del checklist
+// ¿Quién puede marcar una tarea como COMPLETADA ("Lista para completar")?
+//   • Tareas de SUBDIRECCIÓN → SOLO el Director (Adrián).
+//   • Tareas de JEFATURA      → el SUBDIRECTOR del área (capturista de esa
+//     subdirección, sin jefatura propia) y también el Director.
+function puedeCompletar(t) {
+  if (!usuarioActual || !t) return false;
+  if (usuarioActual.rol === 'Director') return true;
+  if (usuarioActual.rol !== 'Capturista') return false;
+  if (t.nivel !== 'jefatura') return false;                          // subdirección → solo Director
+  if (usuarioActual.subdireccion !== t.subdireccion) return false;   // debe ser de esa área
+  return !jefaturaCodigo(usuarioActual.jefatura);                    // subdirector (no un jefe)
+}
+
 // están en verde (responsable + director), aparece el botón verde "Completada"
 // y al darle clic la tarea pasa directo al Historial (status Archivada).
 function completarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
+  if (!puedeCompletar(t)) {
+    toast(t.nivel === 'jefatura'
+      ? 'Solo el subdirector del área (o el Director) puede completar esta tarea.'
+      : 'Solo el Director puede marcar como completada una tarea de subdirección.', 'error');
+    return;
+  }
   if (!checklistTodoMarcado(t)) {
     toast('Faltan acciones por marcar.', 'error');
     return;
