@@ -3034,7 +3034,7 @@
     color: var(--guinda);
   }
   .form-campo label .req { color: var(--rojo); }
-  .form-campo input,
+  .form-campo input:not([type="checkbox"]):not([type="radio"]),
   .form-campo select,
   .form-campo textarea {
     padding: 9px 11px;
@@ -3649,8 +3649,11 @@
     .modal-titulo { font-size: 18px; }
     .modal-grid { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr; gap: 14px; }
-    /* Campos a todo el ancho; 16px evita el auto-zoom de iOS al enfocar. */
-    .form-campo input, .form-campo select, .form-campo textarea { width: 100%; font-size: 16px; }
+    /* Campos a todo el ancho; 16px evita el auto-zoom de iOS al enfocar.
+       Se EXCLUYEN checkboxes/radios (los chips de Destino y Áreas) para que no
+       se estiren ni se salgan. */
+    .form-campo input:not([type="checkbox"]):not([type="radio"]),
+    .form-campo select, .form-campo textarea { width: 100%; font-size: 16px; }
     .areas-multi { gap: 6px; }
     .area-chip { font-size: 12px; }
   }
