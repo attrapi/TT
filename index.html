@@ -897,37 +897,8 @@
   @media (max-width: 860px) {
     body { overflow-x: hidden; }                  /* nada se sale a la derecha */
     .app-body { grid-template-columns: 1fr; }     /* contenido a todo el ancho */
-
-    /* --- Header compacto con botón de menú --- */
-    .nav-hamburguesa {
-      display: inline-flex; align-items: center; justify-content: center;
-      flex: none; width: 40px; height: 40px;
-      background: rgba(255,255,255,0.16); color: #fff; border: none;
-      border-radius: 8px; cursor: pointer;
-    }
-    .nav-hamburguesa svg { width: 22px; height: 22px; }
-    /* UNA sola fila, sin que nada se encime ni salte de línea:
-       [☰]  [Título …]  [avatar] [🔄] [Salir] */
-    .nav-inner {
-      display: flex; flex-wrap: nowrap; align-items: center;
-      gap: 8px; height: auto; padding: 10px 12px;
-    }
-    .nav-marca { display: none; }                 /* la marca larga se oculta en móvil */
-    /* Título pegado a la izquierda (junto al ☰), recortado con … si no cabe. */
-    .nav-titulo {
-      flex: 1 1 auto; min-width: 0;
-      justify-self: start; justify-content: flex-start;
-      font-size: 14px; gap: 8px; overflow: hidden;
-    }
-    .nav-titulo #navTitulo { overflow: hidden; text-overflow: ellipsis; }
-    .nav-tt-badge { width: 26px; height: 26px; font-size: 12px; }
-    /* Lado derecho compacto y que NO se encoja. */
-    .nav-right { flex: none; gap: 6px; }
-    .nav-usuario { padding: 2px; }
-    .nav-usuario-info { display: none; }           /* solo el avatar */
-    .nav-actualizar span { display: none; }        /* el botón Actualizar solo el ícono */
-    .nav-actualizar { padding: 8px; }
-    .nav-salir { padding: 7px 12px; }
+    /* (Las reglas del HEADER móvil están más abajo, después del CSS base del nav,
+        para que ganen en el orden del cascade.) */
 
     /* --- Sidebar como cajón --- */
     .sidebar {
@@ -1128,6 +1099,39 @@
   .nav-actualizar:disabled { opacity: 0.6; cursor: wait; }
   .nav-actualizar svg { width: 14px; height: 14px; }
   .nav-actualizar.sincronizando svg { animation: spin-actualizar 0.8s linear infinite; }
+
+  /* === HEADER EN MÓVIL (va DESPUÉS del CSS base del nav para ganar en el cascade) ===
+     Una sola fila ordenada: [☰] [Título…] [avatar][🔄][Salir]. La marca larga se
+     oculta. Por eso antes se veía desordenado: estas reglas estaban antes de las
+     base y se anulaban. */
+  @media (max-width: 860px) {
+    .nav-hamburguesa {
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: none; width: 40px; height: 40px;
+      background: rgba(255,255,255,0.16); color: #fff; border: none;
+      border-radius: 8px; cursor: pointer;
+    }
+    .nav-hamburguesa svg { width: 22px; height: 22px; }
+    .nav-inner {
+      display: flex; grid-template-columns: none;
+      flex-wrap: nowrap; align-items: center; gap: 8px;
+      height: auto; padding: 10px 12px;
+    }
+    .nav-marca { display: none; }
+    .nav-titulo {
+      flex: 1 1 auto; min-width: 0;
+      justify-self: start; justify-content: flex-start;
+      font-size: 14px; gap: 8px; overflow: hidden;
+    }
+    .nav-titulo #navTitulo { overflow: hidden; text-overflow: ellipsis; }
+    .nav-tt-badge { width: 26px; height: 26px; font-size: 12px; }
+    .nav-right { flex: none; gap: 6px; }
+    .nav-usuario { padding: 2px; }
+    .nav-usuario-info { display: none; }
+    .nav-actualizar span { display: none; }
+    .nav-actualizar { padding: 8px; }
+    .nav-salir { padding: 7px 12px; }
+  }
 
   /* === SUBHEADER === */
   .subheader {
