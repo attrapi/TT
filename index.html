@@ -2297,9 +2297,12 @@
   .btn-pildora-archivar { background: var(--grafito); color: #fff; }
   .btn-pildora-archivar:hover { filter: brightness(1.15); }
   .btn-pildora-off { background: var(--grafito); color: #fff; opacity: 0.4; cursor: not-allowed; }
-  /* Reabrir: ámbar (mismo color que "Reabierta" en la Bitácora). */
-  .btn-pildora-reabrir { background: var(--ambar); color: #fff; }
-  .btn-pildora-reabrir:hover { filter: brightness(1.1); }
+  /* Restaurar/Reabrir: ámbar; al pasar el cursor cambia a un ámbar más oscuro. */
+  .btn-pildora-reabrir { background: var(--ambar); color: #fff; cursor: pointer; }
+  .btn-pildora-reabrir:hover { background: #b45309; }
+  /* Eliminar definitivo (Historial): rojo; al pasar el cursor cambia a gris. */
+  .btn-pildora-eliminar { background: var(--rojo); color: #fff; border: none; cursor: pointer; }
+  .btn-pildora-eliminar:hover { background: #6b7280; }
   /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
   .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
   .btn-pildora-devolver:hover { background: #ffedd5; }
@@ -6003,7 +6006,7 @@ function renderizarPapelera() {
           if (puedeGestionarHistorial(t)) {
             html += '<div class="tarjeta-acciones">' +
               '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')">↺ Restaurar</button>' +
-              '<button class="btn-pildora" style="background:var(--rojo);color:#fff;border:none;" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
+              '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
             '</div>';
           }
           card.innerHTML = html;
