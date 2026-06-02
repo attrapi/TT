@@ -8254,7 +8254,7 @@ function renderizarBitacora() {
 
 // Modal con el historial COMPLETO (cronológico) de una sola tarea.
 function abrirBitacoraTarea(idTarea) {
-  const movs = BITACORA.filter(b => b.id_tarea === idTarea && bitacoraVisible(b)).slice().reverse(); // antiguo→reciente
+  const movs = BITACORA.filter(b => b.id_tarea === idTarea && bitacoraVisible(b)); // más reciente arriba
   const tarea = TAREAS.find(t => t.id === idTarea);
   const titulo = tarea ? tarea.titulo : '(tarea eliminada)';
   const sub = tarea ? tarea.subdireccion : '';
