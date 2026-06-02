@@ -908,7 +908,15 @@
     .nav-hamburguesa svg { width: 22px; height: 22px; }
     .nav-inner { display: flex; align-items: center; gap: 10px; height: auto; padding: 10px 14px; }
     .nav-marca { display: none; }                 /* la marca larga se oculta en móvil */
-    .nav-titulo { flex: 1; min-width: 0; }
+    /* Título pegado a la izquierda (junto al ☰) y recortado con … si no cabe,
+       no centrado/empujado a la derecha. */
+    .nav-titulo {
+      flex: 1; min-width: 0;
+      justify-self: start; justify-content: flex-start;
+      font-size: 14px; gap: 8px;
+    }
+    .nav-titulo #navTitulo { overflow: hidden; text-overflow: ellipsis; }
+    .nav-tt-badge { width: 26px; height: 26px; font-size: 12px; }
     .nav-usuario-info { display: none; }           /* solo el avatar */
     .nav-actualizar span { display: none; }        /* el botón Actualizar solo el ícono */
     .nav-actualizar { padding: 8px; }
