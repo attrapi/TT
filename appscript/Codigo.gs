@@ -387,6 +387,77 @@ function invalidarCacheTareas_() {
   try { CacheService.getScriptCache().remove('tt_tareas_v1'); } catch (e) {}
 }
 
+// ============== MIGRACIÓN A SUPABASE (uso único) ==============
+// Lee TODAS las tareas (9 hojas + avances de Estados) y genera el SQL de carga
+// para Supabase. Deja un archivo .sql en tu Drive y te da el enlace en el log.
+// Córrela desde el editor (selecciona exportarSqlSupabase → Ejecutar ▶) y abre
+// el enlace que salga en "Registro de ejecución".
+function exportarSqlSupabase() {
+  // 1) Arma las tareas con la MISMA lógica de la app (parseo + merge de Estados).
+  var FUENTES = [
+    [CONFIG.HOJA_DPAC_ID,  CONFIG.HOJA_DPAC_PEST,  'subdireccion', 'DPAC',  null],
+    [CONFIG.HOJA_SPAC_ID,  CONFIG.HOJA_SPAC_PEST,  'subdireccion', 'SPAC',  null],
+    [CONFIG.HOJA_JDPC_ID,  CONFIG.HOJA_JDPC_PEST,  'jefatura',     'SPAC',  'PROCEDIMIENTOS'],
+    [CONFIG.HOJA_JDIMA_ID, CONFIG.HOJA_JDIMA_PEST, 'jefatura',     'SPAC',  'MANUALES'],
+    [CONFIG.HOJA_SGOI_ID,  CONFIG.HOJA_SGOI_PEST,  'subdireccion', 'SGOI',  null],
+    [CONFIG.HOJA_JDGA_ID,  CONFIG.HOJA_JDGA_PEST,  'jefatura',     'SGOI',  'GESTION_AMBIENTAL'],
+    [CONFIG.HOJA_JDGOI_ID, CONFIG.HOJA_JDGOI_PEST, 'jefatura',     'SGOI',  'GESTION_OBRAS'],
+    [CONFIG.HOJA_SA_ID,    CONFIG.HOJA_SA_PEST,    'subdireccion', 'SA',    null],
+    [CONFIG.HOJA_STAFF_ID, CONFIG.HOJA_STAFF_PEST, 'subdireccion', 'ENLACE', null]
+  ];
+  var tareas = [];
+  FUENTES.forEach(function (f) {
+    if (!f[0]) return;
+    try { tareas = tareas.concat(parsearHoja_(leerHoja_(f[0], f[1]), f[2], f[3], f[4])); } catch (e) {}
+  });
+  aplicarEstados_(tareas);
+
+  // 2) Helpers de SQL.
+  function sq(v) { return "'" + String(v == null ? '' : v).replace(/'/g, "''") + "'"; }
+  function sb(b) { return b ? 'true' : 'false'; }
+  function sfecha(f) { f = String(f || '').trim(); return /^\d{4}-\d{2}-\d{2}$/.test(f) ? "'" + f + "'" : 'NULL'; }
+  function areaDe(t) {
+    if (t.nivel === 'jefatura') {
+      var j = String(t.jefatura || '').toUpperCase();
+      return ({ PROCEDIMIENTOS: 'JDPC', MANUALES: 'JDIMA', GESTION_AMBIENTAL: 'JDGA', GESTION_OBRAS: 'JDGOI' })[j] || 'JDPC';
+    }
+    return String(t.subdireccion || '').toUpperCase();
+  }
+
+  var cols = '(codigo, area, subdireccion, nivel, jefatura, responsable, tema, areas_involucradas, ' +
+             'acuerdos, accion, fecha, permanente, estatus, url, checklist, observaciones_resp, ' +
+             'observaciones_dir, validada, en_validadas, confirmada, validado_por, fecha_validacion, ' +
+             'finalizado_por, fecha_finalizacion, enviado_por, fecha_envio, eliminada, eliminado_por, ' +
+             'fecha_eliminacion, creado_por)';
+
+  var filas = tareas.map(function (t) {
+    var chk = JSON.stringify(Array.isArray(t.checklist) ? t.checklist : []);
+    return '(' + [
+      sq(t.id), sq(areaDe(t)), sq(t.subdireccion), sq(t.nivel), sq(t.jefatura),
+      sq(t.responsable), sq(t.tema), sq(t.areas_involucradas),
+      sq(t.acuerdos_realizados), sq(t.accion_a_tomar),
+      sfecha(t.fecha_atencion), sb(t.permanente), sq(t.estatus), sq(t.url),
+      sq(chk) + '::jsonb', sq(t.observaciones_resp), sq(t.observaciones_dir),
+      sb(t.validada), sb(t.en_validadas), sb(t.confirmada),
+      sq(t.validado_por), sq(t.fecha_validacion), sq(t.finalizado_por), sq(t.fecha_finalizacion),
+      sq(t.enviado_por), sq(t.fecha_envio), sb(t.eliminada), sq(t.eliminado_por),
+      sq(t.fecha_eliminacion), sq(t.creado_por)
+    ].join(', ') + ')';
+  });
+
+  var sql = '-- TT · Carga de tareas a Supabase (' + tareas.length + ' tareas)\n' +
+            '-- Pega TODO en Supabase → SQL Editor → Run. Re-correrlo es seguro (no duplica).\n' +
+            'insert into public.tareas ' + cols + ' values\n' +
+            filas.join(',\n') + '\n' +
+            'on conflict (codigo) do nothing;\n';
+
+  // 3) Guarda el SQL como archivo en Drive y devuelve el enlace.
+  var archivo = DriveApp.createFile('tt_carga_supabase.sql', sql, 'text/plain');
+  try { archivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {}
+  Logger.log('✅ ' + tareas.length + ' tareas. Abre este archivo, copia TODO y pégalo en Supabase:\n' + archivo.getUrl());
+  return archivo.getUrl();
+}
+
 // Crea una tarea NUEVA escribiendo una fila en la hoja que corresponde.
 // `datos`: { subdireccion, nivel, responsable, jefatura, tema, areas,
 //            acuerdos, accion, fecha (yyyy-mm-dd o 'PERMANENTE'), url }
