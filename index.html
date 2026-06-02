@@ -4123,6 +4123,12 @@ function parsearHojaSPAC(texto, nivel) {
 }
 
 async function sincronizarSPAC() {
+  // Sync por CSV = mecanismo LEGADO (hojas publicadas del Drive viejo). En modo
+  // Apps Script el backend ya entrega SPAC del Drive nuevo (vía obtenerTareas) y
+  // conserva la marca 'eliminada'. Si este sync corriera aquí, traería datos
+  // viejos y REVERTIRÍA los borrados (perdía 'eliminada'). Por eso solo aplica
+  // en modo demo (GitHub Pages sin backend).
+  if (enAppScript()) return;
   try {
     const pedir = async url => {
       const resp = await fetch(url + '&_=' + Date.now(), { cache: 'no-store' });
@@ -4205,6 +4211,7 @@ async function actualizarDatos() {
 }
 
 function iniciarSincronizacionSPAC() {
+  if (enAppScript()) return;   // legado: el sync CSV solo corre en modo demo
   if (SPAC_TIMER) return;
   sincronizarSPAC();
   SPAC_TIMER = setInterval(sincronizarSPAC, SPAC_INTERVALO_MS);
