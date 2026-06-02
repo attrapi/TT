@@ -3638,11 +3638,21 @@
     .modal-acciones { flex-wrap: wrap; gap: 8px; }
     .filtros, .filtros-acciones { flex-wrap: wrap; gap: 8px; }
 
-    /* Modal casi a todo el ancho. */
-    #modal { max-width: 96vw; }
-
     /* Tarjetas del tablero a todo el ancho disponible. */
     .col-cuerpo.col-cuerpo-grid { grid-template-columns: 1fr; }
+
+    /* === Modal y formulario de CREAR/EDITAR tarea: a pantalla completa === */
+    #modal { max-width: 100%; max-height: 100vh; border-radius: 0; }
+    .modal-header { padding: 16px 18px; }
+    .modal-body { padding: 16px 18px; }
+    .modal-acciones { padding: 14px 18px; }
+    .modal-titulo { font-size: 18px; }
+    .modal-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; gap: 14px; }
+    /* Campos a todo el ancho; 16px evita el auto-zoom de iOS al enfocar. */
+    .form-campo input, .form-campo select, .form-campo textarea { width: 100%; font-size: 16px; }
+    .areas-multi { gap: 6px; }
+    .area-chip { font-size: 12px; }
   }
 
   /* Teléfonos angostos. */
