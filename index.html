@@ -5881,16 +5881,20 @@ function eliminarDefinitivo(idTarea) {
   if (enAppScript()) {
     google.script.run
       .withSuccessHandler(function (res) {
-        if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar', 'error'); return; }
-        // La fila YA se borró en el Excel: quitamos la tarea localmente en vez de
-        // recargar los 9 archivos (eso es lo que hacía el borrado lento). Como los
-        // IDs son fijos, no hay riesgo de desajuste.
+        // "Fantasma": si la fila YA no existe en el Excel (p. ej. un duplicado que
+        // ya se borró), el backend responde "No se encontró la fila". Eso NO es un
+        // error real: el objetivo (que no exista) ya se cumplió, así que igual la
+        // quitamos del Historial. Solo bloqueamos ante errores reales (permiso, etc.).
+        var yaNoEstaba = res && !res.ok && /no se encontr.*(fila|tarea)/i.test(String(res.error || ''));
+        if ((!res || !res.ok) && !yaNoEstaba) { toast((res && res.error) || 'No se pudo eliminar', 'error'); return; }
+        // La fila YA se borró (o ya no estaba): quitamos la tarea localmente en vez
+        // de recargar los 9 archivos. Con duplicados, cada clic quita una copia.
         const i = TAREAS.findIndex(x => x.id === idTarea);
         if (i >= 0) TAREAS.splice(i, 1);
         try { const c = JSON.parse(localStorage.getItem('tt_tareas_cache_v2') || '[]'); localStorage.setItem('tt_tareas_cache_v2', JSON.stringify(c.filter(x => x.id !== idTarea))); } catch (e) {}
         renderizar();
         if (vistaActiva === 'papelera') renderizarPapelera();
-        toast('Tarea ' + idTarea + ' eliminada del Excel', 'ok');
+        toast(yaNoEstaba ? ('La tarea ' + idTarea + ' ya no estaba en el Excel; se quitó del Historial') : ('Tarea ' + idTarea + ' eliminada del Excel'), 'ok');
       })
       .withFailureHandler(function (e) { toast('Error al eliminar: ' + (e && e.message ? e.message : e), 'error'); })
       .eliminarTarea(SESION_TOKEN, idTarea);
