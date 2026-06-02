@@ -3327,7 +3327,7 @@
      desde caché y se está esperando la respuesta fresca del servidor. */
   .refresh-indicator {
     position: fixed;
-    top: 16px; right: 16px;
+    bottom: 20px; left: 50%;
     background: var(--guinda);
     color: #fff;
     padding: 7px 14px;
@@ -3338,14 +3338,14 @@
     box-shadow: 0 4px 14px rgba(105,28,50,0.25);
     z-index: 9999;
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateX(-50%) translateY(8px);
     transition: opacity .25s, transform .25s;
     pointer-events: none;
     display: inline-flex; align-items: center; gap: 8px;
   }
   .refresh-indicator.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
   .refresh-spinner {
     display: inline-block;
