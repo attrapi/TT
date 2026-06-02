@@ -2314,6 +2314,10 @@
   .btn-pildora svg { width: 13px; height: 13px; flex: none; }
   .btn-pildora-ok { background: var(--verde); color: #fff; }
   .btn-pildora-ok:hover { background: #166534; }
+  /* Sello "Lista" NO interactivo (para quien NO puede completar: subdirectores en
+     tareas de subdirección, jefes en las suyas). Verde atenuado, sin hover, para
+     que se vea que no es una acción disponible para esa persona. */
+  .btn-pildora-sello { background: var(--verde); color: #fff; opacity: 0.5; cursor: default; }
   .btn-pildora-archivar { background: var(--grafito); color: #fff; }
   .btn-pildora-archivar:hover { filter: brightness(1.15); }
   .btn-pildora-off { background: var(--grafito); color: #fff; opacity: 0.4; cursor: not-allowed; }
@@ -5608,8 +5612,8 @@ function crearTarjeta(t) {
         html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
           _svgCheck + ' Lista para completar</button></div>';
       } else {
-        html += '<div class="tarjeta-acciones"><span class="btn-pildora btn-pildora-ok" style="cursor:default; opacity:.9" title="Lista — la marca quien corresponde">' +
-          _svgCheck + ' Lista</span></div>';
+        html += '<div class="tarjeta-acciones"><span class="btn-pildora btn-pildora-sello" title="Lista para completar — la marca quien corresponde">' +
+          _svgCheck + ' Lista para completar</span></div>';
       }
     } else {
       html += '<div class="tarjeta-progreso" title="Avance de acciones">' +
