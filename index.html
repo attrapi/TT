@@ -6813,10 +6813,10 @@ function acronimoArea(nombre) {
 function etiquetaChip(area) {
   if (!area) return '';
   const map = {
-    'Jefatura de Departamento de Gestión Ambiental':                        'JD Gestión Ambiental',
-    'Jefatura de Departamento de Gestión de Obras Inducidas':               'JD Gestión Obras Inducidas',
-    'Jefatura de Departamento de Procedimientos de Construcción':           'JD Procedimientos de Construcción',
-    'Jefatura de Departamento de Implementación de Manuales Administrativos':'JD Implementación de Manuales'
+    'Jefatura de Departamento de Gestión Ambiental':                        'JDGA',
+    'Jefatura de Departamento de Gestión de Obras Inducidas':               'JDGOI',
+    'Jefatura de Departamento de Procedimientos de Construcción':           'JDPC',
+    'Jefatura de Departamento de Implementación de Manuales Administrativos':'JDIMA'
   };
   return map[String(area).trim()] || acronimoArea(area) || area;
 }
