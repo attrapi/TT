@@ -167,20 +167,18 @@ function vaciarCacheHtml() {
   catch (e) { return 'Error: ' + e; }
 }
 
+// La app ya NO se sirve desde aquí (vive en GitHub Pages con Supabase). Este
+// /exec se conserva solo para los ADJUNTOS (doPost). Si alguien abre el /exec
+// viejo, lo redirigimos a la app nueva.
 function doGet() {
-  // Cache de 5 min para no traer el index.html de GitHub Pages en cada carga.
-  // (UrlFetchApp.fetch toma ~1-1.5s cada vez.) Cuando subas cambios al HTML,
-  // tardan hasta 5 min en aparecer, o llama vaciarCacheHtml() para forzar.
-  var cache = CacheService.getScriptCache();
-  var html = cache.get('idx_html_v1');
-  if (!html) {
-    html = UrlFetchApp.fetch(CONFIG.APP_HTML_URL, { muteHttpExceptions: true }).getContentText();
-    try { cache.put('idx_html_v1', html, 300); } catch (e) { /* >100KB no entra; sin caché */ }
-  }
-  return HtmlService.createHtmlOutput(html)
-    .setTitle('TT · Sistema de Gestión y Validación de Tareas')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  var destino = 'https://attrapi.github.io/TT/index.html';
+  return HtmlService.createHtmlOutput(
+    '<!doctype html><meta charset="utf-8">' +
+    '<meta http-equiv="refresh" content="0; url=' + destino + '">' +
+    '<script>try{top.location.href=' + JSON.stringify(destino) + ';}catch(e){location.href=' + JSON.stringify(destino) + ';}</script>' +
+    '<p style="font-family:system-ui;padding:24px">Abriendo TT… ' +
+    '<a href="' + destino + '" target="_top">haz clic aquí si no avanza</a>.</p>'
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // ============== doPost: ADJUNTOS para la versión Supabase ==============

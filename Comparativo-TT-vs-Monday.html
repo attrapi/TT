@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sistema TT vs Monday.com</title>
+<style>
+  @page { size: Letter; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root{
+    --guinda:#691C32; --guinda2:#8a2540; --tinta:#1f2937; --gris:#6b7280;
+    --linea:#e5e7eb; --verde:#15803d; --verde-bg:#dcfce7; --ambar:#b45309;
+    --ambar-bg:#fef3c7; --rojo:#b91c1c; --rojo-bg:#fee2e2; --azul:#1d4ed8;
+  }
+  html,body{ font-family:'Segoe UI',Arial,sans-serif; color:var(--tinta);
+    background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .hoja{ width:8.5in; height:11in; padding:0; display:flex; flex-direction:column; }
+
+  /* ===== Encabezado ===== */
+  header{
+    background:linear-gradient(120deg,var(--guinda),var(--guinda2));
+    color:#fff; padding:22px 34px 18px; position:relative;
+  }
+  header .logo{
+    position:absolute; top:20px; right:34px; width:44px; height:44px;
+    border:2.5px solid rgba(255,255,255,.55); border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:20px; letter-spacing:1px;
+  }
+  header h1{ font-size:25px; font-weight:800; letter-spacing:.3px; }
+  header h1 span{ opacity:.78; font-weight:500; }
+  header p{ font-size:11.5px; opacity:.92; margin-top:5px; max-width:6.4in; line-height:1.5; }
+
+  .cuerpo{ padding:18px 34px 0; flex:1; display:flex; flex-direction:column; }
+
+  .sec-titulo{
+    font-size:13px; font-weight:800; color:var(--guinda);
+    text-transform:uppercase; letter-spacing:.08em; margin:0 0 9px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .sec-titulo::after{ content:""; flex:1; height:2px; background:var(--linea); border-radius:2px; }
+
+  /* ===== Tabla comparativa ===== */
+  table{ width:100%; border-collapse:collapse; font-size:10.5px; }
+  thead th{
+    background:var(--guinda); color:#fff; text-align:left; padding:7px 10px;
+    font-size:10.5px; font-weight:700;
+  }
+  thead th:nth-child(2),thead th:nth-child(3){ text-align:center; width:1.5in; }
+  tbody td{ padding:4.5px 10px; border-bottom:1px solid var(--linea); vertical-align:middle; }
+  tbody tr:nth-child(even){ background:#faf7f8; }
+  td.func{ font-weight:600; }
+  td.func small{ display:block; font-weight:400; color:var(--gris); font-size:9px; margin-top:1px; }
+  td.cell{ text-align:center; }
+  .badge{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:9px; font-weight:800; }
+  .si{ background:var(--verde-bg); color:var(--verde); }
+  .no{ background:var(--rojo-bg); color:var(--rojo); }
+  .par{ background:var(--ambar-bg); color:var(--ambar); }
+
+  /* ===== Ventajas ===== */
+  .ventajas{ display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-top:4px; }
+  .v-card{
+    border:1px solid var(--linea); border-left:4px solid var(--guinda);
+    border-radius:8px; padding:10px 12px; background:#fff;
+  }
+  .v-card .ico{ font-size:18px; }
+  .v-card h3{ font-size:11px; margin:5px 0 3px; color:var(--guinda); }
+  .v-card p{ font-size:9.3px; color:var(--gris); line-height:1.45; }
+
+  /* ===== Resumen / cierre ===== */
+  .resumen{
+    margin-top:12px; background:#faf7f8; border:1px solid var(--linea);
+    border-radius:10px; padding:13px 16px; display:flex; gap:14px; align-items:center;
+  }
+  .resumen p{ font-size:10.5px; line-height:1.5; }
+  .resumen p b{ color:var(--guinda); }
+
+  footer{
+    margin-top:auto; padding:10px 34px; border-top:1px solid var(--linea);
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:8.5px; color:var(--gris);
+  }
+  footer b{ color:var(--guinda); }
+  .leyenda span{ margin-right:12px; }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <header>
+    <div class="logo">TT</div>
+    <h1>Sistema TT <span>· comparado con Monday.com</span></h1>
+    <p>Plataforma propia de ATTRAPI para la <b>gestión y validación de tareas</b> de la DPAC, sus
+       subdirecciones y jefaturas. Un "Monday a la medida": el mismo concepto visual de tablero, pero
+       con el flujo de validación real de la dirección — y sin costo de licencias.</p>
+  </header>
+
+  <div class="cuerpo">
+
+    <div class="sec-titulo">Comparativo de funciones</div>
+    <table>
+      <thead>
+        <tr><th>Función</th><th>Sistema TT</th><th>Monday.com</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="func">Tablero tipo Kanban por columnas<small>Identificadas · Por validar · Validadas</small></td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Arrastrar y soltar tarjetas</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Flujo de validación por jerarquía<small>Director ↔ Subdirección ↔ Jefaturas</small></td>
+            <td class="cell"><span class="badge si">A LA MEDIDA</span></td><td class="cell"><span class="badge par">SE ARMA</span></td></tr>
+        <tr><td class="func">Roles y permisos por usuario</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Login con lista de acceso autorizada</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Alertas visuales de vencimiento<small>Píldora "Vencida" que palpita + colores</small></td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge par">PARCIAL</span></td></tr>
+        <tr><td class="func">Buscador y filtros (sin acentos)</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Historial / bitácora de movimientos</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Devolver tarea con comentario</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge par">SE ARMA</span></td></tr>
+        <tr><td class="func">Adjuntos en Google Drive</td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Dashboard con gráficas<small>Dona por estatus · barras por responsable · filtro por área/jefatura</small></td>
+            <td class="cell"><span class="badge si">SÍ</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Notificación por correo</td>
+            <td class="cell"><span class="badge par">MANUAL</span></td><td class="cell"><span class="badge si">AUTOMÁTICA</span></td></tr>
+        <tr><td class="func">Reportes automáticos por correo<small>Resumen semanal programado con cron (activador por tiempo de Apps Script)</small></td>
+            <td class="cell"><span class="badge par">PROGRAMABLE</span></td><td class="cell"><span class="badge si">SÍ</span></td></tr>
+        <tr><td class="func">Costo de licencias por usuario</td>
+            <td class="cell"><span class="badge si">GRATIS</span></td><td class="cell"><span class="badge no">DE PAGO</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="sec-titulo" style="margin-top:12px;">Lo que cumplimos · ventajas de TT</div>
+    <div class="ventajas">
+      <div class="v-card">
+        <div class="ico">🎯</div><h3>Hecho a la medida</h3>
+        <p>Refleja el proceso real de validación de la DPAC, con los nombres, roles y jerarquías de ATTRAPI.</p>
+      </div>
+      <div class="v-card">
+        <div class="ico">💸</div><h3>Sin costo</h3>
+        <p>Funciona sobre GitHub y Google Sheets. Cero pago de licencias mensuales por usuario.</p>
+      </div>
+      <div class="v-card">
+        <div class="ico">🗓️</div><h3>Automatización con cron</h3>
+        <p>Puede programar el envío de un reporte semanal por correo de forma automática, sin costo extra.</p>
+      </div>
+      <div class="v-card">
+        <div class="ico">🔒</div><h3>Datos propios</h3>
+        <p>La información vive en las hojas de la dirección; acceso controlado por lista de usuarios.</p>
+      </div>
+    </div>
+
+    <div class="resumen">
+      <p>El <b>Sistema TT</b> ya iguala a Monday.com en lo esencial de un tablero de tareas
+         (Kanban, arrastrar, roles, búsqueda, historial, adjuntos, alertas y <b>dashboard con
+         gráficas</b>), y lo <b>supera</b> en el flujo de validación por jerarquía y en el costo.
+         Además, al correr sobre Google Apps Script puede <b>programar con cron el envío automático
+         de un reporte semanal por correo</b> —sin costo extra—, que es el siguiente paso ya identificado.</p>
+    </div>
+
+  </div>
+
+  <footer>
+    <div>Documento comparativo · <b>Sistema TT</b> — Dirección de Procesos Administrativos de Construcción (DPAC)</div>
+    <div class="leyenda">
+      <span><b style="color:var(--verde)">●</b> Sí / a favor</span>
+      <span><b style="color:var(--ambar)">●</b> Parcial</span>
+      <span><b style="color:var(--rojo)">●</b> En contra</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
