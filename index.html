@@ -1854,13 +1854,6 @@
     border-left: 6px solid #991b1b;
     box-shadow: 0 2px 8px rgba(220,38,38,0.22);
   }
-  /* Naranja fuerte: vence HOY (gana sobre pendiente/progreso; pierde ante vencida). */
-  .tarjeta.tarjeta-color-hoy {
-    background: #fdba74;
-    border: 2px solid #ea580c;
-    border-left: 6px solid #c2410c;
-    box-shadow: 0 2px 8px rgba(234,88,12,0.22);
-  }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
@@ -1965,15 +1958,8 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(234,88,12,0); }
     50%      { box-shadow: 0 0 0 6px rgba(234,88,12,0.20); }
   }
-  .tarjeta.vence-hoy {
-    border-color: #ea580c;
-    border-left-color: #c2410c;
-    animation: pulso-hoy 1.6s ease-in-out infinite;
-  }
-  .tarjeta.vence-hoy:hover {
-    border-color: #ea580c;
-    border-left-color: #c2410c;
-  }
+  /* "Vence hoy" NO recolorea la tarjeta (el color de la tarjeta lo decide el
+     checklist/vencida). El aviso de hoy vive SOLO en la píldora de abajo. */
   .vence-hoy-chip {
     display: inline-block;
     background: #ea580c;
@@ -5525,8 +5511,6 @@ function crearTarjeta(t) {
   let claseColorTarjeta;
   if (vencida) {
     claseColorTarjeta = 'tarjeta-color-vencida';
-  } else if (venceEsteDia) {
-    claseColorTarjeta = 'tarjeta-color-hoy';        // vence HOY → naranja
   } else if (_checksDir > 0) {
     claseColorTarjeta = 'tarjeta-color-progreso';
   } else {
