@@ -4770,9 +4770,38 @@ function cargarTelefonos() {
 // función listarResponsables.
 let RESPONSABLES = [];
 
+// ¿El responsable `r` es visible para el usuario actual al CAPTURAR/EDITAR una
+// tarea en su panel? Misma jerarquía que el campo "Área responsable":
+//   • Director: ve a todos.
+//   • Subdirectora (sin jefatura, de SA/SGOI/SPAC): a sí misma + sus jefaturas
+//     (toda su subdirección).
+//   • Jefa (con jefatura): SOLO a sí misma (su jefatura) + su jefe directo (la
+//     persona a nivel subdirección de su misma área). NO ve jefaturas hermanas.
+//   • Staff/Enlace u otros perfiles: sin restricción.
+function responsableVisibleEnCaptura(r) {
+  if (!usuarioActual || usuarioActual.rol === 'Director') return true;
+  const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
+  if (['SA', 'SGOI', 'SPAC'].indexOf(miSub) < 0) return true;   // Staff/Enlace: sin filtro
+  // Siempre puede verse a sí misma (por si la clasificación del responsable falla).
+  if (r && r.nombreCompleto && usuarioActual.nombre &&
+      nombresSinApellidos(r.nombreCompleto) === nombresSinApellidos(usuarioActual.nombre)) return true;
+  const rSub = String((r && r.subdireccion) || '').toUpperCase();
+  if (rSub !== miSub) return false;                             // solo su misma subdirección
+  const miJef = jefaturaCodigo(usuarioActual.jefatura);
+  if (miJef) {
+    const rJef = jefaturaCodigo(r && r.jefatura);
+    return !rJef || rJef === miJef;        // su jefe directo (sin jefatura) o ella misma
+  }
+  return true;                             // subdirectora: toda su subdirección
+}
+
 // Construye el HTML de opciones del dropdown "Responsable directo".
 function opcionesResponsableHTML(valSel) {
-  const lista = RESPONSABLES || [];
+  // Filtra por rol (ver responsableVisibleEnCaptura). Salvaguarda: si el filtro
+  // deja la lista vacía (p. ej. responsables sin subdirección, del fallback),
+  // no filtramos para no dejar el campo sin opciones.
+  let lista = (RESPONSABLES || []).filter(responsableVisibleEnCaptura);
+  if (!lista.length) lista = RESPONSABLES || [];
   const vals = lista.map(r => nombresSinApellidos(r.nombreCompleto));
   let html = '<option value="">Selecciona responsable…</option>';
   // Conserva un valor que no esté en la lista (p. ej. al editar una tarea vieja).
@@ -7795,8 +7824,10 @@ function abrirNuevaTarea(tEdit) {
 
   // Opciones del campo "Área responsable":
   //   • El Director ve TODO (3 subdirs + 4 jefaturas + DPAC + Staff).
-  //   • Cada subdirectora ve SU subdir + las jefaturas que dependen de ella.
-  //   • Una jefa ve solo SU jefatura (no puede reasignar).
+  //   • Cada subdirectora ve SU subdir + las jefaturas que dependen de ella
+  //     (ella misma + sus jefaturas).
+  //   • Una jefa ve SOLO a sí misma (su jefatura) + su jefe directo (la
+  //     subdirección madre). NO ve las jefaturas hermanas.
   // El value es un código (SGOI/JDGA/JDPC/...) que se decodifica al guardar.
   const catalogoArea = [
     { v:'DPAC',   sub:'DPAC',   nivel:'subdireccion', jef:'',                  n:'DPAC · Dirección (mi tarea)' },
@@ -7815,10 +7846,12 @@ function abrirNuevaTarea(tEdit) {
     opcionesPermitidas = catalogoArea;
   } else {
     opcionesPermitidas = catalogoArea.filter(o => o.sub === usuarioActual.subdireccion);
-    // Si la usuaria es Jefa (Jefatura asignada), solo su propia jefatura.
+    // Si la usuaria es Jefa (Jefatura asignada): solo a sí misma (su jefatura)
+    // y a su jefe directo (la subdirección madre). Las jefaturas hermanas se
+    // quedan fuera (p. ej. la jefa de JDGA NO ve JDGOI).
     const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
     if (codJefUser) {
-      opcionesPermitidas = opcionesPermitidas.filter(o => o.jef === codJefUser);
+      opcionesPermitidas = opcionesPermitidas.filter(o => o.jef === codJefUser || o.nivel === 'subdireccion');
     }
   }
   // Si el valor actual no está en las permitidas (p. ej. DPAC editado por un
