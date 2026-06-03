@@ -977,6 +977,7 @@
     font-size: 19px;
     font-weight: 600;
     letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 
   .nav-marca-sub {
@@ -985,6 +986,7 @@
     text-transform: uppercase;
     opacity: 0.78;
     margin-top: 3px;
+    white-space: nowrap;
   }
 
   .nav-right {
@@ -1004,10 +1006,24 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    justify-self: center;
+    /* La caja ocupa SU celda (no más): centra su contenido pero nunca se
+       desborda hacia la marca (izq) ni hacia el usuario (der). Antes era
+       justify-self:center y, con títulos largos de jefatura, la caja crecía
+       más que su celda y se encimaba con los lados. */
+    justify-self: stretch;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* Si el título no cabe (p. ej. "Jefatura de Departamento de Procesos de
+     Construcción"), se recorta con "…" en vez de encimarse. El badge TT
+     no se encoge. */
+  .nav-titulo #navTitulo {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     min-width: 0;
   }
-  .nav-titulo #navTitulo { white-space: nowrap; }
   /* Badge "TT" — pequeño cuadro guinda invertido con dos T entrelazadas, va a la
      derecha del título principal del nav. */
   .nav-tt-badge {
@@ -4476,9 +4492,12 @@ function aplicarSesion() {
       'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
     };
     const codJefSesion = jefaturaCodigo(usuarioActual.jefatura);
-    document.getElementById('navTitulo').textContent = codJefSesion
+    const tituloNav = codJefSesion
       ? (nombresJef[codJefSesion] || nombresSubs[usuarioActual.subdireccion])
       : nombresSubs[usuarioActual.subdireccion];
+    const navTit = document.getElementById('navTitulo');
+    navTit.textContent = tituloNav;
+    navTit.title = tituloNav;   // si el título se recorta con "…", el completo se ve al pasar el mouse
 
     tabActiva = usuarioActual.subdireccion;
   }
@@ -4502,6 +4521,14 @@ function aplicarSesion() {
     // misma columna que agrupa DPAC + Enlace en su tablero).
     if (lblEnlace) lblEnlace.textContent = 'Staff';
   }
+
+  // Las JEFATURAS (jefes/jefas de departamento) solo manejan Bitácora dentro de
+  // "Gestión": no tienen Carga ni Reportes (eso es del Subdirector/Director).
+  const esJefe = !!jefaturaCodigo(usuarioActual.jefatura);
+  const btnCarga    = document.querySelector('.sidebar-item[data-vista="carga"]');
+  const btnReportes = document.querySelector('.sidebar-item[data-vista="reportes"]');
+  if (btnCarga)    btnCarga.style.display    = esJefe ? 'none' : '';
+  if (btnReportes) btnReportes.style.display = esJefe ? 'none' : '';
 
   cambiarTab(tabActiva);
 }
@@ -8421,8 +8448,12 @@ function abrirBitacoraTarea(idTarea) {
 
 function renderizarCarga() {
   const grid = document.getElementById('cargaGrid');
-  // Universo: el Director ve todo MENOS jefaturas (no le reportan a él);
-  // el capturista, solo las de su subdirección.
+  // Universo:
+  //   • Director: todo MENOS jefaturas (no le reportan a él) — se deja igual.
+  //   • Subdirector: SU subdirección + SUS jefaturas, nada más. Las tareas de
+  //     jefatura llevan la subdirección de su madre (JDPC/JDIMA→SPAC,
+  //     JDGA/JDGOI→SGOI), así que el filtro por subdirección ya las incluye.
+  //   (Los jefes/jefas no llegan aquí: no tienen Carga en el menú.)
   let universo = usuarioActual.rol === 'Capturista'
     ? TAREAS.filter(t => t.subdireccion === usuarioActual.subdireccion)
     : TAREAS.filter(t => t.nivel !== 'jefatura');
