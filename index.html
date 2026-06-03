@@ -3703,8 +3703,8 @@
     </div>
 
     <div class="acceso-form">
-      <!-- Login real (solo cuando la app se sirve desde Apps Script) -->
-      <div id="loginAppScript" style="display:none">
+      <!-- Login real (Supabase). Visible por defecto; el demo de abajo queda oculto. -->
+      <div id="loginAppScript">
         <!-- Paso 1: elegir usuario (tarjetas, como el demo) -->
         <div id="loginPaso1">
           <label>Ingresar como</label>
@@ -3731,8 +3731,8 @@
         </form>
       </div>
 
-      <label id="accesoRolesLabel">Ingresar como</label>
-      <div class="acceso-roles" id="accesoRolesDemo">
+      <label id="accesoRolesLabel" style="display:none">Ingresar como</label>
+      <div class="acceso-roles" id="accesoRolesDemo" style="display:none">
         <button class="acceso-rol" onclick="ingresar('director')">
           <div class="acceso-rol-icon" style="background: var(--guinda-tenue); color: var(--guinda);">AT</div>
           <div class="acceso-rol-info">
