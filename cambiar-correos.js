@@ -14,16 +14,12 @@ if (!KEY) {
 }
 
 // viejo (actual en Supabase)  ->  nuevo (real)
+// EJEMPLOS: reemplaza por los correos reales antes de usar (no se exponen datos
+// del personal en el repositorio).
 const CAMBIOS = [
-  ['adrian@attrapi.gob.mx',    'adrian.tavares@sict.gob.mx'],
-  ['samanta@attrapi.gob.mx',   'samantha.arechederra@gmail.com'],
-  ['mario@attrapi.gob.mx',     'mario@sict.gob.mx'],
-  ['amanda@attrapi.gob.mx',    'amanda@sict.gob.mx'],
-  ['fabiola@attrapi.gob.mx',   'fabiola.corella@sict.gob.mx'],
-  ['guillermo@attrapi.gob.mx', 'luis.favila@sict.gob.mx'],
-  ['dolores@attrapi.gob.mx',   'maria.carrasco@sict.gob.mx'],
-  ['imelda@attrapi.gob.mx',    'imelda.rangel@sict.gob.mx'],
-  ['carolina@attrapi.gob.mx',  'carolinasaldanab@outlook.com']
+  ['viejo1@ejemplo.com', 'nuevo1@ejemplo.com'],
+  ['viejo2@ejemplo.com', 'nuevo2@ejemplo.com']
+  // ... agrega un par [viejo, nuevo] por cada usuario.
 ];
 
 const H = { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json' };
