@@ -3732,8 +3732,8 @@
         <form class="acceso-login" id="loginPaso2" style="display:none" onsubmit="iniciarSesionApp(event)">
           <button type="button" class="login-volver" onclick="volverLoginCards()">← Cambiar usuario</button>
           <h1 id="loginNombreSel">Iniciar sesión</h1>
-          <label for="loginUsuarioManual" id="loginUsuarioManualLbl" style="display:none">Usuario</label>
-          <input type="text" id="loginUsuarioManual" autocomplete="username" autocapitalize="off" placeholder="tu usuario" style="display:none">
+          <label for="loginUsuarioManual" id="loginUsuarioManualLbl" style="display:none">Correo</label>
+          <input type="email" id="loginUsuarioManual" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="tu.correo@institucion.gob.mx" style="display:none">
           <label for="loginContrasena">Contraseña</label>
           <div class="login-pass-wrap">
             <input type="password" id="loginContrasena" autocomplete="current-password" placeholder="••••••••" required>
@@ -4551,9 +4551,8 @@ function salir() {
     const m = document.getElementById('loginUsuarioManual'); if (m) m.value = '';
     const e = document.getElementById('loginError'); if (e) e.textContent = '';
     const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-    const p1 = document.getElementById('loginPaso1'); if (p1) p1.style.display = '';
-    const p2 = document.getElementById('loginPaso2'); if (p2) p2.style.display = 'none';
-    cargarTarjetasLogin();   // recarga las tarjetas (si entramos por sesión recordada nunca se cargaron)
+    // Al salir: login de correo + contraseña, SIN listar a todos los usuarios.
+    loginModoManual();
   }
 }
 
@@ -4694,12 +4693,17 @@ function loginModoManual() {
   usuarioLoginSel = null;
   document.getElementById('loginPaso1').style.display = 'none';
   document.getElementById('loginPaso2').style.display = '';
-  document.getElementById('loginUsuarioManual').style.display = '';
+  const mu = document.getElementById('loginUsuarioManual');
+  if (mu) mu.style.display = '';
   document.getElementById('loginUsuarioManualLbl').style.display = '';
   document.getElementById('loginNombreSel').textContent = 'Iniciar sesión';
-  // Sin botón de volver útil en modo manual.
+  // Sin botón de volver: no hay lista de usuarios a la cual regresar.
   const volver = document.querySelector('#loginPaso2 .login-volver');
   if (volver) volver.style.display = 'none';
+  const err = document.getElementById('loginError'); if (err) err.textContent = '';
+  const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+  // Enfoca el correo para escribir de inmediato (en escritorio).
+  if (mu) { try { mu.focus(); } catch (e) {} }
 }
 
 // Aplica una sesión devuelta por el servidor (login o reanudación): guarda el
@@ -8852,12 +8856,13 @@ document.addEventListener('keydown', (e) => {
       google.script.run
         .withSuccessHandler(function (res) {
           if (res && res.ok) { aplicarUsuarioServidor(res); }
-          else { try { localStorage.removeItem('tt_token'); } catch (e) {} cargarTarjetasLogin(); }
+          else { try { localStorage.removeItem('tt_token'); } catch (e) {} loginModoManual(); }
         })
-        .withFailureHandler(function () { cargarTarjetasLogin(); })
+        .withFailureHandler(function () { loginModoManual(); })
         .reanudarSesion(tokGuardado);
     } else {
-      cargarTarjetasLogin();
+      // Login de correo + contraseña, SIN listar a todos los usuarios.
+      loginModoManual();
     }
   } else {
     // Modo demo: arranca el polling de la hoja SPAC publicada.
