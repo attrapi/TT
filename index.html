@@ -4775,24 +4775,26 @@ let RESPONSABLES = [];
 //   • Director: ve a todos.
 //   • Subdirectora (sin jefatura, de SA/SGOI/SPAC): a sí misma + sus jefaturas
 //     (toda su subdirección).
-//   • Jefa (con jefatura): SOLO a sí misma (su jefatura) + su jefe directo (la
-//     persona a nivel subdirección de su misma área). NO ve jefaturas hermanas.
+//   • Jefa (con jefatura): SOLO a sí misma. No ve al subdirector ni a las
+//     jefaturas hermanas.
 //   • Staff/Enlace u otros perfiles: sin restricción.
 function responsableVisibleEnCaptura(r) {
   if (!usuarioActual || usuarioActual.rol === 'Director') return true;
   const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
   if (['SA', 'SGOI', 'SPAC'].indexOf(miSub) < 0) return true;   // Staff/Enlace: sin filtro
-  // Siempre puede verse a sí misma (por si la clasificación del responsable falla).
-  if (r && r.nombreCompleto && usuarioActual.nombre &&
-      nombresSinApellidos(r.nombreCompleto) === nombresSinApellidos(usuarioActual.nombre)) return true;
-  const rSub = String((r && r.subdireccion) || '').toUpperCase();
-  if (rSub !== miSub) return false;                             // solo su misma subdirección
+  const esMismaPersona = r && r.nombreCompleto && usuarioActual.nombre &&
+      nombresSinApellidos(r.nombreCompleto) === nombresSinApellidos(usuarioActual.nombre);
   const miJef = jefaturaCodigo(usuarioActual.jefatura);
   if (miJef) {
+    // Jefa: SOLO ella misma (por jefatura o por nombre). Nada más.
     const rJef = jefaturaCodigo(r && r.jefatura);
-    return !rJef || rJef === miJef;        // su jefe directo (sin jefatura) o ella misma
+    const rSubJ = String((r && r.subdireccion) || '').toUpperCase();
+    return esMismaPersona || (rSubJ === miSub && rJef === miJef);
   }
-  return true;                             // subdirectora: toda su subdirección
+  // Subdirectora: ella misma + toda su subdirección (incluidas sus jefaturas).
+  if (esMismaPersona) return true;
+  const rSub = String((r && r.subdireccion) || '').toUpperCase();
+  return rSub === miSub;
 }
 
 // Construye el HTML de opciones del dropdown "Responsable directo".
@@ -4832,7 +4834,11 @@ function opcionesResponsableHTML(valSel) {
     if (!items.length) return;
     html += '<optgroup label="' + escapeHtml(g.label) + '">' + items.map(opcion).join('') + '</optgroup>';
   });
-  html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
+  // "Otro (escribir)…" NO se ofrece a los jefes: solo pueden ser ellos mismos.
+  const esJefeCaptura = usuarioActual && usuarioActual.rol !== 'Director' && jefaturaCodigo(usuarioActual.jefatura);
+  if (!esJefeCaptura) {
+    html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
+  }
   return html;
 }
 
@@ -7779,7 +7785,14 @@ function abrirNuevaTarea(tEdit) {
   tareaEditando = tEdit || null;
   const ed = tareaEditando;
   const esCapturista = usuarioActual.rol === 'Capturista';
-  const subFija = esCapturista ? usuarioActual.subdireccion : '';
+  // Para un JEFE, su "área fija" es su propia jefatura (JDPC/JDIMA/JDGA/JDGOI),
+  // NO su subdirección: así su único destino y su valor por defecto es su
+  // jefatura (no puede asignar a la subdirección ni a nadie más).
+  const _jefVcode = {'PROCEDIMIENTOS':'JDPC','MANUALES':'JDIMA','GESTION_AMBIENTAL':'JDGA','GESTION_OBRAS':'JDGOI'};
+  const _miJefTop = esCapturista ? jefaturaCodigo(usuarioActual.jefatura) : '';
+  const subFija = esCapturista
+    ? (_miJefTop ? (_jefVcode[_miJefTop] || usuarioActual.subdireccion) : usuarioActual.subdireccion)
+    : '';
 
   const hoy = new Date();
   const hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
@@ -7826,8 +7839,8 @@ function abrirNuevaTarea(tEdit) {
   //   • El Director ve TODO (3 subdirs + 4 jefaturas + DPAC + Staff).
   //   • Cada subdirectora ve SU subdir + las jefaturas que dependen de ella
   //     (ella misma + sus jefaturas).
-  //   • Una jefa ve SOLO a sí misma (su jefatura) + su jefe directo (la
-  //     subdirección madre). NO ve las jefaturas hermanas.
+  //   • Una jefa ve SOLO su propia jefatura (a sí misma). NO ve la subdirección
+  //     ni las jefaturas hermanas: su único destino es su jefatura.
   // El value es un código (SGOI/JDGA/JDPC/...) que se decodifica al guardar.
   const catalogoArea = [
     { v:'DPAC',   sub:'DPAC',   nivel:'subdireccion', jef:'',                  n:'DPAC · Dirección (mi tarea)' },
@@ -7846,12 +7859,12 @@ function abrirNuevaTarea(tEdit) {
     opcionesPermitidas = catalogoArea;
   } else {
     opcionesPermitidas = catalogoArea.filter(o => o.sub === usuarioActual.subdireccion);
-    // Si la usuaria es Jefa (Jefatura asignada): solo a sí misma (su jefatura)
-    // y a su jefe directo (la subdirección madre). Las jefaturas hermanas se
-    // quedan fuera (p. ej. la jefa de JDGA NO ve JDGOI).
+    // Si la usuaria es Jefa (Jefatura asignada): SOLO su propia jefatura. No ve
+    // la subdirección ni las jefaturas hermanas (p. ej. la jefa de JDGA NO ve
+    // ni SGOI ni JDGOI).
     const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
     if (codJefUser) {
-      opcionesPermitidas = opcionesPermitidas.filter(o => o.jef === codJefUser || o.nivel === 'subdireccion');
+      opcionesPermitidas = opcionesPermitidas.filter(o => o.jef === codJefUser);
     }
   }
   // Si el valor actual no está en las permitidas (p. ej. DPAC editado por un
