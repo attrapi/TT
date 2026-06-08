@@ -5622,6 +5622,21 @@ function renderizarTablero() {
     tablero.appendChild(colEl);
 
     const cuerpo = colEl.querySelector('.col-cuerpo');
+
+    // Zona de soltado: solo para el subdirector de SPAC/SGOI. Al soltar una
+    // tarjeta aquí, la tarea se reparte a esta columna (jefatura o subdirección)
+    // y se palomea su área involucrada — sin registrar el movimiento en bitácora.
+    if (esSubdirectorConJefaturas()) {
+      cuerpo.addEventListener('dragover', e => { e.preventDefault(); cuerpo.classList.add('drop-activo'); });
+      cuerpo.addEventListener('dragleave', () => cuerpo.classList.remove('drop-activo'));
+      cuerpo.addEventListener('drop', e => {
+        e.preventDefault();
+        cuerpo.classList.remove('drop-activo');
+        const id = e.dataTransfer.getData('text/plain');
+        if (id) asignarPorArrastre(id, col);
+      });
+    }
+
     if (tareasCol.length === 0) {
       cuerpo.innerHTML = '<div class="vacio">Sin tareas en esta columna</div>';
     } else {
@@ -5695,6 +5710,73 @@ function moverTarea(idTarea, nuevoEstatus) {
   }
 }
 
+// ¿El usuario es subdirector de SPAC o SGOI (Capturista, SIN jefatura asignada)?
+// Solo ellos pueden arrastrar tareas entre sus columnas (subdirección ↔ jefaturas)
+// para repartirlas y palomear automáticamente el "área involucrada".
+function esSubdirectorConJefaturas() {
+  return !!usuarioActual
+    && usuarioActual.rol === 'Capturista'
+    && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
+    && !jefaturaCodigo(usuarioActual.jefatura);
+}
+
+// Agrega un área (nombre completo) a "areas_involucradas" sin duplicar. Es la
+// "paloma" automática: una vez marcada NO se quita sola; el subdirector la
+// despalomea a mano desde el modal si lo decide.
+function agregarAreaInvolucrada(t, nombreArea) {
+  if (!t || !nombreArea) return;
+  const actuales = String(t.areas_involucradas || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const yaEsta = actuales.some(a => a.toLowerCase() === nombreArea.toLowerCase());
+  if (!yaEsta) actuales.push(nombreArea);
+  t.areas_involucradas = actuales.join(', ');
+}
+
+// Arrastre del subdirector (SPAC/SGOI): suelta una tarea sobre una columna.
+//   • Sobre una JEFATURA  → la tarea pasa a esa jefatura y se palomea su área
+//     involucrada. Arrastrarla luego a la otra jefatura la mueve allá pero la
+//     paloma anterior PERMANECE (ambas quedan palomeadas).
+//   • Sobre la SUBDIRECCIÓN → la tarea regresa a nivel subdirección (las
+//     áreas involucradas no se tocan; el subdirector las edita a mano).
+// Este movimiento NO se registra en la bitácora (es reparto interno).
+function asignarPorArrastre(idTarea, col) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !col) return;
+  // Salvaguarda: solo el subdirector y solo sobre tareas de SU subdirección.
+  if (!esSubdirectorConJefaturas() || t.subdireccion !== usuarioActual.subdireccion) return;
+
+  const antesNivel = t.nivel, antesJef = t.jefatura || '', antesAreas = t.areas_involucradas || '';
+  const destinoJef = col.jefCod || '';   // '' = columna de la subdirección
+
+  if (destinoJef) {
+    t.nivel = 'jefatura';
+    t.jefatura = destinoJef;
+    agregarAreaInvolucrada(t, col.subtitulo);   // subtitulo = nombre completo del área
+  } else {
+    t.nivel = 'subdireccion';
+    t.jefatura = '';
+  }
+
+  // Si nada cambió (se soltó en la misma columna), no persistas ni re-renderices.
+  if (t.nivel === antesNivel && (t.jefatura || '') === antesJef
+      && (t.areas_involucradas || '') === antesAreas) return;
+
+  // Persiste el cambio (nivel/jefatura/área) SIN tocar la bitácora.
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run
+      .withFailureHandler(function (e) { toast('No se pudo asignar: ' + (e && e.message ? e.message : e), 'error'); })
+      .actualizarTarea(SESION_TOKEN, t.id, {
+        subdireccion: t.subdireccion,
+        nivel: t.nivel,
+        jefatura: t.jefatura,
+        areas: t.areas_involucradas
+      });
+  }
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+  toast('Tarea ' + t.id + ' → ' + (col.titulo || ''), 'ok');
+}
+
 function crearTarjeta(t) {
   const card = document.createElement('div');
   card.className = 'tarjeta';
@@ -5703,9 +5785,11 @@ function crearTarjeta(t) {
   card.setAttribute('data-id', t.id);
   card.onclick = () => abrirDetalle(t);
 
-  // Sólo el Director puede arrastrar tarjetas entre columnas en su panel.
-  // Los subdirectores avanzan exclusivamente con el botón Finalizar.
-  const puedeArrastrar = usuarioActual && usuarioActual.rol === 'Director';
+  // Arrastre de tarjetas:
+  //   • El Director (en su panel histórico) — comportamiento previo.
+  //   • Los subdirectores de SPAC/SGOI, para repartir tareas a sus jefaturas
+  //     (suelta sobre la columna de la jefatura → palomea su área involucrada).
+  const puedeArrastrar = usuarioActual && (usuarioActual.rol === 'Director' || esSubdirectorConJefaturas());
   card.draggable = puedeArrastrar;
   if (puedeArrastrar) {
     card.addEventListener('dragstart', e => {
