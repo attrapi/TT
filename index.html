@@ -5271,6 +5271,25 @@ function ordenarPorFecha(lista) {
   });
 }
 
+// Número consecutivo dentro del ID (p. ej. "SPAC-012" → 12). Sirve para
+// ordenar las tarjetas del tablero por su secuencia de ID y que cada tarea
+// vuelva siempre al mismo lugar aunque se mueva de columna y regrese.
+function numeroId(id) {
+  const m = String(id || '').match(/(\d+)\s*$/);
+  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+// Orden del TABLERO: por número de ID ascendente (SPAC-001 antes que SPAC-002).
+// Como el ID no cambia al mover una tarea entre columnas, su posición es
+// estable: si la regresas a su columna, vuelve al lugar que le corresponde.
+function ordenarPorId(lista) {
+  return [...lista].sort((a, b) => {
+    const na = numeroId(a.id), nb = numeroId(b.id);
+    if (na !== nb) return na - nb;
+    return String(a.id).localeCompare(String(b.id));   // desempate estable
+  });
+}
+
 function renderizar() {
   actualizarKPIs();
   actualizarConteosTabs();
@@ -5597,7 +5616,7 @@ function renderizarTablero() {
   }
 
   cols.forEach(col => {
-    const tareasCol = ordenarPorFecha(lista.filter(col.filtro));
+    const tareasCol = ordenarPorId(lista.filter(col.filtro));
     const colEl = document.createElement('div');
     // Color de la columna: morado/olivo/azul/naranja según el área.
     colEl.className = 'columna col-' + col.id.toLowerCase() + ' col-color-' + (col.color || 'olivo');
