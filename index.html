@@ -7562,10 +7562,9 @@ function areaDeCreador(t) {
     if (jc) return ACRONIMO_JEFATURA[jc] || jc;
     return String(r.subdireccion || '').toUpperCase();
   }
-  // No encontrado: en producción (Supabase con RESPONSABLES cargado) el único
-  // que NO aparece en RESPONSABLES es el Director → Dirección. En demo (lista
-  // incompleta) no se asume nada para no inventar una columna Director.
-  if (enAppScript() && (RESPONSABLES || []).length) return 'DPAC';
+  // No encontrado → NO se asume nada. (Antes se asumía 'DPAC' para detectar al
+  // Director, pero eso metía a Staff cualquier tarea cuyo creador no estuviera
+  // EXACTO en RESPONSABLES, inflando el conteo de Staff con tareas ajenas.)
   return '';
 }
 
