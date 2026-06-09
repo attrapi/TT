@@ -7764,7 +7764,7 @@ function hacerEditableChecklist(idTarea, idx) {
     }
     item.texto = limpio;
     registrarEnBitacora({
-      accion: 'mover', id_tarea: idTarea,
+      accion: 'accion_edit', id_tarea: idTarea,
       estatus_anterior: '', estatus_nuevo: '',
       comentario: '✎ "' + limpio + '"'
     });
@@ -7976,7 +7976,7 @@ function agregarItemChecklist(idTarea, texto) {
     creado_por_nombre: aut.nombre, creado_por_rol: aut.rol,
     creado_en: ahoraStamp()
   });
-  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + textoLimpio + '"' });
+  registrarEnBitacora({ accion: 'accion_add', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + textoLimpio + '"' });
   persistirEstado(t);
   abrirDetalle(t);
   renderizar();
@@ -7996,7 +7996,7 @@ function eliminarItemChecklist(idTarea, idx) {
   }
   if (!confirm('¿Borrar la acción "' + item.texto + '"?')) return;
   items.splice(idx, 1);
-  registrarEnBitacora({ accion: 'mover', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '− "' + item.texto + '"' });
+  registrarEnBitacora({ accion: 'accion_del', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '− "' + item.texto + '"' });
   persistirEstado(t);
   abrirDetalle(t);
   renderizar();
@@ -8826,6 +8826,9 @@ const ACCION_LABEL = {
   desarchivar: 'Desarchivada',
   reabrir:     'Reabierta',
   mover:       'Movida',
+  accion_add:  'Acción agregada',
+  accion_del:  'Acción quitada',
+  accion_edit: 'Acción editada',
   enviar:      'Enviada a validación',
   eliminar:    'Enviada al Historial',
   restaurar:   'Restaurada',
