@@ -707,6 +707,9 @@
   .bitacora-accion.accion_add,
   .bitacora-accion.accion_del,
   .bitacora-accion.accion_edit { background: #EDE9FE; color: #6D28D9; }
+  /* Enviada al Historial: rojo. Restaurada: azul. */
+  .bitacora-accion.eliminar  { background: #FEE2E2; color: var(--rojo); }
+  .bitacora-accion.restaurar { background: var(--azul-tenue); color: var(--azul); }
   .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; }
   .bitacora-tarea {
     display: flex;
@@ -5158,11 +5161,11 @@ function cargarTareasAppScript(preservar, onListo) {
           n.confirmada = p.confirmada;
           n.enviado_por = p.enviado_por;
           n.fecha_envio = p.fecha_envio;
-          n.eliminada = p.eliminada;
+          // El Historial (eliminada/eliminado_por/fecha_eliminacion) lo manda la
+          // BASE, NO la copia local: si se conservaba el valor local, una tarea
+          // ya enviada al Historial por otra sesión reaparecía en el tablero.
           n.creado_por = p.creado_por;
           n.fecha_creacion = p.fecha_creacion;
-          n.eliminado_por = p.eliminado_por;
-          n.fecha_eliminacion = p.fecha_eliminacion;
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
