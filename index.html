@@ -692,7 +692,8 @@
     letter-spacing: 0.06em;
     text-align: center;
   }
-  .bitacora-accion.validar  { background: var(--ambar-tenue); color: var(--ambar); }
+  .bitacora-accion.validar      { background: var(--verde-tenue); color: var(--verde); }
+  .bitacora-accion.completar_col { background: var(--ambar-tenue); color: var(--ambar); }
   .bitacora-accion.liberar  { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.devolver { background: #FEE2E2; color: var(--rojo); }
   .bitacora-accion.crear    { background: var(--azul-tenue); color: var(--azul); }
@@ -7842,12 +7843,17 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const eraTodaCompletaAntes = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   const autor = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', valor ? ahoraStamp() : '');
-  // Si AHORA toda la columna de esa área quedó marcada y antes no, se "validó".
+  // Si AHORA toda la columna de esa área quedó marcada y antes no, se registra.
+  // Si la completó el VALIDADOR (participante de mayor jerarquía → quien creó/
+  // valida la tarea) es "Validada"; si la completó otro participante, "Completada".
   const yaTodaCompleta = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   if (yaTodaCompleta && !eraTodaCompletaAntes) {
+    const colsT = participantesDe(t);
+    const esValidador = colsT.length > 0 && cod === colsT[colsT.length - 1];
     registrarEnBitacora({
-      accion: 'validar', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
-      comentario: 'Columna ' + etiquetaColumnaArea(cod) + ' validada'
+      accion: esValidador ? 'validar' : 'completar_col',
+      id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna ' + etiquetaColumnaArea(cod) + (esValidador ? ' validada' : ' completada')
     });
   }
   persistirEstado(t);  // guarda el checklist (sobrevive al F5)
@@ -8834,6 +8840,7 @@ const ACCION_LABEL = {
   accion_add:  'Acción agregada',
   accion_del:  'Acción quitada',
   accion_edit: 'Acción editada',
+  completar_col:'Completada',
   enviar:      'Enviada a validación',
   eliminar:    'Enviada al Historial',
   restaurar:   'Restaurada',
