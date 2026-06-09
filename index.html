@@ -5906,6 +5906,8 @@ function crearTarjeta(t) {
   const _items = obtenerChecklist(t);
   if (_items.length > 0) {
     const _avance = checklistAvance(t);
+    // Ítems completos = palomeados por TODOS los participantes.
+    const _completas = _items.filter(it => _partsT.length > 0 && _partsT.every(cod => marcadoDeArea(it, t, cod))).length;
     if (checklistTodoMarcado(t)) {
       const _svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
       if (puedeCompletar(t)) {
