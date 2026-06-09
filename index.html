@@ -2721,6 +2721,17 @@
     flex-wrap: wrap;
     margin-top: 8px;
   }
+  /* ID y chips (Vencida/Concluida/…) del header: TODAS las píldoras al mismo
+     alto, sin márgenes que las desalineen, una junto a otra. Aplica también a
+     cualquier píldora nueva que se agregue aquí. */
+  .modal-meta > * {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    line-height: 1;
+    box-sizing: border-box;
+  }
   .modal-estatus {
     display: inline-block;
     font-size: 11px;
