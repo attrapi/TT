@@ -712,6 +712,8 @@
   .bitacora-accion.restaurar { background: var(--azul-tenue); color: var(--azul); }
   /* Finalizada (tarea completada → Historial): verde olivo. */
   .bitacora-accion.completar { background: #dce8bf; color: #3f5713; }
+  /* Seguimiento (avance: se palomeó una acción, aún faltan): gris azulado. */
+  .bitacora-accion.seguimiento { background: #e2e8f0; color: #475569; }
   .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; }
   .bitacora-tarea {
     display: flex;
@@ -7911,21 +7913,28 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const eraTodaCompletaAntes = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   const autor = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', valor ? ahoraStamp() : '');
-  // Si AHORA toda la columna de esa área quedó marcada y antes no, se registra.
-  // Si la completó el VALIDADOR (participante de mayor jerarquía → quien creó/
-  // valida la tarea) es "Validada"; si la completó otro participante, "Completada".
-  const yaTodaCompleta = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
-  if (yaTodaCompleta && !eraTodaCompletaAntes) {
+  // Registro en bitácora:
+  //   • Cada paloma (mientras FALTEN acciones) → "Seguimiento" con el avance X/Y.
+  //   • Solo cuando se completa TODA la columna → "Completada" (o "Validada" si
+  //     la cierra el validador: participante de mayor jerarquía y nivel ≤ 1).
+  const totalCol = items.length;
+  const marcadosCol = items.filter(i => marcadoDeArea(i, t, cod)).length;
+  const yaTodaCompleta = totalCol > 0 && marcadosCol === totalCol;
+  const etqCol = etiquetaColumnaArea(cod);
+  if (valor && yaTodaCompleta && !eraTodaCompletaAntes) {
     const colsT = participantesDe(t);
-    // "Validada" SOLO si la completa el validador: el participante de mayor
-    // jerarquía Y que sea subdirección o dirección (nivel ≤ 1). Una JEFATURA
-    // (nivel 2) NUNCA valida: su columna siempre es "Completada".
     const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
     const esValidador = esTop && nivelDeArea(cod) <= 1;
     registrarEnBitacora({
       accion: esValidador ? 'validar' : 'completar_col',
       id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
-      comentario: 'Columna ' + etiquetaColumnaArea(cod) + (esValidador ? ' validada' : ' completada')
+      comentario: 'Columna ' + etqCol + (esValidador ? ' validada' : ' completada')
+    });
+  } else if (valor && !yaTodaCompleta) {
+    // Avance: se palomeó una acción pero aún faltan. Queda registrado el seguimiento.
+    registrarEnBitacora({
+      accion: 'seguimiento', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna ' + etqCol + ' ' + marcadosCol + '/' + totalCol + ' · ✓ "' + items[idx].texto + '"'
     });
   }
   persistirEstado(t);  // guarda el checklist (sobrevive al F5)
@@ -8911,6 +8920,7 @@ const ACCION_LABEL = {
   accion_add:  'Acción agregada',
   accion_del:  'Acción quitada',
   accion_edit: 'Acción editada',
+  seguimiento: 'Seguimiento',
   completar_col:'Completada',
   enviar:      'Enviada a validación',
   eliminar:    'Enviada al Historial',
