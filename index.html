@@ -2215,6 +2215,16 @@
     cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; flex: none;
   }
 
+  /* Filas de "Responsable directo" (una o varias). */
+  .responsable-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .responsable-row .nt-resp-sel { flex: 1; min-width: 0; }
+  .responsable-row .nt-resp-otro { flex-basis: 100%; }
+  .responsable-row-x {
+    background: transparent; border: 1px solid var(--linea); color: var(--rojo, #b91c1c);
+    border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1; padding: 6px 9px; flex: none;
+  }
+  .responsable-row-x:hover { background: #fee2e2; border-color: #b91c1c; }
+
   /* ID de tarjeta como pastilla coloreada por subdirección — así en la
      vista consolidada (TODAS) Adrián distingue de un vistazo de qué
      subdirección viene cada tarea, no solo por el prefijo del ID. */
@@ -4884,19 +4894,22 @@ function opcionesResponsableHTML(valSel) {
     if (!items.length) return;
     html += '<optgroup label="' + escapeHtml(g.label) + '">' + items.map(opcion).join('') + '</optgroup>';
   });
-  // "Otro (escribir)…" NO se ofrece a los jefes: solo pueden ser ellos mismos.
-  const esJefeCaptura = usuarioActual && usuarioActual.rol !== 'Director' && jefaturaCodigo(usuarioActual.jefatura);
-  if (!esJefeCaptura) {
+  // "Otro (escribir)…" SOLO para el Director. Los capturistas (subdirectores y
+  // jefes) eligen de la lista de personas, no escriben nombres libres.
+  if (usuarioActual && usuarioActual.rol === 'Director') {
     html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
   }
   return html;
 }
 
-// Rellena el <select> de responsable (si el modal está abierto), conservando lo elegido.
+// Repuebla los selectores de responsable (si el modal está abierto) cuando llega
+// la lista del servidor, conservando lo ya elegido en cada fila.
 function poblarSelectResponsables() {
-  const sel = document.getElementById('nt_responsable');
-  if (!sel) return;
-  sel.innerHTML = opcionesResponsableHTML(sel.value);
+  const cont = document.getElementById('nt_responsables_lista');
+  if (!cont) return;
+  responsablesForm = leerResponsablesDOM();
+  if (!responsablesForm.length) responsablesForm = [''];
+  renderResponsablesForm();
 }
 
 function cargarResponsables() {
@@ -8201,9 +8214,14 @@ function abrirNuevaTarea(tEdit) {
        </div>`;
 
   // Asegura tener responsables (hidrata del caché al instante + refresca del
-  // servidor por detrás) y arma las opciones del dropdown ya pobladas.
+  // servidor por detrás).
   cargarResponsables();
-  const responsableOpts = opcionesResponsableHTML(valResp);
+  // Estado de responsables del formulario: lista de nombres. Al editar se parten
+  // por coma los responsables guardados; al crear arranca con el valor por defecto.
+  responsablesForm = ed
+    ? (String(ed.responsable || '').split(',').map(s => s.trim()).filter(Boolean))
+    : (valResp ? [valResp] : []);
+  if (!responsablesForm.length) responsablesForm = [''];
 
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
@@ -8227,8 +8245,8 @@ function abrirNuevaTarea(tEdit) {
 
           <div class="form-campo">
             <label>Responsable directo <span class="req">*</span></label>
-            <select id="nt_responsable" required onchange="onCambioResponsable(this)">${responsableOpts}</select>
-            <input type="text" id="nt_responsableOtro" maxlength="80" placeholder="Nombre del responsable" autocomplete="off" style="display:none; margin-top:8px;">
+            <div id="nt_responsables_lista"></div>
+            <button type="button" class="acciones-agregar-btn" onclick="agregarResponsableRow()" style="margin-top:8px;">+ Agregar otro responsable</button>
           </div>
 
           <div class="form-campo">
@@ -8295,7 +8313,8 @@ function abrirNuevaTarea(tEdit) {
     </div>
   `;
   document.getElementById('modalFondo').classList.add('activo');
-  renderAdjuntosForm();   // pinta la lista de adjuntos (existentes/nuevos)
+  renderAdjuntosForm();        // pinta la lista de adjuntos (existentes/nuevos)
+  renderResponsablesForm();    // pinta los selectores de responsable(s)
 }
 
 // ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
@@ -8446,14 +8465,58 @@ function actualizarIdSugerido() {
   prev.textContent = generarSiguienteId(selSub.value);
 }
 
-// Dropdown de "Responsable directo": al elegir "Otro (escribir)…" muestra un
-// campo de texto para capturar un nombre que no esté en la lista.
-function onCambioResponsable(sel) {
-  const otro = document.getElementById('nt_responsableOtro');
+// ===== Responsable(s) directo(s): una o varias filas de selección =====
+// Estado del formulario: lista de nombres (uno por fila).
+let responsablesForm = [];
+
+// Lee los valores actuales de las filas desde el DOM (conserva selecciones).
+function leerResponsablesDOM() {
+  return Array.from(document.querySelectorAll('#nt_responsables_lista .responsable-row')).map(function (row) {
+    const sel = row.querySelector('.nt-resp-sel');
+    const otro = row.querySelector('.nt-resp-otro');
+    if (sel && sel.value === '__OTRO__') return (otro && otro.value.trim()) ? otro.value.trim() : '';
+    return sel ? sel.value : '';
+  });
+}
+
+// Pinta las filas de responsable (un <select> por nombre + ✕ si hay más de una).
+function renderResponsablesForm() {
+  const cont = document.getElementById('nt_responsables_lista');
+  if (!cont) return;
+  if (!responsablesForm.length) responsablesForm = [''];
+  cont.innerHTML = responsablesForm.map(function (val, i) {
+    const opts = opcionesResponsableHTML(val);
+    const otroVisible = (val === '__OTRO__');
+    const x = '<button type="button" class="responsable-row-x" title="Quitar responsable" onclick="quitarResponsableRow(' + i + ')">✕</button>';
+    return '<div class="responsable-row">' +
+      '<select class="nt-resp-sel" onchange="onCambioResponsableRow(this)">' + opts + '</select>' +
+      x +
+      '<input type="text" class="nt-resp-otro" maxlength="80" placeholder="Nombre del responsable" autocomplete="off" style="' + (otroVisible ? '' : 'display:none;') + '">' +
+    '</div>';
+  }).join('');
+}
+
+function agregarResponsableRow() {
+  responsablesForm = leerResponsablesDOM();
+  responsablesForm.push('');
+  renderResponsablesForm();
+}
+function quitarResponsableRow(i) {
+  responsablesForm = leerResponsablesDOM();
+  responsablesForm.splice(i, 1);
+  if (!responsablesForm.length) responsablesForm = [''];
+  renderResponsablesForm();
+}
+// Solo para el Director: al elegir "Otro (escribir)…" muestra el campo de texto.
+function onCambioResponsableRow(sel) {
+  const row = sel.closest('.responsable-row');
+  const otro = row ? row.querySelector('.nt-resp-otro') : null;
   if (!otro) return;
   if (sel.value === '__OTRO__') { otro.style.display = ''; otro.focus(); }
   else { otro.style.display = 'none'; otro.value = ''; }
 }
+// Compat (ya no se usa el id viejo).
+function onCambioResponsable(sel) { onCambioResponsableRow(sel); }
 
 let creandoTarea = false;   // candado anti-doble-envío al crear/editar tareas
 
@@ -8489,9 +8552,9 @@ function guardarNuevaTarea() {
   const sub = _info.sub;
   const nivelElegido = _info.nivel;
   const jefaturaElegida = _info.jef;
-  const selResp = document.getElementById('nt_responsable');
-  let responsable = selResp ? selResp.value.trim() : '';
-  if (responsable === '__OTRO__') responsable = (document.getElementById('nt_responsableOtro').value || '').trim();
+  // Uno o varios responsables directos (filas). Quita vacíos y duplicados.
+  const _resps = leerResponsablesDOM().map(s => String(s || '').trim()).filter(Boolean);
+  const responsable = _resps.filter((r, i) => _resps.indexOf(r) === i).join(', ');
   const tema = document.getElementById('nt_tema').value.trim();
   const areasMarcadas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value);
   const otraArea = (document.getElementById('nt_areaOtra').value || '').trim();
