@@ -2585,6 +2585,18 @@
     line-height: 1.3;
   }
 
+  /* Acciones del header del modal de detalle: Editar + cerrar (×), juntos. */
+  .modal-header-acciones { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .modal-editar-header {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; border: 2px solid var(--guinda); color: var(--guinda);
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    padding: 5px 12px; border-radius: 16px; cursor: pointer;
+    transition: all .15s ease; box-shadow: 0 1px 3px rgba(105,28,50,0.12);
+  }
+  .modal-editar-header svg { width: 14px; height: 14px; }
+  .modal-editar-header:hover { background: var(--guinda); color: #fff; }
+
   /* Botón "×" del modal: círculo con borde guinda para que se note. Antes
      era casi invisible. */
   .modal-cerrar {
@@ -6544,7 +6556,6 @@ function abrirDetalle(t) {
   const acciones = `
     <div class="modal-acciones">
       ${btnWA}
-      ${btnIcs}
       <div style="flex:1"></div>
       <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
       ${botones}
@@ -6573,7 +6584,13 @@ function abrirDetalle(t) {
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
         </div>
       </div>
-      <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+      <div class="modal-header-acciones">
+        ${usuarioPuedeEditar(t) ? `<button class="modal-editar-header" onclick="abrirEditarTarea('${t.id}')" title="Editar la tarea">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </button>` : ''}
+        <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+      </div>
     </div>
     <div class="modal-body">
       <!-- Datos rápidos (mismo orden que la tarjeta) + complementos cortos. -->
@@ -7580,18 +7597,6 @@ function puedeChecklist(t) {
   return participantesDe(t).some(cod => puedeMarcarArea(t, cod));
 }
 
-// ¿Puede EDITAR LA ESTRUCTURA del checklist (agregar/quitar/editar acciones)?
-// Los JEFES (jefatura) NO: solo palomean su columna. Pueden hacerlo el Director,
-// el creador de la tarea, y el subdirector cuya subdirección participa.
-function puedeEditarItems(t) {
-  if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return true;
-  const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  if (t.creado_por && t.creado_por === yo) return true;          // su propia tarea
-  if (jefaturaCodigo(usuarioActual.jefatura)) return false;      // jefes: no editan estructura
-  return participantesDe(t).indexOf(areaDelUsuario(usuarioActual)) >= 0;   // subdirector participante
-}
-
 // Wrappers de compatibilidad para el resto del código (guards de agregar/quitar
 // acciones y observaciones). 'Resp' = cualquier participante; 'Dir' = dirección.
 function puedeMarcarResp(t) { return puedeChecklist(t); }
@@ -7617,15 +7622,14 @@ function asegurarCamposChecklist(t) {
 function renderChecklistHTML(t) {
   const items = obtenerChecklist(t);
   const cols = participantesDe(t);                 // áreas participantes = columnas
-  const puedeAlgo = puedeChecklist(t);             // participa (palomear/adjuntar)
-  const puedeEditar = puedeEditarItems(t);         // editar estructura (agregar/quitar/editar acciones)
+  const puedeAlgo = puedeChecklist(t);             // participa: agregar/palomear/adjuntar
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   // Grid dinámico: Acción | (una casilla por participante) | Adjunto. El estilo
   // inline gana sobre la plantilla fija del CSS (incluida la de móvil).
   const gridStyle = 'grid-template-columns: minmax(0, 1fr) ' + cols.map(function () { return '75px'; }).join(' ') + ' 105px;';
   const todasCols = function (item) { return cols.length > 0 && cols.every(function (cod) { return marcadoDeArea(item, t, cod); }); };
 
-  const inputAgregar = puedeEditar
+  const inputAgregar = puedeAlgo
     ? '<div class="checklist-agregar">' +
         '<input type="text" id="chk-nuevo-' + t.id + '" maxlength="200" placeholder="+ Agregar acción" onkeydown="nuevoItemChecklistTeclado(event, \'' + t.id + '\')">' +
         '<button class="checklist-agregar-btn" onclick="agregarItemChecklist(\'' + t.id + '\', document.getElementById(\'chk-nuevo-' + t.id + '\').value); document.getElementById(\'chk-nuevo-' + t.id + '\').value=\'\'">+</button>' +
@@ -7643,7 +7647,7 @@ function renderChecklistHTML(t) {
 
   if (items.length === 0) {
     return '<div class="checklist-tabla">' + cabecera +
-      '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeEditar ? 'Agrega la primera abajo ↓' : '') + '</div>' +
+      '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeAlgo ? 'Agrega la primera abajo ↓' : '') + '</div>' +
       '</div>' + inputAgregar;
   }
 
@@ -7655,7 +7659,7 @@ function renderChecklistHTML(t) {
     if (rolCreador === 'director') claseFila = 'fila-creada-director';
     else if (item.creado_por_rol)  claseFila = 'fila-creada-capturista';
     // Solo el creador puede editar o borrar su ítem.
-    const puedeMod = puedeEditar && (!item.creado_por_nombre || item.creado_por_nombre === yo);
+    const puedeMod = puedeAlgo && (!item.creado_por_nombre || item.creado_por_nombre === yo);
     const acciones = puedeMod
       ? '<button class="checklist-editar" onclick="event.stopPropagation(); hacerEditableChecklist(\'' + t.id + '\', ' + i + ')" title="Editar el texto">✎</button>' +
         '<button class="checklist-borrar" onclick="event.stopPropagation(); eliminarItemChecklist(\'' + t.id + '\', ' + i + ')" title="Borrar esta acción">×</button>'
@@ -7725,7 +7729,6 @@ function hacerEditableChecklist(idTarea, idx) {
   const items = obtenerChecklist(t);
   const item = items[idx];
   if (!item) return;
-  if (!puedeEditarItems(t)) { toast('No tienes permiso para editar acciones de esta tarea.', 'error'); return; }
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   if (item.creado_por_nombre && item.creado_por_nombre !== yo) {
     toast('Solo puedes editar acciones que tú creaste.', 'error');
@@ -7960,8 +7963,9 @@ function agregarItemChecklist(idTarea, texto) {
   if (!t) return;
   const textoLimpio = String(texto || '').trim();
   if (!textoLimpio) return;
-  // Permiso: editar la estructura del checklist (NO los jefes — solo palomean).
-  if (!puedeEditarItems(t)) {
+  // Permiso: cualquier PARTICIPANTE puede agregar acciones (incluidos los jefes
+  // cuando su área participa). Editar/borrar lo controla el creador de la acción.
+  if (!puedeChecklist(t)) {
     toast('No tienes permiso para agregar acciones a esta tarea.', 'error');
     return;
   }
@@ -7985,7 +7989,6 @@ function eliminarItemChecklist(idTarea, idx) {
   const items = obtenerChecklist(t);
   const item = items[idx];
   if (!item) return;
-  if (!puedeEditarItems(t)) { toast('No tienes permiso para borrar acciones de esta tarea.', 'error'); return; }
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   if (item.creado_por_nombre && item.creado_por_nombre !== yo) {
     toast('Solo puedes borrar acciones que tú creaste.', 'error');
