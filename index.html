@@ -7903,6 +7903,19 @@ function etiquetaColumnaArea(cod) {
   return cod;   // SPAC, SGOI, SA, JDPC, JDIMA, JDGA, JDGOI
 }
 
+// ¿Ya hay un "Completada/Validada" de esta columna SIN cambios de acciones
+// después? Evita registrar otra "Completada" al despalomear y volver a palomear.
+function yaSeRegistroCompletadaColumna(idTarea, cod) {
+  for (let i = 0; i < (BITACORA || []).length; i++) {   // BITACORA: más reciente primero
+    const b = BITACORA[i];
+    if (!b || b.id_tarea !== idTarea) continue;
+    const k = (b.accion || '').toLowerCase();
+    if (k === 'accion_add' || k === 'accion_del') return false;   // cambió el set de acciones → es una completada nueva
+    if ((k === 'completar_col' || k === 'validar') && codDesdeComentario(b.comentario) === cod) return true;
+  }
+  return false;
+}
+
 // Palomea/despalomea la columna del área `cod` en un ítem del checklist.
 function toggleCheckArea(idTarea, idx, cod, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
@@ -7921,7 +7934,7 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const marcadosCol = items.filter(i => marcadoDeArea(i, t, cod)).length;
   const yaTodaCompleta = totalCol > 0 && marcadosCol === totalCol;
   const etqCol = etiquetaColumnaArea(cod);
-  if (valor && yaTodaCompleta && !eraTodaCompletaAntes) {
+  if (valor && yaTodaCompleta && !eraTodaCompletaAntes && !yaSeRegistroCompletadaColumna(idTarea, cod)) {
     const colsT = participantesDe(t);
     const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
     const esValidador = esTop && nivelDeArea(cod) <= 1;
