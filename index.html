@@ -8949,6 +8949,45 @@ function etiquetaAccionBita(b) {
   return ACCION_LABEL[key] || (b && b.accion) || '';
 }
 
+// Del comentario "Columna SPAC completada/validada" saca el código de área.
+function codDesdeComentario(comentario) {
+  const m = String(comentario || '').match(/^Columna\s+(.+?)\s+(?:completada|validada)$/i);
+  if (!m) return '';
+  const etq = m[1].trim();
+  if (/^director$/i.test(etq)) return 'DPAC';
+  if (/^staff$/i.test(etq))    return 'ENLACE';
+  return etq.toUpperCase();
+}
+
+// CORRECCIÓN de un solo uso: revisa cada "Completada/Validada" vieja y, si la
+// columna YA NO está completa (le falta paloma), la reetiqueta a "Seguimiento".
+// Las que sí siguen completas se conservan. Úsala desde la consola (F12):
+//   corregirBitacorasViejas()
+function corregirBitacorasViejas() {
+  if (!enAppScript() || !SESION_TOKEN) { toast('Requiere sesión con login.', 'error'); return; }
+  let n = 0;
+  (BITACORA || []).forEach(function (b) {
+    if (!b || !b.id) return;
+    const k = (b.accion || '').toLowerCase();
+    if (k !== 'completar_col' && k !== 'validar') return;
+    const t = TAREAS.find(x => x.id === b.id_tarea);
+    if (!t) return;
+    const cod = codDesdeComentario(b.comentario);
+    if (!cod) return;
+    const items = obtenerChecklist(t);
+    const completa = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
+    if (!completa) {
+      b.accion = 'seguimiento';
+      google.script.run.withFailureHandler(function () {}).editarAccionBitacora(SESION_TOKEN, b.id, 'seguimiento');
+      n++;
+    }
+  });
+  if (vistaActiva === 'bitacora') renderizarBitacora();
+  toast('Bitácora corregida: ' + n + ' "Completada" a medias → "Seguimiento".', 'ok');
+  return n;
+}
+window.corregirBitacorasViejas = corregirBitacorasViejas;
+
 // ¿Este movimiento de bitácora es visible para el usuario actual?
 function bitacoraVisible(b) {
   const tarea = TAREAS.find(t => t.id === b.id_tarea);

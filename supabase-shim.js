@@ -278,10 +278,16 @@
       var r = await sb.from('bitacora').select('*').order('fecha', { ascending: false });
       if (r.error) return { ok: true, bitacora: [] };
       return { ok: true, bitacora: (r.data || []).map(function (b) {
-        return { fecha: fmtFecha(b.fecha), usuario: b.usuario || '', accion: b.accion || '',
+        return { id: b.id, fecha: fmtFecha(b.fecha), usuario: b.usuario || '', accion: b.accion || '',
           id_tarea: b.tarea_codigo || '', estatus_anterior: b.estatus_anterior || '',
           estatus_nuevo: b.estatus_nuevo || '', comentario: b.comentario || '' };
       }) };
+    },
+    // Cambia la acción de una entrada de bitácora por su id (para correcciones).
+    editarAccionBitacora: async function (token, id, accion) {
+      var r = await sb.from('bitacora').update({ accion: accion }).eq('id', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
     },
     registrarBitacora: async function (token, ent) {
       ent = ent || {};
