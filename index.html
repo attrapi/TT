@@ -5014,7 +5014,7 @@ function responsablesDesdeTAREAS() {
 //   "Adrián Tavares"                      → "Adrián"
 function nombresSinApellidos(nombre) {
   if (!nombre) return '';
-  var n = String(nombre).replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|prof\.|profa\.)\s*/i, '').trim();
+  var n = String(nombre).replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
   var p = n.split(/\s+/);
   if (p.length <= 2) return p[0] || '';
   return p.slice(0, p.length - 2).join(' ');
