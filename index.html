@@ -1961,6 +1961,14 @@
     border-left: 6px solid #3f5713;
     box-shadow: 0 2px 8px rgba(107,142,35,0.22);
   }
+  /* Concluida: responsables listos, solo falta validar (verde azulado). Gana
+     sobre "vencida" (el trabajo ya se hizo). */
+  .tarjeta.tarjeta-color-concluida {
+    background: #cffafe;
+    border: 2px solid #0891b2;
+    border-left: 6px solid #155e75;
+    box-shadow: 0 2px 8px rgba(8,145,178,0.20);
+  }
 
   /* Columna "Archivada": tareas ya cerradas y movidas al histórico
      (capturista las marcó así en el Sheet o el Director presionó Archivar
@@ -2114,6 +2122,19 @@
     border-radius: 999px;
     margin-bottom: 8px;
     animation: pulso-vencida 1.2s ease-in-out infinite;
+  }
+  /* Chip "Concluida": responsables listos, solo falta validar (verde). */
+  .concluida-chip {
+    display: inline-block;
+    background: var(--verde, #166534);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-bottom: 8px;
   }
 
   /* === Lista de campos en la tarjeta ===
@@ -5907,33 +5928,32 @@ function crearTarjeta(t) {
     card.addEventListener('dragend', () => card.classList.remove('arrastrando'));
   }
 
-  // "Vencida": fecha límite ya pasada, SIN importar el estatus (Identificadas,
-  // Por validar o Validadas). Las permanentes (sin fecha) nunca vencen.
-  const vencida   = esVencida(t.fecha_limite);
-  const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso';
-  if (venceEsteDia) card.classList.add('vence-hoy');
-  if (vencida) card.classList.add('es-vencida');
-
-  // Color de la TARJETA según el avance del Director (Adrián):
-  //   • Sin ningún check de Adrián → NARANJA (pendiente).
-  //   • Al menos un check de Adrián → AMARILLO (en progreso).
-  //   • Vencida → ROJO (gana sobre todo).
-  // El borde izquierdo viejo por estatus se reemplaza por este color.
+  // Estado derivado del checklist.
   const _itemsT = obtenerChecklist(t);
-  // Amarillo en cuanto haya AL MENOS UNA paloma de cualquier participante.
   const _partsT = participantesDe(t);
   const _algunCheck = _itemsT.some(it => _partsT.some(cod => marcadoDeArea(it, t, cod)));
-  const _todoPalomeado = checklistTodoMarcado(t);   // todas las acciones completas
+  const _todoPalomeado = checklistTodoMarcado(t);   // todo (incl. validador)
+  // "Concluida": los responsables ya palomearon, solo falta validar.
+  const _concluida = t.estatus !== 'Archivada' && responsablesListos(t);
+
+  // "Vencida": fecha límite ya pasada. PERO ya no se marca como vencida si está
+  // CONCLUIDA (responsables listos) o TODO palomeado — el trabajo ya se hizo.
+  const vencida   = esVencida(t.fecha_limite) && !_concluida && !_todoPalomeado;
+  const venceEsteDia = venceHoy(t.fecha_limite) && t.estatus === 'En Proceso' && !_concluida;
+  if (venceEsteDia) card.classList.add('vence-hoy');
+  if (vencida) card.classList.add('es-vencida');
+  if (_concluida) card.classList.add('es-concluida');
+
+  // Color de la TARJETA:
+  //   • Todo palomeado → olivo (gana sobre todo).
+  //   • Concluida (responsables listos, falta validar) → color concluida.
+  //   • Vencida → rojo.   • Algún check → amarillo.   • Nada → naranja.
   let claseColorTarjeta;
-  if (_todoPalomeado) {
-    claseColorTarjeta = 'tarjeta-color-olivo';        // todo palomeado → verde olivo (gana sobre todo, incl. vencida)
-  } else if (vencida) {
-    claseColorTarjeta = 'tarjeta-color-vencida';
-  } else if (_algunCheck) {
-    claseColorTarjeta = 'tarjeta-color-progreso';
-  } else {
-    claseColorTarjeta = 'tarjeta-color-pendiente';
-  }
+  if (_todoPalomeado)      claseColorTarjeta = 'tarjeta-color-olivo';
+  else if (_concluida)     claseColorTarjeta = 'tarjeta-color-concluida';
+  else if (vencida)        claseColorTarjeta = 'tarjeta-color-vencida';
+  else if (_algunCheck)    claseColorTarjeta = 'tarjeta-color-progreso';
+  else                     claseColorTarjeta = 'tarjeta-color-pendiente';
   card.classList.add(claseColorTarjeta);
 
   // Campos visibles en la tarjeta (las cosas largas como áreas involucradas,
@@ -5961,6 +5981,7 @@ function crearTarjeta(t) {
   // DERECHA del ID, en la misma fila, en lugar de arriba sueltos.
   const chipVencida   = !esValidada && vencida       ? '<span class="vencida-chip">⚠ Vencida</span>' : '';
   const chipVenceHoy  = !esValidada && venceEsteDia  ? '<span class="vence-hoy-chip">⏰ Hoy</span>'   : '';
+  const chipConcluida = _concluida                   ? '<span class="concluida-chip">✓ Concluida</span>' : '';
   // Orden de la tarjeta (lo que se ve sin abrir el modal):
   //   Tema → Área responsable → Responsable directo → Fecha de atención.
   // Las "Áreas involucradas" y el resto del detalle aparecen al abrir el modal.
@@ -5968,7 +5989,7 @@ function crearTarjeta(t) {
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
     </div>
-    ${(chipVencida || chipVenceHoy) ? `<div class="tarjeta-chips">${chipVencida}${chipVenceHoy}</div>` : ''}
+    ${(chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipVencida}${chipVenceHoy}${chipConcluida}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -6575,8 +6596,11 @@ function abrirDetalle(t) {
   const acuerdos = t.acuerdos_realizados || t.observaciones || '—';
   const accion = t.accion_a_tomar || (t.descripcion ? t.descripcion.split('.').slice(0, 1).join('.') + '.' : '—');
   const fechaAt = t.fecha_atencion || t.fecha_limite;
-  const vencida = esVencida(fechaAt);   // vencida sin importar el estatus
-  const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso';
+  // "Concluida": responsables listos, solo falta validar → ya no es "Vencida".
+  const concluidaDet = t.estatus !== 'Archivada' && responsablesListos(t);
+  const todoMarcadoDet = checklistTodoMarcado(t);
+  const vencida = esVencida(fechaAt) && !concluidaDet && !todoMarcadoDet;
+  const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso' && !concluidaDet;
 
   modal.innerHTML = `
     <div class="modal-header">
@@ -6588,6 +6612,7 @@ function abrirDetalle(t) {
         <div class="modal-meta">
           <span class="modal-id" data-sub="${t.subdireccion}" data-pre="${(String(t.id).split('-')[0] || '').toUpperCase()}">${t.id}</span>
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
+          ${concluidaDet ? '<span class="concluida-chip" style="margin: 0;">✓ Concluida</span>' : ''}
         </div>
       </div>
       <div class="modal-header-acciones">
@@ -7438,6 +7463,19 @@ function checklistTodoMarcado(t) {
   const cols = participantesDe(t);
   if (!cols.length) return false;
   return items.every(it => cols.every(cod => marcadoDeArea(it, t, cod)));
+}
+// "Concluida": los RESPONSABLES (todos los participantes MENOS el validador de
+// mayor jerarquía) ya palomearon TODA su parte; solo falta la validación. Aplica
+// a todas las áreas. Requiere ≥2 participantes (que exista un validador aparte) y
+// que NO esté todo palomeado (si lo está, ya es completable/Validada).
+function responsablesListos(t) {
+  const items = obtenerChecklist(t);
+  if (!items.length) return false;
+  const cols = participantesDe(t);
+  if (cols.length <= 1) return false;
+  if (checklistTodoMarcado(t)) return false;
+  const ejecutores = cols.slice(0, cols.length - 1);   // todos menos el validador (último = top)
+  return items.every(it => ejecutores.every(cod => marcadoDeArea(it, t, cod)));
 }
 // % de avance: marcadas / (ítems × nº de participantes).
 function checklistAvance(t) {
