@@ -5124,15 +5124,29 @@ function persistirEstado(t) {
       validado_por: t.validado_por || '',
       fecha_validacion: t.fecha_validacion || '',
       comentario_devolucion: t.comentario_devolucion || '',
-      eliminada: !!t.eliminada,
+      // OJO: NO se manda `eliminada` aquí. Un guardado rutinario (palomear,
+      // observaciones, etc.) con una copia local vieja reescribía eliminada y
+      // "revivía" una tarea ya enviada al Historial. El Historial se persiste
+      // SOLO desde eliminarTarea/restaurarTarea (persistirEliminada).
       creado_por: t.creado_por || '',
       fecha_creacion: t.fecha_creacion || '',
-      eliminado_por: t.eliminado_por || '',
-      fecha_eliminacion: t.fecha_eliminacion || '',
       checklist_json: checklistJson,
       observaciones_resp: t.observaciones_resp || '',
       observaciones_dir:  t.observaciones_dir || '',
       observaciones_areas: (t.observaciones_areas && typeof t.observaciones_areas === 'object') ? t.observaciones_areas : {}
+    });
+}
+
+// Persiste SOLO los campos del Historial (enviar/restaurar). Separado de
+// persistirEstado para que los guardados rutinarios no toquen `eliminada`.
+function persistirEliminada(t) {
+  if (!enAppScript() || !SESION_TOKEN || !t) return;
+  google.script.run
+    .withFailureHandler(function (e) { toast('No se pudo actualizar el Historial: ' + (e && e.message ? e.message : e), 'error'); })
+    .guardarEstado(SESION_TOKEN, t.id, {
+      eliminada: !!t.eliminada,
+      eliminado_por: t.eliminado_por || '',
+      fecha_eliminacion: t.fecha_eliminacion || ''
     });
 }
 
@@ -6349,7 +6363,7 @@ function eliminarTarea(idTarea) {
   t.fecha_eliminacion = ahoraStamp();
   registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Historial' });
   cerrarModal();
-  persistirEstado(t);
+  persistirEliminada(t);   // persiste el Historial (no por persistirEstado)
   renderizar();
   if (vistaActiva === 'papelera') renderizarPapelera();
   toast('Tarea ' + idTarea + ' enviada al Historial', 'ok');
@@ -6378,7 +6392,8 @@ function restaurarTarea(idTarea) {
     }
   }
   registrarEnBitacora({ accion: 'restaurar', id_tarea: idTarea, estatus_anterior: estatusAnt, estatus_nuevo: t.estatus });
-  persistirEstado(t);
+  persistirEliminada(t);   // saca del Historial en la base
+  persistirEstado(t);      // persiste el estatus (Archivada → En Proceso, etc.)
   renderizar();
   renderizarPapelera();
   toast('Tarea ' + idTarea + ' restaurada', 'ok');
@@ -8704,6 +8719,9 @@ function guardarNuevaTarea() {
       nueva.checklist = checklistDesdeTexto(accion);
       TAREAS.push(nueva);
       registrarEnBitacora({ accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
+      // Seguimiento: cada acción inicial también queda en la bitácora.
+      String(accion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+        .forEach(a => registrarEnBitacora({ accion: 'accion_add', id_tarea: nueva.id, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + a + '"' }));
       cerrarModal(); renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
@@ -8772,6 +8790,15 @@ function enviarCrearTarea(datos, btn) {
         return;
       }
       archivoPendiente = null;
+      // Seguimiento: registra en la bitácora cada acción INICIAL (las que se
+      // capturan al crear), igual que las que se agregan después, para que el
+      // historial tenga continuidad y no se vea "vacío".
+      if (res.id) {
+        String(datos.accion || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean)
+          .forEach(function (a) {
+            registrarEnBitacora({ accion: 'accion_add', id_tarea: res.id, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + a + '"' });
+          });
+      }
       cerrarModal();
       cargarTareasAppScript(true);
       cargarAreas();   // por si se agregó un área nueva con "Otra"
