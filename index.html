@@ -7909,7 +7909,11 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const yaTodaCompleta = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   if (yaTodaCompleta && !eraTodaCompletaAntes) {
     const colsT = participantesDe(t);
-    const esValidador = colsT.length > 0 && cod === colsT[colsT.length - 1];
+    // "Validada" SOLO si la completa el validador: el participante de mayor
+    // jerarquía Y que sea subdirección o dirección (nivel ≤ 1). Una JEFATURA
+    // (nivel 2) NUNCA valida: su columna siempre es "Completada".
+    const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
+    const esValidador = esTop && nivelDeArea(cod) <= 1;
     registrarEnBitacora({
       accion: esValidador ? 'validar' : 'completar_col',
       id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
