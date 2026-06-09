@@ -3626,7 +3626,7 @@
 
   /* ===== Observaciones duales ===== */
   .obs-doble {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 6px;
   }
   .obs-col {
     background: #fafafa; border: 1px solid var(--linea); border-radius: 8px;
@@ -4394,10 +4394,17 @@ async function actualizarDatos() {
   btns.forEach(b => { b.disabled = true; b.classList.add('sincronizando'); });
   try {
     if (enAppScript()) {
-      cargarTareasAppScript(true);     // recarga tareas desde el servidor (conserva avance local)
-      cargarBitacora();                // refresca el historial
-      cargarResponsables();            // refresca la lista de responsables
-      cargarAreas();                   // refresca el catálogo de áreas
+      // Espera a que las tareas recarguen para que el spinner gire mientras
+      // carga (tope de seguridad por si el servidor tarda o no responde).
+      await new Promise(function (resolve) {
+        let listo = false;
+        const fin = function () { if (!listo) { listo = true; resolve(); } };
+        cargarTareasAppScript(true, fin);   // recarga tareas (conserva avance local)
+        cargarBitacora();                   // refresca el historial
+        cargarResponsables();               // refresca la lista de responsables
+        cargarAreas();                      // refresca el catálogo de áreas
+        setTimeout(fin, 6000);
+      });
       toast('Información actualizada', 'ok');
     } else {
       await sincronizarSPAC();
@@ -5045,17 +5052,18 @@ function persistirEstado(t) {
       fecha_eliminacion: t.fecha_eliminacion || '',
       checklist_json: checklistJson,
       observaciones_resp: t.observaciones_resp || '',
-      observaciones_dir:  t.observaciones_dir || ''
+      observaciones_dir:  t.observaciones_dir || '',
+      observaciones_areas: (t.observaciones_areas && typeof t.observaciones_areas === 'object') ? t.observaciones_areas : {}
     });
 }
 
 // Trae las tareas desde el servidor (hojas privadas). Si preservar=true,
 // conserva el avance hecho en la app (validar/archivar/finalizar) por id.
-function cargarTareasAppScript(preservar) {
-  if (!SESION_TOKEN) return;
+function cargarTareasAppScript(preservar, onListo) {
+  if (!SESION_TOKEN) { if (typeof onListo === 'function') onListo(); return; }
   google.script.run
     .withSuccessHandler(function (res) {
-      if (!res || !res.ok) { toast((res && res.error) || 'No se pudieron cargar las tareas', 'error'); return; }
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudieron cargar las tareas', 'error'); if (typeof onListo === 'function') onListo(); return; }
       const nuevas = res.tareas || [];
       if (preservar) {
         const previas = new Map(TAREAS.map(t => [t.id, t]));
@@ -5100,8 +5108,9 @@ function cargarTareasAppScript(preservar) {
       if (vistaActiva === 'validadas') renderizarValidadas();
       if (vistaActiva === 'dashboard') renderizarDashboard();
       if (vistaActiva === 'papelera') renderizarPapelera();
+      if (typeof onListo === 'function') onListo();
     })
-    .withFailureHandler(function (e) { toast('Error al cargar: ' + (e && e.message ? e.message : e), 'error'); })
+    .withFailureHandler(function (e) { toast('Error al cargar: ' + (e && e.message ? e.message : e), 'error'); if (typeof onListo === 'function') onListo(); })
     .obtenerTareas(SESION_TOKEN);
 }
 
@@ -7730,17 +7739,40 @@ function hacerEditableChecklist(idTarea, idx) {
   });
   inp.addEventListener('blur', guardar);
 }
+// Observación del área `cod` (mapa nuevo `observaciones_areas`, con respaldo a
+// los campos legados observaciones_resp/observaciones_dir).
+function obsDeArea(t, cod) {
+  cod = String(cod || '').toUpperCase();
+  if (t && t.observaciones_areas && typeof t.observaciones_areas === 'object' && t.observaciones_areas[cod] != null) {
+    return String(t.observaciones_areas[cod]);
+  }
+  if (cod === 'DPAC' || cod === 'ENLACE') return String((t && t.observaciones_dir) || '');
+  const exec = String((participantesDe(t)[0] || '')).toUpperCase();
+  if (cod === exec) return String((t && t.observaciones_resp) || '');
+  return '';
+}
+function fijarObsArea(t, cod, valor) {
+  cod = String(cod || '').toUpperCase();
+  if (!t.observaciones_areas || typeof t.observaciones_areas !== 'object') t.observaciones_areas = {};
+  t.observaciones_areas[cod] = String(valor || '');
+  if (cod === 'DPAC' || cod === 'ENLACE') t.observaciones_dir = String(valor || '');
+  else if (cod === String((participantesDe(t)[0] || '')).toUpperCase()) t.observaciones_resp = String(valor || '');
+}
+
+// Un cuadro de observaciones por participante; solo lo edita el área dueña.
 function renderObservacionesHTML(t) {
-  const puedeR = puedeEditarObsResp(t);
-  const puedeD = puedeEditarObsDir(t);
-  return '<div class="obs-doble">' +
-    '<div class="obs-col"><div class="obs-titulo">Responsable</div>' +
-      '<textarea class="obs-textarea" ' + (puedeR ? '' : 'readonly') + ' maxlength="600" placeholder="' + (puedeR ? 'Escribe tus observaciones…' : '— sin observaciones —') + '" onblur="guardarObsResp(\'' + t.id + '\', this.value)">' + escapeHtml(t.observaciones_resp || '') + '</textarea>' +
-    '</div>' +
-    '<div class="obs-col"><div class="obs-titulo">Director</div>' +
-      '<textarea class="obs-textarea" ' + (puedeD ? '' : 'readonly') + ' maxlength="600" placeholder="' + (puedeD ? 'Escribe tus observaciones…' : '— sin observaciones —') + '" onblur="guardarObsDir(\'' + t.id + '\', this.value)">' + escapeHtml(t.observaciones_dir || '') + '</textarea>' +
-    '</div>' +
-  '</div>';
+  const cols = participantesDe(t);
+  if (!cols.length) return '';
+  return '<div class="obs-doble">' + cols.map(function (cod) {
+    const puede = puedeMarcarArea(t, cod);
+    const val = obsDeArea(t, cod);
+    const lbl = etiquetaColumnaArea(cod);
+    return '<div class="obs-col"><div class="obs-titulo">' + escapeHtml(lbl) + '</div>' +
+      '<textarea class="obs-textarea" ' + (puede ? '' : 'readonly') +
+        ' maxlength="600" placeholder="' + (puede ? 'Escribe tus observaciones…' : '— sin observaciones —') +
+        '" onblur="guardarObsArea(\'' + t.id + '\', \'' + cod + '\', this.value)">' + escapeHtml(val) + '</textarea>' +
+    '</div>';
+  }).join('') + '</div>';
 }
 
 // ===== Acciones de interacción del checklist y observaciones =====
@@ -7780,22 +7812,21 @@ function toggleCheckResp(idTarea, idx, valor) {
   if (t) toggleCheckArea(idTarea, idx, participantesDe(t)[0], valor);
 }
 function toggleCheckDir(idTarea, idx, valor) { toggleCheckArea(idTarea, idx, 'DPAC', valor); }
+// Guarda la observación del área `cod` (solo su dueña puede).
+function guardarObsArea(idTarea, cod, valor) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeMarcarArea(t, cod)) return;
+  const nuevo = String(valor || '');
+  if (obsDeArea(t, cod) === nuevo) return;   // sin cambios → no escribe
+  fijarObsArea(t, cod, nuevo);
+  persistirEstado(t);
+}
+// Wrappers de compatibilidad.
 function guardarObsResp(idTarea, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
-  if (!t || !puedeEditarObsResp(t)) return;
-  const nuevo = String(valor || '');
-  if (t.observaciones_resp === nuevo) return;   // sin cambios → no escribe
-  t.observaciones_resp = nuevo;
-  persistirEstado(t);
+  if (t) guardarObsArea(idTarea, participantesDe(t)[0], valor);
 }
-function guardarObsDir(idTarea, valor) {
-  const t = TAREAS.find(x => x.id === idTarea);
-  if (!t || !puedeEditarObsDir(t)) return;
-  const nuevo = String(valor || '');
-  if (t.observaciones_dir === nuevo) return;
-  t.observaciones_dir = nuevo;
-  persistirEstado(t);
-}
+function guardarObsDir(idTarea, valor) { guardarObsArea(idTarea, 'DPAC', valor); }
 
 // Marca la tarea como Completada: cuando TODAS las casillas del checklist
 // ¿Quién puede marcar una tarea como COMPLETADA ("Lista para completar")?

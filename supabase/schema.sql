@@ -87,6 +87,12 @@ alter table public.tareas
 alter table public.tareas
   add column if not exists adjuntos jsonb not null default '[]';
 
+-- Observaciones por área participante: { "SPAC": "...", "JDIMA": "...", ... }.
+-- Una caja de observaciones por participante (los campos legados
+-- observaciones_resp/observaciones_dir se conservan por compatibilidad).
+alter table public.tareas
+  add column if not exists observaciones_areas jsonb not null default '{}';
+
 -- Autogenera el `codigo` (PREFIJO-### por área) y actualiza updated_at.
 create or replace function public.set_codigo_tarea()
 returns trigger language plpgsql as $$

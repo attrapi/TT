@@ -102,6 +102,7 @@
       creado_por: r.creado_por || '', fecha_creacion: '',
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
+      observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
       comentarios_director: '', comentario_devolucion: '', fuente: 'supabase'
     };
   }
@@ -259,8 +260,15 @@
       if (e.creado_por) upd.creado_por = e.creado_por;
       if (e.observaciones_resp !== undefined) upd.observaciones_resp = e.observaciones_resp || '';
       if (e.observaciones_dir !== undefined) upd.observaciones_dir = e.observaciones_dir || '';
+      if (e.observaciones_areas !== undefined) upd.observaciones_areas = (e.observaciones_areas && typeof e.observaciones_areas === 'object') ? e.observaciones_areas : {};
       if (e.checklist_json !== undefined) { try { upd.checklist = JSON.parse(e.checklist_json || '[]'); } catch (er) {} }
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
+      // Si la base aún no tiene la columna nueva, reintenta sin ella (no rompe
+      // el guardado del checklist/estatus).
+      if (r.error && /observaciones_areas/i.test(r.error.message || '')) {
+        delete upd.observaciones_areas;
+        r = await sb.from('tareas').update(upd).eq('codigo', id);
+      }
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },
