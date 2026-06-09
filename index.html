@@ -7604,7 +7604,15 @@ function participantesDe(t) {
 // que la tarea aparezca en el tablero de CADA participante. 'STAFF' = DPAC+ENLACE.
 function tareaEnArea(t, cod) {
   cod = String(cod || '').toUpperCase();
-  if (cod === 'STAFF') return tareaEnArea(t, 'DPAC') || tareaEnArea(t, 'ENLACE');
+  // Staff (Dirección) cuenta SOLO las tareas cuyo EJECUTOR (área de menor
+  // jerarquía = participante[0]) es DPAC/ENLACE. Así, una tarea de otra área en
+  // la que el Director solo VALIDA (su columna) NO se mete a Staff ni infla su
+  // conteo. Para las demás áreas basta con participar.
+  if (cod === 'STAFF' || cod === 'DPAC' || cod === 'ENLACE') {
+    const exec = String((participantesDe(t)[0] || '')).toUpperCase();
+    if (cod === 'STAFF') return exec === 'DPAC' || exec === 'ENLACE';
+    return exec === cod;
+  }
   return participantesDe(t).indexOf(cod) >= 0;
 }
 
@@ -8277,9 +8285,9 @@ function abrirNuevaTarea(tEdit) {
   // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
   participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
   const asignablesHTML = codigosAsignables.map(function (cod) {
-    // El área propia se marca y bloquea SOLO para subdirector/jefe (siempre
-    // participan). El Director elige libre (marca DPAC si quiere ser validador).
-    const fijo = !ed && cod === miAreaUser && usuarioActual.rol === 'Capturista';
+    // El área propia del creador se marca y bloquea (siempre participa): el
+    // subdirector/jefe como ejecutor, el Director (DPAC) como validador.
+    const fijo = !ed && cod === miAreaUser;
     const marcado = ed ? (participantesEd.indexOf(cod) >= 0) : fijo;
     return '<label class="area-chip" title="' + escapeHtml(cod) + '">' +
       '<input type="checkbox" value="' + cod + '"' + (marcado ? ' checked' : '') + (fijo ? ' disabled data-fijo="1"' : '') + '>' +
@@ -8618,10 +8626,12 @@ function guardarNuevaTarea() {
   // Participantes = lo marcado. Para subdirector/jefe se incluye SIEMPRE su área
   // propia (es ejecutor/supervisor). El Director NO se autoincluye: elige libre.
   let participantes = marcadosExplicitos.slice();
-  if (usuarioActual.rol === 'Capturista') {
-    const miAreaSave = areaDelUsuario(usuarioActual);
-    if (miAreaSave && participantes.indexOf(miAreaSave) < 0) participantes.push(miAreaSave);
-  }
+  // El área propia del CREADOR siempre participa: el subdirector/jefe como
+  // ejecutor/supervisor, y el Director (DPAC) como VALIDADOR de lo que él crea.
+  // (Que DPAC participe no satura Staff: Staff cuenta por ejecutor, no por
+  // validador — ver tareaEnArea.)
+  const miAreaSave = areaDelUsuario(usuarioActual);
+  if (miAreaSave && participantes.indexOf(miAreaSave) < 0) participantes.push(miAreaSave);
   participantes = participantes.filter((c, i) => participantes.indexOf(c) === i);   // únicos
   participantes.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));                     // jefatura (ejecutora) primero
   // Área "principal" (ejecutora) → codigo/subdir/nivel/jefatura = la de menor jerarquía.
