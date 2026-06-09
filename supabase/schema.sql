@@ -76,6 +76,12 @@ create index if not exists idx_tareas_area    on public.tareas(area);
 create index if not exists idx_tareas_estatus on public.tareas(estatus);
 create index if not exists idx_tareas_elim     on public.tareas(eliminada);
 
+-- Participantes: lista de áreas responsables de la tarea (DPAC/SPAC/JDPC/…). La
+-- tarea aparece en el tablero de cada una y el checklist tiene una columna por
+-- participante. Vacío = se deriva del área responsable + creador (tareas viejas).
+alter table public.tareas
+  add column if not exists participantes jsonb not null default '[]';
+
 -- Autogenera el `codigo` (PREFIJO-### por área) y actualiza updated_at.
 create or replace function public.set_codigo_tarea()
 returns trigger language plpgsql as $$

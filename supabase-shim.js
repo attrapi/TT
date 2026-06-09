@@ -85,6 +85,7 @@
     var fecha = r.fecha || '';
     return {
       id: r.codigo, subdireccion: r.subdireccion, nivel: r.nivel, jefatura: r.jefatura || '',
+      participantes: Array.isArray(r.participantes) ? r.participantes : [],
       responsable: r.responsable || '', titulo: r.tema || '', tema: r.tema || '',
       areas_involucradas: r.areas_involucradas || '',
       acuerdos_realizados: r.acuerdos || '', descripcion: r.acuerdos || '',
@@ -183,6 +184,9 @@
         url: datos.url || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
+      // Solo se incluye si la app lo manda (Fase 2). Así, si la columna aún no
+      // existe en la base, la creación sigue funcionando.
+      if (Array.isArray(datos.participantes) && datos.participantes.length) fila.participantes = datos.participantes;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
       if (r.error) return { ok: false, error: r.error.message };
       try { await sb.from('bitacora').insert({ tarea_codigo: r.data.codigo, usuario: fila.creado_por, accion: 'crear', estatus_anterior: '—', estatus_nuevo: 'En Proceso' }); } catch (e) {}
@@ -203,6 +207,7 @@
       }
       if (datos.subdireccion) upd.subdireccion = String(datos.subdireccion).toUpperCase();
       if (datos.nivel) { upd.nivel = datos.nivel; upd.area = areaDeDatos(datos); upd.jefatura = (datos.nivel === 'jefatura') ? (datos.jefatura || '') : ''; }
+      if (datos.participantes !== undefined) upd.participantes = Array.isArray(datos.participantes) ? datos.participantes : [];
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };

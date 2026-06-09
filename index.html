@@ -5832,8 +5832,9 @@ function crearTarjeta(t) {
   //   • Vencida → ROJO (gana sobre todo).
   // El borde izquierdo viejo por estatus se reemplaza por este color.
   const _itemsT = obtenerChecklist(t);
-  // Amarillo en cuanto haya AL MENOS UNA paloma, sea de Mario (resp) o de Adrián (dir).
-  const _algunCheck = _itemsT.some(it => it.check_dir || it.check_resp);
+  // Amarillo en cuanto haya AL MENOS UNA paloma de cualquier participante.
+  const _partsT = participantesDe(t);
+  const _algunCheck = _itemsT.some(it => _partsT.some(cod => marcadoDeArea(it, t, cod)));
   const _todoPalomeado = checklistTodoMarcado(t);   // todas las acciones completas
   let claseColorTarjeta;
   if (_todoPalomeado) {
@@ -5905,8 +5906,7 @@ function crearTarjeta(t) {
   const _items = obtenerChecklist(t);
   if (_items.length > 0) {
     const _avance = checklistAvance(t);
-    const _completas = _items.filter(i => i.check_resp && i.check_dir).length;
-    if (_completas === _items.length) {
+    if (checklistTodoMarcado(t)) {
       const _svgCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
       if (puedeCompletar(t)) {
         html += '<div class="tarjeta-acciones"><button class="btn-pildora btn-pildora-ok" onclick="event.stopPropagation(); abrirDetalle(TAREAS.find(x => x.id === \'' + t.id + '\'))" title="Lista para completar">' +
@@ -7329,28 +7329,24 @@ function checklistDesdeTexto(texto) {
 function checklistATexto(t) {
   return obtenerChecklist(t).map(i => i.texto).join('\n');
 }
-// ¿Todas las casillas marcadas? Para Staff (DPAC/ENLACE) basta con que
-// Adrián haya marcado todos los renglones (su única columna). Para el resto,
-// ambas columnas (Responsable + Director).
+// ¿Todas las casillas marcadas? Completa = todos los ítems palomeados por TODOS
+// los participantes (una columna por área participante).
 function checklistTodoMarcado(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return false;
-  const esStaff = t && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-  if (esStaff) return items.every(i => i.check_dir);
-  return items.every(i => i.check_resp && i.check_dir);
+  const cols = participantesDe(t);
+  if (!cols.length) return false;
+  return items.every(it => cols.every(cod => marcadoDeArea(it, t, cod)));
 }
-// % de avance: en Staff solo cuenta la columna del Director.
+// % de avance: marcadas / (ítems × nº de participantes).
 function checklistAvance(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return 0;
-  const esStaff = t && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
-  if (esStaff) {
-    const m = items.filter(i => i.check_dir).length;
-    return Math.round((m / items.length) * 100);
-  }
+  const cols = participantesDe(t);
+  if (!cols.length) return 0;
   let marcadas = 0;
-  items.forEach(i => { if (i.check_resp) marcadas++; if (i.check_dir) marcadas++; });
-  return Math.round((marcadas / (items.length * 2)) * 100);
+  items.forEach(it => cols.forEach(cod => { if (marcadoDeArea(it, t, cod)) marcadas++; }));
+  return Math.round((marcadas / (items.length * cols.length)) * 100);
 }
 // Normaliza el texto de la celda "Jefatura" de la hoja Usuarios a un código
 // estable (mismo que produce detectarJefatura_ en el backend para tareas).
@@ -7374,35 +7370,125 @@ const PREFIJO_JEFATURA = {
   JDGOI: 'GESTION_OBRAS'
 };
 
-// Permisos del checklist (columna 1):
-//   • DIRECTOR (Adrián): puede palomear la columna 1 de CUALQUIER tarea — es el
-//     único con ese poder universal.
-//   • Quién valida se decide por el ORIGEN de la tarea (el prefijo de su ID),
-//     NO por la columna donde esté ahora. Así, una tarea SPAC-### la valida
-//     SIEMPRE el subdirector de SPAC, aunque la haya repartido (arrastrado) a
-//     una jefatura; el jefe NO la valida. Como el ID no cambia al mover la
-//     tarea, el permiso es estable.
-//   • Tarea creada a nivel SUBDIRECCIÓN (ID SPAC-/SGOI-/SA-/…) → solo el
-//     subdirector (Capturista de esa subdirección con Jefatura VACÍA).
-//   • Tarea creada a nivel JEFATURA (ID JDPC-/JDIMA-/JDGA-/JDGOI-) → el JEFE
-//     específico de esa jefatura.
-function puedeMarcarResp(t) {
-  if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return true;
-  if (usuarioActual.subdireccion !== t.subdireccion) return false;
-  const pre = String(t.id || '').split('-')[0].toUpperCase();
-  const jefDeOrigen = PREFIJO_JEFATURA[pre];
-  if (jefDeOrigen) {
-    // Nació en una jefatura → la valida el jefe de esa jefatura.
-    return jefaturaCodigo(usuarioActual.jefatura) === jefDeOrigen;
+// Código de jefatura (PROCEDIMIENTOS…) → acrónimo de área (JDPC…). Inverso de
+// PREFIJO_JEFATURA, para traducir la jefatura del usuario a un código de área.
+const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMBIENTAL:'JDGA', GESTION_OBRAS:'JDGOI' };
+
+// =====================================================================
+// Modelo de PARTICIPANTES y niveles de jerarquía
+//
+// Una tarea lleva una lista de "participantes" (áreas responsables). El
+// checklist muestra UNA columna por participante; cada área palomea SOLO su
+// columna. Niveles: 0 dirección (DPAC/ENLACE), 1 subdirección (SPAC/SGOI/SA),
+// 2 jefatura (JDPC/JDIMA/JDGA/JDGOI). Las columnas se ordenan jefatura →
+// subdirección → dirección (la ejecutora, de menor jerarquía, primero).
+// =====================================================================
+function nivelDeArea(cod) {
+  cod = String(cod || '').toUpperCase();
+  if (cod === 'DPAC' || cod === 'ENLACE') return 0;
+  if (PREFIJO_JEFATURA[cod]) return 2;
+  return 1;   // SPAC / SGOI / SA
+}
+
+// "Área propia" del usuario logueado: la columna del checklist que le toca.
+function areaDelUsuario(u) {
+  if (!u) return '';
+  if (u.rol === 'Director') return 'DPAC';
+  const jc = jefaturaCodigo(u.jefatura);
+  if (jc) return ACRONIMO_JEFATURA[jc] || jc;
+  return String(u.subdireccion || '').toUpperCase();
+}
+
+// Deduce el área del creador (para derivar participantes de tareas viejas que
+// aún no traen la lista). Busca el nombre en RESPONSABLES. Si no se encuentra,
+// devuelve '' (no se asume nada, para no inventar una columna Director).
+function areaDeCreador(t) {
+  const nombre = String(t && t.creado_por || '').trim();
+  if (!nombre) return '';
+  const norm = formatearNombre(nombre).toLowerCase();
+  const r = (RESPONSABLES || []).find(x => formatearNombre(x.nombreCompleto || '').toLowerCase() === norm);
+  if (r) {
+    const jc = jefaturaCodigo(r.jefatura);
+    if (jc) return ACRONIMO_JEFATURA[jc] || jc;
+    return String(r.subdireccion || '').toUpperCase();
   }
-  // Nació a nivel subdirección → solo el subdirector (sin jefatura asignada).
-  return !usuarioActual.jefatura;
+  // No encontrado: en producción (Supabase con RESPONSABLES cargado) el único
+  // que NO aparece en RESPONSABLES es el Director → Dirección. En demo (lista
+  // incompleta) no se asume nada para no inventar una columna Director.
+  if (enAppScript() && (RESPONSABLES || []).length) return 'DPAC';
+  return '';
 }
-function puedeMarcarDir(t) {
-  return !!(usuarioActual && usuarioActual.rol === 'Director');
+
+// Lista de participantes de una tarea (códigos de área), ordenada por nivel
+// (jefatura primero). Si la tarea no trae `participantes` (datos viejos), la
+// deriva del área responsable + el área del creador si es de mayor jerarquía.
+function participantesDe(t) {
+  if (!t) return [];
+  let parts = (Array.isArray(t.participantes) ? t.participantes : [])
+    .map(p => String(p || '').toUpperCase()).filter(Boolean);
+  if (!parts.length) {
+    const exec = String(areaResponsable(t) || '').toUpperCase();
+    if (exec) parts.push(exec);
+    const creador = areaDeCreador(t);
+    if (creador && parts.indexOf(creador) < 0 && nivelDeArea(creador) < nivelDeArea(parts[0])) {
+      parts.push(creador);
+    }
+  }
+  const vistos = {};
+  parts = parts.filter(p => (vistos[p] ? false : (vistos[p] = true)));
+  return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
 }
-function puedeEditarObsResp(t) { return puedeMarcarResp(t); }
+
+// ¿El ítem está palomeado por el área `cod`? Lee del mapa nuevo `item.checks`;
+// si no existe, cae a los campos legados (check_resp = área ejecutora de menor
+// nivel; check_dir = dirección).
+function marcadoDeArea(item, t, cod) {
+  if (!item) return false;
+  cod = String(cod || '').toUpperCase();
+  if (item.checks && item.checks[cod]) return !!item.checks[cod].marcado;
+  if (cod === 'DPAC' || cod === 'ENLACE') return !!item.check_dir;
+  const exec = String((participantesDe(t)[0] || '')).toUpperCase();
+  if (cod === exec) return !!item.check_resp;
+  return false;
+}
+
+// Escribe el palomeo del área `cod` en el ítem (mapa nuevo + refleja legados
+// para no romper datos viejos / otras vistas).
+function fijarMarcadoArea(item, t, cod, valor, autor, fecha) {
+  cod = String(cod || '').toUpperCase();
+  if (!item.checks || typeof item.checks !== 'object') item.checks = {};
+  item.checks[cod] = { marcado: !!valor, autor: autor || '', fecha: fecha || '' };
+  // Reflejo legado: check_dir para dirección; check_resp para la ejecutora.
+  if (cod === 'DPAC' || cod === 'ENLACE') {
+    item.check_dir = !!valor; item.autor_dir = autor || ''; item.fecha_dir = fecha || '';
+  } else if (cod === String((participantesDe(t)[0] || '')).toUpperCase()) {
+    item.check_resp = !!valor; item.autor_resp = autor || ''; item.fecha_resp = fecha || '';
+  }
+}
+
+// Permiso para palomear la columna del área `cod`: el usuario debe ser DUEÑO de
+// esa área Y el área debe ser participante de la tarea. El Director solo valida
+// la columna de dirección (DPAC/ENLACE), y solo si participa.
+function puedeMarcarArea(t, cod) {
+  if (!usuarioActual || !t) return false;
+  cod = String(cod || '').toUpperCase();
+  if (!participantesDe(t).includes(cod)) return false;
+  if (usuarioActual.rol === 'Director') return cod === 'DPAC' || cod === 'ENLACE';
+  return areaDelUsuario(usuarioActual) === cod;
+}
+
+// ¿El usuario participa en el checklist de la tarea (puede palomear alguna
+// columna, agregar/quitar acciones, adjuntar)?
+function puedeChecklist(t) {
+  if (!usuarioActual || !t) return false;
+  return participantesDe(t).some(cod => puedeMarcarArea(t, cod));
+}
+
+// Wrappers de compatibilidad para el resto del código (guards de agregar/quitar
+// acciones y observaciones). 'Resp' = cualquier participante; 'Dir' = dirección.
+function puedeMarcarResp(t) { return puedeChecklist(t); }
+function puedeMarcarDir(t)  { return puedeMarcarArea(t, 'DPAC') || puedeMarcarArea(t, 'ENLACE'); }
+function puedeEditarObsResp(t) { return puedeChecklist(t); }
 function puedeEditarObsDir(t)  { return puedeMarcarDir(t); }
 
 // Asegura que la tarea tenga los campos del modelo nuevo inicializados. Si la
@@ -7422,56 +7508,45 @@ function asegurarCamposChecklist(t) {
 // ===== Render del checklist y observaciones para el modal de detalle =====
 function renderChecklistHTML(t) {
   const items = obtenerChecklist(t);
-  const puedeR = puedeMarcarResp(t);
-  const puedeD = puedeMarcarDir(t);
-  const puedeAgregar = puedeR || puedeD;     // cualquiera con acceso al checklist
+  const cols = participantesDe(t);                 // áreas participantes = columnas
+  const puedeAlgo = puedeChecklist(t);             // ¿puede agregar/quitar/adjuntar?
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  // Tareas de STAFF (DPAC + ENLACE): solo una columna en el checklist — la
-  // del Director — porque el único que valida ahí es Adrián.
-  const esStaff = t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
-  let nombreResp;
-  if (t.subdireccion === 'ENLACE')      nombreResp = 'Staff';
-  else if (t.subdireccion === 'DPAC')   nombreResp = 'Dirección';
-  else                                  nombreResp = t.subdireccion || 'Responsable';
-  const nombreDir = 'Director';
+  // Grid dinámico: Acción | (una casilla por participante) | Adjunto. El estilo
+  // inline gana sobre la plantilla fija del CSS (incluida la de móvil).
+  const gridStyle = 'grid-template-columns: minmax(0, 1fr) ' + cols.map(function () { return '75px'; }).join(' ') + ' 105px;';
+  const todasCols = function (item) { return cols.length > 0 && cols.every(function (cod) { return marcadoDeArea(item, t, cod); }); };
 
-  const inputAgregar = puedeAgregar
+  const inputAgregar = puedeAlgo
     ? '<div class="checklist-agregar">' +
         '<input type="text" id="chk-nuevo-' + t.id + '" maxlength="200" placeholder="+ Agregar acción" onkeydown="nuevoItemChecklistTeclado(event, \'' + t.id + '\')">' +
         '<button class="checklist-agregar-btn" onclick="agregarItemChecklist(\'' + t.id + '\', document.getElementById(\'chk-nuevo-' + t.id + '\').value); document.getElementById(\'chk-nuevo-' + t.id + '\').value=\'\'">+</button>' +
       '</div>'
     : '';
 
-  const cabecera = esStaff
-    ? '<div class="checklist-cab checklist-cab-staff">' +
-        '<span>Acción</span>' +
-        '<span class="checklist-cab-dir" title="' + escapeHtml(nombreDir) + '">' + escapeHtml(nombreDir) + '</span>' +
-        '<span class="checklist-cab-adj">Adjunto</span>' +
-      '</div>'
-    : '<div class="checklist-cab">' +
-        '<span>Acción</span>' +
-        '<span class="checklist-cab-resp" title="' + escapeHtml(nombreResp) + '">' + escapeHtml(nombreResp) + '</span>' +
-        '<span class="checklist-cab-dir"  title="' + escapeHtml(nombreDir)  + '">' + escapeHtml(nombreDir)  + '</span>' +
-        '<span class="checklist-cab-adj">Adjunto</span>' +
-      '</div>';
+  const cabecera = '<div class="checklist-cab" style="' + gridStyle + '">' +
+    '<span>Acción</span>' +
+    cols.map(function (cod) {
+      const lbl = etiquetaColumnaArea(cod);
+      return '<span class="checklist-cab-resp" title="' + escapeHtml(lbl) + '">' + escapeHtml(lbl) + '</span>';
+    }).join('') +
+    '<span class="checklist-cab-adj">Adjunto</span>' +
+  '</div>';
 
   if (items.length === 0) {
     return '<div class="checklist-tabla">' + cabecera +
-      '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeAgregar ? 'Agrega la primera abajo ↓' : '') + '</div>' +
+      '<div class="checklist-vacio">Aún no hay acciones. ' + (puedeAlgo ? 'Agrega la primera abajo ↓' : '') + '</div>' +
       '</div>' + inputAgregar;
   }
 
   const filas = items.map(function (item, i) {
-    const completa = item.check_resp && item.check_dir;
-    const tipR = item.autor_resp ? ('Marcado por ' + item.autor_resp + (item.fecha_resp ? ' · ' + item.fecha_resp : '')) : nombreResp;
-    const tipD = item.autor_dir  ? ('Marcado por ' + item.autor_dir  + (item.fecha_dir  ? ' · ' + item.fecha_dir  : '')) : nombreDir;
+    const completa = todasCols(item);
     // Color de fila según quién creó la acción.
     const rolCreador = (item.creado_por_rol || '').toLowerCase();
     let claseFila = 'fila-creada-otro';
     if (rolCreador === 'director') claseFila = 'fila-creada-director';
     else if (item.creado_por_rol)  claseFila = 'fila-creada-capturista';
     // Solo el creador puede editar o borrar su ítem.
-    const puedeMod = puedeAgregar && (!item.creado_por_nombre || item.creado_por_nombre === yo);
+    const puedeMod = puedeAlgo && (!item.creado_por_nombre || item.creado_por_nombre === yo);
     const acciones = puedeMod
       ? '<button class="checklist-editar" onclick="event.stopPropagation(); hacerEditableChecklist(\'' + t.id + '\', ' + i + ')" title="Editar el texto">✎</button>' +
         '<button class="checklist-borrar" onclick="event.stopPropagation(); eliminarItemChecklist(\'' + t.id + '\', ' + i + ')" title="Borrar esta acción">×</button>'
@@ -7480,9 +7555,8 @@ function renderChecklistHTML(t) {
       ? 'Creada por ' + item.creado_por_nombre + (item.creado_en ? ' · ' + item.creado_en : '')
       : '';
     // Celda de adjunto: si ya hay archivo, link al Drive + botón quitar; si no,
-    // dropzone con "📎 Arrastra". Solo lo manipulan quienes tienen acceso al
-    // checklist (Resp o Director).
-    const puedeAdj = puedeR || puedeD;
+    // dropzone con "📎 Arrastra". Solo lo manipula quien participa en el checklist.
+    const puedeAdj = puedeAlgo;
     let celdaAdj;
     if (item.adjunto) {
       const nombreAdj = item.adjunto_nombre || 'Adjunto';
@@ -7498,29 +7572,34 @@ function renderChecklistHTML(t) {
     } else {
       celdaAdj = '<div class="checklist-adj-cell" style="cursor:default;opacity:.4">—</div>';
     }
-    if (esStaff) {
-      // Solo una casilla (Director).
-      return '<div class="checklist-fila checklist-fila-staff ' + claseFila + (item.check_dir ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
-        '<span class="checklist-texto">' +
-          '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
-          acciones +
-        '</span>' +
-        '<input type="checkbox" class="checklist-chk"' + (item.check_dir ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
-        celdaAdj +
-      '</div>';
-    }
-    return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" title="' + escapeHtml(tooltipCreador) + '">' +
+    // Una casilla por participante; cada una solo la habilita su dueño.
+    const casillas = cols.map(function (cod) {
+      const marcado = marcadoDeArea(item, t, cod);
+      const meta = (item.checks && item.checks[cod]) ? item.checks[cod] : null;
+      let autor = meta ? (meta.autor || '') : '';
+      let fecha = meta ? (meta.fecha || '') : '';
+      if (!meta) {
+        if (cod === 'DPAC' || cod === 'ENLACE') { autor = item.autor_dir || ''; fecha = item.fecha_dir || ''; }
+        else if (cod === cols[0])               { autor = item.autor_resp || ''; fecha = item.fecha_resp || ''; }
+      }
+      const tip = autor ? ('Marcado por ' + autor + (fecha ? ' · ' + fecha : '')) : etiquetaColumnaArea(cod);
+      const habilita = puedeMarcarArea(t, cod);
+      return '<input type="checkbox" class="checklist-chk"' + (marcado ? ' checked' : '') +
+        (habilita ? '' : ' disabled') +
+        ' onchange="toggleCheckArea(\'' + t.id + '\', ' + i + ', \'' + cod + '\', this.checked)" title="' + escapeHtml(tip) + '">';
+    }).join('');
+
+    return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" style="' + gridStyle + '" title="' + escapeHtml(tooltipCreador) + '">' +
       '<span class="checklist-texto">' +
         '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
         acciones +
       '</span>' +
-      '<input type="checkbox" class="checklist-chk"' + (item.check_resp ? ' checked' : '') + (puedeR ? '' : ' disabled') + ' onchange="toggleCheckResp(\'' + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipR) + '">' +
-      '<input type="checkbox" class="checklist-chk"' + (item.check_dir  ? ' checked' : '') + (puedeD ? '' : ' disabled') + ' onchange="toggleCheckDir(\''  + t.id + '\', ' + i + ', this.checked)" title="' + escapeHtml(tipD) + '">' +
+      casillas +
       celdaAdj +
     '</div>';
   }).join('');
   const avance = checklistAvance(t);
-  const completas = items.filter(function (i) { return i.check_resp && i.check_dir; }).length;
+  const completas = items.filter(todasCols).length;
   return '<div class="checklist-tabla">' +
     cabecera + filas +
     '</div>' +
@@ -7604,62 +7683,42 @@ function renderObservacionesHTML(t) {
 }
 
 // ===== Acciones de interacción del checklist y observaciones =====
-function toggleCheckResp(idTarea, idx, valor) {
+// Etiqueta visible de la columna de un área en el checklist.
+function etiquetaColumnaArea(cod) {
+  cod = String(cod || '').toUpperCase();
+  if (cod === 'DPAC')   return 'Director';
+  if (cod === 'ENLACE') return 'Staff';
+  return cod;   // SPAC, SGOI, SA, JDPC, JDIMA, JDGA, JDGOI
+}
+
+// Palomea/despalomea la columna del área `cod` en un ítem del checklist.
+function toggleCheckArea(idTarea, idx, cod, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
-  if (!t || !puedeMarcarResp(t)) return;
+  if (!t || !puedeMarcarArea(t, cod)) return;
   const items = obtenerChecklist(t);
   if (!items[idx]) return;
-  const eraTodaCompletaAntes = items.length > 0 && items.every(i => i.check_resp);
-  items[idx].check_resp = !!valor;
-  if (valor) {
-    items[idx].fecha_resp = ahoraStamp();
-    items[idx].autor_resp = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  } else {
-    items[idx].fecha_resp = ''; items[idx].autor_resp = '';
-  }
-  // Si AHORA todas las casillas del Responsable están en verde y antes no, la
-  // columna acaba de "validarse" — lo registramos en la bitácora.
-  const yaTodaCompleta = items.length > 0 && items.every(i => i.check_resp);
+  cod = String(cod || '').toUpperCase();
+  const eraTodaCompletaAntes = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
+  const autor = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', valor ? ahoraStamp() : '');
+  // Si AHORA toda la columna de esa área quedó marcada y antes no, se "validó".
+  const yaTodaCompleta = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   if (yaTodaCompleta && !eraTodaCompletaAntes) {
-    const etiquetaCol = t.subdireccion === 'ENLACE' ? 'Staff'
-                      : t.subdireccion === 'DPAC'   ? 'Dirección'
-                      : (t.subdireccion || 'Responsable');
     registrarEnBitacora({
-      accion: 'validar', id_tarea: idTarea,
-      estatus_anterior: '', estatus_nuevo: '',
-      comentario: 'Columna ' + etiquetaCol + ' validada'
+      accion: 'validar', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna ' + etiquetaColumnaArea(cod) + ' validada'
     });
   }
-  persistirEstado(t);  // ← guarda en la hoja Estados para que sobreviva al F5
-  abrirDetalle(t);     // repintar el modal (puede aparecer el botón Completada)
+  persistirEstado(t);  // guarda el checklist (sobrevive al F5)
+  abrirDetalle(t);     // repinta el modal (puede aparecer el botón Completada)
   renderizar();        // actualiza KPIs/tarjetas
 }
-function toggleCheckDir(idTarea, idx, valor) {
+// Wrappers de compatibilidad.
+function toggleCheckResp(idTarea, idx, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
-  if (!t || !puedeMarcarDir(t)) return;
-  const items = obtenerChecklist(t);
-  if (!items[idx]) return;
-  const eraTodaCompletaAntes = items.length > 0 && items.every(i => i.check_dir);
-  items[idx].check_dir = !!valor;
-  if (valor) {
-    items[idx].fecha_dir = ahoraStamp();
-    items[idx].autor_dir = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  } else {
-    items[idx].fecha_dir = ''; items[idx].autor_dir = '';
-  }
-  // Misma lógica para la columna del Director.
-  const yaTodaCompleta = items.length > 0 && items.every(i => i.check_dir);
-  if (yaTodaCompleta && !eraTodaCompletaAntes) {
-    registrarEnBitacora({
-      accion: 'validar', id_tarea: idTarea,
-      estatus_anterior: '', estatus_nuevo: '',
-      comentario: 'Columna Director validada'
-    });
-  }
-  persistirEstado(t);
-  abrirDetalle(t);
-  renderizar();
+  if (t) toggleCheckArea(idTarea, idx, participantesDe(t)[0], valor);
 }
+function toggleCheckDir(idTarea, idx, valor) { toggleCheckArea(idTarea, idx, 'DPAC', valor); }
 function guardarObsResp(idTarea, valor) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || !puedeEditarObsResp(t)) return;
@@ -7684,11 +7743,12 @@ function guardarObsDir(idTarea, valor) {
 //     subdirección, sin jefatura propia) y también el Director.
 function puedeCompletar(t) {
   if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return true;
-  if (usuarioActual.rol !== 'Capturista') return false;
-  if (t.nivel !== 'jefatura') return false;                          // subdirección → solo Director
-  if (usuarioActual.subdireccion !== t.subdireccion) return false;   // debe ser de esa área
-  return !jefaturaCodigo(usuarioActual.jefatura);                    // subdirector (no un jefe)
+  const cols = participantesDe(t);
+  if (!cols.length) return false;
+  // Cierra/completa el participante de MAYOR jerarquía. participantesDe ordena
+  // jefatura→dirección, así que el último es el de mayor nivel (supervisor).
+  const top = cols[cols.length - 1];
+  return puedeMarcarArea(t, top);
 }
 
 // están en verde (responsable + director), aparece el botón verde "Completada"
@@ -7697,9 +7757,7 @@ function completarTarea(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!puedeCompletar(t)) {
-    toast(t.nivel === 'jefatura'
-      ? 'Solo el subdirector del área (o el Director) puede completar esta tarea.'
-      : 'Solo el Director puede marcar como completada una tarea de subdirección.', 'error');
+    toast('Solo el participante de mayor jerarquía puede marcar la tarea como completada.', 'error');
     return;
   }
   if (!checklistTodoMarcado(t)) {
