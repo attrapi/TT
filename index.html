@@ -5458,25 +5458,23 @@ function actualizarKPIs() {
     return t.subdireccion === usuarioActual.subdireccion;
   });
   const archivadas = enHistorial.length;
-  const vencidas   = activas.filter(t => esVencida(t.fecha_limite)).length;
-  const enProcesos = activas.filter(t => t.estatus === 'En Proceso').length;
-  const atendidas  = activas.filter(t => t.estatus === 'Atendida').length;
+  // "Listas para completar" = el trabajo ya está hecho, solo falta cerrar:
+  // checklist TODO palomeado (lista para que el validador la complete) o
+  // CONCLUIDA (responsables listos, falta validar). Estas NO cuentan como
+  // "Vencidas" aunque haya pasado la fecha (el trabajo sí se hizo).
+  const esLista    = t => checklistTodoMarcado(t) || responsablesListos(t);
+  const listasN    = activas.filter(esLista).length;
+  const vencidas   = activas.filter(t => esVencida(t.fecha_limite) && !esLista(t)).length;
+  const enProcesoN = activas.length - listasN;
 
-  // En el modelo NUEVO la validación es por checklist (no hay un estatus
-  // intermedio "Para validar") — TODOS los perfiles, incluido el Director,
-  // ven 2 círculos: "En Proceso" + "Validadas". El del medio se oculta y los
-  // pendientes se suman al primero.
-  const dosCirculos = true;
+  // TRES círculos: En Proceso · Listas para completar · Validadas.
   const kpiMedio = document.getElementById('kpiSemana').parentElement;
-  if (kpiMedio) kpiMedio.style.display = dosCirculos ? 'none' : '';
-  const procTotal = dosCirculos ? enProcesos + atendidas : enProcesos;
-
-  // Etiquetas: con 2 círculos ambos roles muestran "En Proceso" + "Validadas".
-  setLabel('kpiActivas',    dosCirculos ? 'En Proceso' : etiquetaEstatus('En Proceso'));
-  setLabel('kpiSemana',     etiquetaEstatus('Atendida'));
-  setLabel('kpiArchivadas', dosCirculos ? 'Validadas'  : etiquetaEstatus('Archivada'));
-  document.getElementById('kpiActivas').textContent    = procTotal;
-  document.getElementById('kpiSemana').textContent     = atendidas;
+  if (kpiMedio) kpiMedio.style.display = '';
+  setLabel('kpiActivas',    'En Proceso');
+  setLabel('kpiSemana',     'Listas para completar');
+  setLabel('kpiArchivadas', 'Validadas');
+  document.getElementById('kpiActivas').textContent    = enProcesoN;
+  document.getElementById('kpiSemana').textContent     = listasN;
   document.getElementById('kpiArchivadas').textContent = archivadas;
 
   const vencidasChip = document.getElementById('kpiVencidasChip');
@@ -5484,14 +5482,12 @@ function actualizarKPIs() {
   if (kpiHoy) kpiHoy.textContent = vencidas;
   if (vencidasChip) vencidasChip.classList.toggle('oculto', vencidas === 0);
 
-  // Donut: para los Capturistas (2 círculos) las "atendidas" ya están dentro
-  // de "En Proceso", así que ocultamos su renglón en la leyenda para no
-  // duplicar el texto "En Proceso".
+  // Donut: En Proceso (sin vencer) · Vencidas · Listas para completar · Validadas.
   const lblAt = document.getElementById('kpiPieLblAtendidas');
-  if (lblAt) lblAt.textContent = etiquetaEstatus('Atendida');
+  if (lblAt) lblAt.textContent = 'Listas para completar';
   const filaLeyendaAt = lblAt ? lblAt.parentElement : null;
-  if (filaLeyendaAt) filaLeyendaAt.style.display = dosCirculos ? 'none' : '';
-  renderDonut(procTotal - vencidas, vencidas, dosCirculos ? 0 : atendidas, archivadas);
+  if (filaLeyendaAt) filaLeyendaAt.style.display = '';
+  renderDonut(enProcesoN - vencidas, vencidas, listasN, archivadas);
 
   // Pendientes: el Director por subdirección; el subdirector por jefatura.
   const subCard = document.getElementById('kpisSubGrupo');
@@ -7985,24 +7981,9 @@ function completarTarea(idTarea) {
     accion: 'completar', id_tarea: idTarea,
     estatus_anterior: estatusAnterior, estatus_nuevo: 'Archivada'
   });
-  // Registro adicional: ¿se terminó EN TIEMPO o FUERA DE TIEMPO? Se compara
-  // la fecha de hoy contra la fecha de atención de la tarea. Si la tarea era
-  // permanente o no tiene fecha, no se registra mensaje.
-  const fechaVence = t.fecha_atencion || t.fecha_limite;
-  if (fechaVence && !t.permanente) {
-    const hoy = new Date(new Date().toDateString());
-    const limite = new Date(fechaVence + 'T00:00:00');
-    const aTiempo = limite >= hoy;
-    const fechaTxt = formatearFechaLarga ? formatearFechaLarga(fechaVence) : fechaVence;
-    registrarEnBitacora({
-      accion: aTiempo ? 'a_tiempo' : 'fuera_tiempo',
-      id_tarea: idTarea,
-      estatus_anterior: '', estatus_nuevo: '',
-      comentario: aTiempo
-        ? 'Tarea finalizada en tiempo (vencía el ' + fechaTxt + ')'
-        : 'La tarea NO fue concluida en su tiempo (vencía el ' + fechaTxt + ')'
-    });
-  }
+  // (Ya NO se registra "En tiempo / Fuera de tiempo": con el estado "Concluida"
+  // los responsables pueden terminar a tiempo aunque la validación llegue
+  // después, así que ese juicio de tiempo resultaba injusto/confuso.)
   // Si hay hoja origen, escribe "Atendida" en la columna Estatus (igual que el
   // Enlace: marca de validada en el Excel).
   if (enAppScript() && SESION_TOKEN) {
