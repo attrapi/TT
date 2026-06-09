@@ -6738,15 +6738,13 @@ function abrirDetalle(t) {
                 const k = (b.accion || '').toLowerCase();
                 const etApp = etiquetaAccionBita(b);
                 const quien = (b.usuario || '').split('@')[0];
-                const cambio = (b.estatus_anterior && b.estatus_nuevo && b.estatus_anterior !== b.estatus_nuevo)
-                  ? etiquetaEstatus(b.estatus_anterior) + ' → ' + etiquetaEstatus(b.estatus_nuevo) : '';
                 return `
                 <div class="bitacora-item">
                   <div class="bitacora-item-top">
                     <span class="bitacora-accion ${k}">${etApp}</span>
                     <span class="bitacora-fecha">${b.fecha}</span>
                   </div>
-                  <div class="bitacora-item-quien">por <strong>${escapeHtml(quien)}</strong>${cambio ? ' · ' + cambio : ''}</div>
+                  <div class="bitacora-item-quien">por <strong>${escapeHtml(quien)}</strong></div>
                   ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
                 </div>`;
               }).join('');
@@ -9020,7 +9018,7 @@ function abrirBitacoraTarea(idTarea) {
           <span class="bitacora-accion ${accionKey}">${escapeHtml(etiquetaAccionBita(b))}</span>
           <span class="bita-tl-fecha">${b.fecha}</span>
         </div>
-        <div class="bita-tl-cambio">${etiquetaEstatus(b.estatus_anterior)} → ${etiquetaEstatus(b.estatus_nuevo)} · ${escapeHtml(b.usuario || '')}</div>
+        <div class="bita-tl-cambio">por ${escapeHtml(b.usuario || '')}</div>
         ${b.comentario ? `<div class="bitacora-comentario">“${escapeHtml(b.comentario)}”</div>` : ''}
       </div>`;
   }).join('') || '<div class="bitacora-vacio">Sin movimientos.</div>';
