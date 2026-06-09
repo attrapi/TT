@@ -1206,7 +1206,7 @@
     margin: 24px auto 0;
     padding: 0 32px;
     display: grid;
-    grid-template-columns: 1.35fr 1fr;
+    grid-template-columns: 1.75fr 1fr;   /* Resumen más ancho (3 círculos + donut); Pendientes más angosto */
     gap: 18px;
   }
 
@@ -1253,17 +1253,18 @@
   .kpi-cuerpo {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 40px;
   }
   /* Cada KPI ocupa el mismo ancho dentro del card y su label se alinea
      debajo del círculo, no al borde izquierdo del card. */
   .kpis-fila {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 12px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;   /* reparte los círculos sin encimarlos */
+    gap: 18px;
     flex: 1;
   }
+  .kpis-fila .kpi { flex: 0 0 auto; }   /* cada círculo conserva su tamaño (no se aplasta) */
 
   /* Chip pequeño "Vencidas" — ya no merece un círculo grande porque cada
      tarjeta ya muestra su propio señalador "vencida"; aquí solo damos el
@@ -1289,9 +1290,9 @@
   .kpi-pie-wrap {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 22px;
     border-left: 1px solid var(--linea);
-    padding-left: 24px;
+    padding-left: 32px;
     flex-shrink: 0;
   }
   .kpi-pie {
@@ -1299,8 +1300,8 @@
     --p2: 0;   /* % vencidas */
     --p3: 0;   /* % atendidas */
     --p4: 0;   /* % archivadas */
-    width: 110px;
-    height: 110px;
+    width: 124px;
+    height: 124px;
     border-radius: 50%;
     background:
       conic-gradient(
@@ -5471,7 +5472,7 @@ function actualizarKPIs() {
   const kpiMedio = document.getElementById('kpiSemana').parentElement;
   if (kpiMedio) kpiMedio.style.display = '';
   setLabel('kpiActivas',    'En Proceso');
-  setLabel('kpiSemana',     'Listas para completar');
+  setLabel('kpiSemana',     'Para validar');
   setLabel('kpiArchivadas', 'Validadas');
   document.getElementById('kpiActivas').textContent    = enProcesoN;
   document.getElementById('kpiSemana').textContent     = listasN;
@@ -5484,7 +5485,7 @@ function actualizarKPIs() {
 
   // Donut: En Proceso (sin vencer) · Vencidas · Listas para completar · Validadas.
   const lblAt = document.getElementById('kpiPieLblAtendidas');
-  if (lblAt) lblAt.textContent = 'Listas para completar';
+  if (lblAt) lblAt.textContent = 'Para validar';
   const filaLeyendaAt = lblAt ? lblAt.parentElement : null;
   if (filaLeyendaAt) filaLeyendaAt.style.display = '';
   renderDonut(enProcesoN - vencidas, vencidas, listasN, archivadas);
