@@ -4841,10 +4841,21 @@ function opcionesResponsableHTML(valSel) {
   // no filtramos para no dejar el campo sin opciones.
   let lista = (RESPONSABLES || []).filter(responsableVisibleEnCaptura);
   if (!lista.length) lista = RESPONSABLES || [];
-  const vals = lista.map(r => nombresSinApellidos(r.nombreCompleto));
+  // Quita duplicados por nombre (la fuente puede traer el mismo perfil repetido).
+  const _vistos = new Set();
+  lista = lista.filter(r => {
+    const k = String(r.nombreCompleto || '').trim().toLowerCase();
+    if (!k || _vistos.has(k)) return false;
+    _vistos.add(k); return true;
+  });
+  // Conjunto de valores conocidos (nombre corto Y completo) para no duplicar la
+  // opción seleccionada: una tarea pudo guardar el responsable como nombre
+  // completo (viejo) o corto (nuevo); ambos deben mapear a la MISMA opción.
+  const conocidos = new Set();
+  lista.forEach(r => { conocidos.add(nombresSinApellidos(r.nombreCompleto)); conocidos.add(r.nombreCompleto); });
   let html = '<option value="">Selecciona responsable…</option>';
-  // Conserva un valor que no esté en la lista (p. ej. al editar una tarea vieja).
-  if (valSel && valSel !== '__OTRO__' && vals.indexOf(valSel) < 0) {
+  // Conserva un valor que de plano no esté en la lista (texto libre antiguo).
+  if (valSel && valSel !== '__OTRO__' && !conocidos.has(valSel)) {
     html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(valSel) + '</option>';
   }
   // Agrupado por ÁREA (subdirección), en orden fijo. "Otros" cae lo que no tenga área.
@@ -4859,7 +4870,9 @@ function opcionesResponsableHTML(valSel) {
   ];
   const opcion = r => {
     const v = nombresSinApellidos(r.nombreCompleto);
-    return '<option value="' + escapeHtml(v) + '"' + (v === valSel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
+    // Selecciona tanto si el valor guardado es el nombre corto como el completo.
+    const sel = (valSel === v || valSel === r.nombreCompleto);
+    return '<option value="' + escapeHtml(v) + '"' + (sel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
   };
   GRUPOS.forEach(g => {
     const items = lista.filter(r => {
@@ -8085,7 +8098,7 @@ function abrirNuevaTarea(tEdit) {
     return t.subdireccion;
   };
   const subDefault = ed ? _codigoEd(ed) : (subFija || 'SA');
-  const valResp = ed ? (ed.responsable || '') : (esCapturista ? usuarioActual.nombre : '');
+  const valResp = ed ? (ed.responsable || '') : (esCapturista ? nombresSinApellidos(usuarioActual.nombre) : '');
   const valTema = ed ? (ed.tema || ed.titulo || '') : '';
   const valAcuerdos = ed ? (ed.acuerdos_realizados || '') : '';
   // Acciones a tomar: editor de CHECKLIST. Al editar una tarea que ya tiene
