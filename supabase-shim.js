@@ -86,6 +86,7 @@
     return {
       id: r.codigo, subdireccion: r.subdireccion, nivel: r.nivel, jefatura: r.jefatura || '',
       participantes: Array.isArray(r.participantes) ? r.participantes : [],
+      adjuntos: Array.isArray(r.adjuntos) ? r.adjuntos : [],
       responsable: r.responsable || '', titulo: r.tema || '', tema: r.tema || '',
       areas_involucradas: r.areas_involucradas || '',
       acuerdos_realizados: r.acuerdos || '', descripcion: r.acuerdos || '',
@@ -184,10 +185,16 @@
         url: datos.url || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
-      // Solo se incluye si la app lo manda (Fase 2). Así, si la columna aún no
-      // existe en la base, la creación sigue funcionando.
+      // Solo se incluyen si la app los manda. Así, si la columna aún no existe
+      // en la base, la creación sigue funcionando.
       if (Array.isArray(datos.participantes) && datos.participantes.length) fila.participantes = datos.participantes;
+      if (Array.isArray(datos.adjuntos) && datos.adjuntos.length) fila.adjuntos = datos.adjuntos;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
+      // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
+      if (r.error && /adjuntos|participantes/i.test(r.error.message || '')) {
+        delete fila.adjuntos; delete fila.participantes;
+        r = await sb.from('tareas').insert(fila).select('codigo').single();
+      }
       if (r.error) return { ok: false, error: r.error.message };
       try { await sb.from('bitacora').insert({ tarea_codigo: r.data.codigo, usuario: fila.creado_por, accion: 'crear', estatus_anterior: '—', estatus_nuevo: 'En Proceso' }); } catch (e) {}
       return { ok: true, id: r.data.codigo };
@@ -200,7 +207,7 @@
       if (datos.areas !== undefined) upd.areas_involucradas = datos.areas;
       if (datos.acuerdos !== undefined) upd.acuerdos = datos.acuerdos;
       if (datos.accion !== undefined) upd.accion = datos.accion;
-      if (datos.url) upd.url = datos.url;
+      if (datos.url !== undefined) upd.url = datos.url;   // permite limpiarlo ('')
       if (datos.fecha !== undefined) {
         var f = String(datos.fecha || '').trim();
         upd.fecha = fechaSql(f); upd.permanente = /^permanente$/i.test(f);
@@ -208,7 +215,13 @@
       if (datos.subdireccion) upd.subdireccion = String(datos.subdireccion).toUpperCase();
       if (datos.nivel) { upd.nivel = datos.nivel; upd.area = areaDeDatos(datos); upd.jefatura = (datos.nivel === 'jefatura') ? (datos.jefatura || '') : ''; }
       if (datos.participantes !== undefined) upd.participantes = Array.isArray(datos.participantes) ? datos.participantes : [];
+      if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
+      // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
+      if (r.error && /adjuntos|participantes/i.test(r.error.message || '')) {
+        delete upd.adjuntos; delete upd.participantes;
+        r = await sb.from('tareas').update(upd).eq('codigo', id);
+      }
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },

@@ -82,6 +82,11 @@ create index if not exists idx_tareas_elim     on public.tareas(eliminada);
 alter table public.tareas
   add column if not exists participantes jsonb not null default '[]';
 
+-- Adjuntos: lista de archivos de la tarea [{url, nombre}]. Reemplaza al campo
+-- único `url` (que se conserva = primer adjunto, por compatibilidad).
+alter table public.tareas
+  add column if not exists adjuntos jsonb not null default '[]';
+
 -- Autogenera el `codigo` (PREFIJO-### por área) y actualiza updated_at.
 create or replace function public.set_codigo_tarea()
 returns trigger language plpgsql as $$

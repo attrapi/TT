@@ -2189,6 +2189,32 @@
   }
   .modal-adjunto-link svg { width: 14px; height: 14px; }
 
+  /* Lista de adjuntos en el detalle: nombre clicable + ✕ para quitar. */
+  .modal-adjuntos { display: flex; flex-direction: column; gap: 6px; }
+  .modal-adjunto-item { display: flex; align-items: center; gap: 8px; }
+  .modal-adjunto-item .modal-adjunto-link { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal-adjunto-x {
+    background: transparent; border: 1px solid var(--linea); color: var(--rojo, #b91c1c);
+    border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1; padding: 4px 7px; flex: none;
+  }
+  .modal-adjunto-x:hover { background: #fee2e2; border-color: #b91c1c; }
+
+  /* Adjuntos en el FORMULARIO: fila del link + lista de chips. */
+  .adjuntos-link-fila { display: flex; gap: 8px; margin-top: 8px; }
+  .adjuntos-link-fila input { flex: 1; }
+  .adjuntos-lista { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .adjunto-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--guinda-tenue); border: 1px solid var(--guinda);
+    border-radius: 6px; padding: 6px 10px; font-size: 13px;
+  }
+  .adjunto-chip-nombre { color: var(--guinda); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .adjunto-chip-sub { color: var(--tinta-suave); font-size: 11px; flex: none; }
+  .adjunto-chip-x {
+    background: transparent; border: 0; color: var(--rojo, #b91c1c);
+    cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; flex: none;
+  }
+
   /* ID de tarjeta como pastilla coloreada por subdirección — así en la
      vista consolidada (TODAS) Adrián distingue de un vistazo de qué
      subdirección viene cada tarea, no solo por el prefijo del ID. */
@@ -6533,15 +6559,21 @@ function abrirDetalle(t) {
         <dd>${escapeHtml(areas)}</dd>
         <dt>Acuerdos realizados</dt>
         <dd>${escapeHtml(acuerdos)}</dd>
-        ${t.url ? `
-          <dt>Adjunto</dt>
-          <dd>
-            <a href="${escapeHtml(t.url)}" class="modal-adjunto-link" target="_blank" rel="noopener">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg>
-              Abrir en Drive
-            </a>
-          </dd>
-        ` : ''}
+        ${(function(){
+          const _adj = adjuntosDe(t);
+          if (!_adj.length) return '';
+          const _puede = usuarioPuedeEditar(t);
+          const _svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg>';
+          const filas = _adj.map(function(a, i){
+            return '<div class="modal-adjunto-item">' +
+              '<a href="' + escapeHtml(a.url) + '" class="modal-adjunto-link" target="_blank" rel="noopener" title="Abrir ' + escapeHtml(a.nombre) + '">' +
+                _svg + escapeHtml(a.nombre) +
+              '</a>' +
+              (_puede ? '<button class="modal-adjunto-x" title="Quitar adjunto" onclick="event.stopPropagation(); eliminarAdjuntoTarea(\'' + t.id + '\', ' + i + ')">✕</button>' : '') +
+            '</div>';
+          }).join('');
+          return '<dt>Adjuntos</dt><dd><div class="modal-adjuntos">' + filas + '</div></dd>';
+        })()}
       </dl>
 
       <!-- Checklist y Observaciones a TODO el ancho del modal (no caben bien
@@ -7458,6 +7490,16 @@ function tareaEnArea(t, cod) {
   return participantesDe(t).indexOf(cod) >= 0;
 }
 
+// Lista de adjuntos de una tarea: [{url, nombre}]. Compatibilidad: si la tarea
+// aún no trae `adjuntos` pero tiene el `url` único viejo, lo devuelve como uno.
+function adjuntosDe(t) {
+  if (t && Array.isArray(t.adjuntos) && t.adjuntos.length) {
+    return t.adjuntos.filter(a => a && a.url).map(a => ({ url: a.url, nombre: a.nombre || 'Adjunto' }));
+  }
+  if (t && t.url) return [{ url: t.url, nombre: 'Adjunto' }];
+  return [];
+}
+
 // ¿El ítem está palomeado por el área `cod`? Lee del mapa nuevo `item.checks`;
 // si no existe, cae a los campos legados (check_resp = área ejecutora de menor
 // nivel; check_dir = dirección).
@@ -7981,9 +8023,12 @@ function cargarAreas() {
 }
 
 function abrirNuevaTarea(tEdit) {
-  archivoPendiente = null;   // empieza sin archivo en espera
+  archivoPendiente = null;   // (compat) ya no se usa: ahora es lista
   tareaEditando = tEdit || null;
   const ed = tareaEditando;
+  // Estado de adjuntos del formulario: lista de {tipo, nombre, url?, file?}.
+  // Al editar arranca con los adjuntos existentes (tipo 'existente').
+  adjuntosForm = ed ? adjuntosDe(ed).map(a => ({ tipo: 'existente', url: a.url, nombre: a.nombre })) : [];
   const esCapturista = usuarioActual.rol === 'Capturista';
   // Para un JEFE, su "área fija" es su propia jefatura (JDPC/JDIMA/JDGA/JDGOI),
   // NO su subdirección: así su único destino y su valor por defecto es su
@@ -8185,13 +8230,17 @@ function abrirNuevaTarea(tEdit) {
           </div>
 
           <div class="form-campo full">
-            <label>Adjunto (Drive)</label>
+            <label>Adjuntos (Drive)</label>
             <div id="nt_dropzone" class="dropzone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" onclick="document.getElementById('nt_file').click()">
-              <span id="nt_dzTexto">${valUrl ? '📎 Adjunto actual (arrastra otro para reemplazar)' : 'Arrastra un archivo aquí o haz clic para elegir'}</span>
+              <span id="nt_dzTexto">Arrastra archivos aquí o haz clic para elegir (puedes agregar varios)</span>
             </div>
-            <input type="file" id="nt_file" style="display:none" onchange="dzFile(this.files)">
-            <input type="url" id="nt_url" maxlength="500" value="${escapeHtml(valUrl)}" placeholder="o pega aquí un link de Drive (opcional)" style="margin-top:8px;">
-            <div class="form-hint">El archivo se sube a la carpeta de Drive y el link queda guardado en la tarea.</div>
+            <input type="file" id="nt_file" multiple style="display:none" onchange="dzFile(this.files)">
+            <div class="adjuntos-link-fila">
+              <input type="url" id="nt_url" maxlength="500" placeholder="o pega un link de Drive y presiona + Link" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarLinkAdjunto();}">
+              <button type="button" class="acciones-agregar-btn" onclick="agregarLinkAdjunto()">+ Link</button>
+            </div>
+            <div id="nt_adjuntos_lista" class="adjuntos-lista"></div>
+            <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.</div>
           </div>
         </div>
       </form>
@@ -8202,6 +8251,7 @@ function abrirNuevaTarea(tEdit) {
     </div>
   `;
   document.getElementById('modalFondo').classList.add('activo');
+  renderAdjuntosForm();   // pinta la lista de adjuntos (existentes/nuevos)
 }
 
 // ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
@@ -8226,6 +8276,8 @@ function abrirEditarTarea(id) {
 // Archivo "en espera": NO se sube al arrastrar, sino al CREAR la tarea. Así,
 // si se cancela, no queda ningún archivo huérfano en Drive.
 let archivoPendiente = null;
+// Adjuntos del formulario en curso: lista de {tipo:'existente'|'archivo'|'link', nombre, url?, file?}.
+let adjuntosForm = [];
 
 // === Editor visual de acciones del checklist en el formulario ===
 // Agrega el texto del input "+ Agregar acción" a la lista visual y limpia el input.
@@ -8261,26 +8313,77 @@ function dzLeave(e) { const d = document.getElementById('nt_dropzone'); if (d) d
 function dzDrop(e) {
   e.preventDefault();
   const d = document.getElementById('nt_dropzone'); if (d) d.classList.remove('dz-activo');
-  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) dzStage(e.dataTransfer.files[0]);
+  if (e.dataTransfer && e.dataTransfer.files) dzFile(e.dataTransfer.files);
 }
-function dzFile(files) { if (files && files.length) dzStage(files[0]); }
-
-// "Apila" el archivo elegido (no lo sube todavía).
-function dzStage(file) {
+// Apila TODOS los archivos elegidos/soltados (no los sube todavía).
+function dzFile(files) {
+  if (!files || !files.length) return;
   if (!enAppScript() || !SESION_TOKEN) {
-    toast('Subir archivos requiere la versión con login. Por ahora pega el link de Drive.', 'error');
+    toast('Subir archivos requiere la versión con login. Por ahora pega un link de Drive.', 'error');
     return;
   }
-  archivoPendiente = file;
-  document.getElementById('nt_dzTexto').textContent = '📎 ' + file.name + ' — se subirá al crear la tarea';
-  const url = document.getElementById('nt_url'); if (url) url.value = '';   // el archivo tiene prioridad
+  Array.from(files).forEach(f => adjuntosForm.push({ tipo: 'archivo', nombre: f.name, file: f }));
+  const inp = document.getElementById('nt_file'); if (inp) inp.value = '';   // permite re-elegir el mismo archivo
+  renderAdjuntosForm();
 }
 
-// Quita el archivo en espera (por si se equivocaron).
-function dzQuitar() {
-  archivoPendiente = null;
-  const txt = document.getElementById('nt_dzTexto');
-  if (txt) txt.textContent = 'Arrastra un archivo aquí o haz clic para elegir';
+// Agrega un link de Drive pegado como un adjunto más.
+function agregarLinkAdjunto() {
+  const inp = document.getElementById('nt_url');
+  const url = inp ? (inp.value || '').trim() : '';
+  if (!url) return;
+  const nombre = (prompt('Nombre para este enlace (opcional):', 'Enlace de Drive') || 'Enlace de Drive').trim() || 'Enlace de Drive';
+  adjuntosForm.push({ tipo: 'link', nombre: nombre, url: url });
+  if (inp) inp.value = '';
+  renderAdjuntosForm();
+}
+
+// Quita un adjunto del formulario (existente o nuevo).
+function quitarAdjuntoForm(i) {
+  if (i < 0 || i >= adjuntosForm.length) return;
+  adjuntosForm.splice(i, 1);
+  renderAdjuntosForm();
+}
+
+// Pinta la lista de adjuntos del formulario (con su nombre + ✕ para quitar).
+function renderAdjuntosForm() {
+  const cont = document.getElementById('nt_adjuntos_lista');
+  if (!cont) return;
+  if (!adjuntosForm.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = adjuntosForm.map(function (a, i) {
+    const icono = a.tipo === 'link' ? '🔗' : '📎';
+    const extra = a.tipo === 'archivo' ? '<span class="adjunto-chip-sub">(se subirá al guardar)</span>' : '';
+    return '<div class="adjunto-chip">' +
+      '<span class="adjunto-chip-nombre" title="' + escapeHtml(a.nombre) + '">' + icono + ' ' + escapeHtml(a.nombre) + '</span>' +
+      extra +
+      '<button type="button" class="adjunto-chip-x" title="Quitar" onclick="quitarAdjuntoForm(' + i + ')">✕</button>' +
+      '</div>';
+  }).join('');
+}
+
+// (compat) ya no se usa.
+function dzQuitar() { adjuntosForm = []; renderAdjuntosForm(); }
+
+// Quita un adjunto de una tarea YA creada (desde el detalle). Persiste la lista
+// e intenta borrar el archivo de Drive (best-effort).
+function eliminarAdjuntoTarea(idTarea, idx) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !usuarioPuedeEditar(t)) return;
+  const lista = adjuntosDe(t);
+  if (idx < 0 || idx >= lista.length) return;
+  const quitado = lista[idx];
+  if (!confirm('¿Quitar el adjunto "' + (quitado.nombre || '') + '"?')) return;
+  const nuevos = lista.filter((_, i) => i !== idx);
+  t.adjuntos = nuevos;
+  t.url = (nuevos[0] && nuevos[0].url) || '';
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run.withFailureHandler(function (e) { toast('No se pudo guardar: ' + (e && e.message ? e.message : e), 'error'); })
+      .actualizarTarea(SESION_TOKEN, t.id, { adjuntos: t.adjuntos, url: t.url });
+    if (quitado && quitado.url) google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, quitado.url);
+  }
+  abrirDetalle(t);   // repinta el modal
+  renderizar();
+  toast('Adjunto quitado', 'ok');
 }
 
 function generarSiguienteId(pref) {
@@ -8355,7 +8458,9 @@ function guardarNuevaTarea() {
   sincAcciones();
   const accion = document.getElementById('nt_accion').value.trim();
   const fecha = document.getElementById('nt_fecha').value;
-  const urlPegada = document.getElementById('nt_url').value.trim();
+  // Si quedó texto en el campo de link sin agregar con "+ Link", se toma igual.
+  const urlSuelta = (document.getElementById('nt_url').value || '').trim();
+  if (urlSuelta) { adjuntosForm.push({ tipo: 'link', nombre: 'Enlace de Drive', url: urlSuelta }); const u = document.getElementById('nt_url'); if (u) u.value = ''; renderAdjuntosForm(); }
 
   if (!marcadosExplicitos.length || !responsable || !tema || !fecha) {
     toast(!marcadosExplicitos.length
@@ -8373,17 +8478,16 @@ function guardarNuevaTarea() {
     nivel: nivelElegido,
     jefatura: jefaturaElegida,
     participantes,
-    responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada
+    responsable, tema, areas, acuerdos, accion, fecha
   };
 
-  // Continúa con la URL ya resuelta (subida o pegada).
-  const finalizar = function (url) {
-    datos.url = url;
+  // Cierra el guardado con la lista FINAL de adjuntos [{url, nombre}] ya resuelta.
+  const finalizar = function (adjuntos) {
+    datos.adjuntos = adjuntos;
+    datos.url = (adjuntos[0] && adjuntos[0].url) || '';   // compat: primer adjunto
     if (enAppScript()) {
       if (editando) { enviarEditarTarea(datos, btn, textoBtn); return; }
-      // UNA sola tarea con varios participantes (aparece en el tablero de cada
-      // área y tiene una columna de validación por área).
-      enviarCrearTarea(datos, btn);
+      enviarCrearTarea(datos, btn);   // UNA sola tarea con varios participantes
       return;
     }
     // Modo demo (GitHub): solo en pantalla.
@@ -8392,9 +8496,8 @@ function guardarNuevaTarea() {
         subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
-        fecha_atencion: fecha, fecha_limite: fecha, url: url || tareaEditando.url
+        fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url
       });
-      // Mezcla el checklist viejo con el texto nuevo (conserva palomas).
       tareaEditando.checklist = mergearChecklist(tareaEditando.checklist || [], accion);
       const idEd = tareaEditando.id; tareaEditando = null;
       cerrarModal(); renderizar();
@@ -8408,10 +8511,9 @@ function guardarNuevaTarea() {
         tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
         fecha_atencion: fecha, fecha_limite: fecha,
         avance: 0, estatus: 'En Proceso',
-        url: url, validado_por: '', fecha_validacion: '', comentarios_director: ''
+        adjuntos: adjuntos, url: datos.url, validado_por: '', fecha_validacion: '', comentarios_director: ''
       };
       asegurarCamposChecklist(nueva);
-      // El texto de "Acciones a tomar" arranca el checklist (un punto por renglón).
       nueva.checklist = checklistDesdeTexto(accion);
       TAREAS.push(nueva);
       registrarEnBitacora({ accion: 'crear', id_tarea: nueva.id, estatus_anterior: '—', estatus_nuevo: 'En Proceso' });
@@ -8421,26 +8523,37 @@ function guardarNuevaTarea() {
     }
   };
 
-  // Si hay un archivo en espera (solo Apps Script), súbelo AHORA y luego sigue.
-  if (enAppScript() && archivoPendiente && SESION_TOKEN) {
-    if (btn) { btn.disabled = true; btn.textContent = 'Subiendo…'; }
-    const file = archivoPendiente;
-    const reader = new FileReader();
-    reader.onload = function () {
-      const base64 = String(reader.result).split(',')[1] || '';
-      google.script.run
-        .withSuccessHandler(function (res) {
-          if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; return; }
-          finalizar(res.url);
-        })
-        .withFailureHandler(function (e) { toast('Error al subir: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; })
-        .subirArchivo(SESION_TOKEN, file.name, file.type, base64, codElegido);
-    };
-    reader.onerror = function () { toast('No se pudo leer el archivo.', 'error'); };
-    reader.readAsDataURL(file);
-    return;
-  }
-  finalizar(urlPegada);
+  // Sube secuencialmente los archivos pendientes (tipo 'archivo') y arma la lista
+  // final, conservando los 'existente' y 'link' (que ya traen url).
+  const pendientes = adjuntosForm.slice();
+  const resultado = [];
+  let i = 0;
+  const siguiente = function () {
+    if (i >= pendientes.length) { finalizar(resultado); return; }
+    const a = pendientes[i++];
+    if (a.tipo === 'archivo') {
+      if (!enAppScript() || !SESION_TOKEN) { siguiente(); return; }   // demo: no sube
+      if (btn) { btn.disabled = true; btn.textContent = 'Subiendo ' + i + '/' + pendientes.length + '…'; }
+      const reader = new FileReader();
+      reader.onload = function () {
+        const base64 = String(reader.result).split(',')[1] || '';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir ' + a.nombre, 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; return; }
+            resultado.push({ url: res.url, nombre: a.nombre });
+            siguiente();
+          })
+          .withFailureHandler(function (e) { toast('Error al subir ' + a.nombre + ': ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; })
+          .subirArchivo(SESION_TOKEN, a.file.name, a.file.type, base64, codElegido);
+      };
+      reader.onerror = function () { toast('No se pudo leer ' + a.nombre, 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn; } creandoTarea = false; };
+      reader.readAsDataURL(a.file);
+    } else {
+      if (a.url) resultado.push({ url: a.url, nombre: a.nombre });   // existente / link
+      siguiente();
+    }
+  };
+  siguiente();
 }
 
 // Guarda los cambios de una tarea editada en el Sheet (Apps Script).
