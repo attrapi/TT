@@ -7366,21 +7366,37 @@ function jefaturaCodigo(raw) {
   return String(raw).toUpperCase().trim();
 }
 
+// Prefijos de ID que corresponden a una JEFATURA (el resto son subdirección).
+const PREFIJO_JEFATURA = {
+  JDPC:  'PROCEDIMIENTOS',
+  JDIMA: 'MANUALES',
+  JDGA:  'GESTION_AMBIENTAL',
+  JDGOI: 'GESTION_OBRAS'
+};
+
 // Permisos del checklist (columna 1):
-//   • DIRECTOR (Adrián): puede palomear la columna 1 de CUALQUIER tarea de
-//     cualquier subdirección o jefatura — es el único con ese poder universal.
-//   • Tarea de SUBDIRECCIÓN (no jefatura) → la marca también el subdirector
-//     (Capturista de esa subdirección con Jefatura VACÍA en Usuarios).
-//   • Tarea de JEFATURA → la marca el JEFE específico de esa jefatura
-//     (Capturista de esa subdirección con Jefatura = código de la jefatura).
+//   • DIRECTOR (Adrián): puede palomear la columna 1 de CUALQUIER tarea — es el
+//     único con ese poder universal.
+//   • Quién valida se decide por el ORIGEN de la tarea (el prefijo de su ID),
+//     NO por la columna donde esté ahora. Así, una tarea SPAC-### la valida
+//     SIEMPRE el subdirector de SPAC, aunque la haya repartido (arrastrado) a
+//     una jefatura; el jefe NO la valida. Como el ID no cambia al mover la
+//     tarea, el permiso es estable.
+//   • Tarea creada a nivel SUBDIRECCIÓN (ID SPAC-/SGOI-/SA-/…) → solo el
+//     subdirector (Capturista de esa subdirección con Jefatura VACÍA).
+//   • Tarea creada a nivel JEFATURA (ID JDPC-/JDIMA-/JDGA-/JDGOI-) → el JEFE
+//     específico de esa jefatura.
 function puedeMarcarResp(t) {
   if (!usuarioActual || !t) return false;
   if (usuarioActual.rol === 'Director') return true;
   if (usuarioActual.subdireccion !== t.subdireccion) return false;
-  if (t.nivel === 'jefatura') {
-    return jefaturaCodigo(usuarioActual.jefatura) === String(t.jefatura || '').toUpperCase();
+  const pre = String(t.id || '').split('-')[0].toUpperCase();
+  const jefDeOrigen = PREFIJO_JEFATURA[pre];
+  if (jefDeOrigen) {
+    // Nació en una jefatura → la valida el jefe de esa jefatura.
+    return jefaturaCodigo(usuarioActual.jefatura) === jefDeOrigen;
   }
-  // Tarea de subdirección: solo el subdirector (sin jefatura asignada).
+  // Nació a nivel subdirección → solo el subdirector (sin jefatura asignada).
   return !usuarioActual.jefatura;
 }
 function puedeMarcarDir(t) {
