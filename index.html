@@ -5094,18 +5094,23 @@ function obtenerTareasFiltradas() {
   // Capturistas: SIEMPRE filtrar por su subdirección. Si además son JEFE
   // (tienen Jefatura asignada en Usuarios), solo ven SU jefatura.
   if (usuarioActual.rol === 'Capturista') {
-    lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+    const miArea = areaDelUsuario(usuarioActual);
     const codJef = jefaturaCodigo(usuarioActual.jefatura);
     if (codJef) {
-      lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
+      // Jefe: ve las tareas donde SU jefatura participa.
+      lista = lista.filter(t => tareaEnArea(t, miArea));
+    } else {
+      // Subdirector: TODAS las de su subdirección (incl. sus jefaturas) + las de
+      // otras áreas donde su subdirección participe (multi-tablero).
+      lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion || tareaEnArea(t, miArea));
     }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica. El tab "ENLACE" representa la columna
     // STAFF, que agrupa DPAC + ENLACE, así que incluimos las dos.
     if (tabActiva === 'ENLACE') {
-      lista = lista.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE');
+      lista = lista.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF'));
     } else {
-      lista = lista.filter(t => t.subdireccion === tabActiva);
+      lista = lista.filter(t => t.subdireccion === tabActiva || tareaEnArea(t, tabActiva));
     }
   }
   // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
@@ -5369,13 +5374,14 @@ function actualizarKPIs() {
     // Pendientes por subdirección = TAREAS ACTIVAS (no Archivadas, no
     // eliminadas), incluyendo las jefaturas dentro de su subdirección madre.
     // Las validadas/completadas ya se cuentan en "Validadas" del Resumen.
-    const pend = sub => TAREAS.filter(t =>
-        !t.eliminada && t.estatus !== 'Archivada' && t.subdireccion === sub).length;
+    const activa = t => !t.eliminada && t.estatus !== 'Archivada';
+    const pend = sub => TAREAS.filter(t => activa(t) && (t.subdireccion === sub || tareaEnArea(t, sub))).length;
     document.getElementById('kpiPendSA').textContent = pend('SA');
     document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
     document.getElementById('kpiPendSPAC').textContent = pend('SPAC');
     // Staff suma DPAC + ENLACE como en la columna del tablero.
-    document.getElementById('kpiPendENLACE').textContent = pend('DPAC') + pend('ENLACE');
+    document.getElementById('kpiPendENLACE').textContent = TAREAS.filter(t =>
+        activa(t) && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF'))).length;
   } else {
     if (subCard) subCard.style.display = 'none';
     // "Pendientes por jefatura" SOLO se muestra al SUBDIRECTOR (Capturista sin
@@ -5385,11 +5391,10 @@ function actualizarKPIs() {
     const tieneJef = usuarioActual.subdireccion === 'SPAC' && !codJefUser;
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
-      const pendJef = cod => TAREAS.filter(t =>
-          !t.eliminada && t.estatus !== 'Archivada'
-          && t.subdireccion === 'SPAC' && t.nivel === 'jefatura' && t.jefatura === cod).length;
-      document.getElementById('kpiPendJDPC').textContent = pendJef('PROCEDIMIENTOS');
-      document.getElementById('kpiPendJDIMA').textContent = pendJef('MANUALES');
+      const pendJef = areaCod => TAREAS.filter(t =>
+          !t.eliminada && t.estatus !== 'Archivada' && tareaEnArea(t, areaCod)).length;
+      document.getElementById('kpiPendJDPC').textContent = pendJef('JDPC');
+      document.getElementById('kpiPendJDIMA').textContent = pendJef('JDIMA');
     }
   }
 }
@@ -5452,7 +5457,7 @@ function actualizarConteosTabs() {
   // El Director ahora SÍ ve las jefaturas (entran a la columna de su subdir),
   // por lo que el conteo de SPAC incluye SPAC + JDPC + JDIMA.
   const activas = sub => TAREAS.filter(t =>
-      !t.eliminada && t.estatus !== 'Archivada' && t.subdireccion === sub).length;
+      !t.eliminada && t.estatus !== 'Archivada' && (t.subdireccion === sub || tareaEnArea(t, sub))).length;
   const totalActivas = TAREAS.filter(t => !t.eliminada && t.estatus !== 'Archivada').length;
 
   // Contador del botón Historial: debe coincidir con lo que se ve al entrar
@@ -5511,51 +5516,53 @@ function columnasPorRol() {
     if (tabActiva === 'SPAC') {
       return [
         { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
-          color: 'azul',  filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
+          color: 'azul',  filtro: t => tareaEnArea(t, 'SPAC') },
         { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
-          color: 'indigo', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
+          color: 'indigo', filtro: t => tareaEnArea(t, 'JDPC') },
         { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
-          color: 'ambar', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
+          color: 'ambar', filtro: t => tareaEnArea(t, 'JDIMA') }
       ];
     }
     if (tabActiva === 'SGOI') {
       return [
         { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
-          color: 'olivo', filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
+          color: 'olivo', filtro: t => tareaEnArea(t, 'SGOI') },
         { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
-          color: 'verdeoscuro', filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
+          color: 'verdeoscuro', filtro: t => tareaEnArea(t, 'JDGA') },
         { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
-          color: 'cafe',  filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
+          color: 'cafe',  filtro: t => tareaEnArea(t, 'JDGOI') }
       ];
     }
     if (tabActiva === 'SA') {
       return [{ id: 'SA', titulo: 'SA', subtitulo: 'Subdirección de Archivo',
-        color: 'naranja', filtro: t => t.subdireccion === 'SA' }];
+        color: 'naranja', filtro: t => tareaEnArea(t, 'SA') }];
     }
     if (tabActiva === 'ENLACE') {
       return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
-        color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }];
+        color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }];
     }
-    // Default (TODAS): vista consolidada de 4 columnas.
+    // Default (TODAS): vista consolidada de 4 columnas. Aquí cada columna agrupa
+    // su subdirección (incl. jefaturas) y además cualquier tarea donde esa área
+    // participe (multi-tablero).
     return [
       { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
         color: 'olivo',
-        filtro: t => t.subdireccion === 'SGOI' },
+        filtro: t => t.subdireccion === 'SGOI' || tareaEnArea(t, 'SGOI') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul',
-        filtro: t => t.subdireccion === 'SPAC' },
+        filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
       { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
         color: 'naranja',
-        filtro: t => t.subdireccion === 'SA' },
+        filtro: t => t.subdireccion === 'SA' || tareaEnArea(t, 'SA') },
       { id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
         color: 'morado',
-        filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }
+        filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }
     ];
   }
   if (esEnlace()) {
     return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Enlace de Dirección',
               color: 'morado',
-              filtro: t => t.subdireccion === 'ENLACE' }];
+              filtro: t => t.subdireccion === 'ENLACE' || tareaEnArea(t, 'ENLACE') }];
   }
   const sub = usuarioActual.subdireccion;
   const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
@@ -5565,23 +5572,23 @@ function columnasPorRol() {
   // (es subdirector), las ve todas.
   const colsSPAC = [
     { id: 'SPAC',  titulo: 'SPAC',  subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
-      color: 'azul', filtro: t => t.subdireccion === 'SPAC' && t.nivel !== 'jefatura' },
+      color: 'azul', filtro: t => tareaEnArea(t, 'SPAC') },
     { id: 'JDPC',  titulo: 'JDPC',  subtitulo: 'Jefatura de Departamento de Procedimientos de Construcción',
       color: 'indigo', jefCod: 'PROCEDIMIENTOS',
-      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'PROCEDIMIENTOS' },
+      filtro: t => tareaEnArea(t, 'JDPC') },
     { id: 'JDIMA', titulo: 'JDIMA', subtitulo: 'Jefatura de Departamento de Implementación de Manuales Administrativos',
       color: 'ambar', jefCod: 'MANUALES',
-      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'MANUALES' }
+      filtro: t => tareaEnArea(t, 'JDIMA') }
   ];
   const colsSGOI = [
     { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
-      color: 'olivo', filtro: t => t.subdireccion === 'SGOI' && t.nivel !== 'jefatura' },
+      color: 'olivo', filtro: t => tareaEnArea(t, 'SGOI') },
     { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
       color: 'verdeoscuro', jefCod: 'GESTION_AMBIENTAL',
-      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_AMBIENTAL' },
+      filtro: t => tareaEnArea(t, 'JDGA') },
     { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
       color: 'cafe', jefCod: 'GESTION_OBRAS',
-      filtro: t => t.nivel === 'jefatura' && t.jefatura === 'GESTION_OBRAS' }
+      filtro: t => tareaEnArea(t, 'JDGOI') }
   ];
 
   if (sub === 'SPAC') {
@@ -5594,7 +5601,7 @@ function columnasPorRol() {
   }
   // Default: una sola columna con todo lo del perfil.
   return [{ id: sub, titulo: sub, subtitulo: '', color: 'olivo',
-            filtro: t => t.subdireccion === sub }];
+            filtro: t => t.subdireccion === sub || tareaEnArea(t, sub) }];
 }
 
 function renderizarTablero() {
@@ -5615,8 +5622,21 @@ function renderizarTablero() {
     tablero.style.justifyContent = '';
   }
 
+  // Cada tarea va a UNA sola columna de ESTE tablero (la del participante de
+  // menor jerarquía presente, es decir la ejecutora), para no duplicarla dentro
+  // del mismo tablero aunque participe en varias de sus columnas.
+  const nivelCol = id => (String(id).toUpperCase() === 'STAFF' ? 0 : nivelDeArea(id));
+  const colDeTarea = new Map();
+  lista.forEach(t => {
+    let mejorId = null, mejorNivel = -1;
+    cols.forEach(col => {
+      if (col.filtro(t) && nivelCol(col.id) > mejorNivel) { mejorNivel = nivelCol(col.id); mejorId = col.id; }
+    });
+    if (mejorId !== null) colDeTarea.set(t, mejorId);
+  });
+
   cols.forEach(col => {
-    const tareasCol = ordenarPorId(lista.filter(col.filtro));
+    const tareasCol = ordenarPorId(lista.filter(t => colDeTarea.get(t) === col.id));
     const colEl = document.createElement('div');
     // Color de la columna: morado/olivo/azul/naranja según el área.
     colEl.className = 'columna col-' + col.id.toLowerCase() + ' col-color-' + (col.color || 'olivo');
@@ -5751,43 +5771,32 @@ function agregarAreaInvolucrada(t, nombreArea) {
   t.areas_involucradas = actuales.join(', ');
 }
 
-// Arrastre del subdirector (SPAC/SGOI): suelta una tarea sobre una columna.
-//   • Sobre una JEFATURA  → la tarea pasa a esa jefatura y se palomea su área
-//     involucrada. Arrastrarla luego a la otra jefatura la mueve allá pero la
-//     paloma anterior PERMANECE (ambas quedan palomeadas).
-//   • Sobre la SUBDIRECCIÓN → la tarea regresa a nivel subdirección (las
-//     áreas involucradas no se tocan; el subdirector las edita a mano).
-// Este movimiento NO se registra en la bitácora (es reparto interno).
+// Arrastre del subdirector (SPAC/SGOI): suelta una tarea sobre la columna de una
+// jefatura para SUMARLA como participante (una "entrega"). La tarea ahora aparece
+// también en el tablero de esa jefatura y gana una columna de validación; además
+// se palomea su área involucrada. Los participantes se ACUMULAN (soltar en otra
+// jefatura agrega la suya sin quitar la anterior). NO se registra en bitácora.
 function asignarPorArrastre(idTarea, col) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || !col) return;
   // Salvaguarda: solo el subdirector y solo sobre tareas de SU subdirección.
   if (!esSubdirectorConJefaturas() || t.subdireccion !== usuarioActual.subdireccion) return;
 
-  const antesNivel = t.nivel, antesJef = t.jefatura || '', antesAreas = t.areas_involucradas || '';
-  const destinoJef = col.jefCod || '';   // '' = columna de la subdirección
+  const cod = String(col.id || '').toUpperCase();
+  if (!cod) return;
+  const parts = participantesDe(t).slice();
+  if (parts.indexOf(cod) >= 0) return;            // ya participa → nada que hacer
+  parts.push(cod);
+  parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));
+  t.participantes = parts;
+  if (col.jefCod) agregarAreaInvolucrada(t, col.subtitulo);   // palomea su área involucrada
 
-  if (destinoJef) {
-    t.nivel = 'jefatura';
-    t.jefatura = destinoJef;
-    agregarAreaInvolucrada(t, col.subtitulo);   // subtitulo = nombre completo del área
-  } else {
-    t.nivel = 'subdireccion';
-    t.jefatura = '';
-  }
-
-  // Si nada cambió (se soltó en la misma columna), no persistas ni re-renderices.
-  if (t.nivel === antesNivel && (t.jefatura || '') === antesJef
-      && (t.areas_involucradas || '') === antesAreas) return;
-
-  // Persiste el cambio (nivel/jefatura/área) SIN tocar la bitácora.
+  // Persiste participantes (+ área involucrada) SIN tocar la bitácora.
   if (enAppScript() && SESION_TOKEN) {
     google.script.run
       .withFailureHandler(function (e) { toast('No se pudo asignar: ' + (e && e.message ? e.message : e), 'error'); })
       .actualizarTarea(SESION_TOKEN, t.id, {
-        subdireccion: t.subdireccion,
-        nivel: t.nivel,
-        jefatura: t.jefatura,
+        participantes: t.participantes,
         areas: t.areas_involucradas
       });
   }
@@ -7441,6 +7450,14 @@ function participantesDe(t) {
   return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
 }
 
+// ¿La tarea pertenece al área `cod` (es uno de sus participantes)? Sirve para
+// que la tarea aparezca en el tablero de CADA participante. 'STAFF' = DPAC+ENLACE.
+function tareaEnArea(t, cod) {
+  cod = String(cod || '').toUpperCase();
+  if (cod === 'STAFF') return tareaEnArea(t, 'DPAC') || tareaEnArea(t, 'ENLACE');
+  return participantesDe(t).indexOf(cod) >= 0;
+}
+
 // ¿El ítem está palomeado por el área `cod`? Lee del mapa nuevo `item.checks`;
 // si no existe, cae a los campos legados (check_resp = área ejecutora de menor
 // nivel; check_dir = dirección).
@@ -8064,34 +8081,34 @@ function abrirNuevaTarea(tEdit) {
   // Etiqueta unificada para el campo de área dueña de la tarea.
   const etiquetaCampoSub = 'Área responsable';
 
-  // El Director, al crear, ASIGNA a una o varias subdirecciones (multi-select).
-  // Por ahora solo SPAC está configurado; las demás se muestran deshabilitadas.
-  const esDirNuevo = !esCapturista && !ed;
-  // Destino de la tarea (Director, creando): solo los acrónimos para que los
-  // chips queden compactos. El nombre completo va en el tooltip.
-  const asignablesHTML = [
-    {v:'DPAC',   n:'DPAC',   tip:'Dirección (mi tarea)'},
-    {v:'ENLACE', n:'STAFF',  tip:'Dirección · Staff'},
-    {v:'SGOI',   n:'SGOI',   tip:'Subdirección de Gestión de Obras Inducidas'},
-    {v:'SPAC',   n:'SPAC',   tip:'Subdirección de Procesos Administrativos de Construcción'},
-    {v:'SA',     n:'SA',     tip:'Subdirección de Archivo'},
-    {v:'JDGA',   n:'JDGA',   tip:'Jefatura de Gestión Ambiental'},
-    {v:'JDGOI',  n:'JDGOI',  tip:'Jefatura de Gestión de Obras Inducidas'},
-    {v:'JDPC',   n:'JDPC',   tip:'Jefatura de Procesos de Construcción'},
-    {v:'JDIMA',  n:'JDIMA',  tip:'Jefatura de Implementación de Manuales'}
-  ].map(o => `<label class="area-chip" title="${escapeHtml(o.tip)}"><input type="checkbox" value="${o.v}">${o.n}</label>`).join('');
-  const campoSub = esDirNuevo
-    ? `<div class="form-campo full">
-         <label>Destino de la tarea <span class="req">*</span></label>
-         <div class="areas-multi" id="nt_asignar">${asignablesHTML}</div>
-         <div class="form-hint">DPAC = tu tarea (queda en tu panel, En Proceso). Una subdirección = se la asignas y entra a su "Para validar"; cuando la revisen y la manden, te llega a "Por validar".</div>
-       </div>`
-    : `<div class="form-campo">
+  // "Área responsable" = participantes: MULTI-selección de chips para todos.
+  //   • Director: todas las áreas.   • Subdirector: su subdir + sus jefaturas.
+  //   • Jefe: solo su jefatura.
+  // La tarea aparece en el tablero de cada área marcada y el checklist tiene una
+  // columna por área. El área propia del usuario va marcada y bloqueada al crear
+  // (siempre participa). Al editar se pre-marcan los participantes actuales.
+  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDPC:'JDPC', JDIMA:'JDIMA' };
+  const miAreaUser = areaDelUsuario(usuarioActual);
+  const participantesEd = ed ? participantesDe(ed) : [];
+  // Códigos asignables según el rol (orden de menú).
+  let codigosAsignables = usuarioActual.rol === 'Director'
+    ? ['JDPC','JDIMA','SPAC','JDGA','JDGOI','SGOI','SA','ENLACE','DPAC']
+    : opcionesPermitidas.map(o => o.v);
+  // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
+  participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
+  const asignablesHTML = codigosAsignables.map(function (cod) {
+    // El área propia se marca y bloquea SOLO para subdirector/jefe (siempre
+    // participan). El Director elige libre (marca DPAC si quiere ser validador).
+    const fijo = !ed && cod === miAreaUser && usuarioActual.rol === 'Capturista';
+    const marcado = ed ? (participantesEd.indexOf(cod) >= 0) : fijo;
+    return '<label class="area-chip" title="' + escapeHtml(cod) + '">' +
+      '<input type="checkbox" value="' + cod + '"' + (marcado ? ' checked' : '') + (fijo ? ' disabled data-fijo="1"' : '') + '>' +
+      escapeHtml(_nombreArea[cod] || cod) + '</label>';
+  }).join('');
+  const campoSub = `<div class="form-campo full">
          <label>${etiquetaCampoSub} <span class="req">*</span></label>
-         <select id="nt_sub" required ${opcionesPermitidas.length <= 1 ? 'disabled' : ''}>${opcionesSub}</select>
-         <div class="form-hint">${opcionesPermitidas.length > 1
-           ? 'Puedes delegar la tarea a tu subdirección o a alguna de tus jefaturas.'
-           : 'Tu único destino disponible.'}</div>
+         <div class="areas-multi" id="nt_asignar">${asignablesHTML}</div>
+         <div class="form-hint">Marca todas las áreas responsables. La tarea aparecerá en el tablero de cada una y tendrá una columna de validación por área. Tu área va incluida.</div>
        </div>`;
 
   // Asegura tener responsables (hidrata del caché al instante + refresca del
@@ -8266,15 +8283,20 @@ function dzQuitar() {
   if (txt) txt.textContent = 'Arrastra un archivo aquí o haz clic para elegir';
 }
 
-function generarSiguienteId(sub) {
-  const existentes = TAREAS.filter(t => t.subdireccion === sub).map(t => parseInt(t.id.split('-')[1])).filter(n => !isNaN(n));
+function generarSiguienteId(pref) {
+  pref = String(pref || '').toUpperCase();
+  const existentes = TAREAS
+    .filter(t => String(t.id || '').split('-')[0].toUpperCase() === pref)
+    .map(t => parseInt((String(t.id).split('-')[1] || '0'), 10)).filter(n => !isNaN(n));
   const max = existentes.length ? Math.max(...existentes) : 0;
-  return sub + '-' + String(max + 1).padStart(3, '0');
+  return pref + '-' + String(max + 1).padStart(3, '0');
 }
 
 function actualizarIdSugerido() {
-  const sub = document.getElementById('nt_sub').value;
-  document.getElementById('nt_idPreview').textContent = generarSiguienteId(sub);
+  const selSub = document.getElementById('nt_sub');
+  const prev = document.getElementById('nt_idPreview');
+  if (!selSub || !prev) return;
+  prev.textContent = generarSiguienteId(selSub.value);
 }
 
 // Dropdown de "Responsable directo": al elegir "Otro (escribir)…" muestra un
@@ -8290,19 +8312,9 @@ let creandoTarea = false;   // candado anti-doble-envío al crear/editar tareas
 
 function guardarNuevaTarea() {
   if (creandoTarea) return;   // ya hay un guardado en curso → ignora el 2o clic (evita duplicados)
-  // El Director (creando) ASIGNA a una o varias subdirecciones (checkboxes);
-  // los demás usan su subdirección fija (select).
-  const esDirNuevo = usuarioActual.rol === 'Director' && !tareaEditando;
-  let subsAsignadas;
-  if (esDirNuevo) {
-    subsAsignadas = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
-  } else {
-    const selSub = document.getElementById('nt_sub');
-    subsAsignadas = selSub ? [selSub.value] : [];
-  }
-  // El value del select puede ser un código de jefatura (JDGA/JDGOI/JDPC/JDIMA);
-  // lo decodificamos al modelo {sub, nivel, jefatura}. Para checkboxes del
-  // Director se reciben solo códigos de subdir.
+  // "Área responsable" = participantes (multi-selección de chips, mismo control
+  // para todos los roles). Cada código puede ser subdirección o jefatura; se
+  // decodifica al modelo {sub, nivel, jefatura}.
   const _CAT = {
     'SGOI':  { sub:'SGOI',  nivel:'subdireccion', jef:'' },
     'JDGA':  { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_AMBIENTAL' },
@@ -8314,7 +8326,18 @@ function guardarNuevaTarea() {
     'DPAC':  { sub:'DPAC',  nivel:'subdireccion', jef:'' },
     'ENLACE':{ sub:'ENLACE',nivel:'subdireccion', jef:'' }
   };
-  const codElegido = subsAsignadas[0] || '';
+  const marcadosExplicitos = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
+  // Participantes = lo marcado. Para subdirector/jefe se incluye SIEMPRE su área
+  // propia (es ejecutor/supervisor). El Director NO se autoincluye: elige libre.
+  let participantes = marcadosExplicitos.slice();
+  if (usuarioActual.rol === 'Capturista') {
+    const miAreaSave = areaDelUsuario(usuarioActual);
+    if (miAreaSave && participantes.indexOf(miAreaSave) < 0) participantes.push(miAreaSave);
+  }
+  participantes = participantes.filter((c, i) => participantes.indexOf(c) === i);   // únicos
+  participantes.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));                     // jefatura (ejecutora) primero
+  // Área "principal" (ejecutora) → codigo/subdir/nivel/jefatura = la de menor jerarquía.
+  const codElegido = participantes[0] || '';
   const _info = _CAT[codElegido] || { sub: codElegido, nivel: 'subdireccion', jef: '' };
   const sub = _info.sub;
   const nivelElegido = _info.nivel;
@@ -8334,9 +8357,9 @@ function guardarNuevaTarea() {
   const fecha = document.getElementById('nt_fecha').value;
   const urlPegada = document.getElementById('nt_url').value.trim();
 
-  if (!subsAsignadas.length || !responsable || !tema || !fecha) {
-    toast(esDirNuevo && !subsAsignadas.length
-      ? 'Elige al menos una subdirección para asignar la tarea.'
+  if (!marcadosExplicitos.length || !responsable || !tema || !fecha) {
+    toast(!marcadosExplicitos.length
+      ? 'Marca al menos un área responsable.'
       : 'Complete los campos obligatorios marcados con *', 'error');
     return;
   }
@@ -8349,6 +8372,7 @@ function guardarNuevaTarea() {
     subdireccion: sub,
     nivel: nivelElegido,
     jefatura: jefaturaElegida,
+    participantes,
     responsable, tema, areas, acuerdos, accion, fecha, url: urlPegada
   };
 
@@ -8357,22 +8381,15 @@ function guardarNuevaTarea() {
     datos.url = url;
     if (enAppScript()) {
       if (editando) { enviarEditarTarea(datos, btn, textoBtn); return; }
-      // Crea una tarea por cada subdirección asignada (hoy solo SPAC).
-      // Cada código seleccionado puede ser subdirección O jefatura; lo
-      // decodificamos a {sub, nivel, jefatura} antes de mandar al backend.
-      subsAsignadas.forEach(function (s) {
-        var info = _CAT[s] || { sub: s, nivel: 'subdireccion', jef: '' };
-        enviarCrearTarea(Object.assign({}, datos, {
-          subdireccion: info.sub,
-          nivel: info.nivel,
-          jefatura: info.jef
-        }), btn);
-      });
+      // UNA sola tarea con varios participantes (aparece en el tablero de cada
+      // área y tiene una columna de validación por área).
+      enviarCrearTarea(datos, btn);
       return;
     }
     // Modo demo (GitHub): solo en pantalla.
     if (editando) {
       Object.assign(tareaEditando, {
+        subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         fecha_atencion: fecha, fecha_limite: fecha, url: url || tareaEditando.url
@@ -8384,7 +8401,7 @@ function guardarNuevaTarea() {
       toast('Tarea ' + idEd + ' actualizada (demo)', 'ok');
     } else {
       const nueva = {
-        id: generarSiguienteId(sub), subdireccion: sub, nivel: 'subdireccion',
+        id: generarSiguienteId(codElegido || sub), subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         descripcion: acuerdos, observaciones: accion,
