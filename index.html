@@ -4593,8 +4593,8 @@ function aplicarSesion() {
       ? (nombresJef[codJefSesion] || nombresSubs[usuarioActual.subdireccion])
       : nombresSubs[usuarioActual.subdireccion];
     const navTit = document.getElementById('navTitulo');
-    navTit.textContent = tituloNav;
-    navTit.title = tituloNav;   // si el título se recorta con "…", el completo se ve al pasar el mouse
+    navTit.textContent = tituloCapturista();   // acrónimo corto (SPAC, JDPC…), no se esconde
+    navTit.title = tituloNav;                   // nombre completo al pasar el mouse
 
     tabActiva = usuarioActual.subdireccion;
   }
@@ -7134,13 +7134,10 @@ function renderizarValidadas() {
 
 function tituloCapturista() {
   if (!usuarioActual) return 'Tablero de Tareas';
-  const nombres = {
-    'SA': 'Subdirección de Archivo',
-    'SGOI': 'Subdirección de Gestión de Obras Inducidas',
-    'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-    'ENLACE': 'Staff'
-  };
-  return nombres[usuarioActual.subdireccion] || 'Tablero de Tareas';
+  // Acrónimo corto del área (SPAC / JDPC / JDIMA / SGOI / SA / Staff) para que
+  // NO se esconda en el header. El nombre completo va en el tooltip (title).
+  const cod = areaDelUsuario(usuarioActual);
+  return (cod === 'ENLACE') ? 'Staff' : (cod || 'Tablero de Tareas');
 }
 
 function navegarMes(delta) {
