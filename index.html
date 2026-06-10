@@ -4827,22 +4827,7 @@ function aplicarSesion() {
     document.getElementById('kpisSubGrupo').style.display = 'none';
     document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
 
-    const nombresSubs = {
-      'SA': 'Subdirección de Archivo',
-      'SGOI': 'Subdirección de Gestión de Obras Inducidas',
-      'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-      'ENLACE': 'Staff'
-    };
-    const nombresJef = {
-      'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
-      'MANUALES':         'Jefatura de Departamento de Implementación de Manuales Administrativos',
-      'GESTION_AMBIENTAL':'Jefatura de Departamento de Gestión Ambiental',
-      'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
-    };
-    const codJefSesion = jefaturaCodigo(usuarioActual.jefatura);
-    const tituloNav = codJefSesion
-      ? (nombresJef[codJefSesion] || nombresSubs[usuarioActual.subdireccion])
-      : nombresSubs[usuarioActual.subdireccion];
+    const tituloNav = tituloNavCompleto();
     const navTit = document.getElementById('navTitulo');
     navTit.textContent = tituloNav;            // nombre COMPLETO en el header (ej. "Subdirección de Procesos Administrativos de Construcción")
     navTit.title = tituloNav;                   // mismo nombre completo en el tooltip
@@ -5192,10 +5177,14 @@ function responsableVisibleEnCaptura(r) {
       nombresSinApellidos(r.nombreCompleto) === nombresSinApellidos(usuarioActual.nombre);
   const miJef = jefaturaCodigo(usuarioActual.jefatura);
   if (miJef) {
-    // Jefa: SOLO ella misma (por jefatura o por nombre). Nada más.
+    // Jefa/Jefe: ella/él mismo + responsables de su jefatura. ADEMÁS, los ENLACES
+    // de su misma subdirección (Nora/César/…), para poder CREARLES tareas aunque
+    // su perfil no traiga la jefatura propia marcada. Sin esto el jefe no veía a
+    // su enlace en el selector de "Responsable directo".
     const rJef = jefaturaCodigo(r && r.jefatura);
     const rSubJ = String((r && r.subdireccion) || '').toUpperCase();
-    return esMismaPersona || (rSubJ === miSub && rJef === miJef);
+    const esEnlaceDeMiSub = !!(r && r.es_enlace && rSubJ === miSub);
+    return esMismaPersona || (rSubJ === miSub && rJef === miJef) || esEnlaceDeMiSub;
   }
   // Subdirectora: ella misma + toda su subdirección (incluidas sus jefaturas).
   if (esMismaPersona) return true;
@@ -5538,8 +5527,14 @@ function cargarTareasAppScript(preservar, onListo) {
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
-      // Seguro: las tareas de jefatura siempre se quedan en En Proceso.
-      nuevas.forEach(n => { if (n.nivel === 'jefatura') { n.estatus = 'En Proceso'; n.validada = false; n.en_validadas = false; n.confirmada = false; } });
+      // Seguro: las tareas de jefatura no entran a la cola de validación del
+      // Director (Atendida/validada), así que se normalizan a En Proceso… PERO
+      // si YA fueron COMPLETADAS (Archivada) por el subdirector/jefe, se respeta
+      // ese estado para que se queden en Historial (antes rebotaban a En Proceso
+      // en cada recarga y "no se iban" al Historial; la papelera sí funcionaba
+      // porque se persiste aparte). Aplica también a las tareas de enlace, que
+      // son nivel jefatura (JDPC/JDIMA).
+      nuevas.forEach(n => { if (n.nivel === 'jefatura' && n.estatus !== 'Archivada') { n.estatus = 'En Proceso'; n.validada = false; n.en_validadas = false; n.confirmada = false; } });
       // Inicializa los campos del modelo nuevo (checklist + observaciones duales).
       nuevas.forEach(asegurarCamposChecklist);
       TAREAS.length = 0;
@@ -7665,7 +7660,7 @@ function cambiarVista(v) {
 
   // Actualiza el título del nav según la vista
   const tituloPorVista = {
-    tablero:    usuarioActual && usuarioActual.rol === 'Director' ? 'Tablero de Tareas' : tituloCapturista(),
+    tablero:    tituloNavCompleto(),   // Director → "Tablero de Tareas"; resto → nombre COMPLETO del área
     calendario: 'Calendario',
     bitacora:   'Bitácora de Validaciones',
     carga:      'Carga por Responsable',
@@ -7778,6 +7773,31 @@ function tituloCapturista() {
   // NO se esconda en el header. El nombre completo va en el tooltip (title).
   const cod = areaDelUsuario(usuarioActual);
   return (cod === 'ENLACE') ? 'Staff' : (cod || 'Tablero de Tareas');
+}
+
+// Nombre COMPLETO del área del usuario para el header (subdirección o jefatura).
+// El Director conserva "Tablero de Tareas". Se usa tanto al iniciar el perfil
+// como en cambiarVista, para que al usar el switch "Ver como Dirección" y volver
+// NO se quede el acrónimo corto (SPAC) sino el nombre completo.
+function tituloNavCompleto() {
+  if (!usuarioActual) return 'Tablero de Tareas';
+  if (usuarioActual.rol === 'Director') return 'Tablero de Tareas';
+  const nombresSubs = {
+    'SA': 'Subdirección de Archivo',
+    'SGOI': 'Subdirección de Gestión de Obras Inducidas',
+    'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
+    'ENLACE': 'Staff'
+  };
+  const nombresJef = {
+    'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
+    'MANUALES':         'Jefatura de Departamento de Implementación de Manuales Administrativos',
+    'GESTION_AMBIENTAL':'Jefatura de Departamento de Gestión Ambiental',
+    'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
+  };
+  const codJef = jefaturaCodigo(usuarioActual.jefatura);
+  return codJef
+    ? (nombresJef[codJef] || nombresSubs[usuarioActual.subdireccion] || 'Tablero de Tareas')
+    : (nombresSubs[usuarioActual.subdireccion] || 'Tablero de Tareas');
 }
 
 function navegarMes(delta) {
