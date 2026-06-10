@@ -4604,6 +4604,17 @@ function toggleVistaDirector() {
   aplicarSesion();           // reconstruye sidebar/permisos con el rol efectivo
   cambiarVista('tablero');   // muestra el tablero (de Dirección o de SPAC)
   renderizar();              // fuerza el render con el rol/tab nuevos
+  // DIAGNÓSTICO TEMPORAL: ayuda a ver por qué el switch no muestra todo.
+  if (SOLO_LECTURA) {
+    const up = s => String(s || '').toUpperCase();
+    const noSPAC = TAREAS.filter(t => up(t.subdireccion) !== 'SPAC' && !t.eliminada).length;
+    const subs = {};
+    TAREAS.forEach(t => { if (!t.eliminada) { const s = up(t.subdireccion) || '?'; subs[s] = (subs[s] || 0) + 1; } });
+    alert('DIAGNÓSTICO SWITCH\n' +
+      'rol=' + usuarioActual.rol + '   tab=' + tabActiva + '\n' +
+      'TAREAS cargadas=' + TAREAS.length + '   no-SPAC=' + noSPAC + '\n' +
+      'por subdirección: ' + JSON.stringify(subs));
+  }
 }
 
 // Muestra/oculta la píldora y ajusta su texto/estado.
