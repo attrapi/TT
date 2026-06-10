@@ -1297,10 +1297,11 @@
   .kpi-pie-wrap {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     border-left: 1px solid var(--linea);
-    padding-left: 20px;
-    flex-shrink: 0;
+    padding-left: 16px;
+    flex-shrink: 1;
+    min-width: 0;
   }
   .kpi-pie {
     --p1: 0;   /* % en proceso (no vencidas) */
@@ -1346,17 +1347,9 @@
   /* Etiqueta de porcentaje sobre cada rebanada del donut. JS calcula la
      posición con left/top inline (radio fijo desde el centro hacia el
      ángulo medio del slice). */
-  .kpi-pie-pct {
-    position: absolute;
-    font-size: 9px;
-    font-weight: 800;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.45);
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    white-space: nowrap;
-  }
-  .kpi-pie-pct.oculto { display: none; }
+  /* Los % sobre las rebanadas se ocultan: el donut es chico y se salían; la
+     leyenda de la derecha ya muestra los conteos. */
+  .kpi-pie-pct { display: none; }
   .kpi-pie-total {
     font-family: var(--serif);
     font-size: 22px;
