@@ -1265,8 +1265,8 @@
   .kpis-fila {
     display: flex;
     align-items: flex-start;
-    justify-content: space-around;   /* reparte los círculos sin encimarlos */
-    gap: 12px;
+    justify-content: center;   /* círculos agrupados (no esparcidos a las orillas) */
+    gap: 22px;
     flex: 1;
     min-width: 0;
   }
@@ -1306,8 +1306,8 @@
     --p2: 0;   /* % vencidas */
     --p3: 0;   /* % atendidas */
     --p4: 0;   /* % archivadas */
-    width: 102px;
-    height: 102px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background:
       conic-gradient(
@@ -1410,8 +1410,8 @@
   }
 
   .kpi-valor {
-    width: 62px;
-    height: 62px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     background: white;
     border: 3px solid var(--guinda);
@@ -1420,7 +1420,7 @@
     justify-content: center;
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 24px;
+    font-size: 21px;
     line-height: 1;
     color: var(--guinda);
     box-shadow: 0 4px 14px rgba(105,28,50,0.12), inset 0 -3px 6px rgba(0,0,0,0.04);
