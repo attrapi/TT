@@ -1765,6 +1765,36 @@
   /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
   .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
 
+  /* Switch "Ver como Dirección" (solo lectura) — píldora tipo toggle. */
+  .vista-dir-switch { margin: 0 0 14px; }
+  .vista-dir-pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 7px 14px 7px 8px; border-radius: 999px; cursor: pointer;
+    background: #fff; border: 1.5px solid var(--linea-fuerte);
+    color: var(--tinta); font-size: 13px; font-weight: 700; font-family: var(--sans);
+    transition: all .15s;
+  }
+  .vista-dir-pill:hover { border-color: var(--guinda); }
+  .vista-dir-knob {
+    width: 30px; height: 18px; border-radius: 999px; background: var(--linea-fuerte);
+    position: relative; transition: background .15s; flex-shrink: 0;
+  }
+  .vista-dir-knob::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    border-radius: 50%; background: #fff; transition: transform .15s;
+  }
+  .vista-dir-pill.activo { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); }
+  .vista-dir-pill.activo .vista-dir-knob { background: var(--guinda); }
+  .vista-dir-pill.activo .vista-dir-knob::after { transform: translateX(12px); }
+
+  /* Banner discreto cuando Mario ve como Dirección (solo lectura). */
+  body.solo-lectura .app-main::before {
+    content: '👁  Vista de Dirección — SOLO LECTURA';
+    display: block; text-align: center; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.04em; color: var(--guinda); background: var(--guinda-tenue);
+    padding: 6px; border-bottom: 1px solid var(--guinda);
+  }
+
   .btn-actualizar:hover { background: var(--guinda); color: white; }
   .btn-actualizar:disabled { opacity: 0.6; cursor: wait; }
   .btn-actualizar svg { width: 14px; height: 14px; }
@@ -4192,6 +4222,13 @@
   </div>
 
   <div class="validadas-wrap historial-caja" id="papeleraWrap">
+    <!-- Switch (solo subdirector SPAC): ver TODO como Dirección, en solo lectura. -->
+    <div class="vista-dir-switch" id="vistaDirSwitch" style="display:none;">
+      <button type="button" class="vista-dir-pill" id="vistaDirPill" onclick="toggleVistaDirector()" title="Ver el tablero de Dirección en solo lectura">
+        <span class="vista-dir-knob"></span>
+        <span class="vista-dir-txt" id="vistaDirTxt">Ver como Dirección (solo lectura)</span>
+      </button>
+    </div>
     <div class="bitacora-titulo-fila">
       <h2>🗑️ HISTORIAL</h2>
       <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
@@ -4520,6 +4557,49 @@ function iniciarSincronizacionSPAC() {
 // ============== ESTADO ==============
 
 let usuarioActual = null;
+// Vista "como Dirección" (solo lectura) para el subdirector de SPAC: ve TODO
+// como Adrián pero no puede crear/mover/editar/validar/borrar (sin rastro).
+let SOLO_LECTURA = false;
+let usuarioReal = null;   // guarda al usuario real mientras se ve como Dirección
+function soloLectura() { return !!SOLO_LECTURA; }
+
+// ¿El usuario REAL (no la vista) es el subdirector de SPAC? (quien puede usar el switch)
+function esSubdirectorSPACReal() {
+  const u = usuarioReal || usuarioActual;
+  return !!(u && u.rol === 'Capturista' && u.subdireccion === 'SPAC' && !jefaturaCodigo(u.jefatura) && !u.es_enlace);
+}
+
+// Entra/sale de la vista "como Dirección" (solo lectura).
+function toggleVistaDirector() {
+  if (!esSubdirectorSPACReal()) return;
+  if (!SOLO_LECTURA) {
+    usuarioReal = usuarioActual;
+    usuarioActual = {
+      email: usuarioReal.email, nombre: usuarioReal.nombre, iniciales: usuarioReal.iniciales,
+      rol: 'Director', subdireccion: 'TODAS', jefatura: '', es_enlace: false, nombre_corto: ''
+    };
+    SOLO_LECTURA = true;
+    tabActiva = 'TODAS';
+  } else {
+    usuarioActual = usuarioReal; usuarioReal = null;
+    SOLO_LECTURA = false;
+    tabActiva = usuarioActual.subdireccion;
+  }
+  document.body.classList.toggle('solo-lectura', SOLO_LECTURA);
+  aplicarSesion();           // reconstruye sidebar/permisos con el rol efectivo
+  cambiarVista('tablero');   // muestra el tablero (de Dirección o de SPAC)
+}
+
+// Muestra/oculta la píldora y ajusta su texto/estado.
+function actualizarVistaDirPill() {
+  const sw = document.getElementById('vistaDirSwitch');
+  if (!sw) return;
+  sw.style.display = esSubdirectorSPACReal() ? '' : 'none';
+  const txt = document.getElementById('vistaDirTxt');
+  if (txt) txt.textContent = SOLO_LECTURA ? 'Volver a mi vista (SPAC)' : 'Ver como Dirección (solo lectura)';
+  const pill = document.getElementById('vistaDirPill');
+  if (pill) pill.classList.toggle('activo', SOLO_LECTURA);
+}
 let tabActiva = 'TODAS';
 let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdirección)
 let prioridadActiva = 'TODAS';
@@ -4702,6 +4782,13 @@ function aplicarSesion() {
     if (navTitEl) navTitEl.textContent = 'Enlace';
     tabActiva = usuarioActual.subdireccion;
   }
+
+  // Vista "como Dirección" (solo lectura): sin crear tareas.
+  if (SOLO_LECTURA) {
+    const bnRO = document.getElementById('btnNuevo');
+    if (bnRO) bnRO.style.display = 'none';
+  }
+  actualizarVistaDirPill();   // muestra/oculta la píldora del switch
 
   cambiarTab(tabActiva);
 }
@@ -5518,6 +5605,7 @@ function usuarioPuedeFinalizar(t) {
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual || !t) return false;
+  if (SOLO_LECTURA) return false;     // vista de Dirección = solo lectura
   if (esEnlaceUser()) return false;   // el enlace no borra/edita la tarea
   // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
   // Puede enviar cualquiera al Historial.
@@ -6066,6 +6154,7 @@ function renderizarEnlaces() {
 // Sella la metadata de finalización/validación según el destino; para
 // transiciones "hacia atrás" no borra esa metadata histórica.
 function moverTarea(idTarea, nuevoEstatus) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t || t.estatus === nuevoEstatus) return;
 
@@ -6130,7 +6219,8 @@ function moverTarea(idTarea, nuevoEstatus) {
 // Solo ellos pueden arrastrar tareas entre sus columnas (subdirección ↔ jefaturas)
 // para repartirlas y palomear automáticamente el "área involucrada".
 function esSubdirectorConJefaturas() {
-  return !!usuarioActual
+  return !SOLO_LECTURA
+    && !!usuarioActual
     && usuarioActual.rol === 'Capturista'
     && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
     && !jefaturaCodigo(usuarioActual.jefatura)
@@ -6626,6 +6716,7 @@ function reabrir(idTarea) {
 // Eliminar = enviar a la PAPELERA (soft-delete): la tarea sale del tablero pero
 // se puede restaurar. El borrado físico del Excel se hace desde la Papelera.
 function eliminarTarea(idTarea) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso para eliminar esta tarea.', 'error'); return; }
@@ -6644,6 +6735,7 @@ function eliminarTarea(idTarea) {
 
 // Restaurar desde la Papelera: vuelve a su columna (donde estaba).
 function restaurarTarea(idTarea) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
@@ -6674,6 +6766,7 @@ function restaurarTarea(idTarea) {
 
 // Eliminar DEFINITIVAMENTE: borra la fila del Excel (no se puede deshacer).
 function eliminarDefinitivo(idTarea) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!usuarioPuedeEliminar(t)) { toast('No tienes permiso.', 'error'); return; }
@@ -6758,6 +6851,7 @@ function renderizarPapelera() {
   const grid = document.getElementById('papeleraGrid');
   const meta = document.getElementById('papeleraMeta');
   if (!grid) return;
+  actualizarVistaDirPill();   // muestra el switch "Ver como Dirección" si aplica
   const lista = ordenarPorFecha(tareasPapelera());
   if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
   const cont = document.getElementById('sidebarConteoPapelera');
@@ -7939,6 +8033,7 @@ function fijarMarcadoArea(item, t, cod, valor, autor, fecha) {
 // la columna de dirección (DPAC/ENLACE), y solo si participa.
 function puedeMarcarArea(t, cod) {
   if (!usuarioActual || !t) return false;
+  if (SOLO_LECTURA) return false;   // vista de Dirección = solo lectura
   cod = String(cod || '').toUpperCase();
   if (!participantesDe(t).includes(cod)) return false;
   if (usuarioActual.rol === 'Director') return cod === 'DPAC' || cod === 'ENLACE';
@@ -8262,6 +8357,7 @@ function guardarObsDir(idTarea, valor) { guardarObsArea(idTarea, 'DPAC', valor);
 //     subdirección, sin jefatura propia) y también el Director.
 function puedeCompletar(t) {
   if (!usuarioActual || !t) return false;
+  if (SOLO_LECTURA) return false;     // vista de Dirección = solo lectura
   if (esEnlaceUser()) return false;   // el enlace no valida/completa
   const cols = participantesDe(t);
   if (!cols.length) return false;
@@ -8274,6 +8370,7 @@ function puedeCompletar(t) {
 // están en verde (responsable + director), aparece el botón verde "Completada"
 // y al darle clic la tarea pasa directo al Historial (status Archivada).
 function completarTarea(idTarea) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!puedeCompletar(t)) {
@@ -8329,6 +8426,7 @@ function mergearChecklist(viejo, textoNuevo) {
 
 // Agrega un nuevo ítem al checklist (desde el modal de detalle).
 function agregarItemChecklist(idTarea, texto) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   const textoLimpio = String(texto || '').trim();
@@ -8709,6 +8807,7 @@ function abrirNuevaTarea(tEdit) {
 // subdirector de esa subdirección).
 function usuarioPuedeEditar(t) {
   if (!usuarioActual || !t) return false;
+  if (SOLO_LECTURA) return false;   // vista de Dirección = solo lectura
   // En el modelo nuevo el Director ve TODAS las áreas y jefaturas en su
   // tablero — por lo tanto puede editar cualquier tarjeta (Staff, subdirección
   // o jefatura). El subdirector solo edita las de su subdirección.
