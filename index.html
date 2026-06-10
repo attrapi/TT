@@ -4050,7 +4050,7 @@
           <span class="sidebar-label">Reportes</span>
         </button>
         <!-- Organigrama: abre el sitio del organigrama en pestaña nueva. -->
-        <button class="sidebar-item" onclick="window.open('https://attrapi.github.io/organigramaATTRAPI/', '_blank', 'noopener')" title="Abrir el organigrama (nueva pestaña)">
+        <button class="sidebar-item" id="sidebarOrganigrama" onclick="window.open('https://attrapi.github.io/organigramaATTRAPI/', '_blank', 'noopener')" title="Abrir el organigrama (nueva pestaña)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="3" y="17" width="6" height="5" rx="1"/><rect x="15" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M6 17v-2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2"/></svg>
           <span class="sidebar-label">Organigrama</span>
         </button>
@@ -4707,6 +4707,9 @@ function aplicarSesion() {
   });
   const btnNuevoReset = document.getElementById('btnNuevo');
   if (btnNuevoReset) btnNuevoReset.style.display = '';
+  // Re-muestra los items de Gestión (Bitácora/Carga/Reportes/Organigrama); luego
+  // cada rol oculta lo que no le toca. Evita que se "peguen" ocultos.
+  if (grupoDir) grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) { b.style.display = ''; });
 
   jefaturaActiva = null;
 
@@ -4796,9 +4799,15 @@ function aplicarSesion() {
   }
 
   // ENLACE: panel mínimo. En el menú izquierdo: "Enlace" (su tablero) +
-  // "Historial" (sus tareas desechadas). Sin "Gestión", sin crear, sin "Enlaces".
+  // "Historial" (sus tareas) + SOLO "Organigrama" dentro de Gestión.
   if (esEnlaceUser()) {
-    if (grupoDir) grupoDir.style.display = 'none';
+    // Muestra el grupo Gestión pero SOLO con el botón "Organigrama".
+    if (grupoDir) {
+      grupoDir.style.display = '';
+      grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) {
+        b.style.display = (b.id === 'sidebarOrganigrama') ? '' : 'none';
+      });
+    }
     if (grupoSubs) grupoSubs.style.display = '';
     if (tituloSubs) tituloSubs.textContent = 'Enlace';
     subItems.forEach(function (b) {
