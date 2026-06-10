@@ -4654,15 +4654,23 @@ function aplicarSesion() {
     sidebarEnlacesBtn.style.display = esSubSPAC ? '' : 'none';
   }
 
-  // ENLACE: panel mínimo — solo SUS tareas + Historial. Sin pestañas de
-  // subdirección, sin "Gestión" (Bitácora/Carga/Reportes), sin crear tareas.
+  // ENLACE: panel mínimo. En el menú izquierdo SOLO un item "Enlace" (su
+  // tablero). Sin "Gestión", sin Historial, sin crear tareas, sin "Enlaces".
   if (esEnlaceUser()) {
-    if (grupoSubs) grupoSubs.style.display = 'none';
-    if (grupoDir)  grupoDir.style.display  = 'none';
+    if (grupoDir) grupoDir.style.display = 'none';
+    if (grupoSubs) grupoSubs.style.display = '';
+    if (tituloSubs) tituloSubs.textContent = 'Enlace';
+    subItems.forEach(function (b) {
+      const esSuyo = b.dataset.sub === usuarioActual.subdireccion;
+      b.style.display = esSuyo ? '' : 'none';
+      if (esSuyo) { const lbl = b.querySelector('.sidebar-label'); if (lbl) lbl.textContent = 'Enlace'; }
+    });
+    if (sidebarEnlacesBtn) sidebarEnlacesBtn.style.display = 'none';
+    if (btnHistorial) btnHistorial.style.display = 'none';
     const btnNuevoEl = document.getElementById('btnNuevo');
     if (btnNuevoEl) btnNuevoEl.style.display = 'none';
     const navTitEl = document.getElementById('navTitulo');
-    if (navTitEl) navTitEl.textContent = 'Mis tareas';
+    if (navTitEl) navTitEl.textContent = 'Enlace';
     tabActiva = usuarioActual.subdireccion;
   }
 
