@@ -2521,6 +2521,10 @@
   /* Eliminar definitivo (Historial): rojo; al pasar el cursor cambia a gris. */
   .btn-pildora-eliminar { background: var(--rojo); color: #fff; border: none; cursor: pointer; }
   .btn-pildora-eliminar:hover { background: #6b7280; }
+  /* En el Historial los botones Restaurar / Eliminar definitivo van MUY chicos
+     (la tarjeta es compacta: solo ID + Tema). */
+  .historial-col-body .btn-pildora { padding: 2px 8px; font-size: 9px; gap: 3px; }
+  .historial-col-body .btn-pildora svg { width: 9px; height: 9px; }
   /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
   .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
   .btn-pildora-devolver:hover { background: #ffedd5; }
