@@ -5879,6 +5879,14 @@ function renderizarEnlaces() {
   const enlaces = (RESPONSABLES || []).filter(function (r) {
     return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC';
   });
+  // Orden fijo de las columnas: Nora · César · Daniel (el resto al final).
+  const ORDEN_ENLACES = ['nora', 'cesar', 'daniel'];
+  const ordenEnlace = function (nombre) {
+    const n = String(nombre || '').toLowerCase();
+    for (let k = 0; k < ORDEN_ENLACES.length; k++) if (n.indexOf(ORDEN_ENLACES[k]) >= 0) return k;
+    return 99;
+  };
+  enlaces.sort(function (a, b) { return ordenEnlace(a.nombreCompleto) - ordenEnlace(b.nombreCompleto); });
   wrap.innerHTML = '';
   if (!enlaces.length) {
     wrap.style.gridTemplateColumns = 'minmax(0, 1fr)';
