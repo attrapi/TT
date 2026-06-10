@@ -4567,6 +4567,24 @@ function aplicarSesion() {
   const grupoDir = document.getElementById('sidebarGrupoDirector');
   const tituloSubs = document.getElementById('sidebarTituloSubs');
 
+  // RESET de estado que algunos roles mutan (etiqueta de la subdirección a
+  // "Enlace", botón "Nueva Tarea" oculto). Sin esto, al cambiar de cuenta SIN
+  // recargar la página, ese estado se "pega" (p. ej. Mario veía su item como
+  // "Enlace" y sin "Nueva Tarea" tras una sesión de enlace).
+  const LBL_SUB_CANON = {
+    'TODAS': 'Vista Consolidada',
+    'SGOI': 'Subdirección de Gestión de Obras Inducidas',
+    'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
+    'SA': 'Subdirección de Archivo',
+    'ENLACE': 'Staff'
+  };
+  subItems.forEach(function (b) {
+    const lbl = b.querySelector('.sidebar-label');
+    if (lbl && LBL_SUB_CANON[b.dataset.sub]) lbl.textContent = LBL_SUB_CANON[b.dataset.sub];
+  });
+  const btnNuevoReset = document.getElementById('btnNuevo');
+  if (btnNuevoReset) btnNuevoReset.style.display = '';
+
   jefaturaActiva = null;
 
   if (usuarioActual.rol === 'Director') {
