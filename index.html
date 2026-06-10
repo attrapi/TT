@@ -1284,6 +1284,10 @@
     min-width: 0;
   }
   .kpis-fila .kpi { flex: 0 1 auto; min-width: 0; }   /* se ajustan si falta espacio (no desbordan) */
+  /* En las cards de "Pendientes" (por subdirección/jefatura/enlace) cada círculo
+     ocupa un slot del MISMO ancho, así quedan parejos aunque sus etiquetas midan
+     distinto ("Procesos Construcción" vs "Archivo"). */
+  .sub-card .kpis-fila .kpi { flex: 1 1 0; }
 
   /* Chip pequeño "Vencidas" — ya no merece un círculo grande porque cada
      tarjeta ya muestra su propio señalador "vencida"; aquí solo damos el
