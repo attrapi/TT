@@ -4654,8 +4654,8 @@ function aplicarSesion() {
     sidebarEnlacesBtn.style.display = esSubSPAC ? '' : 'none';
   }
 
-  // ENLACE: panel mínimo. En el menú izquierdo SOLO un item "Enlace" (su
-  // tablero). Sin "Gestión", sin Historial, sin crear tareas, sin "Enlaces".
+  // ENLACE: panel mínimo. En el menú izquierdo: "Enlace" (su tablero) +
+  // "Historial" (sus tareas desechadas). Sin "Gestión", sin crear, sin "Enlaces".
   if (esEnlaceUser()) {
     if (grupoDir) grupoDir.style.display = 'none';
     if (grupoSubs) grupoSubs.style.display = '';
@@ -4666,7 +4666,8 @@ function aplicarSesion() {
       if (esSuyo) { const lbl = b.querySelector('.sidebar-label'); if (lbl) lbl.textContent = 'Enlace'; }
     });
     if (sidebarEnlacesBtn) sidebarEnlacesBtn.style.display = 'none';
-    if (btnHistorial) btnHistorial.style.display = 'none';
+    // Historial SÍ visible: el enlace ve las tareas suyas que se desechan/archivan.
+    if (btnHistorial) btnHistorial.style.display = '';
     const btnNuevoEl = document.getElementById('btnNuevo');
     if (btnNuevoEl) btnNuevoEl.style.display = 'none';
     const navTitEl = document.getElementById('navTitulo');
@@ -5295,6 +5296,12 @@ function obtenerTareasFiltradas() {
   }
   // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
 
+  // El Director NO ve las tareas asignadas a un ENLACE (son seguimiento interno
+  // de SPAC entre el subdirector y sus enlaces).
+  if (usuarioActual.rol === 'Director') {
+    lista = lista.filter(t => !esTareaDeEnlace(t));
+  }
+
   if (prioridadActiva !== 'TODAS') {
     // Prioridad calculada por proximidad de fecha (no por el campo estático).
     lista = lista.filter(t => prioridadDe(t) === prioridadActiva);
@@ -5368,6 +5375,14 @@ function esResponsableDe(t, u) {
   if (!corto && !full) return false;
   return String(t.responsable || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
     .some(n => n === corto || n === full);
+}
+// ¿La tarea está asignada a algún ENLACE? (responsable = una persona marcada
+// es_enlace). El Director NO ve estas tareas; sí las ve el subdirector y el enlace.
+function esTareaDeEnlace(t) {
+  if (!t) return false;
+  return (RESPONSABLES || []).some(function (r) {
+    return r && r.es_enlace && esResponsableDe(t, { nombre: r.nombreCompleto });
+  });
 }
 
 function etiquetaEstatus(estatus) {
@@ -5519,6 +5534,7 @@ function actualizarKPIs() {
   const enHistorial = TAREAS.filter(t => {
     if (!(t.eliminada || t.estatus === 'Archivada')) return false;
     if (usuarioActual.rol === 'Director') {
+      if (esTareaDeEnlace(t)) return false;   // el Director no ve tareas de enlace
       return tabActiva === 'TODAS' || t.subdireccion === tabActiva
           || (tabActiva === 'ENLACE' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
     }
@@ -6593,7 +6609,12 @@ function tareasPapelera() {
   // Historial incluye DOS cosas: las tareas COMPLETADAS (estatus=Archivada)
   // y las ELIMINADAS (eliminada=true).
   let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
-  if (usuarioActual.rol === 'Director') return lista;
+  // El Director NO ve las tareas de enlace (seguimiento interno de SPAC).
+  if (usuarioActual.rol === 'Director') return lista.filter(t => !esTareaDeEnlace(t));
+  // Enlace SPAC: solo SU historial (donde fue responsable directo).
+  if (esEnlaceUser()) {
+    return lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
+  }
   // Staff (Samanta): grupo compartido DPAC + ENLACE (mismo criterio que la
   // columna Staff del tablero). Así ve el historial completo de la dirección.
   if (esEnlace()) {
