@@ -2521,9 +2521,13 @@
   /* Eliminar definitivo (Historial): rojo; al pasar el cursor cambia a gris. */
   .btn-pildora-eliminar { background: var(--rojo); color: #fff; border: none; cursor: pointer; }
   .btn-pildora-eliminar:hover { background: #6b7280; }
-  /* En el Historial los botones Restaurar / Eliminar definitivo van MUY chicos
-     (la tarjeta es compacta: solo ID + Tema). */
-  .historial-col-body .btn-pildora { padding: 2px 8px; font-size: 9px; gap: 3px; }
+  /* En el Historial los botones Restaurar / Eliminar definitivo: chiquitos,
+     del MISMO tamaño (ancho fijo, no crecen) y alineados a la IZQUIERDA. */
+  .historial-col-body .tarjeta-acciones { justify-content: flex-start; gap: 5px; }
+  .historial-col-body .btn-pildora {
+    width: 90px; flex: 0 0 90px; justify-content: center;
+    padding: 3px 6px; font-size: 9px; gap: 3px; white-space: nowrap;
+  }
   .historial-col-body .btn-pildora svg { width: 9px; height: 9px; }
   /* Devolver: naranja suave, para distinguirlo de Validar (verde). */
   .btn-pildora-devolver { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
@@ -4590,8 +4594,10 @@ function toggleVistaDirector() {
     tabActiva = usuarioActual.subdireccion;
   }
   document.body.classList.toggle('solo-lectura', SOLO_LECTURA);
+  jefaturaActiva = null;
   aplicarSesion();           // reconstruye sidebar/permisos con el rol efectivo
   cambiarVista('tablero');   // muestra el tablero (de Dirección o de SPAC)
+  renderizar();              // fuerza el render con el rol/tab nuevos
 }
 
 // Muestra/oculta la píldora y ajusta su texto/estado.
@@ -6939,8 +6945,8 @@ function renderizarPapelera() {
             '</dl>';
           if (puedeGestionarHistorial(t)) {
             html += '<div class="tarjeta-acciones">' +
-              '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')">↺ Restaurar</button>' +
-              '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')">🗑 Eliminar definitivo</button>' +
+              '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')" title="Restaurar">↺ Restaurar</button>' +
+              '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')" title="Eliminar definitivo">🗑 Eliminar</button>' +
             '</div>';
           }
           card.innerHTML = html;
