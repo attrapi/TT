@@ -4823,8 +4823,8 @@ function aplicarSesion() {
   if (brandDpac) {
     const esDirBrand = usuarioActual.rol === 'Director';
     brandDpac.classList.toggle('dpac-pill', esDirBrand);
-    brandDpac.onclick = esDirBrand ? function () { window.location.href = 'https://attrapi.github.io/DPAC/'; } : null;
-    brandDpac.title = esDirBrand ? 'Ir al portal DPAC' : '';
+    brandDpac.onclick = esDirBrand ? function () { window.open('https://attrapi.github.io/DPAC/', '_blank', 'noopener'); } : null;
+    brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
   }
 
   cambiarTab(tabActiva);
