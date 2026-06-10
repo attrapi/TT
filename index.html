@@ -4010,12 +4010,10 @@
               <div class="kpi-valor" id="kpiArchivadas">0</div>
               <div class="kpi-label">Archivadas</div>
             </div>
-          </div>
-          <!-- Vencidas no merece círculo grande: cada tarjeta ya lleva su
-               señalador "vencida". Aquí solo el conteo como pista global. -->
-          <div class="kpi-vencidas-chip oculto" id="kpiVencidasChip">
-            <span>Vencidas</span>
-            <span class="kpi-vencidas-chip-num" id="kpiHoy">0</span>
+            <div class="kpi kpi-rojo">
+              <div class="kpi-valor" id="kpiVencidasCirc">0</div>
+              <div class="kpi-label">Vencidas</div>
+            </div>
           </div>
         </div>
         <!-- Gráfica de queso (donut) — solo Director. Distribución de tareas
@@ -5486,10 +5484,8 @@ function actualizarKPIs() {
   document.getElementById('kpiSemana').textContent     = listasN;
   document.getElementById('kpiArchivadas').textContent = archivadas;
 
-  const vencidasChip = document.getElementById('kpiVencidasChip');
-  const kpiHoy = document.getElementById('kpiHoy');
-  if (kpiHoy) kpiHoy.textContent = vencidas;
-  if (vencidasChip) vencidasChip.classList.toggle('oculto', vencidas === 0);
+  const vencCirc = document.getElementById('kpiVencidasCirc');
+  if (vencCirc) vencCirc.textContent = vencidas;
 
   // Donut: En Proceso (sin vencer) · Vencidas · Listas para completar · Validadas.
   const lblAt = document.getElementById('kpiPieLblAtendidas');
