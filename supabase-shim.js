@@ -56,7 +56,8 @@
       rol: (p && p.rol === 'Director') ? 'Director' : 'Capturista',
       subdireccion: p ? String(p.subdireccion || '').toUpperCase() : '',
       jefatura: p ? (p.jefatura || '') : '',
-      es_enlace: !!(p && p.es_enlace)
+      es_enlace: !!(p && p.es_enlace),
+      nombre_corto: p ? (p.nombre_corto || '') : ''
     };
   }
   function areaDeDatos(d) {
@@ -142,10 +143,10 @@
       }) };
     },
     listarResponsables: async function () {
-      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura, es_enlace').eq('activo', true);
+      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura, es_enlace, nombre_corto').eq('activo', true);
       if (r.error || !r.data) return { ok: true, responsables: [] };
       var out = r.data.filter(function (p) { return p.rol !== 'Director' && (p.nombre || '').trim(); })
-        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '', es_enlace: !!p.es_enlace }; });
+        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '', es_enlace: !!p.es_enlace, nombre_corto: p.nombre_corto || '' }; });
       return { ok: true, responsables: out };
     },
     listarTelefonos: async function () {
@@ -187,6 +188,9 @@
         url: datos.url || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
+      // Si la app manda un código (ej. enlaces: NPF-001), se respeta; si no, el
+      // trigger lo autogenera por área (SPAC-###, etc.).
+      if (datos.codigo) fila.codigo = String(datos.codigo).toUpperCase();
       // Solo se incluyen si la app los manda. Así, si la columna aún no existe
       // en la base, la creación sigue funcionando.
       if (Array.isArray(datos.participantes) && datos.participantes.length) fila.participantes = datos.participantes;

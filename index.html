@@ -4892,6 +4892,7 @@ function aplicarUsuarioServidor(res) {
     subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
     jefatura: u.jefatura || '',
     es_enlace: !!u.es_enlace,         // ENLACE: vista limitada (solo sus tareas)
+    nombre_corto: u.nombre_corto || '',
     iniciales: inicialesDe(u.nombre)
   };
   aplicarSesion();
@@ -4993,7 +4994,7 @@ function opcionesResponsableHTML(valSel) {
   // opción seleccionada: una tarea pudo guardar el responsable como nombre
   // completo (viejo) o corto (nuevo); ambos deben mapear a la MISMA opción.
   const conocidos = new Set();
-  lista.forEach(r => { conocidos.add(nombresSinApellidos(r.nombreCompleto)); conocidos.add(r.nombreCompleto); });
+  lista.forEach(r => { conocidos.add(nombreCortoResp(r)); conocidos.add(nombresSinApellidos(r.nombreCompleto)); conocidos.add(r.nombreCompleto); });
   let html = '<option value="">Selecciona responsable…</option>';
   // Conserva un valor que de plano no esté en la lista (texto libre antiguo).
   if (valSel && valSel !== '__OTRO__' && !conocidos.has(valSel)) {
@@ -5010,9 +5011,9 @@ function opcionesResponsableHTML(valSel) {
     { cod: '',       label: 'Otros' }
   ];
   const opcion = r => {
-    const v = nombresSinApellidos(r.nombreCompleto);
-    // Selecciona tanto si el valor guardado es el nombre corto como el completo.
-    const sel = (valSel === v || valSel === r.nombreCompleto);
+    const v = nombreCortoResp(r);   // nombre_corto del perfil, o derivado
+    // Selecciona si el valor guardado es el nombre corto, el derivado o el completo.
+    const sel = (valSel === v || valSel === nombresSinApellidos(r.nombreCompleto) || valSel === r.nombreCompleto);
     return '<option value="' + escapeHtml(v) + '"' + (sel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
   };
   GRUPOS.forEach(g => {
@@ -5097,6 +5098,31 @@ function nombresSinApellidos(nombre) {
   var particulas = ['de', 'la', 'las', 'los', 'del', 'y', 'e', 'san', 'santa'];
   while (corte < p.length && particulas.indexOf((p[corte - 1] || '').toLowerCase()) >= 0) corte++;
   return p.slice(0, corte).join(' ');
+}
+
+// Nombre a mostrar en "Responsable directo": el `nombre_corto` del perfil si lo
+// tiene (ej. 'Nora Franco'), si no se deriva con nombresSinApellidos.
+function nombreCortoResp(r) {
+  if (!r) return '';
+  if (typeof r === 'string') return nombresSinApellidos(r);
+  return (r.nombre_corto && String(r.nombre_corto).trim()) || nombresSinApellidos(r.nombreCompleto || r.nombre || '');
+}
+
+// Iniciales para el ID de un enlace: primera letra de cada palabra significativa
+// (sin título ni partículas). 'Daniel de la Garza Cordero' → 'DGC'.
+function inicialesEnlace(nombreCompleto) {
+  const limpio = String(nombreCompleto || '').replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
+  const particulas = ['de', 'la', 'las', 'los', 'del', 'y', 'e'];
+  return limpio.split(/\s+/).filter(w => w && particulas.indexOf(w.toLowerCase()) < 0)
+    .map(w => w.charAt(0).toUpperCase()).join('');
+}
+
+// Si la cadena de responsable corresponde a un ENLACE, lo devuelve (de RESPONSABLES).
+function enlaceDeResponsable(responsableStr) {
+  const nombres = String(responsableStr || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!nombres.length) return null;
+  return (RESPONSABLES || []).find(r => r && r.es_enlace
+    && nombres.indexOf(nombreCortoResp(r).toLowerCase()) >= 0) || null;
 }
 
 // Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
@@ -5404,18 +5430,20 @@ function esEnlaceUser(u) {
 // varios nombres separados por coma; el dropdown guarda el nombre corto.)
 function esResponsableDe(t, u) {
   if (!t || !u) return false;
-  const corto = nombresSinApellidos(u.nombre || '').trim().toLowerCase();
-  const nom   = String(u.nombre || '').trim().toLowerCase();   // nombre completo
-  if (!corto && !nom) return false;
+  const corto  = (u.nombre_corto && String(u.nombre_corto).trim()) || nombresSinApellidos(u.nombre || '');
+  const cortoL = corto.trim().toLowerCase();
+  const derivL = nombresSinApellidos(u.nombre || '').trim().toLowerCase();   // forma vieja
+  const nom    = String(u.nombre || '').trim().toLowerCase();                // nombre completo
+  if (!cortoL && !nom) return false;
   return String(t.responsable || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-    .some(n => n === corto || (n.length >= 5 && nom.indexOf(n) >= 0));   // tolera "Daniel de la" vs "...Garza"
+    .some(n => n === cortoL || n === derivL || (n.length >= 5 && nom.indexOf(n) >= 0));
 }
 // ¿La tarea está asignada a algún ENLACE? (responsable = una persona marcada
 // es_enlace). El Director NO ve estas tareas; sí las ve el subdirector y el enlace.
 function esTareaDeEnlace(t) {
   if (!t) return false;
   return (RESPONSABLES || []).some(function (r) {
-    return r && r.es_enlace && esResponsableDe(t, { nombre: r.nombreCompleto });
+    return r && r.es_enlace && esResponsableDe(t, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
   });
 }
 
@@ -5635,7 +5663,7 @@ function actualizarKPIs() {
       const enlaces = (RESPONSABLES || []).filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
         .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto));
       fila.innerHTML = enlaces.map(en => {
-        const n = TAREAS.filter(t => activa(t) && t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, { nombre: en.nombreCompleto })).length;
+        const n = TAREAS.filter(t => activa(t) && t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto })).length;
         return '<div class="kpi kpi-sub"><div class="kpi-valor">' + n + '</div><div class="kpi-clave">' + escapeHtml(primerNombre(en.nombreCompleto)) + '</div></div>';
       }).join('');
     }
@@ -5991,7 +6019,7 @@ function renderizarEnlaces() {
   const colores = ['azul', 'morado', 'naranja', 'olivo'];
 
   enlaces.forEach(function (en, i) {
-    const persona = { nombre: en.nombreCompleto };
+    const persona = { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto };
     const tareasCol = ordenarPorId(activas.filter(function (t) { return esResponsableDe(t, persona); }));
     const colEl = document.createElement('div');
     colEl.className = 'columna col-color-' + colores[i % colores.length];
@@ -8804,7 +8832,9 @@ function actualizarIdSugerido() {
   const selSub = document.getElementById('nt_sub');
   const prev = document.getElementById('nt_idPreview');
   if (!selSub || !prev) return;
-  prev.textContent = generarSiguienteId(selSub.value);
+  // Si el responsable elegido es un enlace, el ID usa sus iniciales (NPF/CJC/DGC).
+  const enl = (typeof leerResponsablesDOM === 'function') ? enlaceDeResponsable(leerResponsablesDOM().join(', ')) : null;
+  prev.textContent = generarSiguienteId(enl ? inicialesEnlace(enl.nombreCompleto) : selSub.value);
 }
 
 // ===== Responsable(s) directo(s): una o varias filas de selección =====
@@ -8853,9 +8883,12 @@ function quitarResponsableRow(i) {
 function onCambioResponsableRow(sel) {
   const row = sel.closest('.responsable-row');
   const otro = row ? row.querySelector('.nt-resp-otro') : null;
-  if (!otro) return;
-  if (sel.value === '__OTRO__') { otro.style.display = ''; otro.focus(); }
-  else { otro.style.display = 'none'; otro.value = ''; }
+  if (otro) {
+    if (sel.value === '__OTRO__') { otro.style.display = ''; otro.focus(); }
+    else { otro.style.display = 'none'; otro.value = ''; }
+  }
+  // El ID sugerido depende del responsable (si es enlace, usa NPF/CJC/DGC).
+  if (typeof actualizarIdSugerido === 'function') actualizarIdSugerido();
 }
 // Compat (ya no se usa el id viejo).
 function onCambioResponsable(sel) { onCambioResponsableRow(sel); }
@@ -8931,6 +8964,12 @@ function guardarNuevaTarea() {
     participantes,
     responsable, tema, areas, acuerdos, accion, fecha
   };
+  // ID por ENLACE: si el responsable es un enlace, el código usa SUS iniciales
+  // (NPF-001, CJC-001, DGC-001) en vez del prefijo de área. Solo al crear.
+  if (!editando) {
+    const _enl = enlaceDeResponsable(responsable);
+    if (_enl) datos.codigo = generarSiguienteId(inicialesEnlace(_enl.nombreCompleto));
+  }
 
   // Cierra el guardado con la lista FINAL de adjuntos [{url, nombre}] ya resuelta.
   const finalizar = function (adjuntos) {
@@ -8955,7 +8994,7 @@ function guardarNuevaTarea() {
       toast('Tarea ' + idEd + ' actualizada (demo)', 'ok');
     } else {
       const nueva = {
-        id: generarSiguienteId(codElegido || sub), subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
+        id: datos.codigo || generarSiguienteId(codElegido || sub), subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         descripcion: acuerdos, observaciones: accion,

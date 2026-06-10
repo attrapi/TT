@@ -21,6 +21,9 @@ create table if not exists public.perfiles (
 );
 -- Por si la tabla ya existía sin la columna:
 alter table public.perfiles add column if not exists es_enlace boolean not null default false;
+-- Nombre corto / "como se le conoce" para mostrar en Responsable directo
+-- (ej. 'Nora Franco', 'Cesar Caballero', 'Daniel de la Garza'). Vacío = se deriva.
+alter table public.perfiles add column if not exists nombre_corto text not null default '';
 
 -- Al crear un usuario en Auth, se le crea su perfil automáticamente (rol básico).
 -- Luego el admin ajusta rol/subdirección.
