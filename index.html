@@ -4823,10 +4823,11 @@ function aplicarSesion() {
   }
   actualizarVistaDirPill();   // muestra/oculta la píldora del switch
 
-  // "DPAC" del header: píldora clickeable SOLO para el Director → portal DPAC.
+  // "DPAC" del header: píldora clickeable → portal DPAC. Para el Director y el
+  // subdirector de SPAC (Mario).
   const brandDpac = document.getElementById('brandDpac');
   if (brandDpac) {
-    const esDirBrand = usuarioActual.rol === 'Director';
+    const esDirBrand = usuarioActual.rol === 'Director' || esSubdirectorSPACReal();
     brandDpac.classList.toggle('dpac-pill', esDirBrand);
     brandDpac.onclick = esDirBrand ? function () { window.open('https://attrapi.github.io/DPAC/', '_blank', 'noopener'); } : null;
     brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
