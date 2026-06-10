@@ -5906,12 +5906,34 @@ function asignarPorArrastre(idTarea, col) {
 
   const cod = String(col.id || '').toUpperCase();
   if (!cod) return;
-  const parts = participantesDe(t).slice();
-  if (parts.indexOf(cod) >= 0) return;            // ya participa → nada que hacer
-  parts.push(cod);
+  let parts = participantesDe(t).slice();
+  const antes = parts.slice().sort().join('|');
+  let quitados = [];
+
+  if (col.jefCod) {
+    // Soltar sobre una JEFATURA → la AGREGA como participante (le da su columna).
+    if (parts.indexOf(cod) < 0) parts.push(cod);
+    agregarAreaInvolucrada(t, col.subtitulo);   // palomea su área involucrada
+  } else {
+    // Soltar sobre la SUBDIRECCIÓN → QUITA las jefaturas (vuelve a nivel
+    // subdirección). Conserva la subdirección y el validador (Dirección).
+    quitados = parts.filter(p => nivelDeArea(p) === 2);
+    parts = parts.filter(p => nivelDeArea(p) !== 2);
+    if (parts.indexOf(cod) < 0) parts.push(cod);
+  }
+  parts = parts.filter((p, i) => parts.indexOf(p) === i);
   parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));
+  if (parts.slice().sort().join('|') === antes) return;   // nada cambió
+
   t.participantes = parts;
-  if (col.jefCod) agregarAreaInvolucrada(t, col.subtitulo);   // palomea su área involucrada
+  // Si se quitaron jefaturas, limpia sus palomas/observaciones huérfanas para
+  // que su checklist desaparezca de verdad (y no reaparezca si se re-agrega).
+  if (quitados.length) {
+    obtenerChecklist(t).forEach(function (it) {
+      if (it.checks) quitados.forEach(function (q) { delete it.checks[q]; });
+    });
+    if (t.observaciones_areas) quitados.forEach(function (q) { delete t.observaciones_areas[q]; });
+  }
 
   // Persiste participantes (+ área involucrada) SIN tocar la bitácora.
   if (enAppScript() && SESION_TOKEN) {
@@ -5921,6 +5943,7 @@ function asignarPorArrastre(idTarea, col) {
         participantes: t.participantes,
         areas: t.areas_involucradas
       });
+    if (quitados.length) persistirEstado(t);   // guarda el checklist/observaciones limpios
   }
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
