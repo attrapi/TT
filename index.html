@@ -522,11 +522,10 @@
   .app-main[data-vista="validadas"] #reportesWrap { display: none; }
   .app-main[data-vista="validadas"] #validadasWrap { display: block; }
 
-  /* Enlaces (vista del subdirector): un tablero con una columna por enlace. */
+  /* Enlaces (vista del subdirector): Resumen + buscador/Nueva tarea + un tablero
+     con una columna por enlace. Se ocultan solo el tablero normal y las pestañas. */
   #enlacesWrap { display: none; }
-  .app-main[data-vista="enlaces"] .kpis,
   .app-main[data-vista="enlaces"] .tabs-wrap,
-  .app-main[data-vista="enlaces"] .filtros,
   .app-main[data-vista="enlaces"] #tablero,
   .app-main[data-vista="enlaces"] #calendarioWrap,
   .app-main[data-vista="enlaces"] #bitacoraWrap,
@@ -1749,10 +1748,11 @@
   .filtros-buscar {
     border: 1px solid var(--linea);
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 7px 16px;
     font-size: 13px;
     font-family: var(--sans);
-    min-width: 220px;
+    min-width: 300px;          /* cabe "Buscar tema, responsable…" sin cortar la "e" */
+    flex: 1 1 300px;
     background: #fff;
     color: var(--tinta);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -4090,6 +4090,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Pendientes por enlace (solo en la vista Enlaces). Círculos dinámicos. -->
+    <div class="kpi-card sub-card" id="kpisEnlaceGrupo" style="display:none">
+      <div class="kpis-grupo-titulo">Pendientes por enlace</div>
+      <div class="kpis-fila" id="kpisEnlaceFila"></div>
+    </div>
   </div>
 
   <!-- "Nueva Tarea" y el buscador, juntos en la misma fila (a la izquierda). -->
@@ -5526,14 +5532,19 @@ function ordenarPorId(lista) {
 }
 
 function renderizar() {
-  actualizarKPIs();
   actualizarConteosTabs();
+  actualizarKPIs();   // detecta el modo "enlaces" por vistaActiva
+  if (vistaActiva === 'enlaces') { renderizarEnlaces(); return; }
   renderizarTablero();
 }
 
 function actualizarKPIs() {
-  const visible = obtenerTareasFiltradas();
-  const esDir = usuarioActual.rol === 'Director';
+  // Modo "enlaces": el Resumen y Pendientes se calculan SOLO sobre las tareas
+  // asignadas a un enlace (las que ve Mario en su vista Enlaces).
+  const modoEnlaces = (vistaActiva === 'enlaces');
+  let visible = obtenerTareasFiltradas();
+  if (modoEnlaces) visible = visible.filter(esTareaDeEnlace);
+  const esDir = usuarioActual.rol === 'Director' && !modoEnlaces;
 
   const setLabel = (valorId, texto) => {
     const valor = document.getElementById(valorId);
@@ -5551,6 +5562,7 @@ function actualizarKPIs() {
   const activas = visible.filter(t => t.estatus !== 'Archivada');
   const enHistorial = TAREAS.filter(t => {
     if (!(t.eliminada || t.estatus === 'Archivada')) return false;
+    if (modoEnlaces) return esTareaDeEnlace(t) && t.subdireccion === usuarioActual.subdireccion;
     if (usuarioActual.rol === 'Director') {
       if (esTareaDeEnlace(t)) return false;   // el Director no ve tareas de enlace
       return tabActiva === 'TODAS' || t.subdireccion === tabActiva
@@ -5592,10 +5604,33 @@ function actualizarKPIs() {
   if (filaLeyendaAt) filaLeyendaAt.style.display = '';
   renderDonut(enProcesoN - vencidas, vencidas, listasN, archivadas);
 
-  // Pendientes: el Director por subdirección; el subdirector por jefatura.
+  // Pendientes: en la vista Enlaces, por enlace; el Director por subdirección;
+  // el subdirector por jefatura.
   const subCard = document.getElementById('kpisSubGrupo');
   const jefCard = document.getElementById('kpisJefGrupo');
-  if (esDir) {
+  const enlaceCard = document.getElementById('kpisEnlaceGrupo');
+  if (modoEnlaces) {
+    if (subCard) subCard.style.display = 'none';
+    if (jefCard) jefCard.style.display = 'none';
+    if (enlaceCard) enlaceCard.style.display = '';
+    const fila = document.getElementById('kpisEnlaceFila');
+    if (fila) {
+      const activa = t => !t.eliminada && t.estatus !== 'Archivada';
+      const primerNombre = nom => {
+        const limpio = String(nom || '').replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
+        return limpio.split(/\s+/)[0] || String(nom || '');
+      };
+      const ORDEN = ['nora', 'cesar', 'daniel'];
+      const ord = nom => { const n = String(nom || '').toLowerCase(); for (let k = 0; k < ORDEN.length; k++) if (n.indexOf(ORDEN[k]) >= 0) return k; return 99; };
+      const enlaces = (RESPONSABLES || []).filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
+        .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto));
+      fila.innerHTML = enlaces.map(en => {
+        const n = TAREAS.filter(t => activa(t) && t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, { nombre: en.nombreCompleto })).length;
+        return '<div class="kpi kpi-sub"><div class="kpi-valor">' + n + '</div><div class="kpi-clave">' + escapeHtml(primerNombre(en.nombreCompleto)) + '</div></div>';
+      }).join('');
+    }
+  } else if (esDir) {
+    if (enlaceCard) enlaceCard.style.display = 'none';
     if (subCard) subCard.style.display = '';
     if (jefCard) jefCard.style.display = 'none';
     // Pendientes por subdirección = TAREAS ACTIVAS (no Archivadas, no
@@ -5610,6 +5645,7 @@ function actualizarKPIs() {
     document.getElementById('kpiPendENLACE').textContent = TAREAS.filter(t =>
         activa(t) && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF'))).length;
   } else {
+    if (enlaceCard) enlaceCard.style.display = 'none';
     if (subCard) subCard.style.display = 'none';
     // "Pendientes por jefatura" SOLO se muestra al SUBDIRECTOR (Capturista sin
     // jefatura asignada). Los jefes (Guillermo JDPC, Dolores JDIMA, JDGA, JDGOI)
@@ -5937,10 +5973,10 @@ function renderizarEnlaces() {
   wrap.style.setProperty('--tablero-cols', enlaces.length);
   wrap.style.gridTemplateColumns = enlaces.length === 1 ? 'minmax(0, 1fr)' : '';
 
-  // Tareas activas de SPAC (no archivadas ni eliminadas).
-  const activas = (TAREAS || []).filter(function (t) {
-    return t && !t.eliminada && t.estatus !== 'Archivada'
-      && (t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC'));
+  // Tareas activas de SPAC (no archivadas) — obtenerTareasFiltradas ya aplica el
+  // buscador y excluye eliminadas.
+  const activas = obtenerTareasFiltradas().filter(function (t) {
+    return t.estatus !== 'Archivada' && (t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC'));
   });
   const colores = ['azul', 'morado', 'naranja', 'olivo'];
 
@@ -7235,7 +7271,7 @@ function cambiarVista(v) {
   if (v === 'validadas')  renderizarValidadas();
   if (v === 'reportes')   renderizarReportes();
   if (v === 'dashboard')  renderizarDashboard();
-  if (v === 'enlaces')    renderizarEnlaces();
+  if (v === 'enlaces')    renderizar();   // KPIs (modo enlaces) + columnas
   if (v === 'papelera')   renderizarPapelera();
 }
 
