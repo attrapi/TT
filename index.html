@@ -5672,17 +5672,11 @@ function actualizarConteosTabs() {
   // Contador del botón Historial: debe coincidir con lo que se ve al entrar
   // a esa vista — INCLUYE tanto las completadas (Archivada) como las
   // eliminadas. Staff (Samanta) ve DPAC + ENLACE (grupo compartido).
+  // El conteo del botón Historial usa la MISMA fuente que la vista
+  // (tareasPapelera), para que coincidan siempre — incl. el filtro por
+  // responsable del enlace y la exclusión de tareas de enlace para el Director.
   const contPap = document.getElementById('sidebarConteoPapelera');
-  if (contPap) {
-    const esEnHist = t => t.eliminada || t.estatus === 'Archivada';
-    const matchSamanta = t => esEnlace() && (t.subdireccion === 'ENLACE' || t.subdireccion === 'DPAC');
-    const nPap = TAREAS.filter(t => esEnHist(t) && (
-        usuarioActual.rol === 'Director'
-        || matchSamanta(t)
-        || t.subdireccion === usuarioActual.subdireccion
-    )).length;
-    contPap.textContent = nPap;
-  }
+  if (contPap) contPap.textContent = tareasPapelera().length;
 
   if (usuarioActual.rol === 'Capturista') {
     const subPropia = usuarioActual.subdireccion;
