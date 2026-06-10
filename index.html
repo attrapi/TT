@@ -5524,6 +5524,8 @@ function actualizarKPIs() {
     }
     // Staff (Samanta) ve DPAC + ENLACE.
     if (esEnlace()) return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
+    // Enlace SPAC: solo SU historial (donde es responsable directo).
+    if (esEnlaceUser()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
     return t.subdireccion === usuarioActual.subdireccion;
   });
   const archivadas = enHistorial.length;
