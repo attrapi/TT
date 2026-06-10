@@ -911,24 +911,6 @@
   .nav-hamburguesa { display: none; }
   .sidebar-backdrop { display: none; }
 
-  /* Botón para OCULTAR/MOSTRAR el menú izquierdo (solo escritorio). La flecha
-     gira 180° cuando está colapsado para indicar "abrir". */
-  .nav-colapsar {
-    display: inline-flex; align-items: center; justify-content: center;
-    flex: none; width: 36px; height: 36px;
-    background: rgba(255,255,255,0.14); color: #fff; border: none;
-    border-radius: 8px; cursor: pointer; transition: background .15s;
-  }
-  .nav-colapsar:hover { background: rgba(255,255,255,0.28); }
-  .nav-colapsar svg { width: 20px; height: 20px; transition: transform .2s ease; }
-  body.sidebar-colapsado .nav-colapsar svg { transform: rotate(180deg); }
-
-  /* Colapso del sidebar en escritorio: la columna del menú se va a 0 y el
-     contenido (1fr) ocupa todo. La transición anima el cambio de ancho. */
-  .app-body { transition: grid-template-columns .22s ease; }
-  body.sidebar-colapsado .app-body { grid-template-columns: 0 1fr; }
-  body.sidebar-colapsado .sidebar { display: none; }
-
   /* En móvil/tablet el sidebar se convierte en un CAJÓN deslizante (off-canvas)
      que se abre con el botón ☰. Así no alarga la pantalla ni deja menús largos. */
   @media (max-width: 860px) {
@@ -1158,7 +1140,6 @@
      oculta. Por eso antes se veía desordenado: estas reglas estaban antes de las
      base y se anulaban. */
   @media (max-width: 860px) {
-    .nav-colapsar { display: none; }   /* en móvil manda el hamburguesa */
     .nav-hamburguesa {
       display: inline-flex; align-items: center; justify-content: center;
       flex: none; width: 40px; height: 40px;
@@ -1277,7 +1258,7 @@
   .kpi-cuerpo {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 24px;
     min-width: 0;            /* permite que el contenido se ajuste sin desbordar */
   }
   /* Cada KPI ocupa el mismo ancho dentro del card y su label se alinea
@@ -1286,7 +1267,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;   /* círculos agrupados (no esparcidos a las orillas) */
-    gap: 12px;
+    gap: 22px;
     flex: 1;
     min-width: 0;
   }
@@ -1316,19 +1297,18 @@
   .kpi-pie-wrap {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     border-left: 1px solid var(--linea);
-    padding-left: 14px;
-    flex-shrink: 1;
-    min-width: 0;
+    padding-left: 20px;
+    flex-shrink: 0;
   }
   .kpi-pie {
     --p1: 0;   /* % en proceso (no vencidas) */
     --p2: 0;   /* % vencidas */
     --p3: 0;   /* % atendidas */
     --p4: 0;   /* % archivadas */
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background:
       conic-gradient(
@@ -1366,9 +1346,16 @@
   /* Etiqueta de porcentaje sobre cada rebanada del donut. JS calcula la
      posición con left/top inline (radio fijo desde el centro hacia el
      ángulo medio del slice). */
-  /* Los % sobre las rebanadas se ocultan: el donut es pequeño y se salían; la
-     leyenda de la derecha ya muestra los conteos. */
-  .kpi-pie-pct { display: none; }
+  .kpi-pie-pct {
+    position: absolute;
+    font-size: 9px;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+  }
   .kpi-pie-pct.oculto { display: none; }
   .kpi-pie-total {
     font-family: var(--serif);
@@ -1425,8 +1412,8 @@
   }
 
   .kpi-valor {
-    width: 48px;
-    height: 48px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     background: white;
     border: 3px solid var(--guinda);
@@ -1435,7 +1422,7 @@
     justify-content: center;
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 18px;
+    font-size: 21px;
     line-height: 1;
     color: var(--guinda);
     box-shadow: 0 4px 14px rgba(105,28,50,0.12), inset 0 -3px 6px rgba(0,0,0,0.04);
@@ -3912,9 +3899,6 @@
       <button class="nav-hamburguesa" onclick="toggleSidebar()" aria-label="Abrir menú">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
-      <button class="nav-colapsar" id="navColapsar" onclick="toggleSidebarColapsado()" title="Ocultar / mostrar el menú" aria-label="Ocultar menú">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
       <div class="nav-marca">
         <div class="nav-marca-titulo">ATTRAPI · DPAC</div>
         <div class="nav-marca-sub">Dirección de Procesos Administrativos de Construcción</div>
@@ -4547,7 +4531,6 @@ function ingresar(rol) {
 function aplicarSesion() {
   document.getElementById('pantallaAcceso').style.display = 'none';
   document.getElementById('app').classList.add('activa');
-  restaurarSidebarColapsado();   // recuerda si el menú estaba colapsado
 
   document.getElementById('userAvatar').textContent = usuarioActual.iniciales;
   document.getElementById('userNombre').textContent = formatearNombre(usuarioActual.nombre);
@@ -9488,15 +9471,6 @@ document.addEventListener('keydown', (e) => {
 // ===== Menú lateral en móvil (cajón ☰) =====
 function toggleSidebar() { document.body.classList.toggle('menu-abierto'); }
 function cerrarSidebar() { document.body.classList.remove('menu-abierto'); }
-// Colapsa/expande el menú izquierdo en escritorio (se recuerda entre sesiones).
-function toggleSidebarColapsado() {
-  const col = document.body.classList.toggle('sidebar-colapsado');
-  try { localStorage.setItem('tt_sidebar_colapsado', col ? '1' : '0'); } catch (e) {}
-}
-// Restaura el estado guardado del menú (colapsado o no).
-function restaurarSidebarColapsado() {
-  try { if (localStorage.getItem('tt_sidebar_colapsado') === '1') document.body.classList.add('sidebar-colapsado'); } catch (e) {}
-}
 
 // ===== Tiempo real: el puente llama esto cuando cambian las tareas en la base =====
 window.ttRefrescar = function () {
