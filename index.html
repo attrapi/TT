@@ -1002,6 +1002,18 @@
     letter-spacing: 0.05em;
     white-space: nowrap;
   }
+  /* "DPAC" como píldora clickeable (solo el Director) → portal DPAC. */
+  #brandDpac.dpac-pill {
+    display: inline-block;
+    padding: 1px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+  }
+  #brandDpac.dpac-pill:hover { background: rgba(255,255,255,0.34); }
 
   .nav-marca-sub {
     font-size: 10.5px;
@@ -3953,7 +3965,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div class="nav-marca">
-        <div class="nav-marca-titulo">ATTRAPI · DPAC</div>
+        <div class="nav-marca-titulo">ATTRAPI · <span id="brandDpac">DPAC</span></div>
         <div class="nav-marca-sub">Dirección de Procesos Administrativos de Construcción</div>
       </div>
       <div class="nav-titulo">
@@ -4805,6 +4817,15 @@ function aplicarSesion() {
     if (bnRO) bnRO.style.display = 'none';
   }
   actualizarVistaDirPill();   // muestra/oculta la píldora del switch
+
+  // "DPAC" del header: píldora clickeable SOLO para el Director → portal DPAC.
+  const brandDpac = document.getElementById('brandDpac');
+  if (brandDpac) {
+    const esDirBrand = usuarioActual.rol === 'Director';
+    brandDpac.classList.toggle('dpac-pill', esDirBrand);
+    brandDpac.onclick = esDirBrand ? function () { window.location.href = 'https://attrapi.github.io/DPAC/'; } : null;
+    brandDpac.title = esDirBrand ? 'Ir al portal DPAC' : '';
+  }
 
   cambiarTab(tabActiva);
 }
