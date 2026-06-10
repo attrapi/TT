@@ -4844,8 +4844,8 @@ function aplicarSesion() {
       ? (nombresJef[codJefSesion] || nombresSubs[usuarioActual.subdireccion])
       : nombresSubs[usuarioActual.subdireccion];
     const navTit = document.getElementById('navTitulo');
-    navTit.textContent = tituloCapturista();   // acrónimo corto (SPAC, JDPC…), no se esconde
-    navTit.title = tituloNav;                   // nombre completo al pasar el mouse
+    navTit.textContent = tituloNav;            // nombre COMPLETO en el header (ej. "Subdirección de Procesos Administrativos de Construcción")
+    navTit.title = tituloNav;                   // mismo nombre completo en el tooltip
 
     tabActiva = usuarioActual.subdireccion;
   }
@@ -6227,6 +6227,24 @@ function renderizarTablero() {
     } else {
       tareasCol.forEach(t => cuerpo.appendChild(crearTarjeta(t)));
     }
+
+    // Confeti (estilo Trello) al palomear TODA una columna propia. Solo para el
+    // dueño de la columna (subdirectores/jefes/enlace), no en la vista
+    // consolidada del Director ni en solo-lectura. Dispara una sola vez, en la
+    // transición "faltaban" → "todas listas".
+    const festeja = usuarioActual && !SOLO_LECTURA && usuarioActual.rol !== 'Director';
+    if (festeja) {
+      const key = (usuarioActual.email || usuarioActual.nombre || '') + '::' + col.id;
+      const completa = tareasCol.length > 0
+        && tareasCol.every(t => checklistTodoMarcado(t) || responsablesListos(t));
+      if (_confetiColEstado[key] === false && completa) {
+        const r = colEl.getBoundingClientRect();
+        const op = { cantidad: 60, duracion: 1500 };
+        if (r.width > 0) { op.x = r.left + r.width / 2; op.y = r.top + 70; }
+        lanzarConfeti(op);
+      }
+      _confetiColEstado[key] = completa;
+    }
   });
 }
 
@@ -6577,18 +6595,20 @@ function cambiarTab(sub) {
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.toggle('activa', b.dataset.sub === sub));
   document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.remove('activa'));
 
-  // Renderiza el tablero con el nuevo filtro (siempre, aunque no esté
-  // visible — así al regresar a Tablero ya está al día).
-  renderizar();
-  if (vistaActiva === 'calendario') renderizarCalendario();
-
   // Si el usuario está en una vista que no es el Tablero (Dashboard, Papelera,
-  // Bitácora, Carga, Reportes, Validadas) y hace clic en una subdirección, lo
-  // regresamos al Tablero (inicio) filtrado por esa subdirección.
+  // Bitácora, Carga, Reportes, Validadas, Enlaces) y hace clic en una
+  // subdirección, lo regresamos al Tablero (inicio) ANTES de renderizar. Así
+  // los KPIs ("Pendientes por…") se pintan en el modo correcto y NO se quedan
+  // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
   const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
+
+  // Renderiza el tablero con el nuevo filtro (siempre, aunque no esté
+  // visible — así al regresar a Tablero ya está al día).
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
 }
 
 // Selecciona una de las dos Jefaturas de SPAC: filtra el tablero a sus tareas.
@@ -6740,6 +6760,7 @@ function validar(idTarea) {
   cerrarModal();
   persistirEstado(t);
   renderizar();
+  lanzarConfeti({ cantidad: 34 });   // pequeño festejo al validar
   toast('Tarea ' + idTarea + ' validada → Validadas', 'ok');
 }
 
@@ -7387,6 +7408,81 @@ function toast(mensaje, tipo) {
   el.className = 'toast ' + (tipo === 'error' ? 'error' : '') + ' mostrar';
   setTimeout(() => el.classList.remove('mostrar'), 3000);
 }
+
+// ===== Confeti sutil (estilo Trello) =====
+// Pequeño estallido de papelitos para celebrar cuando se completa/valida una
+// tarea o se palomea TODA una columna. Sin librerías: un canvas temporal a
+// pantalla completa que se autolimpia. Respeta "prefers-reduced-motion".
+function lanzarConfeti(opts) {
+  opts = opts || {};
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  } catch (e) {}
+  const cantidad = opts.cantidad || 26;
+  const duracion = opts.duracion || 1100;   // ms (corto, "muy poco")
+  const colores  = ['#691C32', '#1d4ed8', '#16a34a', '#f59e0b', '#9333ea', '#ef4444'];
+
+  let canvas = document.getElementById('confetiCanvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'confetiCanvas';
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
+    document.body.appendChild(canvas);
+  }
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth, h = window.innerHeight;
+  canvas.width  = w * dpr;
+  canvas.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Origen del estallido (por defecto, abajo-centro: sube y cae como Trello).
+  const ox = (opts.x != null ? opts.x : w / 2);
+  const oy = (opts.y != null ? opts.y : h * 0.62);
+
+  const piezas = [];
+  for (let i = 0; i < cantidad; i++) {
+    const ang = (-Math.PI / 2) + (Math.random() - 0.5) * 1.7;   // hacia arriba, disperso
+    const vel = 4 + Math.random() * 5;
+    piezas.push({
+      x: ox, y: oy,
+      vx: Math.cos(ang) * vel,
+      vy: Math.sin(ang) * vel - 2,
+      g: 0.16 + Math.random() * 0.08,
+      size: 5 + Math.random() * 5,
+      color: colores[(Math.random() * colores.length) | 0],
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.3,
+      rect: Math.random() < 0.5
+    });
+  }
+
+  const t0 = performance.now();
+  function frame(now) {
+    const elapsed = now - t0;
+    const vida = Math.max(0, 1 - elapsed / duracion);
+    ctx.clearRect(0, 0, w, h);
+    for (let k = 0; k < piezas.length; k++) {
+      const p = piezas[k];
+      p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      ctx.save();
+      ctx.globalAlpha = vida;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      if (p.rect) ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      else { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    if (elapsed < duracion) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, w, h);
+  }
+  requestAnimationFrame(frame);
+}
+
+// Estado por columna para disparar el confeti SOLO en la transición
+// "faltaban tareas" → "toda la columna completa". Se llena en renderizarTablero.
+let _confetiColEstado = {};
 
 // Indicador chiquito "🔄 Actualizando…" arriba a la derecha. Aparece cuando
 // pintamos desde caché y se quita cuando llegan los datos frescos del servidor.
@@ -8571,6 +8667,7 @@ function completarTarea(idTarea) {
   cerrarModal();
   if (typeof persistirEstado === 'function') { try { persistirEstado(t); } catch (e) {} }
   renderizar();
+  lanzarConfeti({ cantidad: 34 });   // pequeño festejo al completar
   toast('Tarea ' + idTarea + ' completada → Historial', 'ok');
 }
 
