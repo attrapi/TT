@@ -4596,7 +4596,7 @@ function actualizarVistaDirPill() {
   if (!sw) return;
   sw.style.display = esSubdirectorSPACReal() ? '' : 'none';
   const txt = document.getElementById('vistaDirTxt');
-  if (txt) txt.textContent = SOLO_LECTURA ? 'Volver a mi vista (SPAC)' : 'Ver como Dirección (solo lectura)';
+  if (txt) txt.textContent = 'Switch';
   const pill = document.getElementById('vistaDirPill');
   if (pill) pill.classList.toggle('activo', SOLO_LECTURA);
 }
@@ -6926,11 +6926,12 @@ function renderizarPapelera() {
           const idVis = (t.id || '???');
           const origenHist = t.eliminada ? 'Eliminada'
                            : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
+          // Tarjeta de Historial COMPACTA: solo ID + Tema (el resto se ve al
+          // abrir la tarea). El origen (Completada/Eliminada) va como chip chico.
           let html = '<div class="tarjeta-id">' + escapeHtml(idVis) + '</div>' +
             '<div class="tarjeta-origen-hist">' + escapeHtml(origenHist) + '</div>' +
             '<dl class="tarjeta-campos">' +
               '<dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd>' +
-              '<dt>Áreas involucradas</dt><dd>' + escapeHtml(areas) + '</dd>' +
             '</dl>';
           if (puedeGestionarHistorial(t)) {
             html += '<div class="tarjeta-acciones">' +
