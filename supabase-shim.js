@@ -55,7 +55,8 @@
       nombre: p ? (p.nombre || '') : '',
       rol: (p && p.rol === 'Director') ? 'Director' : 'Capturista',
       subdireccion: p ? String(p.subdireccion || '').toUpperCase() : '',
-      jefatura: p ? (p.jefatura || '') : ''
+      jefatura: p ? (p.jefatura || '') : '',
+      es_enlace: !!(p && p.es_enlace)
     };
   }
   function areaDeDatos(d) {
@@ -141,10 +142,10 @@
       }) };
     },
     listarResponsables: async function () {
-      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura').eq('activo', true);
+      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura, es_enlace').eq('activo', true);
       if (r.error || !r.data) return { ok: true, responsables: [] };
       var out = r.data.filter(function (p) { return p.rol !== 'Director' && (p.nombre || '').trim(); })
-        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '' }; });
+        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '', es_enlace: !!p.es_enlace }; });
       return { ok: true, responsables: out };
     },
     listarTelefonos: async function () {

@@ -16,8 +16,11 @@ create table if not exists public.perfiles (
   jefatura      text not null default '',              -- '' | PROCEDIMIENTOS | MANUALES | GESTION_AMBIENTAL | GESTION_OBRAS
   telefono      text not null default '',
   activo        boolean not null default true,
+  es_enlace     boolean not null default false,      -- ENLACE: capturista que solo ve/atiende SUS tareas
   created_at    timestamptz not null default now()
 );
+-- Por si la tabla ya existía sin la columna:
+alter table public.perfiles add column if not exists es_enlace boolean not null default false;
 
 -- Al crear un usuario en Auth, se le crea su perfil automáticamente (rol básico).
 -- Luego el admin ajusta rol/subdirección.

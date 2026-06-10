@@ -522,6 +522,18 @@
   .app-main[data-vista="validadas"] #reportesWrap { display: none; }
   .app-main[data-vista="validadas"] #validadasWrap { display: block; }
 
+  /* Enlaces (vista del subdirector): un tablero con una columna por enlace. */
+  #enlacesWrap { display: none; }
+  .app-main[data-vista="enlaces"] .kpis,
+  .app-main[data-vista="enlaces"] .tabs-wrap,
+  .app-main[data-vista="enlaces"] .filtros,
+  .app-main[data-vista="enlaces"] #tablero,
+  .app-main[data-vista="enlaces"] #calendarioWrap,
+  .app-main[data-vista="enlaces"] #bitacoraWrap,
+  .app-main[data-vista="enlaces"] #cargaWrap,
+  .app-main[data-vista="enlaces"] #reportesWrap { display: none; }
+  .app-main[data-vista="enlaces"] #enlacesWrap { display: block; }
+
   /* Dashboard: gráficas con selector de alcance. Oculto por defecto. */
   #dashboardWrap { display: none; }
   .app-main[data-vista="dashboard"] .kpis,
@@ -3945,6 +3957,11 @@
           <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
         </button>
+        <!-- Enlaces (solo subdirector SPAC): vista con una columna por enlace. -->
+        <button class="sidebar-item sidebar-enlaces" id="sidebarEnlaces" data-vista="enlaces" onclick="cambiarVista('enlaces')" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07l-.71.7"/><path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.4a5 5 0 0 0 7.07 7.07l.7-.7"/></svg>
+          <span class="sidebar-label">Enlaces</span>
+        </button>
         <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
           <span class="sub-dot" style="background: var(--sub-sa)"></span>
           <span class="sidebar-label">Subdirección de Archivo</span>
@@ -4083,6 +4100,9 @@
   </div>
 
   <div class="tablero" id="tablero"></div>
+
+  <!-- Vista Enlaces (subdirector): una columna por enlace con sus tareas. -->
+  <div class="tablero" id="enlacesWrap"></div>
 
   <div class="calendario-wrap" id="calendarioWrap">
     <div class="cal-header">
@@ -4625,6 +4645,26 @@ function aplicarSesion() {
   const btnReportes = document.querySelector('.sidebar-item[data-vista="reportes"]');
   if (btnCarga)    btnCarga.style.display    = esJefe ? 'none' : '';
   if (btnReportes) btnReportes.style.display = esJefe ? 'none' : '';
+
+  // "Enlaces" en el menú: SOLO para el subdirector de SPAC (no jefes, no enlaces).
+  const sidebarEnlacesBtn = document.getElementById('sidebarEnlaces');
+  if (sidebarEnlacesBtn) {
+    const esSubSPAC = usuarioActual.rol === 'Capturista'
+      && usuarioActual.subdireccion === 'SPAC' && !esJefe && !esEnlaceUser();
+    sidebarEnlacesBtn.style.display = esSubSPAC ? '' : 'none';
+  }
+
+  // ENLACE: panel mínimo — solo SUS tareas + Historial. Sin pestañas de
+  // subdirección, sin "Gestión" (Bitácora/Carga/Reportes), sin crear tareas.
+  if (esEnlaceUser()) {
+    if (grupoSubs) grupoSubs.style.display = 'none';
+    if (grupoDir)  grupoDir.style.display  = 'none';
+    const btnNuevoEl = document.getElementById('btnNuevo');
+    if (btnNuevoEl) btnNuevoEl.style.display = 'none';
+    const navTitEl = document.getElementById('navTitulo');
+    if (navTitEl) navTitEl.textContent = 'Mis tareas';
+    tabActiva = usuarioActual.subdireccion;
+  }
 
   cambiarTab(tabActiva);
 }
@@ -5224,7 +5264,10 @@ function obtenerTareasFiltradas() {
   if (usuarioActual.rol === 'Capturista') {
     const miArea = areaDelUsuario(usuarioActual);
     const codJef = jefaturaCodigo(usuarioActual.jefatura);
-    if (codJef) {
+    if (esEnlaceUser()) {
+      // ENLACE: SOLO sus tareas (donde es responsable directo), de su subdirección.
+      lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
+    } else if (codJef) {
       // Jefe: ve las tareas donde SU jefatura participa.
       lista = lista.filter(t => tareaEnArea(t, miArea));
     } else {
@@ -5301,6 +5344,22 @@ function filtrarValidadas(texto) {
 function esEnlace() {
   return usuarioActual && usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'ENLACE';
 }
+// ¿El usuario es un ENLACE (capturista marcado es_enlace)? Solo ve/atiende SUS
+// tareas (donde es responsable directo); no valida, no edita acciones, no borra.
+function esEnlaceUser(u) {
+  u = u || usuarioActual;
+  return !!(u && u.rol === 'Capturista' && u.es_enlace);
+}
+// ¿La tarea tiene a `u` como responsable directo? (responsable puede traer
+// varios nombres separados por coma; el dropdown guarda el nombre corto.)
+function esResponsableDe(t, u) {
+  if (!t || !u) return false;
+  const corto = nombresSinApellidos(u.nombre || '').trim().toLowerCase();
+  const full  = formatearNombre(u.nombre || '').trim().toLowerCase();
+  if (!corto && !full) return false;
+  return String(t.responsable || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    .some(n => n === corto || n === full);
+}
 
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
@@ -5355,6 +5414,7 @@ function usuarioPuedeFinalizar(t) {
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual || !t) return false;
+  if (esEnlaceUser()) return false;   // el enlace no borra/edita la tarea
   // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
   // Puede enviar cualquiera al Historial.
   if (usuarioActual.rol === 'Director') return true;
@@ -5510,7 +5570,7 @@ function actualizarKPIs() {
     // jefatura asignada). Los jefes (Guillermo JDPC, Dolores JDIMA, JDGA, JDGOI)
     // no lo ven — ellos solo gestionan SU jefatura, no necesitan el desglose.
     const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
-    const tieneJef = usuarioActual.subdireccion === 'SPAC' && !codJefUser;
+    const tieneJef = usuarioActual.subdireccion === 'SPAC' && !codJefUser && !esEnlaceUser();
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
       const pendJef = areaCod => TAREAS.filter(t =>
@@ -5628,6 +5688,11 @@ function actualizarConteosTabs() {
 //   - Subdirector de SGOI (futuro): 3 columnas → SGOI · JDGA · JDGOI
 function columnasPorRol() {
   if (!usuarioActual) return [];
+  // ENLACE: una sola columna con SUS tareas (ya filtradas en obtenerTareasFiltradas).
+  if (esEnlaceUser()) {
+    return [{ id: 'MIS', titulo: 'Mis tareas', subtitulo: 'Tareas asignadas a mí',
+              color: 'azul', filtro: () => true }];
+  }
   if (usuarioActual.rol === 'Director') {
     // Vista por TAB:
     //   • TODAS → vista consolidada de 4 columnas por subdirección.
@@ -5806,6 +5871,57 @@ function renderizarTablero() {
   });
 }
 
+// Vista "Enlaces" (subdirector SPAC): una columna por enlace, con las tareas
+// donde ese enlace es el responsable directo. Solo lectura/seguimiento.
+function renderizarEnlaces() {
+  const wrap = document.getElementById('enlacesWrap');
+  if (!wrap) return;
+  const enlaces = (RESPONSABLES || []).filter(function (r) {
+    return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC';
+  });
+  wrap.innerHTML = '';
+  if (!enlaces.length) {
+    wrap.style.gridTemplateColumns = 'minmax(0, 1fr)';
+    wrap.innerHTML = '<div class="columna"><div class="col-cuerpo"><div class="vacio">'
+      + 'Aún no hay enlaces dados de alta. Marca a Nora, César y Daniel como enlace '
+      + '(es_enlace = true) en su perfil y aparecerán aquí.</div></div></div>';
+    return;
+  }
+  wrap.style.setProperty('--tablero-cols', enlaces.length);
+  wrap.style.gridTemplateColumns = enlaces.length === 1 ? 'minmax(0, 1fr)' : '';
+
+  // Tareas activas de SPAC (no archivadas ni eliminadas).
+  const activas = (TAREAS || []).filter(function (t) {
+    return t && !t.eliminada && t.estatus !== 'Archivada'
+      && (t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC'));
+  });
+  const colores = ['azul', 'morado', 'naranja', 'olivo'];
+
+  enlaces.forEach(function (en, i) {
+    const persona = { nombre: en.nombreCompleto };
+    const tareasCol = ordenarPorId(activas.filter(function (t) { return esResponsableDe(t, persona); }));
+    const colEl = document.createElement('div');
+    colEl.className = 'columna col-color-' + colores[i % colores.length];
+    colEl.innerHTML =
+      '<div class="col-header">' +
+        '<div class="col-marca"></div>' +
+        '<div class="col-titulo-wrap">' +
+          '<div class="col-titulo">' + escapeHtml(formatearNombre(en.nombreCompleto)) + '</div>' +
+          '<div class="col-subtitulo">Enlace · SPAC</div>' +
+        '</div>' +
+        '<div class="col-conteo">' + tareasCol.length + '</div>' +
+      '</div>' +
+      '<div class="col-cuerpo"></div>';
+    wrap.appendChild(colEl);
+    const cuerpo = colEl.querySelector('.col-cuerpo');
+    if (!tareasCol.length) {
+      cuerpo.innerHTML = '<div class="vacio">Sin tareas asignadas</div>';
+    } else {
+      tareasCol.forEach(function (t) { cuerpo.appendChild(crearTarjeta(t)); });
+    }
+  });
+}
+
 // Mueve una tarea a un estatus distinto vía drag & drop (sólo el Director).
 // Cubre las transiciones entre columnas, registra en bitácora y re-renderiza.
 // Sella la metadata de finalización/validación según el destino; para
@@ -5878,7 +5994,8 @@ function esSubdirectorConJefaturas() {
   return !!usuarioActual
     && usuarioActual.rol === 'Capturista'
     && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
-    && !jefaturaCodigo(usuarioActual.jefatura);
+    && !jefaturaCodigo(usuarioActual.jefatura)
+    && !esEnlaceUser();   // un enlace no es subdirector (no arrastra tarjetas)
 }
 
 // Agrega un área (nombre completo) a "areas_involucradas" sin duplicar. Es la
@@ -6099,7 +6216,7 @@ function cambiarTab(sub) {
   // Si el usuario está en una vista que no es el Tablero (Dashboard, Papelera,
   // Bitácora, Carga, Reportes, Validadas) y hace clic en una subdirección, lo
   // regresamos al Tablero (inicio) filtrado por esa subdirección.
-  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'papelera'];
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
@@ -7054,6 +7171,7 @@ function cambiarVista(v) {
     reportes:   'Reportes',
     dashboard:  'Dashboard',
     validadas:  'Tareas Validadas',
+    enlaces:    'Enlaces',
     papelera:   'Historial'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
@@ -7065,6 +7183,7 @@ function cambiarVista(v) {
   if (v === 'validadas')  renderizarValidadas();
   if (v === 'reportes')   renderizarReportes();
   if (v === 'dashboard')  renderizarDashboard();
+  if (v === 'enlaces')    renderizarEnlaces();
   if (v === 'papelera')   renderizarPapelera();
 }
 
@@ -7999,6 +8118,7 @@ function guardarObsDir(idTarea, valor) { guardarObsArea(idTarea, 'DPAC', valor);
 //     subdirección, sin jefatura propia) y también el Director.
 function puedeCompletar(t) {
   if (!usuarioActual || !t) return false;
+  if (esEnlaceUser()) return false;   // el enlace no valida/completa
   const cols = participantesDe(t);
   if (!cols.length) return false;
   // Cierra/completa el participante de MAYOR jerarquía. participantesDe ordena
