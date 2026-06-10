@@ -4862,6 +4862,7 @@ function aplicarUsuarioServidor(res) {
     rol: u.rol,                       // 'Director' o 'Capturista'
     subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
     jefatura: u.jefatura || '',
+    es_enlace: !!u.es_enlace,         // ENLACE: vista limitada (solo sus tareas)
     iniciales: inicialesDe(u.nombre)
   };
   aplicarSesion();
