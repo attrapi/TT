@@ -5090,7 +5090,13 @@ function nombresSinApellidos(nombre) {
   var n = String(nombre).replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
   var p = n.split(/\s+/);
   if (p.length <= 2) return p[0] || '';
-  return p.slice(0, p.length - 2).join(' ');
+  var corte = p.length - 2;   // se quitan los 2 apellidos
+  // Si el corte deja una PARTÍCULA al final (de/la/del/los/y…), se incluye la
+  // palabra siguiente para no cortar a media palabra ("Daniel de la" → "Daniel
+  // de la Garza"). Así un apellido compuesto no queda truncado.
+  var particulas = ['de', 'la', 'las', 'los', 'del', 'y', 'e', 'san', 'santa'];
+  while (corte < p.length && particulas.indexOf((p[corte - 1] || '').toLowerCase()) >= 0) corte++;
+  return p.slice(0, corte).join(' ');
 }
 
 // Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
@@ -5399,10 +5405,10 @@ function esEnlaceUser(u) {
 function esResponsableDe(t, u) {
   if (!t || !u) return false;
   const corto = nombresSinApellidos(u.nombre || '').trim().toLowerCase();
-  const full  = formatearNombre(u.nombre || '').trim().toLowerCase();
-  if (!corto && !full) return false;
+  const nom   = String(u.nombre || '').trim().toLowerCase();   // nombre completo
+  if (!corto && !nom) return false;
   return String(t.responsable || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-    .some(n => n === corto || n === full);
+    .some(n => n === corto || (n.length >= 5 && nom.indexOf(n) >= 0));   // tolera "Daniel de la" vs "...Garza"
 }
 // ¿La tarea está asignada a algún ENLACE? (responsable = una persona marcada
 // es_enlace). El Director NO ve estas tareas; sí las ve el subdirector y el enlace.
