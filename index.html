@@ -1807,6 +1807,73 @@
     padding: 6px; border-bottom: 1px solid var(--guinda);
   }
 
+  /* === Efecto "modo hacker": una NUBE NEGRA de humo que gira y cruza la
+     pantalla al activar el switch de Dirección. Decorativo, se autodestruye. === */
+  .hacker-fx {
+    position: fixed; inset: 0; z-index: 99999; pointer-events: none;
+    overflow: hidden; opacity: 0;
+    animation: hackerFade 2.4s ease-in-out forwards;
+  }
+  @keyframes hackerFade {
+    0%   { opacity: 0; }
+    10%  { opacity: 1; }
+    72%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  /* Oscurecimiento breve del fondo, como si la pantalla "se apagara". */
+  .hacker-fx .hacker-tint {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 50%, rgba(0,0,0,.35), rgba(0,0,0,.78));
+  }
+  /* Las nubes de humo NEGRO: manchas oscuras que giran y cruzan la pantalla. */
+  .hacker-fx .hacker-nube {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, rgba(20,22,26,.96), rgba(15,16,20,.55) 45%, transparent 72%);
+    filter: blur(26px);
+  }
+  .hacker-fx .n1 { width: 75vw; height: 75vw; animation: hackerHumo1 2.4s ease-out forwards; }
+  .hacker-fx .n2 { width: 85vw; height: 85vw; animation: hackerHumo2 2.4s ease-out forwards; animation-delay: .1s; }
+  .hacker-fx .n3 { width: 60vw; height: 60vw; animation: hackerHumo3 2.4s ease-out forwards; animation-delay: .2s; }
+  /* Cada nube entra por un lado, gira y sale por el otro. */
+  @keyframes hackerHumo1 {
+    0%   { transform: translate(-120vw, -10vh) rotate(0deg) scale(.6); opacity: 0; }
+    35%  { opacity: 1; }
+    100% { transform: translate(120vw, 10vh) rotate(220deg) scale(1.3); opacity: 0; }
+  }
+  @keyframes hackerHumo2 {
+    0%   { transform: translate(120vw, 30vh) rotate(0deg) scale(.7); opacity: 0; }
+    40%  { opacity: 1; }
+    100% { transform: translate(-120vw, -20vh) rotate(-260deg) scale(1.4); opacity: 0; }
+  }
+  @keyframes hackerHumo3 {
+    0%   { transform: translate(-20vw, 120vh) rotate(0deg) scale(.5); opacity: 0; }
+    45%  { opacity: 1; }
+    100% { transform: translate(40vw, -120vh) rotate(300deg) scale(1.5); opacity: 0; }
+  }
+  /* Texto tipo terminal en el centro. */
+  .hacker-fx .hacker-txt {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    font-family: 'Courier New', monospace; text-align: center;
+    color: #6dffb0; text-shadow: 0 0 8px rgba(0,255,120,.9), 0 0 22px rgba(0,255,120,.5);
+  }
+  .hacker-fx .hacker-txt .l1 { font-size: 14px; letter-spacing: .35em; opacity: .85; }
+  .hacker-fx .hacker-txt .l2 {
+    font-size: clamp(22px, 5vw, 46px); font-weight: 800; letter-spacing: .12em;
+    animation: hackerGlitch .14s steps(2) infinite;
+  }
+  .hacker-fx .hacker-txt .l3 { font-size: 13px; opacity: .8; }
+  .hacker-fx .hacker-txt .cursor { animation: hackerBlink .6s steps(1) infinite; }
+  @keyframes hackerGlitch {
+    0%   { transform: translate(0,0);   text-shadow: 0 0 8px rgba(0,255,120,.9); }
+    50%  { transform: translate(-1px,1px); text-shadow: 2px 0 6px rgba(255,0,80,.6), -2px 0 6px rgba(0,180,255,.6); }
+    100% { transform: translate(1px,-1px); text-shadow: 0 0 8px rgba(0,255,120,.9); }
+  }
+  @keyframes hackerBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hacker-fx, .hacker-fx * { animation-duration: .01ms !important; }
+  }
+
   .btn-actualizar:hover { background: var(--guinda); color: white; }
   .btn-actualizar:disabled { opacity: 0.6; cursor: wait; }
   .btn-actualizar svg { width: 14px; height: 14px; }
@@ -4622,6 +4689,26 @@ function toggleVistaDirector() {
   aplicarSesion();           // reconstruye sidebar/permisos con el rol efectivo
   cambiarVista('tablero');   // muestra el tablero (de Dirección o de SPAC)
   renderizar();              // fuerza el render con el rol/tab nuevos
+  if (SOLO_LECTURA) efectoHackerNube();   // nube negra "modo hacker" al entrar
+}
+
+// Lanza una nube de humo negro que gira y cruza la pantalla, con texto tipo
+// terminal. Puramente decorativo: se crea, se anima ~2.4s y se borra sola.
+function efectoHackerNube() {
+  const fx = document.createElement('div');
+  fx.className = 'hacker-fx';
+  fx.innerHTML =
+    '<div class="hacker-tint"></div>' +
+    '<div class="hacker-nube n1"></div>' +
+    '<div class="hacker-nube n2"></div>' +
+    '<div class="hacker-nube n3"></div>' +
+    '<div class="hacker-txt">' +
+      '<div class="l1">&gt;_ INICIANDO</div>' +
+      '<div class="l2">ACCESO CONCEDIDO</div>' +
+      '<div class="l3">Vista de Dirección<span class="cursor"> █</span></div>' +
+    '</div>';
+  document.body.appendChild(fx);
+  setTimeout(function () { fx.remove(); }, 2500);
 }
 
 // Muestra/oculta la píldora y ajusta su texto/estado.
