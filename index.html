@@ -1210,7 +1210,7 @@
     margin: 24px auto 0;
     padding: 0 32px;
     display: grid;
-    grid-template-columns: 1.75fr 1fr;   /* Resumen más ancho (3 círculos + donut); Pendientes más angosto */
+    grid-template-columns: 1.6fr 1fr;   /* Resumen más ancho (3 círculos + donut); Pendientes más angosto */
     gap: 18px;
   }
 
@@ -1257,7 +1257,8 @@
   .kpi-cuerpo {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: 24px;
+    min-width: 0;            /* permite que el contenido se ajuste sin desbordar */
   }
   /* Cada KPI ocupa el mismo ancho dentro del card y su label se alinea
      debajo del círculo, no al borde izquierdo del card. */
@@ -1265,10 +1266,11 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-around;   /* reparte los círculos sin encimarlos */
-    gap: 18px;
+    gap: 12px;
     flex: 1;
+    min-width: 0;
   }
-  .kpis-fila .kpi { flex: 0 0 auto; }   /* cada círculo conserva su tamaño (no se aplasta) */
+  .kpis-fila .kpi { flex: 0 1 auto; min-width: 0; }   /* se ajustan si falta espacio (no desbordan) */
 
   /* Chip pequeño "Vencidas" — ya no merece un círculo grande porque cada
      tarjeta ya muestra su propio señalador "vencida"; aquí solo damos el
@@ -1294,9 +1296,9 @@
   .kpi-pie-wrap {
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 16px;
     border-left: 1px solid var(--linea);
-    padding-left: 32px;
+    padding-left: 20px;
     flex-shrink: 0;
   }
   .kpi-pie {
@@ -1304,8 +1306,8 @@
     --p2: 0;   /* % vencidas */
     --p3: 0;   /* % atendidas */
     --p4: 0;   /* % archivadas */
-    width: 124px;
-    height: 124px;
+    width: 102px;
+    height: 102px;
     border-radius: 50%;
     background:
       conic-gradient(
@@ -1408,8 +1410,8 @@
   }
 
   .kpi-valor {
-    width: 72px;
-    height: 72px;
+    width: 62px;
+    height: 62px;
     border-radius: 50%;
     background: white;
     border: 3px solid var(--guinda);
@@ -1418,7 +1420,7 @@
     justify-content: center;
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 28px;
+    font-size: 24px;
     line-height: 1;
     color: var(--guinda);
     box-shadow: 0 4px 14px rgba(105,28,50,0.12), inset 0 -3px 6px rgba(0,0,0,0.04);
