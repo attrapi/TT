@@ -6843,7 +6843,32 @@ function columnasHistorial() {
         color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }
     ];
   }
-  // Subdirectoras, jefes, staff: reutilizan la configuración de su tablero.
+  // Subdirector de SPAC: en el HISTORIAL agrega 3 columnas de enlace (Nora ·
+  // César · Daniel). Las tareas de un enlace van a SU columna (no a SPAC).
+  const esSubSPAC = usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'SPAC'
+    && !jefaturaCodigo(usuarioActual.jefatura) && !esEnlaceUser();
+  if (esSubSPAC) {
+    // Columnas SPAC/JDPC/JDIMA pero EXCLUYENDO las tareas de enlace.
+    const base = columnasPorRol().map(col => ({
+      id: col.id, titulo: col.titulo, subtitulo: col.subtitulo, color: col.color,
+      filtro: t => col.filtro(t) && !esTareaDeEnlace(t)
+    }));
+    const ORDEN = ['nora', 'cesar', 'daniel'];
+    const ord = nom => { const n = String(nom || '').toLowerCase(); for (let k = 0; k < ORDEN.length; k++) if (n.indexOf(ORDEN[k]) >= 0) return k; return 99; };
+    const colores = ['azul', 'morado', 'naranja'];
+    const colsEnl = (RESPONSABLES || [])
+      .filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
+      .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto))
+      .map((en, i) => ({
+        id: 'ENL_' + inicialesEnlace(en.nombreCompleto),
+        titulo: nombreCortoResp(en),
+        subtitulo: 'Enlace · SPAC',
+        color: colores[i % colores.length],
+        filtro: t => esResponsableDe(t, { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto })
+      }));
+    return base.concat(colsEnl);
+  }
+  // Otras subdirectoras, jefes, staff: reutilizan la configuración de su tablero.
   return columnasPorRol();
 }
 
