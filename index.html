@@ -6704,6 +6704,7 @@ function reenviarAValidacion(idTarea) {
 // Reabrir: regresa la tarea a "Identificadas" (En Proceso) y limpia su avance
 // (validación/finalización). Queda guardado en la hoja Estados.
 function reabrir(idTarea) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   if (!confirm('¿Reabrir la tarea ' + idTarea + '?\n\n"' + t.titulo + '"\n\nVolverá a "En Proceso" y se borrará su avance.')) return;
@@ -8216,6 +8217,7 @@ function renderChecklistHTML(t) {
 // modales emergentes). Solo el creador puede editarlo. Enter guarda, Esc
 // cancela, perder el foco también guarda.
 function hacerEditableChecklist(idTarea, idx) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   const items = obtenerChecklist(t);
@@ -8494,6 +8496,7 @@ function agregarItemChecklist(idTarea, texto) {
 
 // Borra un ítem del checklist, SOLO si lo creó el usuario actual.
 function eliminarItemChecklist(idTarea, idx) {
+  if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
   const items = obtenerChecklist(t);
