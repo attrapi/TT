@@ -4998,7 +4998,7 @@ function opcionesResponsableHTML(valSel) {
   let html = '<option value="">Selecciona responsable…</option>';
   // Conserva un valor que de plano no esté en la lista (texto libre antiguo).
   if (valSel && valSel !== '__OTRO__' && !conocidos.has(valSel)) {
-    html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(valSel) + '</option>';
+    html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(nombreNiceResp(valSel)) + '</option>';
   }
   // Agrupado por ÁREA (subdirección), en orden fijo. "Otros" cae lo que no tenga área.
   const CONOCIDAS = ['DPAC', 'SPAC', 'SGOI', 'SA', 'ENLACE', 'STAFF'];
@@ -5011,10 +5011,10 @@ function opcionesResponsableHTML(valSel) {
     { cod: '',       label: 'Otros' }
   ];
   const opcion = r => {
-    const v = nombreCortoResp(r);   // nombre_corto del perfil, o derivado
-    // Selecciona si el valor guardado es el nombre corto, el derivado o el completo.
-    const sel = (valSel === v || valSel === nombresSinApellidos(r.nombreCompleto) || valSel === r.nombreCompleto);
-    return '<option value="' + escapeHtml(v) + '"' + (sel ? ' selected' : '') + '>' + escapeHtml(r.nombreCompleto) + '</option>';
+    const v = nombresSinApellidos(r.nombreCompleto);   // valor GUARDADO = derivado
+    const txt = nombreCortoResp(r);                      // texto MOSTRADO = nombre bonito
+    const sel = (valSel === v || valSel === nombreCortoResp(r) || valSel === r.nombreCompleto);
+    return '<option value="' + escapeHtml(v) + '"' + (sel ? ' selected' : '') + '>' + escapeHtml(txt) + '</option>';
   };
   GRUPOS.forEach(g => {
     const items = lista.filter(r => {
@@ -5117,12 +5117,30 @@ function inicialesEnlace(nombreCompleto) {
     .map(w => w.charAt(0).toUpperCase()).join('');
 }
 
+// ¿La cadena de responsable corresponde a este responsable r? Tolera el nombre
+// derivado (guardado), el nombre_corto (bonito) y el completo.
+function respCoincide(parteLower, r) {
+  if (!r) return false;
+  return parteLower === nombresSinApellidos(r.nombreCompleto || '').toLowerCase()
+      || parteLower === nombreCortoResp(r).toLowerCase()
+      || parteLower === String(r.nombreCompleto || '').toLowerCase();
+}
 // Si la cadena de responsable corresponde a un ENLACE, lo devuelve (de RESPONSABLES).
 function enlaceDeResponsable(responsableStr) {
   const nombres = String(responsableStr || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   if (!nombres.length) return null;
-  return (RESPONSABLES || []).find(r => r && r.es_enlace
-    && nombres.indexOf(nombreCortoResp(r).toLowerCase()) >= 0) || null;
+  return (RESPONSABLES || []).find(r => r && r.es_enlace && nombres.some(n => respCoincide(n, r))) || null;
+}
+// Mapea el responsable GUARDADO (corto/derivado) al nombre BONITO (nombre_corto)
+// para mostrarlo SOLO en el modal de la tarea. Soporta varios separados por coma.
+function nombreNiceResp(stored) {
+  const s = String(stored || '').trim();
+  if (!s) return s;
+  return s.split(',').map(function (part) {
+    const p = part.trim(); if (!p) return '';
+    const r = (RESPONSABLES || []).find(function (x) { return respCoincide(p.toLowerCase(), x); });
+    return r ? nombreCortoResp(r) : p;
+  }).filter(Boolean).join(', ');
 }
 
 // Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
@@ -6920,7 +6938,7 @@ function abrirDetalle(t) {
         <dt>Área responsable</dt>
         <dd>${escapeHtml(areaResponsable(t))}</dd>
         <dt>Responsable directo</dt>
-        <dd>${escapeHtml((t.responsable || '').trim() || '—')}</dd>
+        <dd>${escapeHtml(nombreNiceResp(t.responsable) || '—')}</dd>
         <dt>Fecha de atención</dt>
         <dd class="${vencida ? 'modal-campo-fecha-vencida' : ''}">
           ${t.permanente
