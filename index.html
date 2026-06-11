@@ -4115,6 +4115,25 @@
   .juego-modo-info { flex: 1; }
   .juego-home-grid .juego-modo .juego-modo-ico { font-size: 26px; margin: 0; }
 
+  /* Buscador de artículos */
+  .juego-buscar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .juego-buscar input {
+    flex: 1; min-width: 0; border: 2px solid var(--linea); border-radius: 12px;
+    padding: 11px 14px; font-size: 14px; outline: none; font-family: inherit;
+  }
+  .juego-buscar input:focus { border-color: var(--guinda); }
+  .juego-buscar button {
+    border: none; background: var(--guinda); color: #fff; font-weight: 800;
+    border-radius: 12px; padding: 0 16px; cursor: pointer; white-space: nowrap;
+  }
+  .juego-buscar button:hover { filter: brightness(1.1); }
+  .juego-art-res { border: 1px solid var(--linea); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; background: #fff; }
+  .juego-art-tit { font-weight: 800; color: var(--guinda); margin-bottom: 8px; }
+  .juego-art-tit a { font-size: 12px; color: var(--tinta-suave); font-weight: 700; }
+  .juego-art-body { white-space: pre-wrap; font-size: 13.5px; line-height: 1.55; color: var(--tinta); max-height: 320px; overflow: auto; }
+  .juego-art-nf { color: var(--tinta-suave); font-size: 14px; }
+  @media (max-width: 480px) { .juego-buscar { flex-direction: column; } }
+
   @media (max-width: 480px) {
     .juego-card { padding: 22px 18px 26px; border-radius: 18px; }
     .juego-modos { grid-template-columns: 1fr; }
@@ -8152,18 +8171,88 @@ const REGLOPSRM_PREGUNTAS = [
   { tema:'Definiciones', art:'Art. 2', pregunta:'El "área responsable de la ejecución de los trabajos" lleva:', opciones:['La administración, control y seguimiento de los trabajos hasta concluir el contrato','La compra de papelería','El pago de nómina','La publicidad'], correcta:0, explica:'Art. 2, frac. III: es la facultada para llevar la administración, control y seguimiento de los trabajos hasta la conclusión definitiva del contrato.', simple:'Es el area que administra y le da seguimiento a la obra hasta terminarla.' }
 ];
 
+// ===== LGA (Ley General de Archivos) =====
+const LGA_PREGUNTAS = [
+  { tema:'Generalidades', art:'Art. 1', pregunta:'¿Qué establece la Ley General de Archivos?', opciones:['Los principios y bases para organizar y conservar los archivos en posesión de los sujetos obligados','Cómo cobrar impuestos','Las obras públicas','El medio ambiente'], correcta:0, explica:'Art. 1: tiene por objeto establecer los principios y bases generales para la organización, conservación, administración y preservación homogénea de los archivos.', simple:'Es la ley que dice como deben ordenar y conservar sus archivos las instituciones publicas.' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'La LGA aplica (sujetos obligados) a:', opciones:['Quienes reciban y ejerzan recursos públicos o realicen actos de autoridad','Solo a empresas privadas','Solo a particulares','A nadie'], correcta:0, explica:'Art. 1: aplica a autoridades de los tres poderes, órganos autónomos, partidos, fideicomisos y a cualquier persona que reciba y ejerza recursos públicos o realice actos de autoridad.', simple:'Aplica a todo el que maneje dinero o poder publico (los "sujetos obligados").' },
+  { tema:'Definiciones', art:'Art. 4', pregunta:'Un "documento de archivo" es:', opciones:['El que registra un hecho o acto producido o recibido en el ejercicio de las funciones del sujeto obligado','Cualquier hoja','Un libro de la biblioteca','Una foto personal'], correcta:0, explica:'Art. 4: documento de archivo es el que registra un hecho o acto administrativo, jurídico, fiscal o contable producido, recibido y utilizado en el ejercicio de las funciones, sin importar su soporte.', simple:'Es un papel (o archivo digital) que prueba algo que hizo la institucion en su trabajo.' },
+  { tema:'Definiciones', art:'Art. 4', pregunta:'Un "expediente" es:', opciones:['La unidad documental compuesta por documentos relacionados por un mismo asunto o trámite','Un solo papel','Un archivero','Una carpeta vacía'], correcta:0, explica:'Art. 4: expediente es la unidad documental compuesta por documentos de archivo ordenados y relacionados por un mismo asunto, actividad o trámite.', simple:'Es la carpeta que junta todos los papeles de un mismo asunto.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'La "gestión documental" es:', opciones:['El tratamiento integral de la documentación a lo largo de su ciclo vital','Tirar papeles','Solo escanear','Guardar todo para siempre'], correcta:0, explica:'Art. 4: gestión documental es el tratamiento integral de la documentación a lo largo de su ciclo vital (producción, organización, acceso, consulta, valoración y conservación).', simple:'Es manejar bien los documentos desde que nacen hasta que se archivan o se eliminan.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'El "ciclo vital" de los documentos va:', opciones:['Desde su producción o recepción hasta su baja documental o transferencia al archivo histórico','Solo un día','Para siempre igual','Desde que se imprimen'], correcta:0, explica:'Art. 4: ciclo vital son las etapas por las que atraviesan los documentos desde su producción o recepción hasta su baja documental o transferencia a un archivo histórico.', simple:'Es la "vida" del documento: nace, se usa, y al final se elimina o se guarda como historico.' },
+  { tema:'Archivos', art:'Art. 4', pregunta:'El "archivo de trámite" guarda documentos:', opciones:['De uso cotidiano y necesario para el trámite','Ya muertos','Históricos','Eliminados'], correcta:0, explica:'Art. 4: archivo de trámite es el integrado por documentos de archivo de uso cotidiano y necesario para el ejercicio de las atribuciones.', simple:'Es el archivo del dia a dia: lo que estas usando ahorita.' },
+  { tema:'Archivos', art:'Art. 4', pregunta:'El "archivo de concentración" guarda documentos:', opciones:['Cuyo uso y consulta es esporádica, hasta su disposición documental','De uso diario','Que se eliminan al instante','Personales'], correcta:0, explica:'Art. 4: archivo de concentración es el integrado por documentos transferidos desde las áreas productoras, de uso y consulta esporádica, que permanecen hasta su disposición documental.', simple:'Es la "bodega": papeles que ya casi no usas pero aun debes guardar un tiempo.' },
+  { tema:'Archivos', art:'Art. 4', pregunta:'El "archivo histórico" guarda documentos:', opciones:['De conservación permanente y relevancia para la memoria','De uso diario','Sin valor','Que se eliminan'], correcta:0, explica:'Art. 4: archivo histórico es el integrado por documentos de conservación permanente y de relevancia para la memoria nacional, regional o local.', simple:'Guarda para siempre los documentos valiosos para la historia.' },
+  { tema:'Archivos', art:'Art. 4', pregunta:'Las "áreas operativas" del sistema institucional de archivos son:', opciones:['La unidad de correspondencia y los archivos de trámite, concentración e (histórico)','Solo el archivo histórico','La oficina de prensa','La caja chica'], correcta:0, explica:'Art. 4: las áreas operativas son la unidad de correspondencia, el archivo de trámite, el archivo de concentración y, en su caso, el histórico.', simple:'Son las areas que mueven los archivos: correspondencia, tramite, concentracion e historico.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'La "transferencia" documental es:', opciones:['El traslado controlado de expedientes de un archivo a otro (trámite→concentración→histórico)','Tirar a la basura','Fotocopiar','Esconder papeles'], correcta:0, explica:'Art. 4: transferencia es el traslado controlado y sistemático de expedientes del archivo de trámite al de concentración, y de éste al histórico.', simple:'Es pasar los expedientes de un archivo al siguiente, de forma ordenada.' },
+  { tema:'Gestión documental', art:'Art. 30', pregunta:'La transferencia PRIMARIA va:', opciones:['Del archivo de trámite al de concentración','Del histórico al de trámite','A la basura','Del concentración al trámite'], correcta:0, explica:'Art. 30: una función del archivo de trámite es realizar las transferencias primarias al archivo de concentración.', simple:'Primaria = del dia a dia (tramite) a la bodega (concentracion).' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'La "baja documental" es:', opciones:['La eliminación de documentación que prescribió su vigencia y no tiene valor histórico','Guardar todo','Esconder papeles','Imprimir de más'], correcta:0, explica:'Art. 4: baja documental es la eliminación de la documentación que haya prescrito su vigencia y valores y que no posea valores históricos.', simple:'Es eliminar (legalmente) los papeles que ya no sirven ni son historicos.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'La "valoración documental" consiste en:', opciones:['Analizar e identificar los valores de los documentos','Pesar los papeles','Venderlos','Contarlos'], correcta:0, explica:'Art. 4: valoración documental es la actividad de análisis e identificación de los valores documentales para establecer su vigencia y destino.', simple:'Es decidir cuanto valen los documentos y por cuanto tiempo se guardan.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'La "disposición documental" selecciona expedientes cuya vigencia prescribió para:', opciones:['Transferirlos o darlos de baja','Solo imprimirlos','Esconderlos','Venderlos'], correcta:0, explica:'Art. 4: disposición documental es la selección sistemática de expedientes cuya vigencia o uso ha prescrito, para realizar transferencias ordenadas o bajas documentales.', simple:'Es decidir que pasa con los papeles "vencidos": se transfieren o se eliminan.' },
+  { tema:'Instrumentos', art:'Art. 4', pregunta:'El "cuadro general de clasificación archivística" refleja:', opciones:['La estructura del archivo con base en las funciones del sujeto obligado','El precio del papel','La nómina','El clima'], correcta:0, explica:'Art. 4: el cuadro general de clasificación archivística es el instrumento técnico que refleja la estructura de un archivo con base en las atribuciones y funciones de cada sujeto obligado.', simple:'Es el "mapa" que organiza los archivos segun lo que hace la institucion.' },
+  { tema:'Instrumentos', art:'Art. 4', pregunta:'El "catálogo de disposición documental" establece:', opciones:['Los valores, la vigencia, los plazos de conservación y la disposición documental','El sueldo','La fecha de hoy','El color de las carpetas'], correcta:0, explica:'Art. 4: el catálogo de disposición documental es el registro general que establece los valores documentales, la vigencia, los plazos de conservación y la disposición documental.', simple:'Es la tabla que dice cuanto se guarda cada documento y que se hace con el al final.' },
+  { tema:'Instrumentos', art:'Art. 4', pregunta:'Los "inventarios documentales" sirven para:', opciones:['Describir y localizar las series y expedientes (general, de transferencia, de baja)','Cobrar multas','Contratar personal','Comprar equipo'], correcta:0, explica:'Art. 4: los inventarios documentales describen las series y expedientes y permiten su localización (general), las transferencias o la baja documental.', simple:'Son las listas para saber que hay y donde esta cada expediente.' },
+  { tema:'Gestión documental', art:'Art. 4', pregunta:'El "grupo interdisciplinario" tiene como fin:', opciones:['Coadyuvar en la valoración documental','Vender archivos','Hacer obra pública','Cobrar impuestos'], correcta:0, explica:'Art. 4: el grupo interdisciplinario es el conjunto de personas (de transparencia, jurídica, control interno, histórico, etc.) que coadyuva en la valoración documental.', simple:'Es un equipo de varias areas que ayuda a decidir el valor y destino de los documentos.' },
+  { tema:'Generalidades', art:'Art. 20', pregunta:'El "Sistema Institucional de Archivos" es:', opciones:['El conjunto de procesos y estructuras que sustenta la actividad archivística de cada sujeto obligado','Un programa de TV','Una bodega cualquiera','Un partido político'], correcta:0, explica:'Art. 20: el Sistema Institucional es el conjunto de registros, procesos, procedimientos, estructuras y funciones que sustenta la actividad archivística de cada sujeto obligado.', simple:'Es todo el "sistema" que cada institucion usa para manejar sus archivos.' },
+  { tema:'Gestión documental', art:'Art. 12', pregunta:'Los sujetos obligados deben mantener los documentos:', opciones:['En el orden original en que fueron producidos','Revueltos','Por color','Por tamaño'], correcta:0, explica:'Art. 12: deberán mantener los documentos en el orden original en que fueron producidos, conforme a los procesos de gestión documental.', simple:'Hay que respetar el orden en que se generaron los documentos (principio de orden original).' },
+  { tema:'Definiciones', art:'Art. 4', pregunta:'Una "serie documental" es:', opciones:['El conjunto de documentos producidos en el ejercicio de una misma función (división de una sección)','Una sola hoja','Un archivero','Un sello'], correcta:0, explica:'Art. 4: serie es la división de una sección que corresponde al conjunto de documentos producidos en el ejercicio de una misma atribución o función.', simple:'Es un grupo de expedientes del mismo tipo de tramite (por ejemplo, todos los contratos).' },
+  { tema:'Generalidades', art:'Art. 4', pregunta:'Además de autoridades, también son sujetos obligados:', opciones:['Quienes reciban recursos públicos o tengan archivos privados de interés público','Solo el Presidente','Solo los jueces','Nadie más'], correcta:0, explica:'Art. 4: sujetos obligados incluye a cualquier persona física o moral que reciba y ejerza recursos públicos o realice actos de autoridad, así como quienes tengan archivos privados de interés público.', simple:'No solo el gobierno: tambien quien use dinero publico o tenga archivos de interes publico.' }
+];
+
 // ===== Registro multi-ley del juego =====
 const JUEGO_LEYES = [
   { id:'lopsrm', abrev:'LOPSRM', nombre:'Obras Públicas', desc:'Ley de Obras Públicas y Servicios Relacionados con las Mismas', emoji:'🏗️', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf', preguntas: LOPSRM_PREGUNTAS },
   { id:'reglopsrm', abrev:'Reglamento', nombre:'Reglamento LOPSRM', desc:'Reglamento de la Ley de Obras Públicas y Servicios Relacionados', emoji:'📐', pdf:'https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LOPSRM.pdf', preguntas: REGLOPSRM_PREGUNTAS },
   { id:'laassp', abrev:'LAASSP', nombre:'Adquisiciones', desc:'Ley de Adquisiciones, Arrendamientos y Servicios del Sector Público', emoji:'🛒', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LAASSP.pdf', preguntas: LAASSP_PREGUNTAS },
-  { id:'lgeepa', abrev:'LGEEPA', nombre:'Medio Ambiente', desc:'Ley General del Equilibrio Ecológico y la Protección al Ambiente', emoji:'🌳', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGEEPA.pdf', preguntas: LGEEPA_PREGUNTAS }
+  { id:'lgeepa', abrev:'LGEEPA', nombre:'Medio Ambiente', desc:'Ley General del Equilibrio Ecológico y la Protección al Ambiente', emoji:'🌳', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGEEPA.pdf', preguntas: LGEEPA_PREGUNTAS },
+  { id:'lga', abrev:'LGA', nombre:'Archivos', desc:'Ley General de Archivos', emoji:'🗄️', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGA.pdf', preguntas: LGA_PREGUNTAS }
 ];
 let juegoLeyActual = 'lopsrm';
 function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || JUEGO_LEYES[0]; }
 function _juegoPreguntas() { return _juegoLey().preguntas; }
 function _juegoStoreKey() { return 'juego_' + juegoLeyActual + '_v1'; }
 function juegoCambiarLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; renderJuegoInicio(); } }
+
+// Carga diferida del archivo con el TEXTO ÍNTEGRO de los artículos (es grande,
+// solo se baja cuando el usuario busca por primera vez).
+function _cargarTextosLeyes(cb) {
+  if (window.LEYES_ARTICULOS) { cb(true); return; }
+  let s = document.getElementById('leyesArticulosScript');
+  if (s) { s.addEventListener('load', function () { cb(!!window.LEYES_ARTICULOS); }); s.addEventListener('error', function () { cb(false); }); return; }
+  const res = document.getElementById('juegoArtRes');
+  if (res) res.innerHTML = '<div class="juego-art-res">⏳ Cargando los textos de las leyes…</div>';
+  s = document.createElement('script');
+  s.id = 'leyesArticulosScript';
+  s.src = 'leyes_articulos.js';
+  s.onload = function () { cb(!!window.LEYES_ARTICULOS); };
+  s.onerror = function () { cb(false); };
+  document.head.appendChild(s);
+}
+
+// Buscador de artículos: el usuario escribe un número y le devuelve el texto
+// íntegro del artículo de la LEY SELECCIONADA.
+function juegoBuscarArticulo() {
+  const inp = document.getElementById('juegoArtInput');
+  const res = document.getElementById('juegoArtRes');
+  if (!inp || !res) return;
+  const raw = inp.value.trim();
+  if (!raw) { res.innerHTML = ''; return; }
+  const ley = _juegoLey();
+  _cargarTextosLeyes(function (ok) {
+    if (!ok || !window.LEYES_ARTICULOS) { res.innerHTML = '<div class="juego-art-res juego-art-nf">No se pudieron cargar los textos. Recarga la página e intenta de nuevo.</div>'; return; }
+    const data = window.LEYES_ARTICULOS[ley.id] || {};
+    // Normaliza: "Artículo 27 Bis" / "27BIS" / "27.bis" → "27 bis"
+    let k = raw.toLowerCase().replace(/^art[íi]?culo?s?\.?\s*/, '').replace(/[.\-]/g, ' ').replace(/\s+/g, ' ').trim();
+    k = k.replace(/^(\d+)\s*(bis|ter|qu[áa]ter|quinquies|quintus|sexies|septies|octies)$/, '$1 $2');
+    const texto = data[k];
+    if (texto) {
+      res.innerHTML = '<div class="juego-art-res"><div class="juego-art-tit">📖 Artículo ' + escapeHtml(k) + ' · ' + escapeHtml(ley.abrev)
+        + ' <a href="' + ley.pdf + '" target="_blank" rel="noopener">(ver PDF)</a></div>'
+        + '<div class="juego-art-body">' + escapeHtml(texto) + '</div></div>';
+    } else {
+      res.innerHTML = '<div class="juego-art-res juego-art-nf">No encontré el artículo “' + escapeHtml(raw) + '” en ' + escapeHtml(ley.abrev) + '. Prueba solo el número (ej. 27) o agrega “bis”.</div>';
+    }
+  });
+}
 
 let JUEGO = null;
 
@@ -8242,6 +8331,11 @@ function renderJuegoInicio() {
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
     + '<div class="juego-leyes">' + selLeyes + '</div>'
+    + '<div class="juego-buscar">'
+    +   '<input id="juegoArtInput" type="text" autocomplete="off" placeholder="Buscar artículo de ' + escapeHtml(ley.abrev) + '… (ej. 27 o 27 bis)" onkeydown="if(event.key===\'Enter\')juegoBuscarArticulo()">'
+    +   '<button onclick="juegoBuscarArticulo()">🔎 Ver artículo</button>'
+    + '</div>'
+    + '<div id="juegoArtRes"></div>'
     + '<div class="juego-home-grid">'
     +   '<div class="juego-col">'
     +     '<div class="juego-panel juego-nivel-panel">'
