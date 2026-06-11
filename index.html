@@ -4104,6 +4104,9 @@
     font-size: 13.5px; line-height: 1.5; color: #7c2d12;
   }
   .juego-dato-tit { font-weight: 800; color: var(--ambar); margin-bottom: 5px; }
+  .juego-dato-link { margin-top: 8px; }
+  .juego-dato-link a { color: var(--guinda); font-weight: 800; text-decoration: none; }
+  .juego-dato-link a:hover { text-decoration: underline; }
 
   .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 4px; }
   /* En el home los modos van en UNA columna, como filas (icono + texto). */
@@ -8235,7 +8238,7 @@ function renderJuegoInicio() {
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<div class="juego-hero">'
     +   '<div class="juego-titulo">⚖️ Reta a la Ley</div>'
-    +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + ' · ' + totalP + ' preguntas</div>'
+    +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + '</div>'
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
     + '<div class="juego-leyes">' + selLeyes + '</div>'
@@ -8252,7 +8255,8 @@ function renderJuegoInicio() {
     +       '<div class="juego-stat"><div class="juego-stat-num">' + (p.partidas || 0) + '</div><div class="juego-stat-lbl">Partidas</div></div>'
     +       '<div class="juego-stat"><div class="juego-stat-num">' + falladasN + '</div><div class="juego-stat-lbl">Por repasar</div></div>'
     +     '</div>'
-    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div></div>'
+    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
+    +       '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
     +   '</div>'
     +   '<div class="juego-col">'
     +     '<div class="juego-modos-tit">Elige cómo jugar</div>'
