@@ -8339,9 +8339,18 @@ function participantesDe(t) {
   // tarea vieja trae un DPAC/ENLACE heredado (de cuando se autoañadía al Director
   // como validador), lo ignoramos aquí para que NO pinte su columna en el
   // checklist ni deje la tarea atorada esperando una validación que el Director no
-  // hace. (Solo se limpia si queda al menos otra área; no se toca el dato guardado.)
-  if (t.nivel === 'jefatura') {
-    const limpio = parts.filter(p => p !== 'DPAC' && p !== 'ENLACE');
+  // hace. (Limpieza en lectura; no se toca el dato guardado.)
+  // Detectamos "tarea de jefatura" de forma robusta: por nivel, por el PREFIJO del
+  // ID (JDPC-… / JDIMA-… / JDGA-… / JDGOI-…) o porque ya hay una jefatura entre los
+  // participantes — así también arregla tareas viejas cuyo `nivel` quedó mal.
+  const prefId = String(t.id || '').split('-')[0].toUpperCase();
+  const jefPorId = PREFIJO_JEFATURA[prefId] ? prefId : '';
+  const esJefatura = t.nivel === 'jefatura' || !!jefPorId || parts.some(p => PREFIJO_JEFATURA[p]);
+  if (esJefatura) {
+    let limpio = parts.filter(p => p !== 'DPAC' && p !== 'ENLACE');
+    // Si por el ID es una jefatura y no quedó su área (dato viejo con solo DPAC),
+    // la añadimos para que el checklist muestre la columna correcta (la del jefe).
+    if (jefPorId && limpio.indexOf(jefPorId) < 0) limpio.push(jefPorId);
     if (limpio.length) parts = limpio;
   }
   return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
