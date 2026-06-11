@@ -1480,12 +1480,18 @@
   }
   .kpi-sub:hover { background: var(--crema); }
 
-  /* Filtro activo (card/círculo seleccionado en el Resumen general). */
-  .kpi-activa {
-    background: var(--crema);
-    box-shadow: 0 0 0 2px var(--guinda) inset;
-    border-radius: 10px;
+  /* Filtro activo en el Resumen general (círculo/card seleccionado).
+     En vez del borde pegado, el CÍRCULO se eleva y gana un halo de su PROPIO
+     color con un pequeño aire (anillo blanco de separación). Look moderno y
+     coherente con el hover. */
+  .kpi-activa .kpi-valor {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.16),
+                0 0 0 3px #fff,
+                0 0 0 5px currentColor;
   }
+  /* Las cards de jefatura/enlace además resaltan su caja, suave. */
+  .kpi-sub.kpi-activa { background: var(--crema); border-radius: 12px; }
 
   .kpi-sub .kpi-clave {
     font-size: 10px;
