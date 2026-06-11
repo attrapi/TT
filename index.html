@@ -1490,6 +1490,14 @@
                 0 0 0 3px #fff,
                 0 0 0 5px currentColor;
   }
+  /* Las cards de subdirección/Staff definen su PROPIO box-shadow con mayor
+     especificidad (.kpi-sub[data-sub] .kpi-valor), que ganaba sobre el halo. Lo
+     reforzamos aquí para que también se vea el círculo al seleccionarlas. */
+  .kpi-sub[data-sub].kpi-activa .kpi-valor {
+    box-shadow: 0 10px 22px rgba(0,0,0,0.16),
+                0 0 0 3px #fff,
+                0 0 0 5px currentColor;
+  }
   /* Las cards de jefatura/enlace además resaltan su caja, suave. */
   .kpi-sub.kpi-activa { background: var(--crema); border-radius: 12px; }
 
