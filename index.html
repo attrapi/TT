@@ -4039,6 +4039,13 @@
   .juego-feedback.ok .juego-feedback-tit { color: var(--verde); }
   .juego-feedback.mal .juego-feedback-tit { color: var(--rojo); }
   .juego-feedback a { color: var(--guinda); font-weight: 700; }
+  /* Explicación "para dummies" (en palabras simples), debajo de la legal. */
+  .juego-simple {
+    margin-top: 10px; border-radius: 14px; padding: 12px 16px;
+    font-size: 14px; line-height: 1.5;
+    background: #FFF7ED; border: 1px dashed var(--ambar); color: #7c2d12;
+  }
+  .juego-simple-tit { font-weight: 800; color: var(--ambar); margin-bottom: 4px; }
   .juego-btn {
     margin-top: 16px; width: 100%; border: none; border-radius: 14px;
     background: var(--guinda); color: #fff; font-weight: 800; font-size: 16px;
@@ -7848,6 +7855,51 @@ const LOPSRM_PREGUNTAS = [
     explica:'Art. 78: la Secretaría inhabilita temporalmente para participar en procedimientos y celebrar contratos regulados por ésta y otras leyes de contratación.' }
 ];
 
+// Explicación "para dummies" (en palabras simples) de cada pregunta, EN EL MISMO
+// ORDEN que LOPSRM_PREGUNTAS. Se une al banco abajo. Aparece debajo de la
+// explicación legal para que se entienda fácil, sobre todo cuando fallas.
+const _LOPSRM_SIMPLE = [
+  // Generalidades
+  'La Constitución, en su artículo 134, ordena que el dinero público se gaste bien, con honestidad y buscando el mejor precio/calidad. Esta ley es el "manual" que aterriza esa regla cuando el gobierno manda hacer obras.',
+  'Obra pública = cuando el gobierno manda HACER o tocar algo físico de un edificio o terreno: construir, remodelar, demoler, etc. Comprar cosas (papelería, computadoras) NO es obra; eso es una "compra" y la rige otra ley.',
+  'La regla es simple: si hay dinero federal de por medio, aplica esta ley. No importa si quien hace la obra es una dependencia, un organismo o hasta un municipio.',
+  // Definiciones
+  'Imagina un concurso: el "licitante" es el que entra a competir (licitación o invitación a 3). El "cotizante" es cuando NO hay concurso y solo le piden un precio a alguien (adjudicación directa).',
+  'Cuando el gobierno no hace concurso y solo le pide su precio a una empresa, esa empresa que entrega su precio es el "cotizante".',
+  'Ojo, truco de examen: aquí "la Secretaría" NO es Hacienda. Es la Secretaría Anticorrupción y Buen Gobierno (la que vigila que todo se haga limpio). La del dinero es "Hacienda" (SHCP).',
+  'Es el sitio web oficial del gobierno donde se publican y se hacen los concursos de obra: la Plataforma Digital de Contrataciones Públicas. Como el "portal único" de las obras.',
+  'El contratista es la empresa o persona que YA firmó el contrato y va a hacer la obra.',
+  'Es el "paquete completo" para poder construir: los planos de cómo se verá (arquitectónico) + los planos técnicos (ingeniería) + la lista de todo lo que lleva (catálogo de conceptos). Con eso ya se construye sin adivinar.',
+  'El "testigo social" es como un árbitro independiente que pone la Secretaría para vigilar que el concurso sea justo y transparente.',
+  // Procedimientos
+  'Hay 3 caminos para contratar, del más abierto al más cerrado: 1) Licitación pública (concurso para todos), 2) Invitación a cuando menos 3 (invitas al menos a 3 empresas), 3) Adjudicación directa (se lo das a una sola).',
+  'Las reglas del concurso y lo que ofreció cada empresa no se andan "negociando por debajo de la mesa". Lo que se puso, se queda; solo se pueden pedir aclaraciones.',
+  'El concurso "arranca" de manera oficial cuando se publica la convocatoria (la invitación pública) en la Plataforma.',
+  'Las licitaciones pueden ser: Nacional (solo mexicanos), Internacional por tratados (mexicanos y de países con tratado) o Internacional abierta (de cualquier país). No existe una "regional municipal".',
+  'Todo el proceso se hace en línea, en la Plataforma. Nada de hacerlo en papelitos o "en lo oscurito".',
+  'Cuando se saltan el concurso (excepción), el área tiene que avisar cada mes al órgano de control qué contratos firmó. Es para que siempre haya quién revise.',
+  // Excepciones
+  'A veces se puede saltar el concurso por situaciones especiales: una emergencia real, seguridad nacional, que la licitación quedó desierta, etc. Eso es el Art. 42. (Saltarlo por ser de poco dinero es el Art. 43.)',
+  'Si la obra es "chica" (no pasa de cierto monto que fija el Presupuesto de Egresos), te dejan no hacer concurso y contratar más rápido por invitación a 3 o directa.',
+  'No vale decir "fue una emergencia" cuando en realidad fue que no planeaste a tiempo. La flojera o el descuido NO cuentan como caso fortuito ni fuerza mayor.',
+  'Truco prohibido: partir una obra grande en varios contratos chiquitos para que cada pedacito "quepa" en el monto que te deja contratar sin concurso. Ejemplo: NO puedes dividir una obra de $10 millones en 10 contratos de $1 millón para evadir la licitación. Eso es "fraccionar" y está prohibido.',
+  'Cuando el contrato se le da directo a una sola empresa: empieza cuando le pides su precio (la cotización) y termina cuando le avisas que ganó (la adjudicación).',
+  'En las obras MUY grandes (que rebasan 23 millones de UMA) es obligatorio que entre un testigo social a vigilar el proceso.',
+  // Contratos y garantías
+  'La empresa debe "dejar un respaldo" (una fianza) por dos cosas: por el adelanto que recibió y por que sí va a cumplir el contrato. Es como el depósito de garantía cuando rentas un departamento.',
+  'Si ganaste y el fallo no dijo fecha, tienes 15 días naturales para firmar el contrato. No es "cuando se pueda".',
+  'Si la empresa se atrasa, le cobran una multa (pena), pero esa multa nunca puede ser mayor que la fianza de cumplimiento que dejó. O sea, hay un tope.',
+  'Después de entregar la obra, la empresa responde 1 año por fallas escondidas que salgan (vicios ocultos). Es como la garantía de un electrodoméstico.',
+  'Para esa garantía de 1 año, la empresa deja una fianza del 10% de lo que cobró (o una carta de crédito / dinero apartado por el 5%). Es el respaldo por si algo sale mal después.',
+  'Si te dan adelanto (anticipo), te lo deben entregar ANTES de empezar. Si se tardan en dártelo, también se recorre la fecha de inicio: no es justo que arranques sin el dinero.',
+  // Recepción y sanciones
+  'Cuando la empresa avisa que ya terminó y se verifica, el gobierno tiene 15 días para recibir formalmente la obra (firmar el acta de recepción).',
+  'El "finiquito" es la cuenta final: quién le debe a quién y cuánto. Se hace en máximo 60 días después de recibir la obra. Es "cerrar cuentas".',
+  'Si alguien rompe las reglas, la Secretaría le cobra una multa (de 50 a 3,000 UMA al mes). Es el castigo económico.',
+  'Además de la multa, te pueden "vetar" (inhabilitar) un tiempo: no podrás participar en concursos ni firmar contratos con el gobierno. Como una tarjeta roja temporal.'
+];
+LOPSRM_PREGUNTAS.forEach(function (q, i) { q.simple = _LOPSRM_SIMPLE[i] || ''; });
+
 let JUEGO = null;
 
 function _juegoBarajar(a) {
@@ -7962,7 +8014,8 @@ function renderJuegoPregunta(elegido) {
       + '<div class="juego-feedback-tit">' + tit + '</div>'
       + '<div>' + escapeHtml(q.explica) + '</div>'
       + '<div style="margin-top:6px;"><a href="' + JUEGO_PDF_URL + '" target="_blank" rel="noopener">📖 ' + escapeHtml(q.art) + ' · ver la ley</a></div>'
-      + '</div>';
+      + '</div>'
+      + (q.simple ? '<div class="juego-simple"><div class="juego-simple-tit">🧒 En palabras simples</div><div>' + escapeHtml(q.simple) + '</div></div>' : '');
     const ultima = JUEGO.idx + 1 >= JUEGO.preguntas.length;
     boton = '<button class="juego-btn" onclick="juegoSiguiente()">' + (JUEGO.vidas <= 0 ? 'Ver resultado' : (ultima ? 'Terminar' : 'Siguiente')) + '</button>';
   }
