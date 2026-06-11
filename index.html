@@ -4059,6 +4059,59 @@
   .juego-final-tit { font-family: var(--serif); font-size: 26px; color: var(--guinda); margin: 8px 0 2px; }
   .juego-final-desc { color: var(--tinta-suave); font-size: 14px; margin-bottom: 18px; }
 
+  /* === Pantalla principal (home) enriquecida + multi-ley === */
+  .juego-card.home { max-width: 960px; }
+  /* Decoración tenue a los lados para que no se vea apagado. */
+  .juego-overlay::before, .juego-overlay::after {
+    content: '⚖️'; position: fixed; font-size: 230px; line-height: 1;
+    opacity: 0.06; pointer-events: none; user-select: none; z-index: 0;
+  }
+  .juego-overlay::before { left: -10px; top: 8%; transform: rotate(-12deg); }
+  .juego-overlay::after  { content: '📖'; right: -10px; bottom: 6%; transform: rotate(10deg); }
+  .juego-card { position: relative; z-index: 1; }
+
+  .juego-hero { text-align: center; margin-bottom: 14px; }
+  .juego-frase { font-style: italic; color: var(--guinda); font-size: 14.5px; font-weight: 600; margin-top: 8px; }
+
+  /* Selector de leyes */
+  .juego-leyes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .juego-ley-chip {
+    display: flex; align-items: center; gap: 7px; cursor: pointer;
+    border: 2px solid var(--linea); background: #fff; border-radius: 999px;
+    padding: 7px 13px; transition: all .15s ease;
+  }
+  .juego-ley-chip:hover { border-color: var(--guinda); background: var(--crema); transform: translateY(-1px); }
+  .juego-ley-chip.activa { border-color: var(--guinda); background: var(--guinda); }
+  .juego-ley-chip.activa .juego-ley-abrev, .juego-ley-chip.activa .juego-ley-nom { color: #fff; }
+  .juego-ley-emoji { font-size: 17px; }
+  .juego-ley-abrev { font-weight: 800; font-size: 13px; color: var(--guinda); }
+  .juego-ley-nom { font-size: 11.5px; color: var(--tinta-suave); font-weight: 600; }
+  @media (max-width: 560px) { .juego-ley-nom { display: none; } }
+
+  .juego-home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
+  .juego-col { display: flex; flex-direction: column; gap: 12px; }
+  .juego-panel { background: var(--crema); border: 1px solid var(--linea); border-radius: 16px; padding: 14px 16px; }
+  .juego-nivel-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .juego-nivel-ico { font-size: 30px; }
+  .juego-nivel-nombre { font-family: var(--serif); font-size: 19px; font-weight: 700; color: var(--guinda); line-height: 1; }
+  .juego-nivel-sub2 { font-size: 12px; color: var(--tinta-suave); margin-top: 3px; }
+  .juego-nivel-falta { font-size: 11.5px; color: var(--tinta-suave); margin-top: 7px; font-weight: 600; }
+
+  .juego-dato {
+    background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
+    border: 1px dashed var(--ambar); border-radius: 16px; padding: 14px 16px;
+    font-size: 13.5px; line-height: 1.5; color: #7c2d12;
+  }
+  .juego-dato-tit { font-weight: 800; color: var(--ambar); margin-bottom: 5px; }
+
+  .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 4px; }
+  /* En el home los modos van en UNA columna, como filas (icono + texto). */
+  .juego-home-grid .juego-modos { grid-template-columns: 1fr; gap: 10px; }
+  .juego-home-grid .juego-modo { display: flex; align-items: center; gap: 13px; text-align: left; padding: 14px; }
+  .juego-modo-info { flex: 1; }
+  .juego-home-grid .juego-modo .juego-modo-ico { font-size: 26px; margin: 0; }
+
   @media (max-width: 480px) {
     .juego-card { padding: 22px 18px 26px; border-radius: 18px; }
     .juego-modos { grid-template-columns: 1fr; }
@@ -8009,6 +8062,106 @@ const _LOPSRM_MAS = [
 ];
 Array.prototype.push.apply(LOPSRM_PREGUNTAS, _LOPSRM_MAS);
 
+// ===== LGEEPA (Ley General del Equilibrio Ecológico y la Protección al Ambiente) =====
+// Banco inicial basado en el texto vigente (DOF 19-01-2026). La correcta va primero.
+const LGEEPA_PREGUNTAS = [
+  { tema:'Generalidades', art:'Art. 1', pregunta:'¿Qué regula principalmente la LGEEPA?', opciones:['La preservación y restauración del equilibrio ecológico y la protección al ambiente','El cobro de impuestos','Las obras públicas','El comercio exterior'], correcta:0, explica:'Art. 1: es reglamentaria de la Constitución en materia de preservación y restauración del equilibrio ecológico y protección al ambiente.', simple:'Es la ley madre del medio ambiente en Mexico: cuida los ecosistemas y el ambiente.' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'La LGEEPA garantiza el derecho de toda persona a:', opciones:['Vivir en un medio ambiente sano','Pagar menos luz','Construir donde sea','No reciclar'], correcta:0, explica:'Art. 1, frac. I: garantiza el derecho de toda persona a vivir en un medio ambiente sano para su desarrollo, salud y bienestar.', simple:'Te da el derecho a vivir en un ambiente sano.' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'El objetivo central de la LGEEPA es propiciar:', opciones:['El desarrollo sustentable','El crecimiento sin límites','La urbanización total','La tala libre'], correcta:0, explica:'Art. 1: tiene por objeto propiciar el desarrollo sustentable y establecer las bases para la política ambiental.', simple:'Busca el desarrollo sustentable: progresar sin destruir el planeta.' },
+  { tema:'Generalidades', art:'Art. 2', pregunta:'¿Cuál de estas se considera de UTILIDAD PÚBLICA?', opciones:['El ordenamiento ecológico y las áreas naturales protegidas','La minería sin permiso','La tala de bosques','La caza libre'], correcta:0, explica:'Art. 2: son de utilidad pública el ordenamiento ecológico, el establecimiento y preservación de áreas naturales protegidas y la protección de la biodiversidad.', simple:'Cuidar el territorio y crear areas protegidas es de interes de todos (utilidad publica).' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'Según la ley, el "ambiente" es:', opciones:['El conjunto de elementos naturales y artificiales que hacen posible la existencia de los seres vivos','Solo los árboles','Solo el aire','Solo el agua'], correcta:0, explica:'Art. 3, frac. I: ambiente es el conjunto de elementos naturales y artificiales o inducidos por el hombre que hacen posible la existencia y desarrollo de los seres vivos.', simple:'Ambiente es todo lo que nos rodea (natural y hecho por el hombre) que permite la vida.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'Un "contaminante" es:', opciones:['Toda materia o energía que altera la composición y condición natural de un elemento','Solo la basura','Solo el humo','Solo el ruido'], correcta:0, explica:'Art. 3: contaminante es toda materia o energía que al incorporarse o actuar en el aire, agua, suelo, flora o fauna altera su composición natural.', simple:'Contaminante es cualquier cosa (materia o energia) que ensucia o altera lo natural.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'La "contaminación" es:', opciones:['La presencia de contaminantes que causa desequilibrio ecológico','Una multa','Un permiso','Un impuesto'], correcta:0, explica:'Art. 3: contaminación es la presencia en el ambiente de uno o más contaminantes que cause desequilibrio ecológico.', simple:'Contaminacion es cuando hay tantos contaminantes que se desequilibra el ecosistema.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'El "desarrollo sustentable" mejora la calidad de vida SIN:', opciones:['Comprometer las necesidades de las generaciones futuras','Generar empleo','Usar tecnología','Construir nada'], correcta:0, explica:'Art. 3: desarrollo sustentable es el proceso que mejora la calidad de vida sin comprometer la satisfacción de las necesidades de las generaciones futuras.', simple:'Progresar hoy sin dejar sin recursos a los que vienen mañana.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'Un "ecosistema" es:', opciones:['La unidad funcional básica de interacción de los organismos vivos entre sí y con el ambiente','Un zoológico','Una fábrica','Una ciudad'], correcta:0, explica:'Art. 3: ecosistema es la unidad funcional básica de interacción de los organismos vivos entre sí y de éstos con el ambiente, en un espacio y tiempo dados.', simple:'Un ecosistema es una comunidad de seres vivos que conviven con su entorno (un bosque, un lago...).' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'El "aprovechamiento sustentable" usa los recursos respetando:', opciones:['La integridad funcional y las capacidades de carga de los ecosistemas','Solo las ganancias','La moda','La opinión pública'], correcta:0, explica:'Art. 3: aprovechamiento sustentable es usar los recursos respetando la integridad funcional y las capacidades de carga de los ecosistemas, por periodos indefinidos.', simple:'Usar los recursos sin pasarte, para que el ecosistema aguante para siempre.' },
+  { tema:'Impacto ambiental', art:'Art. 3', pregunta:'El "impacto ambiental" es:', opciones:['La modificación del ambiente ocasionada por la acción del hombre o de la naturaleza','Una multa ambiental','Un permiso de obra','Un impuesto verde'], correcta:0, explica:'Art. 3: impacto ambiental es la modificación del ambiente ocasionada por la acción del hombre o de la naturaleza.', simple:'Es el cambio que una obra o actividad le provoca al ambiente.' },
+  { tema:'Impacto ambiental', art:'Art. 3', pregunta:'La "manifestación de impacto ambiental" (MIA) es:', opciones:['El documento que da a conocer el impacto que generaría una obra y cómo evitarlo','El permiso de construcción','El recibo de luz','El plano de la obra'], correcta:0, explica:'Art. 3: la manifestación del impacto ambiental es el documento que, con base en estudios, da a conocer el impacto significativo de una obra y la forma de evitarlo o atenuarlo.', simple:'Es el estudio/documento que explica como tu obra afectara al ambiente y como lo cuidaras.' },
+  { tema:'Impacto ambiental', art:'Art. 28', pregunta:'¿Qué obras requieren autorización previa en materia de impacto ambiental?', opciones:['Las que puedan causar desequilibrio ecológico o rebasar los límites para proteger el ambiente','Cualquier casa pequeña','Ninguna','Solo las del gobierno'], correcta:0, explica:'Art. 28: requieren autorización en impacto ambiental las obras o actividades que puedan causar desequilibrio ecológico o rebasar los límites y condiciones para proteger el ambiente.', simple:'Si tu obra puede dañar el ambiente, primero necesitas permiso ambiental.' },
+  { tema:'Impacto ambiental', art:'Art. 28', pregunta:'¿Quién evalúa el impacto ambiental y otorga la autorización?', opciones:['La Secretaría (SEMARNAT)','El municipio solamente','El contratista','La empresa misma'], correcta:0, explica:'Art. 28: la evaluación del impacto ambiental es el procedimiento mediante el cual la Secretaría (SEMARNAT) establece las condiciones a que se sujetará la obra o actividad.', simple:'La SEMARNAT (la Secretaria de Medio Ambiente) es la que revisa y autoriza.' },
+  { tema:'Áreas protegidas', art:'Art. 3', pregunta:'Las "áreas naturales protegidas" son zonas donde los ambientes originales:', opciones:['No han sido alterados significativamente o requieren preservarse y restaurarse','Están urbanizadas','Son para minería','Son basureros'], correcta:0, explica:'Art. 3: son zonas donde los ambientes originales no han sido significativamente alterados, o que requieren ser preservadas y restauradas, sujetas al régimen de la Ley.', simple:'Son zonas casi intactas que se protegen para conservar la naturaleza.' },
+  { tema:'Áreas protegidas', art:'Art. 46', pregunta:'¿Cuál es una categoría de área natural protegida federal?', opciones:['Reserva de la biosfera','Zona industrial','Fraccionamiento residencial','Relleno sanitario'], correcta:0, explica:'Art. 46: las áreas naturales protegidas incluyen reservas de la biosfera, parques nacionales, monumentos naturales, áreas de protección de flora y fauna, santuarios, etc.', simple:'Ejemplos: reservas de la biosfera, parques nacionales, santuarios. Una zona industrial NO lo es.' },
+  { tema:'Áreas protegidas', art:'Art. 46', pregunta:'Los parques nacionales y los santuarios son:', opciones:['Categorías de áreas naturales protegidas','Tipos de impuestos','Permisos de obra','Empresas privadas'], correcta:0, explica:'Art. 46: parques nacionales, monumentos naturales y santuarios son categorías de áreas naturales protegidas de competencia federal.', simple:'Son tipos de areas naturales protegidas que cuida la Federacion.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'La "biodiversidad" es:', opciones:['La variabilidad de organismos vivos (dentro de especies, entre especies y de ecosistemas)','Solo los animales grandes','Solo las plantas','Solo los insectos'], correcta:0, explica:'Art. 3: biodiversidad es la variabilidad de organismos vivos de cualquier fuente; comprende la diversidad dentro de cada especie, entre especies y de los ecosistemas.', simple:'Es la variedad de vida: muchas especies, muchos genes y muchos ecosistemas distintos.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'Un "material peligroso" es el que representa riesgo por ser, entre otros:', opciones:['Corrosivo, reactivo, explosivo, tóxico, inflamable o biológico-infeccioso','Pesado','Caro','Viejo'], correcta:0, explica:'Art. 3: material peligroso es el que representa un riesgo por sus características corrosivas, reactivas, explosivas, tóxicas, inflamables o biológico-infecciosas (CRETIB).', simple:'Material peligroso = CRETIB: que quema, explota, envenena, corroe o infecta.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'El "cambio climático" se atribuye a:', opciones:['La actividad humana que altera la atmósfera, sumada a la variabilidad natural del clima','Solo al sol','Solo a los volcanes','A nada en particular'], correcta:0, explica:'Art. 3: cambio climático es el cambio atribuido directa o indirectamente a la actividad humana que altera la composición de la atmósfera, sumado a la variabilidad natural.', simple:'El clima cambia sobre todo por lo que hacemos los humanos (gases), no solo por la naturaleza.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'La "contaminación por ruido" es el sonido de actividades humanas que:', opciones:['Por su intensidad, duración o frecuencia daña a las personas, otros seres o el ambiente','Solo molesta de noche','No existe','Es siempre legal'], correcta:0, explica:'Art. 3: contaminación por ruido es todo sonido generado por actividades humanas que por su intensidad, duración o frecuencia implique riesgo o daño, o supere las normas oficiales.', simple:'El ruido también contamina cuando es tan fuerte o constante que daña.' },
+  { tema:'Política ambiental', art:'Art. 15', pregunta:'Un principio de la política ambiental es que quien daña el ambiente:', opciones:['Está obligado a prevenir, minimizar o reparar el daño y asumir sus costos','No tiene ninguna obligación','Solo paga si quiere','Recibe un premio'], correcta:0, explica:'Art. 15: quien realice obras o actividades que afecten el ambiente está obligado a prevenir, minimizar o reparar los daños, así como a asumir los costos (el que contamina, paga).', simple:'El que contamina, paga: si dañas el ambiente, lo reparas y pagas el costo.' },
+  { tema:'Política ambiental', art:'Art. 3', pregunta:'El "ordenamiento ecológico" es el instrumento que:', opciones:['Regula o induce el uso del suelo y las actividades productivas para proteger el ambiente','Cobra impuestos','Construye carreteras','Vende terrenos'], correcta:0, explica:'Art. 3: ordenamiento ecológico es el instrumento de política ambiental para regular o inducir el uso del suelo y las actividades productivas y lograr la protección del ambiente.', simple:'Es como un plan que dice qué se puede hacer en cada terreno para no dañar la naturaleza.' },
+  { tema:'Política ambiental', art:'Art. 3', pregunta:'Los "criterios ecológicos" son:', opciones:['Lineamientos obligatorios para orientar la preservación y el aprovechamiento sustentable','Sugerencias opcionales','Multas','Permisos'], correcta:0, explica:'Art. 3: criterios ecológicos son los lineamientos obligatorios contenidos en la Ley para orientar la preservación, restauración y el aprovechamiento sustentable.', simple:'Son reglas obligatorias que orientan como cuidar y aprovechar bien la naturaleza.' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'Una "contingencia ambiental" es:', opciones:['Una situación de riesgo que puede poner en peligro uno o varios ecosistemas','Un día festivo','Una junta de vecinos','Un permiso'], correcta:0, explica:'Art. 3: contingencia ambiental es una situación de riesgo, derivada de actividades humanas o fenómenos naturales, que puede poner en peligro la integridad de uno o varios ecosistemas.', simple:'Es una alerta/emergencia ambiental (por ejemplo, cuando el aire está muy contaminado).' },
+  { tema:'Definiciones', art:'Art. 3', pregunta:'La "prevención" en materia ambiental es:', opciones:['El conjunto de medidas anticipadas para evitar el deterioro del ambiente','Reparar después del daño','Pagar multas','No hacer nada'], correcta:0, explica:'Art. 3: prevención es el conjunto de disposiciones y medidas anticipadas para evitar el deterioro del ambiente.', simple:'Prevenir es actuar ANTES para que no se dañe el ambiente (mejor que reparar después).' }
+];
+
+// ===== LAASSP (Ley de Adquisiciones, Arrendamientos y Servicios del Sector Público) =====
+const LAASSP_PREGUNTAS = [
+  { tema:'Generalidades', art:'Art. 1', pregunta:'¿Qué regula la LAASSP?', opciones:['Las adquisiciones, arrendamientos de bienes muebles y servicios del sector público','La obra pública','El medio ambiente','Los impuestos'], correcta:0, explica:'Art. 1: reglamenta el artículo 134 constitucional en materia de adquisiciones, arrendamientos de bienes muebles y prestación de servicios.', simple:'Es la ley para cuando el gobierno COMPRA cosas, renta bienes o contrata servicios (no obra).' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'La LAASSP reglamenta el artículo ___ de la Constitución:', opciones:['134','27','123','115'], correcta:0, explica:'Art. 1: reglamenta el artículo 134 constitucional (mejores condiciones para el Estado), igual que la LOPSRM pero para compras y servicios.', simple:'Igual que obras, las compras del gobierno se rigen por el articulo 134 de la Constitucion.' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'¿Cuál es la diferencia clave entre la LAASSP y la LOPSRM?', opciones:['La LAASSP es para bienes y servicios; la LOPSRM para obra pública','Son idénticas','La LAASSP es para el medio ambiente','La LOPSRM es para compras'], correcta:0, explica:'La LAASSP regula adquisiciones, arrendamientos y servicios; la LOPSRM regula obras públicas y servicios relacionados con las mismas.', simple:'LAASSP = comprar/rentar/servicios. LOPSRM = construir (obra). Son hermanas.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'En la LAASSP, el "licitante" es quien participa en:', opciones:['Una licitación pública o invitación a cuando menos tres personas','Una adjudicación directa','Una rifa','Una subasta de arte'], correcta:0, explica:'Art. 2: licitante es la persona que participa en cualquier procedimiento de licitación pública o de invitación a cuando menos tres personas.', simple:'El licitante es el que compite en el concurso (licitacion o invitacion a 3).' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "precio máximo de referencia" sirve para que los licitantes:', opciones:['Ofrezcan porcentajes de descuento a partir de ese valor','Suban el precio','No coticen','Ganen sin competir'], correcta:0, explica:'Art. 2: el precio máximo de referencia es el valor que se considera en la convocatoria para que, a partir de él, los licitantes ofrezcan porcentajes de descuento.', simple:'Es un precio tope: desde ahi las empresas compiten ofreciendo descuentos.' },
+  { tema:'Procedimientos', art:'Art. 25', pregunta:'¿Cuáles son los procedimientos de contratación en la LAASSP?', opciones:['Licitación pública, invitación a cuando menos tres personas y adjudicación directa','Subasta, rifa y permuta','Concurso, donación y préstamo','Solo licitación'], correcta:0, explica:'La LAASSP contempla los mismos tres procedimientos: licitación pública, invitación a cuando menos tres personas y adjudicación directa.', simple:'Mismos 3 caminos que en obras: licitacion publica, invitacion a 3 y adjudicacion directa.' },
+  { tema:'Procedimientos', art:'Art. 28', pregunta:'Las condiciones de la convocatoria y de las proposiciones:', opciones:['No podrán ser negociadas','Se negocian libremente','Las fija el proveedor','Se rifan'], correcta:0, explica:'Las condiciones de la convocatoria e invitación y las proposiciones no podrán ser negociadas (igual que en obras).', simple:'Lo que se pone en el concurso y en las propuestas no se anda negociando.' },
+  { tema:'Procedimientos', art:'Art. 28', pregunta:'La licitación pública inicia con:', opciones:['La publicación de la convocatoria en la Plataforma','La firma del contrato','El pago','La entrega del bien'], correcta:0, explica:'La licitación pública inicia con la publicación de la convocatoria en la Plataforma y concluye con el fallo o la cancelación.', simple:'El concurso arranca cuando se publica la convocatoria en la Plataforma.' },
+  { tema:'Procedimientos', art:'Art. 28', pregunta:'A los actos del procedimiento puede asistir cualquier persona como:', opciones:['Observador, registrando su acceso','Juez','Proveedor','Ganador'], correcta:0, explica:'A los actos realizados a través de la Plataforma puede asistir cualquier persona en calidad de observador, registrando su acceso.', simple:'Cualquiera puede mirar el concurso como observador (solo se registra).' },
+  { tema:'Licitación', art:'Art. 39', pregunta:'El carácter de las licitaciones públicas puede ser:', opciones:['Nacional, internacional bajo tratados o internacional abierta','Municipal o vecinal','Privado o secreto','Solo nacional'], correcta:0, explica:'Art. 39: el carácter de las licitaciones es nacional, internacional bajo la cobertura de tratados, o internacional abierta.', simple:'Igual que en obras: nacional, internacional por tratados, o internacional abierta.' },
+  { tema:'Licitación', art:'Art. 41', pregunta:'La obtención de la convocatoria a la licitación pública es:', opciones:['Gratuita (se publica en la Plataforma)','De pago','Solo por correo','Confidencial'], correcta:0, explica:'Art. 41: la convocatoria se publica en la Plataforma y su obtención es gratuita; además se envía un resumen al DOF.', simple:'Bajar la convocatoria es gratis y esta en la Plataforma.' },
+  { tema:'Licitación', art:'Art. 26', pregunta:'El contrato se adjudica a la proposición que:', opciones:['Sea solvente y asegure las mejores condiciones para el Estado','Llegue primero','Sea de la empresa más grande','Tenga el logo más bonito'], correcta:0, explica:'Los procedimientos deben asegurar al Estado las mejores condiciones; el contrato se adjudica a la proposición solvente que las garantice.', simple:'Gana la propuesta que cumple y le da al Estado las mejores condiciones (precio, calidad...).' },
+  { tema:'Licitación', art:'Art. 26', pregunta:'Los procedimientos deben dar a todos los participantes:', opciones:['Igual acceso a la información y los mismos requisitos','Ventajas al más conocido','Información distinta','Plazos diferentes'], correcta:0, explica:'Deben establecerse los mismos requisitos y condiciones para todos e igual acceso a la información, para no favorecer a nadie.', simple:'Cancha pareja: mismas reglas e info para todos los que compiten.' },
+  { tema:'Licitación', art:'Art. 38', pregunta:'Una licitación se declara DESIERTA cuando:', opciones:['Ninguna proposición reúne los requisitos o los precios no son aceptables','Hay muchos participantes','Llueve','Gana un extranjero'], correcta:0, explica:'Se declara desierta cuando la totalidad de las proposiciones no reúnen los requisitos o sus precios no resultan aceptables.', simple:'Si nadie cumplio o los precios no sirven, la licitacion queda desierta.' },
+  { tema:'Licitación', art:'Art. 28', pregunta:'Las "ofertas subsecuentes de descuento" permiten que los licitantes:', opciones:['Mejoren electrónicamente su precio tras la apertura de proposiciones','Cambien el producto','Suban el precio','Descalifiquen a otros'], correcta:0, explica:'Es una modalidad en la que, tras la apertura, los licitantes pueden ofrecer electrónicamente mejores precios sin variar su propuesta técnica.', simple:'Es como una subasta a la baja: despues de abrir, pueden bajar mas su precio.' },
+  { tema:'Excepciones', art:'Art. 53', pregunta:'En los supuestos del artículo 54, las dependencias pueden:', opciones:['No licitar y usar invitación a 3 o adjudicación directa','Cancelar todo','Subir el presupuesto','No contratar nunca'], correcta:0, explica:'Art. 53: en los supuestos del artículo 54 pueden optar por no llevar a cabo la licitación y contratar por invitación a 3 o adjudicación directa.', simple:'En ciertos casos especiales (Art. 54) se puede saltar la licitacion.' },
+  { tema:'Excepciones', art:'Art. 54', pregunta:'Una causa de excepción a la licitación es:', opciones:['Caso fortuito, fuerza mayor o riesgo a la seguridad nacional','Que el proveedor sea amigo','Que haya prisa por flojera','Cualquier motivo'], correcta:0, explica:'Art. 54: hay excepciones por caso fortuito o fuerza mayor, seguridad nacional, licitación desierta, derechos exclusivos, etc.', simple:'Se puede saltar el concurso por emergencias reales, seguridad nacional, etc. (no por flojera).' },
+  { tema:'Excepciones', art:'Art. 55', pregunta:'Para contratar por MONTO sin licitar, las operaciones:', opciones:['No deben fraccionarse para caer en la excepción','Se pueden dividir libremente','Se suman al final del año','Las decide el proveedor'], correcta:0, explica:'Art. 55: pueden contratar por invitación a 3 o adjudicación directa cuando el importe no exceda los montos máximos del PEF, siempre que no se fraccionen.', simple:'Si es de poco dinero puedes no licitar, pero no partas la compra en pedacitos para evadir.' },
+  { tema:'Excepciones', art:'Art. 56', pregunta:'La invitación a cuando menos tres personas requiere, por regla, un mínimo de:', opciones:['Tres proposiciones','Una proposición','Cinco proposiciones','Diez proposiciones'], correcta:0, explica:'Art. 56: se requiere un mínimo de tres proposiciones susceptibles de análisis; si no, puede declararse desierta o continuar con las presentadas.', simple:'Necesitas al menos 3 propuestas; si no, se declara desierta o sigues con las que haya.' },
+  { tema:'Excepciones', art:'Art. 57', pregunta:'El procedimiento de adjudicación directa INICIA con:', opciones:['La confirmación de la cotización obtenida en la investigación de mercado','La firma del contrato','El pago del bien','La entrega'], correcta:0, explica:'Art. 57: la adjudicación directa inicia con la confirmación de la cotización obtenida en la investigación de mercado y termina con la notificación de la adjudicación.', simple:'La compra directa empieza confirmando el precio que viste en el estudio de mercado.' },
+  { tema:'Excepciones', art:'Art. 53', pregunta:'En los casos de excepción, se envía al órgano interno de control:', opciones:['Un informe mensual de los contratos formalizados','Nada','El producto comprado','La factura del proveedor'], correcta:0, explica:'Art. 53: a más tardar el último día hábil de cada mes se envía al OIC un informe de los contratos formalizados (con excepciones).', simple:'Cuando no licitas, cada mes avisas al organo de control que contrataste.' },
+  { tema:'Excepciones', art:'Art. 56', pregunta:'Si dos invitaciones a 3 quedan desiertas, la dependencia puede:', opciones:['Adjudicar directamente el contrato','Repetir 10 veces','Cancelar para siempre','Subir el precio'], correcta:0, explica:'Art. 56: si dos procedimientos de invitación a 3 se declaran desiertos, el área responsable podrá adjudicar directamente, sin invitar a los mismos del primero.', simple:'Si dos invitaciones a 3 no funcionan, ya puedes comprar directo.' },
+  { tema:'Procedimientos', art:'Art. 26', pregunta:'Antes de contratar, las dependencias deben realizar:', opciones:['Una investigación de mercado','Una rifa','Una asamblea','Nada'], correcta:0, explica:'Las dependencias deben realizar una investigación de mercado previa para conocer precios, existencia y proveedores.', simple:'Primero investigas precios y proveedores (estudio de mercado).' },
+  { tema:'Procedimientos', art:'Art. 28', pregunta:'Los actos de los procedimientos se realizan a través de:', opciones:['La Plataforma (Digital de Contrataciones Públicas)','El periódico','La radio','Cartas'], correcta:0, explica:'Los actos de los procedimientos se llevan a cabo a través de la Plataforma, conforme a las disposiciones de la Secretaría.', simple:'Todo el proceso es en linea, en la Plataforma.' },
+  { tema:'Excepciones', art:'Art. 53', pregunta:'En invitación a 3 y adjudicación directa, las dependencias consideran:', opciones:['El registro electrónico de personas físicas y morales (proveedores)','El horóscopo','La opinión pública','Nada'], correcta:0, explica:'Art. 53: en estos procedimientos consideran la información del registro electrónico de personas físicas y morales, sin perjuicio de la investigación de mercado.', simple:'Para invitar o comprar directo se fijan en el padron de proveedores registrados.' }
+];
+
+// ===== Reglamento de la LOPSRM =====
+// Banco inicial basado en el texto vigente (DOF 24-02-2023). La correcta va primero.
+const REGLOPSRM_PREGUNTAS = [
+  { tema:'Definiciones', art:'Art. 2', pregunta:'Según el Reglamento, la "Bitácora" es:', opciones:['El instrumento técnico que es medio de comunicación entre las partes, donde se registran los eventos importantes de la obra','El contrato','La factura','El plano'], correcta:0, explica:'Art. 2, frac. VIII: la Bitácora es el instrumento técnico que constituye el medio de comunicación entre las partes, donde se registran los asuntos y eventos importantes de la obra (electrónica o convencional).', simple:'La bitacora es el diario oficial de la obra: ahi se anota todo lo importante.' },
+  { tema:'Estimaciones', art:'Art. 2', pregunta:'Una "estimación" es:', opciones:['La valuación de los trabajos ejecutados en un periodo, presentada para autorización de pago','El presupuesto total','La garantía','El anticipo'], correcta:0, explica:'Art. 2, frac. XIV: estimación es la valuación de los trabajos ejecutados en un periodo, presentada para autorización de pago, aplicando precios y porcentajes del contrato.', simple:'Es el corte de cuanto se avanzo en un periodo, para que te paguen ese avance.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "superintendente" es:', opciones:['El representante del CONTRATISTA ante la dependencia para la ejecución de los trabajos','El representante del gobierno','El testigo social','El proveedor'], correcta:0, explica:'Art. 2, frac. XXIX: el superintendente es el representante del contratista ante la dependencia o entidad para cumplir el contrato en la ejecución de los trabajos.', simple:'El superintendente es el jefe de obra por parte de la EMPRESA (el residente es por parte del gobierno).' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "área responsable de la contratación" es la facultada para:', opciones:['Realizar los procedimientos de contratación','Construir la obra','Pagar impuestos','Vigilar el ambiente'], correcta:0, explica:'Art. 2, frac. II: es la facultada en la dependencia o entidad para realizar los procedimientos de contratación de obras o servicios.', simple:'Es el area que arma y corre los concursos para contratar.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "área requirente" es la que:', opciones:['Solicita formalmente la contratación o usará los trabajos','Evalúa lo técnico','Paga las estimaciones','Supervisa la obra'], correcta:0, explica:'Art. 2, frac. IV: es la que solicita o requiere formalmente la contratación, o bien la que utilizará las obras o servicios.', simple:'Es el area que pide la obra porque la necesita.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "área técnica" es la que:', opciones:['Elabora especificaciones, evalúa la parte técnica y responde dudas en la junta de aclaraciones','Cobra las multas','Firma el contrato','Otorga el anticipo'], correcta:0, explica:'Art. 2, frac. V: el área técnica elabora las especificaciones, evalúa la parte técnica de la proposición y responde las dudas de la junta de aclaraciones.', simple:'Es el area de los expertos: define lo tecnico y resuelve dudas tecnicas.' },
+  { tema:'Estimaciones', art:'Art. 2', pregunta:'El "avance físico" es:', opciones:['El porcentaje de trabajos ejecutados y verificados por el residente','El dinero gastado','El tiempo transcurrido','El número de trabajadores'], correcta:0, explica:'Art. 2, frac. VII: avance físico es el porcentaje de los trabajos ejecutados y verificados por el residente respecto del programa de ejecución convenido.', simple:'Cuanta obra ya esta hecha de verdad (verificada), en porcentaje.' },
+  { tema:'Estimaciones', art:'Art. 2', pregunta:'El "avance financiero" es:', opciones:['El porcentaje de los trabajos pagados respecto del importe contractual','La obra ejecutada','El anticipo','La utilidad'], correcta:0, explica:'Art. 2, frac. VI: avance financiero es el porcentaje de los trabajos pagados respecto del importe contractual.', simple:'Cuanto dinero ya se pago de la obra, en porcentaje.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'Las "especificaciones particulares de construcción" son las que:', opciones:['Modifican, adicionan o sustituyen a las generales para cada obra','Aplican a todas las obras por igual','Fija el contratista','No existen'], correcta:0, explica:'Art. 2, frac. XII: las especificaciones particulares son los requisitos exigidos para cada obra, que modifican, adicionan o sustituyen a las generales.', simple:'Son los ajustes a la medida para esa obra especifica (cambian a las generales).' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'Las "normas de calidad" son los requisitos mínimos para:', opciones:['Asegurar que los materiales y equipos sean los adecuados','Subir el precio','Acelerar la obra','Evitar impuestos'], correcta:0, explica:'Art. 2, frac. XX: normas de calidad son los requisitos mínimos para asegurar que los materiales y equipos de instalación permanente son los adecuados.', simple:'Son el minimo de calidad que deben tener los materiales y equipos.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "monto total ejercido" es el costo total erogado del contrato:', opciones:['Sin considerar el IVA','Incluyendo el IVA','Más la utilidad','Más las multas'], correcta:0, explica:'Art. 2, frac. XIX: el monto total ejercido es el importe del costo total erogado con cargo al presupuesto, sin considerar el IVA.', simple:'Es todo lo que se gasto en el contrato, sin contar el IVA.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "caso fortuito o fuerza mayor" es un acontecimiento:', opciones:['Imprevisible, inevitable, irresistible y ajeno a la voluntad de las partes','Planeado','Provocado a propósito','Sin importancia'], correcta:0, explica:'Art. 2, frac. IX: caso fortuito o fuerza mayor es el acontecimiento de la naturaleza o del hombre imprevisible, inevitable, irresistible, insuperable y ajeno a la voluntad de las partes.', simple:'Algo que no se podia prever ni evitar y que nadie provoco (un huracan, por ejemplo).' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'La "investigación de mercado" verifica:', opciones:['La existencia y costo de materiales, mano de obra, equipo y de contratistas','El clima','La opinión pública','La nómina'], correcta:0, explica:'Art. 2, frac. XVI: la investigación de mercado verifica la existencia y costo de materiales, mano de obra, maquinaria y equipo, y la existencia de contratistas.', simple:'Es checar cuanto cuestan las cosas y quien puede hacer la obra, antes de contratar.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "sobre cerrado" es el medio cuyo contenido solo se conoce:', opciones:['En el acto de presentación y apertura de proposiciones','Al firmar el contrato','En el finiquito','Nunca'], correcta:0, explica:'Art. 2, frac. XXVIII: el sobre cerrado es cualquier medio que contiene la proposición del licitante, cuyo contenido solo se conoce en el acto de presentación y apertura.', simple:'La propuesta va sellada y solo se abre el dia del acto, para que sea justo.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'Las "MIPYMES" son:', opciones:['Las micro, pequeñas y medianas empresas de nacionalidad mexicana','Empresas extranjeras','Solo las grandes','Dependencias del gobierno'], correcta:0, explica:'Art. 2, frac. XVIII: MIPYMES son las micro, pequeñas y medianas empresas de nacionalidad mexicana conforme a la ley de la materia.', simple:'Son las empresas chicas y medianas mexicanas.' },
+  { tema:'Estimaciones', art:'Art. 2', pregunta:'El "presupuesto de obra" desglosa:', opciones:['Los conceptos de trabajo, unidades, cantidades y sus precios','Solo el total','La nómina','El IVA'], correcta:0, explica:'Art. 2, frac. XXV: el presupuesto de obra es el recurso estimado donde se desglosa el listado de conceptos, unidades de medida, cantidades y sus precios.', simple:'Es el desglose de todo lo que lleva la obra con sus cantidades y precios.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "Comité" al que se refiere el Reglamento es:', opciones:['El comité de obras públicas del artículo 25 de la Ley','Un sindicato','Un partido','Una empresa'], correcta:0, explica:'Art. 2, frac. X: el Comité es el comité de obras públicas a que se refiere el artículo 25 de la Ley.', simple:'Es el comite de obras de la dependencia (el del Art. 25 de la Ley).' },
+  { tema:'Precios', art:'Art. 64', pregunta:'El "catálogo de conceptos" contiene:', opciones:['Descripción, unidades, cantidades, precios unitarios e importes; forma el presupuesto de la obra','Solo el nombre de la obra','La bitácora','El contrato'], correcta:0, explica:'El catálogo de conceptos contiene descripción, unidades de medición, cantidades, precios unitarios (número y letra) e importes; forma el presupuesto que sirve para el contrato.', simple:'Es la lista detallada de TODO lo que se va a hacer, con precios; de ahi sale el presupuesto.' },
+  { tema:'Precios', art:'Art. 64', pregunta:'Un "precio unitario" se integra con:', opciones:['Costos directos, indirectos, de financiamiento, cargo por utilidad y cargos adicionales','Solo el material','Solo la mano de obra','Solo la utilidad'], correcta:0, explica:'El análisis del precio unitario se estructura con costos directos, indirectos, de financiamiento, cargo por utilidad y cargos adicionales.', simple:'El precio de cada concepto suma: materiales/mano de obra (directo) + indirectos + financiamiento + utilidad + cargos.' },
+  { tema:'Estimaciones', art:'Art. 86', pregunta:'Según el Reglamento, las penas convencionales se determinan en función de:', opciones:['El importe de los trabajos no ejecutados oportunamente (sin IVA)','El total del contrato','La utilidad','El anticipo'], correcta:0, explica:'Art. 86: las penas convencionales se determinan en función del importe de los trabajos no ejecutados oportunamente conforme al programa, sin incluir el IVA.', simple:'La multa por atraso se calcula sobre lo que faltó hacer a tiempo (sin IVA).' },
+  { tema:'Precios', art:'Art. 67', pregunta:'Si hay discrepancia entre cantidades escritas con número y con letra, prevalece:', opciones:['La escrita con letra','La escrita con número','La más alta','La más baja'], correcta:0, explica:'En caso de discrepancia entre las cantidades escritas con letra y con número, prevalecerá la escrita con letra.', simple:'Si el numero y la letra no coinciden, gana lo que esta escrito con letra.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "área responsable de la ejecución de los trabajos" lleva:', opciones:['La administración, control y seguimiento de los trabajos hasta concluir el contrato','La compra de papelería','El pago de nómina','La publicidad'], correcta:0, explica:'Art. 2, frac. III: es la facultada para llevar la administración, control y seguimiento de los trabajos hasta la conclusión definitiva del contrato.', simple:'Es el area que administra y le da seguimiento a la obra hasta terminarla.' }
+];
+
+// ===== Registro multi-ley del juego =====
+const JUEGO_LEYES = [
+  { id:'lopsrm', abrev:'LOPSRM', nombre:'Obras Públicas', desc:'Ley de Obras Públicas y Servicios Relacionados con las Mismas', emoji:'🏗️', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf', preguntas: LOPSRM_PREGUNTAS },
+  { id:'reglopsrm', abrev:'Reglamento', nombre:'Reglamento LOPSRM', desc:'Reglamento de la Ley de Obras Públicas y Servicios Relacionados', emoji:'📐', pdf:'https://www.diputados.gob.mx/LeyesBiblio/regley/Reg_LOPSRM.pdf', preguntas: REGLOPSRM_PREGUNTAS },
+  { id:'laassp', abrev:'LAASSP', nombre:'Adquisiciones', desc:'Ley de Adquisiciones, Arrendamientos y Servicios del Sector Público', emoji:'🛒', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LAASSP.pdf', preguntas: LAASSP_PREGUNTAS },
+  { id:'lgeepa', abrev:'LGEEPA', nombre:'Medio Ambiente', desc:'Ley General del Equilibrio Ecológico y la Protección al Ambiente', emoji:'🌳', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGEEPA.pdf', preguntas: LGEEPA_PREGUNTAS }
+];
+let juegoLeyActual = 'lopsrm';
+function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || JUEGO_LEYES[0]; }
+function _juegoPreguntas() { return _juegoLey().preguntas; }
+function _juegoStoreKey() { return 'juego_' + juegoLeyActual + '_v1'; }
+function juegoCambiarLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; renderJuegoInicio(); } }
+
 let JUEGO = null;
 
 function _juegoBarajar(a) {
@@ -8016,8 +8169,8 @@ function _juegoBarajar(a) {
   for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
   return x;
 }
-function _juegoCargar() { try { return JSON.parse(localStorage.getItem('lopsrm_juego_v1')) || {}; } catch (e) { return {}; } }
-function _juegoGuardar(p) { try { localStorage.setItem('lopsrm_juego_v1', JSON.stringify(p)); } catch (e) {} }
+function _juegoCargar() { try { return JSON.parse(localStorage.getItem(_juegoStoreKey())) || {}; } catch (e) { return {}; } }
+function _juegoGuardar(p) { try { localStorage.setItem(_juegoStoreKey(), JSON.stringify(p)); } catch (e) {} }
 function _juegoHoy() { return new Date().toISOString().split('T')[0]; }
 function _juegoAyer() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
 function _juegoKey(q) { return q.art + '|' + q.pregunta.slice(0, 28); }
@@ -8036,36 +8189,86 @@ function abrirJuegoLopsrm() {
 }
 function cerrarJuegoLopsrm() { _juegoLimpiarTimer(); document.getElementById('juegoLopsrm').classList.remove('abierto'); JUEGO = null; }
 
+const _JUEGO_FRASES = [
+  'Quien domina la ley, domina el proceso. 💪',
+  'Un artículo al día y serás imparable. 📈',
+  'La mejor licitación es la que te sabes de memoria.',
+  'Saber la regla es ganar antes de empezar. ♟️',
+  'Cada acierto te acerca a ser Maestro. 🏆',
+  'No adivines: aprende el artículo. 📖',
+  'La constancia vence al examen más difícil.',
+  'Hoy un dato, mañana un experto. 🌱'
+];
+
 function renderJuegoInicio() {
   _juegoLimpiarTimer(); JUEGO = null;
+  const card = document.getElementById('juegoCard');
+  card.classList.add('home');
+  const ley = _juegoLey();
   const p = _juegoCargar();
   const niv = _juegoNivel(p.totalAciertos || 0);
   const falladasN = Object.keys(p.falladas || {}).length;
+  const preguntas = _juegoPreguntas();
+  const totalP = preguntas.length;
+  const frase = _JUEGO_FRASES[Math.floor(Math.random() * _JUEGO_FRASES.length)];
+  const dato = preguntas[Math.floor(Math.random() * totalP)];
   const temas = [];
-  LOPSRM_PREGUNTAS.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
+  preguntas.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
   const chips = temas.map(t => '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t) + '</button>').join('');
-  document.getElementById('juegoCard').innerHTML =
+
+  // Selector de leyes (chips).
+  const selLeyes = JUEGO_LEYES.map(l =>
+    '<button class="juego-ley-chip' + (l.id === juegoLeyActual ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
+    + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
+    + '<span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
+    + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span>'
+    + '</button>').join('');
+
+  const modo = function (m, ico, tit, desc) {
+    const oc = (m === 'temaToggle')
+      ? "var w=document.getElementById('juegoTemasWrap'); w.style.display = (w.style.display==='none'?'block':'none');"
+      : "juegoIniciar('" + m + "')";
+    return '<button class="juego-modo" onclick="' + oc + '"><div class="juego-modo-ico">' + ico + '</div><div class="juego-modo-info"><div class="juego-modo-tit">' + tit + '</div><div class="juego-modo-desc">' + desc + '</div></div></button>';
+  };
+
+  card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
-    + '<div class="juego-titulo">⚖️ Reta a la Ley</div>'
-    + '<div class="juego-sub">Aprende la LOPSRM jugando · texto vigente (DOF 14-11-2025)</div>'
-    + '<div class="juego-stats">'
-    +   '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor puntaje</div></div>'
-    +   '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Racha diaria</div></div>'
-    +   '<div class="juego-stat"><div class="juego-stat-num">' + niv.nombre + '</div><div class="juego-stat-lbl">Nivel</div></div>'
+    + '<div class="juego-hero">'
+    +   '<div class="juego-titulo">⚖️ Reta a la Ley</div>'
+    +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + ' · ' + totalP + ' preguntas</div>'
+    +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
-    + '<div class="juego-nivel-barra"><div class="juego-nivel-relleno" style="width:' + niv.pct + '%"></div></div>'
-    + (niv.sig ? '<div class="juego-sub" style="margin-top:-12px;margin-bottom:16px;">Te faltan ' + niv.falta + ' aciertos para "' + niv.sig + '"</div>' : '')
-    + '<div class="juego-modos">'
-    +   '<button class="juego-modo" onclick="juegoIniciar(\'rapido\')"><div class="juego-modo-ico">⚡</div><div class="juego-modo-tit">Reto rápido</div><div class="juego-modo-desc">10 preguntas al azar, contrarreloj.</div></button>'
-    +   '<button class="juego-modo" onclick="juegoIniciar(\'diario\')"><div class="juego-modo-ico">📅</div><div class="juego-modo-tit">Reto diario</div><div class="juego-modo-desc">Juega hoy y sube tu racha de días.</div></button>'
-    +   '<button class="juego-modo" onclick="juegoIniciar(\'repaso\')"><div class="juego-modo-ico">🔁</div><div class="juego-modo-tit">Repaso</div><div class="juego-modo-desc">' + (falladasN ? falladasN + ' por dominar.' : 'Sin pendientes ¡bien!') + '</div></button>'
-    +   '<button class="juego-modo" onclick="document.getElementById(\'juegoTemasWrap\').style.display=\'block\'"><div class="juego-modo-ico">📚</div><div class="juego-modo-tit">Por tema</div><div class="juego-modo-desc">Elige un tema específico.</div></button>'
-    + '</div>'
-    + '<div id="juegoTemasWrap" style="display:none;margin-top:14px;"><div class="juego-temas">' + chips + '</div></div>';
+    + '<div class="juego-leyes">' + selLeyes + '</div>'
+    + '<div class="juego-home-grid">'
+    +   '<div class="juego-col">'
+    +     '<div class="juego-panel juego-nivel-panel">'
+    +       '<div class="juego-nivel-top"><span class="juego-nivel-ico">🎖️</span><div><div class="juego-nivel-nombre">' + niv.nombre + '</div><div class="juego-nivel-sub2">' + (niv.sig ? 'Siguiente: ' + escapeHtml(niv.sig) : '¡Nivel máximo!') + '</div></div></div>'
+    +       '<div class="juego-nivel-barra"><div class="juego-nivel-relleno" style="width:' + niv.pct + '%"></div></div>'
+    +       (niv.sig ? '<div class="juego-nivel-falta">Te faltan ' + niv.falta + ' aciertos</div>' : '<div class="juego-nivel-falta">¡Eres una leyenda! 🏆</div>') +
+    '</div>'
+    +     '<div class="juego-stats">'
+    +       '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor puntaje</div></div>'
+    +       '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Racha diaria</div></div>'
+    +       '<div class="juego-stat"><div class="juego-stat-num">' + (p.partidas || 0) + '</div><div class="juego-stat-lbl">Partidas</div></div>'
+    +       '<div class="juego-stat"><div class="juego-stat-num">' + falladasN + '</div><div class="juego-stat-lbl">Por repasar</div></div>'
+    +     '</div>'
+    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div></div>'
+    +   '</div>'
+    +   '<div class="juego-col">'
+    +     '<div class="juego-modos-tit">Elige cómo jugar</div>'
+    +     '<div class="juego-modos">'
+    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.')
+    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.')
+    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'))
+    +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.')
+    +     '</div>'
+    +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
+    +   '</div>'
+    + '</div>';
 }
 
 function juegoIniciar(modo, tema) {
-  let pool = LOPSRM_PREGUNTAS.slice();
+  let pool = _juegoPreguntas().slice();
   if (modo === 'tema' && tema) pool = pool.filter(q => q.tema === tema);
   if (modo === 'repaso') {
     const p = _juegoCargar(); const fall = p.falladas || {};
@@ -8102,6 +8305,7 @@ function _juegoArrancarTimer() {
 
 function renderJuegoPregunta(elegido) {
   if (!JUEGO) return;
+  document.getElementById('juegoCard').classList.remove('home');
   const q = JUEGO.preguntas[JUEGO.idx];
   const answered = (elegido !== undefined && elegido !== null);
   const corazones = '❤️'.repeat(JUEGO.vidas) + '🤍'.repeat(Math.max(0, JUEGO_VIDAS - JUEGO.vidas));
@@ -8122,7 +8326,7 @@ function renderJuegoPregunta(elegido) {
     feedback = '<div class="juego-feedback ' + (ok ? 'ok' : 'mal') + '">'
       + '<div class="juego-feedback-tit">' + tit + '</div>'
       + '<div>' + escapeHtml(q.explica) + '</div>'
-      + '<div style="margin-top:6px;"><a href="' + JUEGO_PDF_URL + '" target="_blank" rel="noopener">📖 ' + escapeHtml(q.art) + ' · ver la ley</a></div>'
+      + '<div style="margin-top:6px;"><a href="' + _juegoLey().pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(q.art) + ' · ver la ley</a></div>'
       + '</div>'
       + (q.simple ? '<div class="juego-simple"><div class="juego-simple-tit">🧒 En palabras simples</div><div>' + escapeHtml(q.simple) + '</div></div>' : '');
     const ultima = JUEGO.idx + 1 >= JUEGO.preguntas.length;
@@ -8181,6 +8385,7 @@ function juegoSiguiente() {
 
 function renderJuegoFinal() {
   _juegoLimpiarTimer();
+  document.getElementById('juegoCard').classList.remove('home');
   const tot = JUEGO.respondidasN || 1;
   const pct = Math.round(JUEGO.aciertos / tot * 100);
   let medalla = '📚', titulo = '¡A seguir estudiando!';
