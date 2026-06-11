@@ -4919,6 +4919,10 @@ function aplicarSesion() {
     rolDisplay = 'Director';
   } else if (usuarioActual.subdireccion === 'ENLACE') {
     rolDisplay = 'Staff';
+  } else if (esEnlaceUser()) {
+    // Enlaces de subdirección (César, Nora, Daniel…): marcados es_enlace. Aunque su
+    // subdirección sea SPAC, en el header deben decir "Enlace", no "Subdirector(a)".
+    rolDisplay = 'Enlace';
   } else if (jefaturaCodigo(usuarioActual.jefatura)) {
     rolDisplay = 'Jefe(a) de Departamento';
   } else {
