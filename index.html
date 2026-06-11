@@ -8335,6 +8335,15 @@ function participantesDe(t) {
   }
   const vistos = {};
   parts = parts.filter(p => (vistos[p] ? false : (vistos[p] = true)));
+  // Una tarea de JEFATURA la valida el SUBDIRECTOR, NUNCA el Director. Si una
+  // tarea vieja trae un DPAC/ENLACE heredado (de cuando se autoañadía al Director
+  // como validador), lo ignoramos aquí para que NO pinte su columna en el
+  // checklist ni deje la tarea atorada esperando una validación que el Director no
+  // hace. (Solo se limpia si queda al menos otra área; no se toca el dato guardado.)
+  if (t.nivel === 'jefatura') {
+    const limpio = parts.filter(p => p !== 'DPAC' && p !== 'ENLACE');
+    if (limpio.length) parts = limpio;
+  }
   return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
 }
 
