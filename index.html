@@ -1480,6 +1480,13 @@
   }
   .kpi-sub:hover { background: var(--crema); }
 
+  /* Filtro activo (card/círculo seleccionado en el Resumen general). */
+  .kpi-activa {
+    background: var(--crema);
+    box-shadow: 0 0 0 2px var(--guinda) inset;
+    border-radius: 10px;
+  }
+
   .kpi-sub .kpi-clave {
     font-size: 10px;
     font-weight: 800;
@@ -4141,19 +4148,19 @@
       <div class="kpi-cuerpo">
         <div style="display:flex; flex-direction:column; flex:1;">
           <div class="kpis-fila">
-            <div class="kpi kpi-ambar">
+            <div class="kpi kpi-ambar" data-est="proceso" style="cursor:pointer" onclick="filtrarPorEstatus('proceso')">
               <div class="kpi-valor" id="kpiActivas">0</div>
               <div class="kpi-label">En Proceso</div>
             </div>
-            <div class="kpi kpi-verde">
+            <div class="kpi kpi-verde" data-est="validar" style="cursor:pointer" onclick="filtrarPorEstatus('validar')">
               <div class="kpi-valor" id="kpiSemana">0</div>
               <div class="kpi-label">Atendidas</div>
             </div>
-            <div class="kpi kpi-grafito">
+            <div class="kpi kpi-grafito" data-est="validadas" style="cursor:pointer" onclick="filtrarPorEstatus('validadas')">
               <div class="kpi-valor" id="kpiArchivadas">0</div>
               <div class="kpi-label">Archivadas</div>
             </div>
-            <div class="kpi kpi-rojo">
+            <div class="kpi kpi-rojo" data-est="vencidas" style="cursor:pointer" onclick="filtrarPorEstatus('vencidas')">
               <div class="kpi-valor" id="kpiVencidasCirc">0</div>
               <div class="kpi-label">Vencidas</div>
             </div>
@@ -4213,11 +4220,11 @@
     <div class="kpi-card sub-card" id="kpisJefGrupo" style="display:none">
       <div class="kpis-grupo-titulo">Pendientes por jefatura</div>
       <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-jef="PROCEDIMIENTOS">
+        <div class="kpi kpi-sub" data-jef="PROCEDIMIENTOS" style="cursor:pointer" onclick="filtrarPorJefatura('PROCEDIMIENTOS')">
           <div class="kpi-valor" id="kpiPendJDPC">0</div>
           <div class="kpi-clave">JDPC</div>
         </div>
-        <div class="kpi kpi-sub" data-jef="MANUALES">
+        <div class="kpi kpi-sub" data-jef="MANUALES" style="cursor:pointer" onclick="filtrarPorJefatura('MANUALES')">
           <div class="kpi-valor" id="kpiPendJDIMA">0</div>
           <div class="kpi-clave">JDIMA</div>
         </div>
@@ -4723,6 +4730,8 @@ function actualizarVistaDirPill() {
 }
 let tabActiva = 'TODAS';
 let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdirección)
+let enlaceActivo = null;     // nombre completo del enlace seleccionado (card "Pendientes por enlace") o null
+let estatusFiltro = null;    // 'proceso' | 'validar' | 'vencidas' filtro por círculo del Resumen (solo tablero)
 let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
@@ -5612,6 +5621,20 @@ function obtenerTareasFiltradas() {
     lista = lista.filter(t => coincideBusqueda(t, busquedaActiva));
   }
 
+  // --- Filtros del Resumen general (tarjetas clicables) ---
+  // JEFATURA seleccionada (subdirector de SPAC, en su tablero): acota el Resumen
+  // general Y el tablero a esa jefatura. Igual que cuando el Director hace clic en
+  // una subdirección. No aplica en la vista Enlaces (ahí manda el filtro de enlace).
+  if (jefaturaActiva && usuarioActual.rol === 'Capturista'
+      && !esEnlaceUser() && !jefaturaCodigo(usuarioActual.jefatura) && vistaActiva !== 'enlaces') {
+    const acr = ACRONIMO_JEFATURA[jefaturaActiva] || jefaturaActiva;
+    lista = lista.filter(t => tareaEnArea(t, acr));
+  }
+  // ENLACE seleccionado (vista Enlaces): acota a las tareas de ese enlace.
+  if (enlaceActivo && vistaActiva === 'enlaces') {
+    lista = lista.filter(t => esResponsableDe(t, { nombre: enlaceActivo }));
+  }
+
   return lista;
 }
 
@@ -5903,9 +5926,11 @@ function actualizarKPIs() {
       const ord = nom => { const n = String(nom || '').toLowerCase(); for (let k = 0; k < ORDEN.length; k++) if (n.indexOf(ORDEN[k]) >= 0) return k; return 99; };
       const enlaces = (RESPONSABLES || []).filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
         .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto));
-      fila.innerHTML = enlaces.map(en => {
+      window._enlacesKPI = enlaces;   // para que filtrarPorEnlace(i) sepa a quién
+      fila.innerHTML = enlaces.map((en, i) => {
         const n = TAREAS.filter(t => activa(t) && t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto })).length;
-        return '<div class="kpi kpi-sub"><div class="kpi-valor">' + n + '</div><div class="kpi-clave">' + escapeHtml(primerNombre(en.nombreCompleto)) + '</div></div>';
+        const act = (enlaceActivo === en.nombreCompleto) ? ' kpi-activa' : '';
+        return '<div class="kpi kpi-sub' + act + '" style="cursor:pointer" onclick="filtrarPorEnlace(' + i + ')"><div class="kpi-valor">' + n + '</div><div class="kpi-clave">' + escapeHtml(primerNombre(en.nombreCompleto)) + '</div></div>';
       }).join('');
     }
   } else if (esDir) {
@@ -5939,6 +5964,12 @@ function actualizarKPIs() {
       document.getElementById('kpiPendJDIMA').textContent = pendJef('JDIMA');
     }
   }
+
+  // Resaltado de los filtros activos (jefatura seleccionada y estatus seleccionado).
+  document.querySelectorAll('#kpisJefGrupo .kpi-sub').forEach(c =>
+    c.classList.toggle('kpi-activa', !!jefaturaActiva && c.dataset.jef === jefaturaActiva));
+  document.querySelectorAll('.kpi[data-est]').forEach(c =>
+    c.classList.toggle('kpi-activa', !!estatusFiltro && c.dataset.est === estatusFiltro));
 }
 
 // Dibuja el donut del Resumen general (4 segmentos: En Proceso sin vencer,
@@ -6146,7 +6177,22 @@ function columnasPorRol() {
 }
 
 function renderizarTablero() {
-  const lista = obtenerTareasFiltradas().filter(t => t.estatus !== 'Archivada');
+  let lista = obtenerTareasFiltradas().filter(t => t.estatus !== 'Archivada');
+  // Filtro por ESTATUS (clic en un círculo del Resumen general): acota SOLO las
+  // tarjetas del tablero, sin tocar el donut (que sigue mostrando el total).
+  if (estatusFiltro) {
+    const _esLista = t => checklistTodoMarcado(t) || responsablesListos(t);
+    lista = lista.filter(t => {
+      const li = _esLista(t);
+      const venc = esVencida(t.fecha_limite) && !li;
+      // "En Proceso" = todo lo no-listo (igual que el número del círculo, que
+      // incluye las vencidas). "Vencidas" es el subconjunto ya vencido.
+      if (estatusFiltro === 'proceso')  return !li;
+      if (estatusFiltro === 'vencidas') return venc;
+      if (estatusFiltro === 'validar')  return li;
+      return true;
+    });
+  }
   const cols = columnasPorRol();
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
@@ -6587,6 +6633,8 @@ function crearTarjeta(t) {
 function cambiarTab(sub) {
   tabActiva = sub;
   jefaturaActiva = null;   // volver a una subdirección sale del modo Jefatura
+  enlaceActivo = null;     // y limpia los filtros del Resumen general
+  estatusFiltro = null;
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.toggle('activa', b.dataset.sub === sub));
   document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.remove('activa'));
 
@@ -6629,6 +6677,36 @@ function cambiarJefatura(codigo) {
 function filtrarPrioridad(prio) {
   prioridadActiva = prio;
   document.querySelectorAll('.chip').forEach(c => c.classList.toggle('activo', c.dataset.prio === prio));
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
+// === Filtros clicables del Resumen general (toggle: clic filtra, otro clic quita) ===
+
+// Card "Pendientes por jefatura" (JDPC / JDIMA) → filtra Resumen general + tablero.
+function filtrarPorJefatura(codigo) {
+  jefaturaActiva = (jefaturaActiva === codigo) ? null : codigo;
+  estatusFiltro = null;   // al cambiar de jefatura, limpia el filtro por estatus
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
+// Card "Pendientes por enlace" → filtra Resumen general + columnas de enlace.
+function filtrarPorEnlace(i) {
+  const en = (window._enlacesKPI || [])[i];
+  if (!en) return;
+  const nom = en.nombreCompleto;
+  enlaceActivo = (enlaceActivo === nom) ? null : nom;
+  estatusFiltro = null;
+  renderizar();
+}
+
+// Círculo del Resumen general (En Proceso / Para validar / Vencidas) → filtra SOLO
+// las tarjetas del tablero por ese estado. "Validadas" no vive en el tablero, así
+// que ese círculo lleva al Historial.
+function filtrarPorEstatus(estado) {
+  if (estado === 'validadas') { cambiarVista('papelera'); return; }
+  estatusFiltro = (estatusFiltro === estado) ? null : estado;
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
@@ -7653,6 +7731,8 @@ function irInicio() {
 
 function cambiarVista(v) {
   vistaActiva = v;
+  estatusFiltro = null;             // el filtro por estatus es del tablero; al cambiar de vista se limpia
+  if (v !== 'enlaces') enlaceActivo = null;   // el filtro por enlace solo vive en la vista Enlaces
   // Marca el item activo del sidebar (solo entre los que tienen data-vista)
   document.querySelectorAll('.sidebar-item[data-vista]').forEach(b => b.classList.toggle('activa', b.dataset.vista === v));
   // Cambia el atributo en el main para que el CSS muestre/oculte secciones
