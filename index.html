@@ -4135,6 +4135,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="3" y="17" width="6" height="5" rx="1"/><rect x="15" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M6 17v-2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2"/></svg>
           <span class="sidebar-label">Organigrama</span>
         </button>
+        <!-- LOPSRM: abre el PDF de la Ley en pestaña nueva. Solo Director y subdirector SPAC. -->
+        <button class="sidebar-item" id="sidebarLopsrm" style="display:none" onclick="window.open('https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf', '_blank', 'noopener')" title="Abrir la LOPSRM (PDF, nueva pestaña)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="sidebar-label">LOPSRM</span>
+        </button>
       </div>
 
       <!-- Papelera de reciclaje: anclada al fondo del menú (abajo a la izquierda). -->
@@ -4928,6 +4933,12 @@ function aplicarSesion() {
     brandDpac.classList.toggle('dpac-pill', esDirBrand);
     brandDpac.onclick = esDirBrand ? function () { window.open('https://attrapi.github.io/DPAC/', '_blank', 'noopener'); } : null;
     brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
+  }
+
+  // LOPSRM en Gestión: SOLO el Director (Adrián) y el subdirector de SPAC (Mario).
+  const lopsrmBtn = document.getElementById('sidebarLopsrm');
+  if (lopsrmBtn) {
+    lopsrmBtn.style.display = (usuarioActual.rol === 'Director' || esSubdirectorSPACReal()) ? '' : 'none';
   }
 
   cambiarTab(tabActiva);
