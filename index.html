@@ -5330,7 +5330,14 @@ function nombresSinApellidos(nombre) {
 function nombreCortoResp(r) {
   if (!r) return '';
   if (typeof r === 'string') return nombresSinApellidos(r);
-  return (r.nombre_corto && String(r.nombre_corto).trim()) || nombresSinApellidos(r.nombreCompleto || r.nombre || '');
+  const corto = (r.nombre_corto && String(r.nombre_corto).trim()) || '';
+  // Si el `nombre_corto` del perfil quedó TRUNCADO en una partícula ("Daniel de
+  // la"), NO lo usamos: derivamos del nombre completo ("Daniel de la Garza") para
+  // no perder el apellido compuesto.
+  const particulas = ['de', 'la', 'las', 'los', 'del', 'y', 'e', 'san', 'santa'];
+  const ultima = corto.toLowerCase().split(/\s+/).pop();
+  if (corto && particulas.indexOf(ultima) < 0) return corto;
+  return nombresSinApellidos(r.nombreCompleto || r.nombre || '');
 }
 
 // Iniciales para el ID de un enlace: primera letra de cada palabra significativa
