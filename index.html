@@ -5363,7 +5363,17 @@ function nombreNiceResp(stored) {
   if (!s) return s;
   return s.split(',').map(function (part) {
     const p = part.trim(); if (!p) return '';
-    const r = (RESPONSABLES || []).find(function (x) { return respCoincide(p.toLowerCase(), x); });
+    const pl = p.toLowerCase();
+    let r = (RESPONSABLES || []).find(function (x) { return respCoincide(pl, x); });
+    // Fallback: el valor GUARDADO pudo quedar truncado por una derivación VIEJA
+    // ("Daniel de la" en vez de "Daniel de la Garza"). Si es prefijo (con borde de
+    // palabra) del nombre completo de alguien, usamos su nombre bonito.
+    if (!r && pl.length >= 5) {
+      r = (RESPONSABLES || []).find(function (x) {
+        const full = String(x.nombreCompleto || '').toLowerCase();
+        return full === pl || full.indexOf(pl + ' ') === 0;
+      });
+    }
     return r ? nombreCortoResp(r) : p;
   }).filter(Boolean).join(', ');
 }
@@ -6550,7 +6560,7 @@ function crearTarjeta(t) {
   // acuerdos y checklist se ven al abrir el modal).
   const tema   = t.tema || t.titulo;
   const areaResp = areaResponsable(t);                              // SPAC / JDPC / JDIMA / DPAC / ENLACE…
-  const respDirecto = (t.responsable || '').trim() || '—';
+  const respDirecto = (nombreNiceResp(t.responsable) || '').trim() || '—';
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
 
