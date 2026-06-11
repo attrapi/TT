@@ -3949,6 +3949,115 @@
     .kpi-valor { width: 54px; height: 54px; font-size: 20px; }
     .tab { font-size: 12px; }
   }
+
+  /* ===================== JUEGO: RETA A LA LEY (LOPSRM) ===================== */
+  .juego-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 5000;
+    background: linear-gradient(160deg, #4a1322 0%, #691C32 55%, #8a2342 100%);
+    padding: 24px 16px; overflow-y: auto;
+    align-items: flex-start; justify-content: center;
+  }
+  .juego-overlay.abierto { display: flex; }
+  .juego-card {
+    width: 100%; max-width: 640px; margin: auto;
+    background: #fff; border-radius: 22px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.40);
+    padding: 26px 26px 30px; position: relative;
+  }
+  .juego-cerrar {
+    position: absolute; top: 14px; right: 16px;
+    width: 34px; height: 34px; border-radius: 50%;
+    border: none; background: #f3f4f6; color: #444;
+    font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .juego-cerrar:hover { background: #e5e7eb; }
+
+  /* --- Pantalla de inicio --- */
+  .juego-titulo { font-family: var(--serif); font-size: 30px; color: var(--guinda); margin: 4px 0 2px; line-height: 1.05; }
+  .juego-sub { color: var(--tinta-suave); font-size: 13.5px; margin-bottom: 18px; }
+  .juego-stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .juego-stat {
+    flex: 1; min-width: 90px; background: var(--crema); border: 1px solid var(--linea);
+    border-radius: 14px; padding: 12px; text-align: center;
+  }
+  .juego-stat-num { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--guinda); line-height: 1; }
+  .juego-stat-lbl { font-size: 11px; color: var(--tinta-suave); font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: .03em; }
+  .juego-nivel-barra { height: 8px; border-radius: 99px; background: #eee; overflow: hidden; margin: 2px 0 18px; }
+  .juego-nivel-relleno { height: 100%; background: linear-gradient(90deg, var(--ambar), var(--verde)); border-radius: 99px; transition: width .5s ease; }
+  .juego-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .juego-modo {
+    border: 2px solid var(--linea); border-radius: 16px; padding: 16px 14px;
+    background: #fff; cursor: pointer; text-align: left; transition: all .15s ease;
+  }
+  .juego-modo:hover { border-color: var(--guinda); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(105,28,50,.12); }
+  .juego-modo-ico { font-size: 24px; }
+  .juego-modo-tit { font-weight: 800; color: var(--tinta); margin-top: 6px; font-size: 15px; }
+  .juego-modo-desc { font-size: 12px; color: var(--tinta-suave); margin-top: 2px; line-height: 1.3; }
+  .juego-temas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .juego-tema-chip {
+    border: 2px solid var(--linea); background: #fff; border-radius: 99px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700; color: var(--guinda); cursor: pointer;
+  }
+  .juego-tema-chip:hover { border-color: var(--guinda); background: var(--crema); }
+  .juego-volver { margin-top: 18px; background: none; border: none; color: var(--tinta-suave); font-weight: 700; cursor: pointer; font-size: 13px; }
+
+  /* --- Barra superior de juego (vidas, racha, progreso) --- */
+  .juego-hud { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .juego-vidas { font-size: 18px; letter-spacing: 2px; }
+  .juego-racha { font-weight: 800; color: var(--ambar); font-size: 15px; }
+  .juego-puntos { margin-left: auto; font-family: var(--serif); font-weight: 700; color: var(--guinda); font-size: 18px; }
+  .juego-prog { height: 8px; border-radius: 99px; background: #eee; overflow: hidden; margin: 4px 0 4px; }
+  .juego-prog-relleno { height: 100%; background: var(--guinda); border-radius: 99px; transition: width .3s ease; }
+  .juego-timer { height: 5px; border-radius: 99px; background: #eee; overflow: hidden; margin-bottom: 16px; }
+  .juego-timer-relleno { height: 100%; background: var(--verde); border-radius: 99px; }
+
+  /* --- Pregunta --- */
+  .juego-chip-tema {
+    display: inline-block; background: var(--guinda); color: #fff;
+    border-radius: 99px; padding: 4px 12px; font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px;
+  }
+  .juego-chip-art { background: var(--ambar); margin-left: 6px; }
+  .juego-pregunta { font-size: 19px; font-weight: 700; color: var(--tinta); line-height: 1.35; margin-bottom: 18px; }
+  .juego-opciones { display: flex; flex-direction: column; gap: 10px; }
+  .juego-opcion {
+    border: 2px solid var(--linea); border-radius: 14px; padding: 14px 16px;
+    background: #fff; cursor: pointer; text-align: left; font-size: 15px; color: var(--tinta);
+    transition: all .12s ease; line-height: 1.3;
+  }
+  .juego-opcion:hover:not(:disabled) { border-color: var(--guinda); background: var(--crema); }
+  .juego-opcion:disabled { cursor: default; }
+  .juego-opcion.correcta { border-color: var(--verde); background: #ECFDF3; color: #166534; font-weight: 700; }
+  .juego-opcion.incorrecta { border-color: var(--rojo); background: #FEF2F2; color: #991B1B; font-weight: 700; }
+  .juego-opcion.tenue { opacity: .55; }
+  .juego-feedback {
+    margin-top: 16px; border-radius: 14px; padding: 14px 16px; font-size: 14px; line-height: 1.4;
+    border: 1px solid var(--linea); background: var(--crema);
+  }
+  .juego-feedback-tit { font-weight: 800; margin-bottom: 4px; }
+  .juego-feedback.ok .juego-feedback-tit { color: var(--verde); }
+  .juego-feedback.mal .juego-feedback-tit { color: var(--rojo); }
+  .juego-feedback a { color: var(--guinda); font-weight: 700; }
+  .juego-btn {
+    margin-top: 16px; width: 100%; border: none; border-radius: 14px;
+    background: var(--guinda); color: #fff; font-weight: 800; font-size: 16px;
+    padding: 14px; cursor: pointer; transition: filter .15s ease;
+  }
+  .juego-btn:hover { filter: brightness(1.1); }
+
+  /* --- Pantalla final --- */
+  .juego-final { text-align: center; padding: 8px 0; }
+  .juego-medalla { font-size: 64px; line-height: 1; }
+  .juego-final-tit { font-family: var(--serif); font-size: 26px; color: var(--guinda); margin: 8px 0 2px; }
+  .juego-final-desc { color: var(--tinta-suave); font-size: 14px; margin-bottom: 18px; }
+
+  @media (max-width: 480px) {
+    .juego-card { padding: 22px 18px 26px; border-radius: 18px; }
+    .juego-modos { grid-template-columns: 1fr; }
+    .juego-titulo { font-size: 25px; }
+    .juego-pregunta { font-size: 17px; }
+  }
 </style>
 </head>
 <body>
@@ -4147,6 +4256,11 @@
         <button class="sidebar-item" id="sidebarLopsrm" style="display:none" onclick="window.open('https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf', '_blank', 'noopener')" title="Abrir la LOPSRM (PDF, nueva pestaña)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span class="sidebar-label">LOPSRM</span>
+        </button>
+        <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace), en prueba. -->
+        <button class="sidebar-item" id="sidebarJuegoLopsrm" style="display:none" onclick="abrirJuegoLopsrm()" title="Reta a la Ley — quiz para aprender la LOPSRM">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>
+          <span class="sidebar-label">Reta a la Ley</span>
         </button>
       </div>
 
@@ -4378,6 +4492,11 @@
 
 <!-- ========== TOAST ========== -->
 <div class="toast" id="toast"></div>
+
+<!-- ========== JUEGO: RETA A LA LEY (LOPSRM) ========== -->
+<div class="juego-overlay" id="juegoLopsrm">
+  <div class="juego-card" id="juegoCard"></div>
+</div>
 
 <script>
 // ============== DATOS DE PRUEBA ==============
@@ -4948,6 +5067,9 @@ function aplicarSesion() {
   if (lopsrmBtn) {
     lopsrmBtn.style.display = (usuarioActual.rol === 'Director' || esSubdirectorSPACReal()) ? '' : 'none';
   }
+  // Juego "Reta a la Ley": por ahora SOLO Daniel de la Garza (enlace), para probarlo.
+  const juegoBtn = document.getElementById('sidebarJuegoLopsrm');
+  if (juegoBtn) juegoBtn.style.display = esDanielDeLaGarza() ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -7607,6 +7729,327 @@ function lanzarConfeti(opts) {
 // Estado por columna para disparar el confeti SOLO en la transición
 // "faltaban tareas" → "toda la columna completa". Se llena en renderizarTablero.
 let _confetiColEstado = {};
+
+// ===================== JUEGO: RETA A LA LEY (LOPSRM) =====================
+// Quiz para estudiar la LOPSRM. Banco basado en el TEXTO VIGENTE (DOF 14-11-2025);
+// cada pregunta cita su artículo. Por ahora SOLO para Daniel de la Garza (enlace).
+const JUEGO_PDF_URL = 'https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf';
+const JUEGO_VIDAS = 3;
+const JUEGO_TIEMPO = 25;   // segundos por pregunta
+const JUEGO_LARGO = 10;    // preguntas en "Reto rápido" / "Reto diario"
+
+function esDanielDeLaGarza() {
+  if (!usuarioActual) return false;
+  return sinAcentos(usuarioActual.nombre || '').indexOf('daniel de la garza') >= 0;
+}
+
+const LOPSRM_PREGUNTAS = [
+  // --- Generalidades ---
+  { tema:'Generalidades', art:'Art. 1', pregunta:'¿Qué artículo de la Constitución reglamenta la LOPSRM en materia de contrataciones de obra pública?',
+    opciones:['Artículo 134','Artículo 123','Artículo 27','Artículo 115'], correcta:0,
+    explica:'La LOPSRM reglamenta el artículo 134 constitucional: los recursos públicos se administran con eficiencia y se aseguran las mejores condiciones para el Estado.' },
+  { tema:'Generalidades', art:'Art. 3', pregunta:'Según el Art. 3, ¿cuál de estos NO es por sí mismo "obra pública"?',
+    opciones:['Construir un inmueble','Demoler un inmueble','Comprar papelería de oficina','Remodelar un inmueble'], correcta:2,
+    explica:'El Art. 3 define obra pública como construir, instalar, ampliar, remodelar, restaurar, conservar, modificar y demoler bienes inmuebles. Comprar papelería es una adquisición (otra ley).' },
+  { tema:'Generalidades', art:'Art. 1', pregunta:'La LOPSRM aplica a las contrataciones con cargo a recursos federales de:',
+    opciones:['Solo la Presidencia','Dependencias, organismos descentralizados y entidades federativas/municipios (con recursos federales)','Solo empresas privadas','Solo los municipios'], correcta:1,
+    explica:'El Art. 1 incluye Presidencia, dependencias de la APF, organismos descentralizados, empresas de participación estatal mayoritaria y entidades federativas/municipios que usen recursos federales.' },
+  // --- Definiciones (Art. 2) ---
+  { tema:'Definiciones', art:'Art. 2', pregunta:'¿Cómo se llama quien participa en una licitación pública o invitación a cuando menos tres personas?',
+    opciones:['Cotizante','Licitante','Contratista','Testigo social'], correcta:1,
+    explica:'Licitante: participa en licitación pública o invitación a 3. El Cotizante participa en adjudicación directa.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'La persona que presenta su cotización en un procedimiento de adjudicación directa se llama:',
+    opciones:['Licitante','Contratista','Cotizante','Postor'], correcta:2,
+    explica:'Cotizante (Art. 2, frac. II): la persona física o moral que presenta su cotización en el procedimiento de adjudicación directa.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'Tras la reforma vigente, "la Secretaría" en la LOPSRM se refiere a:',
+    opciones:['Secretaría de Hacienda','Secretaría de la Función Pública','Secretaría Anticorrupción y Buen Gobierno','Secretaría de Economía'], correcta:2,
+    explica:'En el texto vigente, "Secretaría" = Secretaría Anticorrupción y Buen Gobierno. "Hacienda" es la SHCP.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'¿Qué es la "Plataforma" en la LOPSRM vigente?',
+    opciones:['CompraNet','La Plataforma Digital de Contrataciones Públicas','El Diario Oficial','Un sistema interno de cada dependencia'], correcta:1,
+    explica:'"Plataforma" = Plataforma Digital de Contrataciones Públicas, donde se realizan los actos de los procedimientos.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "Contratista" es la persona que:',
+    opciones:['Vigila el procedimiento','Celebra contratos de obra pública o servicios','Cotiza en adjudicación directa','Emite el fallo'], correcta:1,
+    explica:'Contratista (Art. 2, frac. I): la persona que celebra contratos de obras públicas o de servicios relacionados con las mismas.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "proyecto ejecutivo" está conformado por:',
+    opciones:['Solo el proyecto arquitectónico','El proyecto arquitectónico, el de ingeniería y el catálogo de conceptos','Solo el presupuesto','La bitácora de obra'], correcta:1,
+    explica:'Proyecto ejecutivo: conjunto de planos y documentos que conforman el proyecto arquitectónico y el de ingeniería, más el catálogo de conceptos.' },
+  { tema:'Definiciones', art:'Art. 2', pregunta:'El "testigo social" es designado por:',
+    opciones:['El contratista','La Secretaría (Anticorrupción y Buen Gobierno)','El licitante ganador','El Congreso'], correcta:1,
+    explica:'El testigo social es la persona física o moral designada por la Secretaría para vigilar los procedimientos de contratación.' },
+  // --- Procedimientos ---
+  { tema:'Procedimientos', art:'Art. 27', pregunta:'¿Cuáles son los tres procedimientos de contratación de la LOPSRM?',
+    opciones:['Licitación pública, invitación a 3 y adjudicación directa','Subasta, oferta y compra directa','Concurso, rifa y asignación','Licitación, concesión y permiso'], correcta:0,
+    explica:'Art. 27: I) Licitación pública, II) Invitación a cuando menos tres personas, y III) Adjudicación directa.' },
+  { tema:'Procedimientos', art:'Art. 27', pregunta:'Como regla general, las condiciones de la convocatoria y las proposiciones:',
+    opciones:['Se pueden negociar libremente','NO podrán ser negociadas','Las fija el contratista','Se negocian solo con el ganador'], correcta:1,
+    explica:'Art. 27: las condiciones contenidas en la convocatoria y en las proposiciones no podrán ser negociadas.' },
+  { tema:'Procedimientos', art:'Art. 27', pregunta:'¿Con qué acto INICIA la licitación pública?',
+    opciones:['Con la firma del contrato','Con la publicación de la convocatoria en la Plataforma','Con la junta de aclaraciones','Con el fallo'], correcta:1,
+    explica:'La licitación pública inicia con la publicación de la convocatoria en la Plataforma y concluye con el fallo (o la cancelación).' },
+  { tema:'Procedimientos', art:'Art. 30', pregunta:'¿Cuál NO es un carácter válido de las licitaciones públicas?',
+    opciones:['Nacional','Internacional bajo cobertura de tratados','Internacional abierta','Regional municipal'], correcta:3,
+    explica:'Art. 30: el carácter puede ser Nacional, Internacional bajo cobertura de tratados, o Internacional abierta. No existe "regional municipal".' },
+  { tema:'Procedimientos', art:'Art. 28', pregunta:'Los actos de los procedimientos de contratación se llevan a cabo:',
+    opciones:['En papel exclusivamente','A través de la Plataforma','Por correo certificado','En sesión privada sin registro'], correcta:1,
+    explica:'Art. 28: los actos de los procedimientos se realizan a través de la Plataforma, conforme a las disposiciones que emita la Secretaría.' },
+  { tema:'Procedimientos', art:'Art. 41', pregunta:'En los supuestos de excepción del Art. 42, la dependencia debe enviar al órgano interno de control:',
+    opciones:['Nada','Un informe mensual de los contratos formalizados','El proyecto ejecutivo','La fianza'], correcta:1,
+    explica:'Art. 41: a más tardar el último día hábil de cada mes se envía al OIC un informe de los contratos formalizados el mes anterior (con algunas excepciones).' },
+  // --- Excepciones a la licitación ---
+  { tema:'Excepciones', art:'Art. 42', pregunta:'El Art. 42 permite NO licitar por:',
+    opciones:['El monto del contrato','Supuestos específicos (caso fortuito, seguridad nacional, etc.)','Decisión libre del titular','Sorteo'], correcta:1,
+    explica:'El Art. 42 enumera supuestos de excepción (caso fortuito/fuerza mayor, fines militares, licitación desierta, consultorías, etc.). La excepción por monto es el Art. 43.' },
+  { tema:'Excepciones', art:'Art. 43', pregunta:'El Art. 43 permite invitación a 3 o adjudicación directa cuando:',
+    opciones:['El contrato no excede los montos máximos del Presupuesto de Egresos de la Federación','El proveedor es conocido','Hay prisa','Lo decide el contratista'], correcta:0,
+    explica:'Art. 43: excepción por monto, sin exceder los máximos fijados en el Presupuesto de Egresos de la Federación.' },
+  { tema:'Excepciones', art:'Art. 42', pregunta:'Sobre la falta de planeación, la ley establece que:',
+    opciones:['Justifica la adjudicación directa','NO podrá considerarse caso fortuito o fuerza mayor','Es causa de licitación internacional','Permite ampliar el plazo'], correcta:1,
+    explica:'Art. 42, frac. V: la falta de planeación en las contrataciones no podrá ser considerada como caso fortuito o fuerza mayor.' },
+  { tema:'Excepciones', art:'Art. 43', pregunta:'Para no caer en una excepción indebida, los contratos:',
+    opciones:['Se pueden fraccionar','NO deben fraccionarse para quedar bajo los montos de excepción','Se suman al final del año','Se dividen entre proveedores'], correcta:1,
+    explica:'Art. 43: los contratos no deben fraccionarse para quedar comprendidos en los supuestos de excepción a la licitación pública.' },
+  { tema:'Excepciones', art:'Art. 44 Bis', pregunta:'El procedimiento de adjudicación directa inicia y termina con:',
+    opciones:['La convocatoria y el fallo','La solicitud de cotización y la notificación de la adjudicación','La junta de aclaraciones y la firma','El anticipo y el finiquito'], correcta:1,
+    explica:'Art. 44 Bis: la adjudicación directa inicia con la solicitud de la cotización y termina con la notificación de la adjudicación del contrato.' },
+  { tema:'Procedimientos', art:'Art. 27 Bis', pregunta:'Participa un testigo social en licitaciones cuyo monto rebase:',
+    opciones:['1 millón de UMA','23 millones de veces el valor diario de la UMA','100 mil pesos','El 5% del PEF'], correcta:1,
+    explica:'Art. 27 Bis: en licitaciones públicas que rebasen 23 millones de veces el valor diario de la UMA participa un testigo social.' },
+  // --- Contratos y garantías ---
+  { tema:'Contratos y garantías', art:'Art. 48', pregunta:'Los contratistas deben garantizar, entre otros:',
+    opciones:['Solo los anticipos','Los anticipos que reciban y el cumplimiento del contrato','Solo su utilidad','El pago de impuestos'], correcta:1,
+    explica:'Art. 48: deben garantizar I) los anticipos que reciban y II) el cumplimiento de los contratos.' },
+  { tema:'Contratos y garantías', art:'Art. 47', pregunta:'Si el fallo no prevé fecha, el contrato debe firmarse dentro de:',
+    opciones:['5 días hábiles','15 días naturales siguientes a la notificación','30 días naturales','48 horas'], correcta:1,
+    explica:'Art. 47: a falta de previsión, el contrato se firma dentro de los 15 días naturales siguientes al de la notificación del fallo.' },
+  { tema:'Contratos y garantías', art:'Art. 46 Bis', pregunta:'Las penas convencionales por atraso NO podrán ser superiores a:',
+    opciones:['El 10% del contrato','El monto de la garantía de cumplimiento','El doble del anticipo','El presupuesto base'], correcta:1,
+    explica:'Art. 46 Bis: en ningún caso las penas convencionales podrán ser superiores, en su conjunto, al monto de la garantía de cumplimiento.' },
+  { tema:'Contratos y garantías', art:'Art. 66', pregunta:'Para responder por vicios ocultos, la obra se garantiza durante:',
+    opciones:['6 meses','12 meses','24 meses','Indefinidamente'], correcta:1,
+    explica:'Art. 66: los trabajos se garantizan durante 12 meses por vicios ocultos y defectos.' },
+  { tema:'Contratos y garantías', art:'Art. 66', pregunta:'Una forma de garantizar los vicios ocultos es una fianza equivalente a:',
+    opciones:['10% del monto total ejercido','50% del contrato','1% del anticipo','100% de la utilidad'], correcta:0,
+    explica:'Art. 66: fianza por el 10% del monto total ejercido, o carta de crédito irrevocable / recursos líquidos por el 5% del mismo monto.' },
+  { tema:'Contratos y garantías', art:'Art. 50', pregunta:'El anticipo concedido debe ponerse a disposición del contratista:',
+    opciones:['Después de terminar la obra','Con antelación a la fecha de inicio de los trabajos','Hasta el finiquito','Solo si lo pide por escrito'], correcta:1,
+    explica:'Art. 50: el anticipo se pone a disposición con antelación al inicio; su atraso difiere en igual plazo el programa de ejecución pactado.' },
+  // --- Recepción, finiquito y sanciones ---
+  { tema:'Recepción y sanciones', art:'Art. 64', pregunta:'Tras verificar la terminación, la dependencia tiene para la recepción física:',
+    opciones:['15 días naturales','60 días','Sin plazo','24 horas'], correcta:0,
+    explica:'Art. 64: al finalizar la verificación, la dependencia cuenta con 15 días naturales para la recepción física mediante el acta correspondiente.' },
+  { tema:'Recepción y sanciones', art:'Art. 64', pregunta:'El finiquito debe elaborarse en un plazo que no exceda de:',
+    opciones:['15 días','30 días','60 días naturales a partir de la recepción','6 meses'], correcta:2,
+    explica:'Art. 64: el finiquito se elabora dentro del término del contrato, que no podrá exceder de 60 días naturales a partir de la recepción de los trabajos.' },
+  { tema:'Recepción y sanciones', art:'Art. 77', pregunta:'La multa por infringir la ley (impuesta por la Secretaría) es de:',
+    opciones:['50 a 3,000 veces la UMA diaria elevada al mes','1 a 100 salarios','Hasta el 50% del contrato','Una advertencia por escrito'], correcta:0,
+    explica:'Art. 77: multa de 50 hasta 3,000 veces el valor de la UMA diaria vigente elevada al mes, en la fecha de la infracción.' },
+  { tema:'Recepción y sanciones', art:'Art. 78', pregunta:'Además de la multa, la Secretaría puede:',
+    opciones:['Encarcelar al contratista','Inhabilitarlo temporalmente para contratar','Quitarle su empresa','Nada más'], correcta:1,
+    explica:'Art. 78: la Secretaría inhabilita temporalmente para participar en procedimientos y celebrar contratos regulados por ésta y otras leyes de contratación.' }
+];
+
+let JUEGO = null;
+
+function _juegoBarajar(a) {
+  const x = a.slice();
+  for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
+  return x;
+}
+function _juegoCargar() { try { return JSON.parse(localStorage.getItem('lopsrm_juego_v1')) || {}; } catch (e) { return {}; } }
+function _juegoGuardar(p) { try { localStorage.setItem('lopsrm_juego_v1', JSON.stringify(p)); } catch (e) {} }
+function _juegoHoy() { return new Date().toISOString().split('T')[0]; }
+function _juegoAyer() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
+function _juegoKey(q) { return q.art + '|' + q.pregunta.slice(0, 28); }
+function _juegoNivel(ac) {
+  const N = [{m:0,n:'Aprendiz'},{m:20,n:'Conocedor'},{m:50,n:'Especialista'},{m:100,n:'Experto'},{m:200,n:'Maestro LOPSRM'}];
+  let i = 0; for (let k = 0; k < N.length; k++) if (ac >= N[k].m) i = k;
+  const sig = N[i + 1];
+  const pct = sig ? Math.min(100, Math.round((ac - N[i].m) / (sig.m - N[i].m) * 100)) : 100;
+  return { nombre: N[i].n, pct, sig: sig ? sig.n : null, falta: sig ? (sig.m - ac) : 0 };
+}
+
+function abrirJuegoLopsrm() {
+  if (!esDanielDeLaGarza()) return;
+  document.getElementById('juegoLopsrm').classList.add('abierto');
+  renderJuegoInicio();
+}
+function cerrarJuegoLopsrm() { _juegoLimpiarTimer(); document.getElementById('juegoLopsrm').classList.remove('abierto'); JUEGO = null; }
+
+function renderJuegoInicio() {
+  _juegoLimpiarTimer(); JUEGO = null;
+  const p = _juegoCargar();
+  const niv = _juegoNivel(p.totalAciertos || 0);
+  const falladasN = Object.keys(p.falladas || {}).length;
+  const temas = [];
+  LOPSRM_PREGUNTAS.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
+  const chips = temas.map(t => '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t) + '</button>').join('');
+  document.getElementById('juegoCard').innerHTML =
+    '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
+    + '<div class="juego-titulo">⚖️ Reta a la Ley</div>'
+    + '<div class="juego-sub">Aprende la LOPSRM jugando · texto vigente (DOF 14-11-2025)</div>'
+    + '<div class="juego-stats">'
+    +   '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor puntaje</div></div>'
+    +   '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Racha diaria</div></div>'
+    +   '<div class="juego-stat"><div class="juego-stat-num">' + niv.nombre + '</div><div class="juego-stat-lbl">Nivel</div></div>'
+    + '</div>'
+    + '<div class="juego-nivel-barra"><div class="juego-nivel-relleno" style="width:' + niv.pct + '%"></div></div>'
+    + (niv.sig ? '<div class="juego-sub" style="margin-top:-12px;margin-bottom:16px;">Te faltan ' + niv.falta + ' aciertos para "' + niv.sig + '"</div>' : '')
+    + '<div class="juego-modos">'
+    +   '<button class="juego-modo" onclick="juegoIniciar(\'rapido\')"><div class="juego-modo-ico">⚡</div><div class="juego-modo-tit">Reto rápido</div><div class="juego-modo-desc">10 preguntas al azar, contrarreloj.</div></button>'
+    +   '<button class="juego-modo" onclick="juegoIniciar(\'diario\')"><div class="juego-modo-ico">📅</div><div class="juego-modo-tit">Reto diario</div><div class="juego-modo-desc">Juega hoy y sube tu racha de días.</div></button>'
+    +   '<button class="juego-modo" onclick="juegoIniciar(\'repaso\')"><div class="juego-modo-ico">🔁</div><div class="juego-modo-tit">Repaso</div><div class="juego-modo-desc">' + (falladasN ? falladasN + ' por dominar.' : 'Sin pendientes ¡bien!') + '</div></button>'
+    +   '<button class="juego-modo" onclick="document.getElementById(\'juegoTemasWrap\').style.display=\'block\'"><div class="juego-modo-ico">📚</div><div class="juego-modo-tit">Por tema</div><div class="juego-modo-desc">Elige un tema específico.</div></button>'
+    + '</div>'
+    + '<div id="juegoTemasWrap" style="display:none;margin-top:14px;"><div class="juego-temas">' + chips + '</div></div>';
+}
+
+function juegoIniciar(modo, tema) {
+  let pool = LOPSRM_PREGUNTAS.slice();
+  if (modo === 'tema' && tema) pool = pool.filter(q => q.tema === tema);
+  if (modo === 'repaso') {
+    const p = _juegoCargar(); const fall = p.falladas || {};
+    pool = pool.filter(q => fall[_juegoKey(q)]);
+    if (!pool.length) { toast('¡No tienes preguntas por repasar! 🎉', 'ok'); return; }
+  }
+  let lista = _juegoBarajar(pool);
+  if (modo === 'rapido' || modo === 'diario') lista = lista.slice(0, JUEGO_LARGO);
+  else lista = lista.slice(0, 12);
+  // Baraja también las opciones de cada pregunta (para no memorizar posiciones).
+  const preguntas = lista.map(q => {
+    const ops = q.opciones.map((t, i) => ({ t, ok: i === q.correcta }));
+    const mez = _juegoBarajar(ops);
+    return { tema: q.tema, art: q.art, pregunta: q.pregunta, explica: q.explica, opc: mez.map(o => o.t), correctaIdx: mez.findIndex(o => o.ok) };
+  });
+  JUEGO = { modo, tema: tema || '', preguntas, idx: 0, puntos: 0, aciertos: 0, respondidasN: 0, vidas: JUEGO_VIDAS, racha: 0, rachaMax: 0, respondida: false, timerId: null, tRestante: 0 };
+  renderJuegoPregunta();
+}
+
+function _juegoLimpiarTimer() { if (JUEGO && JUEGO.timerId) { clearInterval(JUEGO.timerId); JUEGO.timerId = null; } }
+function _juegoArrancarTimer() {
+  if (!JUEGO) return;
+  JUEGO.tRestante = JUEGO_TIEMPO;
+  _juegoLimpiarTimer();
+  JUEGO.timerId = setInterval(function () {
+    if (!JUEGO) return;
+    JUEGO.tRestante -= 0.1;
+    const barra = document.getElementById('juegoTimerRelleno');
+    const pct = Math.max(0, JUEGO.tRestante / JUEGO_TIEMPO * 100);
+    if (barra) { barra.style.width = pct + '%'; barra.style.background = pct < 30 ? 'var(--rojo)' : 'var(--verde)'; }
+    if (JUEGO.tRestante <= 0) { _juegoLimpiarTimer(); juegoResponder(-1); }
+  }, 100);
+}
+
+function renderJuegoPregunta(elegido) {
+  if (!JUEGO) return;
+  const q = JUEGO.preguntas[JUEGO.idx];
+  const answered = (elegido !== undefined && elegido !== null);
+  const corazones = '❤️'.repeat(JUEGO.vidas) + '🤍'.repeat(Math.max(0, JUEGO_VIDAS - JUEGO.vidas));
+  const prog = Math.round(JUEGO.idx / JUEGO.preguntas.length * 100);
+  const ops = q.opc.map((t, i) => {
+    let cls = 'juego-opcion';
+    if (answered) {
+      if (i === q.correctaIdx) cls += ' correcta';
+      else if (i === elegido) cls += ' incorrecta';
+      else cls += ' tenue';
+    }
+    return '<button class="' + cls + '"' + (answered ? ' disabled' : '') + ' onclick="juegoResponder(' + i + ')">' + escapeHtml(t) + '</button>';
+  }).join('');
+  let feedback = '', boton = '';
+  if (answered) {
+    const ok = elegido === q.correctaIdx;
+    const tit = ok ? '¡Correcto! 🎉' : (elegido === -1 ? '⏱️ Se acabó el tiempo' : 'Incorrecto');
+    feedback = '<div class="juego-feedback ' + (ok ? 'ok' : 'mal') + '">'
+      + '<div class="juego-feedback-tit">' + tit + '</div>'
+      + '<div>' + escapeHtml(q.explica) + '</div>'
+      + '<div style="margin-top:6px;"><a href="' + JUEGO_PDF_URL + '" target="_blank" rel="noopener">📖 ' + escapeHtml(q.art) + ' · ver la ley</a></div>'
+      + '</div>';
+    const ultima = JUEGO.idx + 1 >= JUEGO.preguntas.length;
+    boton = '<button class="juego-btn" onclick="juegoSiguiente()">' + (JUEGO.vidas <= 0 ? 'Ver resultado' : (ultima ? 'Terminar' : 'Siguiente')) + '</button>';
+  }
+  document.getElementById('juegoCard').innerHTML =
+    '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
+    + '<div class="juego-hud">'
+    +   '<span class="juego-vidas">' + corazones + '</span>'
+    +   (JUEGO.racha >= 2 ? '<span class="juego-racha">🔥 ' + JUEGO.racha + '</span>' : '')
+    +   '<span class="juego-puntos">' + JUEGO.puntos + ' pts</span>'
+    + '</div>'
+    + '<div class="juego-prog"><div class="juego-prog-relleno" style="width:' + prog + '%"></div></div>'
+    + '<div class="juego-timer"><div class="juego-timer-relleno" id="juegoTimerRelleno" style="width:100%"></div></div>'
+    + '<div><span class="juego-chip-tema">' + escapeHtml(q.tema) + '</span><span class="juego-chip-tema juego-chip-art">' + escapeHtml(q.art) + '</span></div>'
+    + '<div class="juego-pregunta">' + escapeHtml(q.pregunta) + '</div>'
+    + '<div class="juego-opciones">' + ops + '</div>'
+    + feedback + boton;
+  if (!answered) _juegoArrancarTimer();
+  else { const t = document.getElementById('juegoTimerRelleno'); if (t) t.style.width = '0%'; }
+}
+
+function juegoResponder(elegido) {
+  if (!JUEGO || JUEGO.respondida) return;
+  JUEGO.respondida = true;
+  _juegoLimpiarTimer();
+  const q = JUEGO.preguntas[JUEGO.idx];
+  const ok = elegido === q.correctaIdx;
+  JUEGO.respondidasN++;
+  if (ok) {
+    JUEGO.aciertos++;
+    JUEGO.racha++;
+    JUEGO.rachaMax = Math.max(JUEGO.rachaMax, JUEGO.racha);
+    const bonus = 10 + (JUEGO.racha >= 2 ? (JUEGO.racha - 1) * 5 : 0);
+    JUEGO.puntos += bonus;
+    if (JUEGO.racha === 5 || JUEGO.racha === 10) lanzarConfeti({ cantidad: 44 });
+    else if (JUEGO.racha >= 3) lanzarConfeti({ cantidad: 16 });
+  } else {
+    JUEGO.vidas--;
+    JUEGO.racha = 0;
+  }
+  // Repaso espaciado: marca/limpia la pregunta como fallada.
+  const p = _juegoCargar(); p.falladas = p.falladas || {};
+  const k = _juegoKey(q); if (ok) delete p.falladas[k]; else p.falladas[k] = true;
+  _juegoGuardar(p);
+  renderJuegoPregunta(elegido);
+}
+
+function juegoSiguiente() {
+  if (!JUEGO) return;
+  if (JUEGO.vidas <= 0) { renderJuegoFinal(); return; }
+  JUEGO.idx++; JUEGO.respondida = false;
+  if (JUEGO.idx >= JUEGO.preguntas.length) { renderJuegoFinal(); return; }
+  renderJuegoPregunta();
+}
+
+function renderJuegoFinal() {
+  _juegoLimpiarTimer();
+  const tot = JUEGO.respondidasN || 1;
+  const pct = Math.round(JUEGO.aciertos / tot * 100);
+  let medalla = '📚', titulo = '¡A seguir estudiando!';
+  if (pct >= 90) { medalla = '🏆'; titulo = '¡Maestro de la Ley!'; }
+  else if (pct >= 70) { medalla = '🥇'; titulo = '¡Muy bien!'; }
+  else if (pct >= 50) { medalla = '🥈'; titulo = '¡Vas bien!'; }
+  // Persistencia: mejor puntaje, aciertos totales, partidas y racha diaria.
+  const p = _juegoCargar();
+  p.mejor = Math.max(p.mejor || 0, JUEGO.puntos);
+  p.totalAciertos = (p.totalAciertos || 0) + JUEGO.aciertos;
+  p.partidas = (p.partidas || 0) + 1;
+  const hoy = _juegoHoy();
+  if (p.ultimoDia !== hoy) { p.rachaDiaria = (p.ultimoDia === _juegoAyer()) ? (p.rachaDiaria || 0) + 1 : 1; p.ultimoDia = hoy; }
+  _juegoGuardar(p);
+  if (pct >= 70) lanzarConfeti({ cantidad: 70, duracion: 1600 });
+  const modo = JUEGO.modo, tema = JUEGO.tema;
+  document.getElementById('juegoCard').innerHTML =
+    '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
+    + '<div class="juego-final">'
+    +   '<div class="juego-medalla">' + medalla + '</div>'
+    +   '<div class="juego-final-tit">' + titulo + '</div>'
+    +   '<div class="juego-final-desc">Acertaste ' + JUEGO.aciertos + ' de ' + tot + ' (' + pct + '%) · racha máx. 🔥 ' + JUEGO.rachaMax + '</div>'
+    +   '<div class="juego-stats">'
+    +     '<div class="juego-stat"><div class="juego-stat-num">' + JUEGO.puntos + '</div><div class="juego-stat-lbl">Puntos</div></div>'
+    +     '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor</div></div>'
+    +     '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Días seguidos</div></div>'
+    +   '</div>'
+    +   '<button class="juego-btn" onclick="juegoIniciar(\'' + modo + '\',\'' + String(tema).replace(/'/g, "\\'") + '\')">Jugar de nuevo</button>'
+    +   '<button class="juego-volver" onclick="renderJuegoInicio()">← Volver al inicio</button>'
+    + '</div>';
+}
 
 // Indicador chiquito "🔄 Actualizando…" arriba a la derecha. Aparece cuando
 // pintamos desde caché y se quita cuando llegan los datos frescos del servidor.
