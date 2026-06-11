@@ -4199,22 +4199,22 @@
       <div class="kpis-grupo-titulo">Pendientes por subdirección</div>
       <!-- Orden: SGOI · SPAC · SA · Staff (mismo que las columnas del tablero). -->
       <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')">
+        <div class="kpi kpi-sub" data-sub="SGOI" onclick="filtrarPorSubdireccion('SGOI')">
           <div class="kpi-valor" id="kpiPendSGOI">0</div>
           <div class="kpi-clave">SGOI</div>
           <div class="kpi-label">Obras Inducidas</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SPAC" onclick="cambiarTab('SPAC')">
+        <div class="kpi kpi-sub" data-sub="SPAC" onclick="filtrarPorSubdireccion('SPAC')">
           <div class="kpi-valor" id="kpiPendSPAC">0</div>
           <div class="kpi-clave">SPAC</div>
           <div class="kpi-label">Procesos Construcción</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SA" onclick="cambiarTab('SA')">
+        <div class="kpi kpi-sub" data-sub="SA" onclick="filtrarPorSubdireccion('SA')">
           <div class="kpi-valor" id="kpiPendSA">0</div>
           <div class="kpi-clave">SA</div>
           <div class="kpi-label">Archivo</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="ENLACE" onclick="cambiarTab('ENLACE')">
+        <div class="kpi kpi-sub" data-sub="ENLACE" onclick="filtrarPorSubdireccion('ENLACE')">
           <div class="kpi-valor" id="kpiPendENLACE">0</div>
           <div class="kpi-clave">STAFF</div>
           <div class="kpi-label">Dirección</div>
@@ -5988,7 +5988,9 @@ function actualizarKPIs() {
     }
   }
 
-  // Resaltado de los filtros activos (jefatura seleccionada y estatus seleccionado).
+  // Resaltado de los filtros activos (subdirección/Staff, jefatura y estatus).
+  document.querySelectorAll('#kpisSubGrupo .kpi-sub').forEach(c =>
+    c.classList.toggle('kpi-activa', tabActiva !== 'TODAS' && c.dataset.sub === tabActiva));
   document.querySelectorAll('#kpisJefGrupo .kpi-sub').forEach(c =>
     c.classList.toggle('kpi-activa', !!jefaturaActiva && c.dataset.jef === jefaturaActiva));
   document.querySelectorAll('.kpi[data-est]').forEach(c =>
@@ -6705,6 +6707,13 @@ function filtrarPrioridad(prio) {
 }
 
 // === Filtros clicables del Resumen general (toggle: clic filtra, otro clic quita) ===
+
+// Card "Pendientes por subdirección/Staff" (Director) → navega a esa subdirección
+// y la resalta; si ya estaba activa, vuelve a la consolidada (TODAS). Toggle, como
+// los círculos y las demás cards.
+function filtrarPorSubdireccion(sub) {
+  cambiarTab(tabActiva === sub ? 'TODAS' : sub);
+}
 
 // Card "Pendientes por jefatura" (JDPC / JDIMA) → filtra Resumen general + tablero.
 function filtrarPorJefatura(codigo) {
