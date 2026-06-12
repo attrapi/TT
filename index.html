@@ -3976,13 +3976,18 @@
   /* --- Pantalla de inicio --- */
   .juego-titulo { font-family: var(--serif); font-size: 30px; color: var(--guinda); margin: 4px 0 2px; line-height: 1.05; }
   .juego-sub { color: var(--tinta-suave); font-size: 13.5px; margin-bottom: 18px; }
-  .juego-stats { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .juego-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 4px; }
   .juego-stat {
-    flex: 1; min-width: 90px; background: var(--crema); border: 1px solid var(--linea);
-    border-radius: 14px; padding: 12px; text-align: center;
+    background: #fff; border: 1px solid var(--linea);
+    border-radius: 16px; padding: 13px 10px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    box-shadow: 0 2px 6px rgba(105,28,50,.04);
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  .juego-stat-num { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--guinda); line-height: 1; }
-  .juego-stat-lbl { font-size: 11px; color: var(--tinta-suave); font-weight: 700; margin-top: 5px; text-transform: uppercase; letter-spacing: .03em; }
+  .juego-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(105,28,50,.10); }
+  .juego-stat-ico { font-size: 19px; line-height: 1; opacity: .9; }
+  .juego-stat-num { font-family: var(--serif); font-size: 25px; font-weight: 700; color: var(--guinda); line-height: 1; }
+  .juego-stat-lbl { font-size: 10.5px; color: var(--tinta-suave); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
   .juego-nivel-barra { height: 8px; border-radius: 99px; background: #eee; overflow: hidden; margin: 2px 0 18px; }
   .juego-nivel-relleno { height: 100%; background: linear-gradient(90deg, var(--ambar), var(--verde)); border-radius: 99px; transition: width .5s ease; }
   .juego-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -4060,7 +4065,7 @@
   .juego-final-desc { color: var(--tinta-suave); font-size: 14px; margin-bottom: 18px; }
 
   /* === Pantalla principal (home) enriquecida + multi-ley === */
-  .juego-card.home { max-width: 960px; }
+  .juego-card.home { max-width: 940px; padding-top: 0; overflow: hidden; }
   /* Decoración tenue a los lados para que no se vea apagado. */
   .juego-overlay::before, .juego-overlay::after {
     content: '⚖️'; position: fixed; font-size: 230px; line-height: 1;
@@ -4070,37 +4075,75 @@
   .juego-overlay::after  { content: '📖'; right: -10px; bottom: 6%; transform: rotate(10deg); }
   .juego-card { position: relative; z-index: 1; }
 
-  .juego-hero { text-align: center; margin-bottom: 14px; }
-  .juego-frase { font-style: italic; color: var(--guinda); font-size: 14.5px; font-weight: 600; margin-top: 8px; }
+  /* Hero como banner a sangre (degradado guinda) dentro de la tarjeta. */
+  .juego-hero {
+    margin: 0 -26px 20px; padding: 36px 28px 28px;
+    background: radial-gradient(140% 130% at 14% -15%, #9a2748 0%, #691C32 52%, #4a1322 100%);
+    text-align: center; position: relative; overflow: hidden;
+  }
+  .juego-hero::before {
+    content: '⚖'; position: absolute; right: -16px; top: 50%;
+    transform: translateY(-50%) rotate(-8deg);
+    font-size: 150px; opacity: .10; color: #fff; pointer-events: none;
+  }
+  .juego-hero::after {
+    content: ''; position: absolute; left: -50px; bottom: -70px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
+    pointer-events: none;
+  }
+  .juego-card.home .juego-titulo { color: #fff; font-size: 34px; margin: 0; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.28); position: relative; }
+  .juego-card.home .juego-sub { color: rgba(255,255,255,.82); font-size: 13.5px; margin: 7px 0 0; position: relative; }
+  .juego-frase {
+    position: relative; display: inline-block; margin-top: 15px; max-width: 90%;
+    color: #fff; font-style: italic; font-size: 14px; font-weight: 500;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.20);
+    border-radius: 999px; padding: 7px 17px;
+  }
+  /* Botón cerrar legible sobre el hero oscuro. */
+  .juego-card.home .juego-cerrar { background: rgba(255,255,255,.18); color: #fff; }
+  .juego-card.home .juego-cerrar:hover { background: rgba(255,255,255,.30); }
 
   /* Selector de leyes */
-  .juego-leyes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .juego-leyes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
   .juego-ley-chip {
     display: flex; align-items: center; gap: 7px; cursor: pointer;
-    border: 2px solid var(--linea); background: #fff; border-radius: 999px;
-    padding: 7px 13px; transition: all .15s ease;
+    border: 1.5px solid var(--linea); background: #fff; border-radius: 999px;
+    padding: 7px 14px; transition: all .15s ease;
   }
-  .juego-ley-chip:hover { border-color: var(--guinda); background: var(--crema); transform: translateY(-1px); }
-  .juego-ley-chip.activa { border-color: var(--guinda); background: var(--guinda); }
+  .juego-ley-chip:hover { border-color: var(--guinda); background: var(--guinda-tenue); transform: translateY(-1px); }
+  .juego-ley-chip.activa { border-color: var(--guinda); background: var(--guinda); box-shadow: 0 6px 16px rgba(105,28,50,.25); }
   .juego-ley-chip.activa .juego-ley-abrev, .juego-ley-chip.activa .juego-ley-nom { color: #fff; }
   .juego-ley-emoji { font-size: 17px; }
   .juego-ley-abrev { font-weight: 800; font-size: 13px; color: var(--guinda); }
   .juego-ley-nom { font-size: 11.5px; color: var(--tinta-suave); font-weight: 600; }
   @media (max-width: 560px) { .juego-ley-nom { display: none; } }
 
-  .juego-home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .juego-home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
   @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
-  .juego-col { display: flex; flex-direction: column; gap: 12px; }
+  .juego-col { display: flex; flex-direction: column; gap: 14px; }
+
+  /* Panel de nivel: tarjeta destacada tipo "insignia". */
   .juego-panel { background: var(--crema); border: 1px solid var(--linea); border-radius: 16px; padding: 14px 16px; }
-  .juego-nivel-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .juego-nivel-ico { font-size: 30px; }
-  .juego-nivel-nombre { font-family: var(--serif); font-size: 19px; font-weight: 700; color: var(--guinda); line-height: 1; }
+  .juego-nivel-panel {
+    background: linear-gradient(135deg, #fff 0%, var(--guinda-tenue) 100%);
+    border: 1px solid var(--linea); border-radius: 18px; padding: 16px 18px;
+    box-shadow: 0 4px 14px rgba(105,28,50,.06);
+  }
+  .juego-nivel-top { display: flex; align-items: center; gap: 13px; margin-bottom: 12px; }
+  .juego-nivel-ico {
+    font-size: 25px; width: 50px; height: 50px; flex: 0 0 50px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #d97706, var(--ambar)); border-radius: 14px;
+    box-shadow: 0 6px 14px rgba(180,83,9,.30);
+  }
+  .juego-nivel-nombre { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--guinda); line-height: 1.05; }
   .juego-nivel-sub2 { font-size: 12px; color: var(--tinta-suave); margin-top: 3px; }
   .juego-nivel-falta { font-size: 11.5px; color: var(--tinta-suave); margin-top: 7px; font-weight: 600; }
 
   .juego-dato {
     background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
-    border: 1px dashed var(--ambar); border-radius: 16px; padding: 14px 16px;
+    border: 1px solid #fcd99b; border-radius: 16px; padding: 14px 16px;
     font-size: 13.5px; line-height: 1.5; color: #7c2d12;
   }
   .juego-dato-tit { font-weight: 800; color: var(--ambar); margin-bottom: 5px; }
@@ -4108,12 +4151,35 @@
   .juego-dato-link a { color: var(--guinda); font-weight: 800; text-decoration: none; }
   .juego-dato-link a:hover { text-decoration: underline; }
 
-  .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 4px; }
-  /* En el home los modos van en UNA columna, como filas (icono + texto). */
-  .juego-home-grid .juego-modos { grid-template-columns: 1fr; gap: 10px; }
-  .juego-home-grid .juego-modo { display: flex; align-items: center; gap: 13px; text-align: left; padding: 14px; }
-  .juego-modo-info { flex: 1; }
-  .juego-home-grid .juego-modo .juego-modo-ico { font-size: 26px; margin: 0; }
+  .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 2px; }
+  /* En el home los modos van en UNA columna (icono + texto + flecha). */
+  .juego-home-grid .juego-modos { grid-template-columns: 1fr; gap: 11px; }
+  .juego-home-grid .juego-modo {
+    display: flex; align-items: center; gap: 14px; text-align: left; padding: 14px 15px;
+    border: 1.5px solid var(--linea); border-radius: 16px; background: #fff;
+    position: relative; overflow: hidden;
+  }
+  .juego-home-grid .juego-modo::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--mc, var(--guinda));
+  }
+  .juego-home-grid .juego-modo:hover {
+    border-color: var(--mc, var(--guinda)); transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(105,28,50,.13);
+  }
+  .juego-modo-ico-wrap {
+    flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--mc, var(--guinda)) 13%, #fff);
+  }
+  .juego-home-grid .juego-modo .juego-modo-ico { font-size: 24px; margin: 0; line-height: 1; }
+  .juego-modo-info { flex: 1; min-width: 0; }
+  .juego-home-grid .juego-modo-tit { margin: 0; font-size: 15px; }
+  .juego-modo-arrow {
+    flex: 0 0 auto; color: var(--mc, var(--guinda)); font-size: 18px; font-weight: 800;
+    opacity: .35; transition: opacity .15s ease, transform .15s ease;
+  }
+  .juego-home-grid .juego-modo:hover .juego-modo-arrow { opacity: 1; transform: translateX(3px); }
 
   /* Buscador de artículos */
   .juego-buscar { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -4136,6 +4202,9 @@
 
   @media (max-width: 480px) {
     .juego-card { padding: 22px 18px 26px; border-radius: 18px; }
+    .juego-card.home { padding-top: 0; }
+    .juego-hero { margin: 0 -18px 18px; padding: 30px 20px 24px; }
+    .juego-card.home .juego-titulo { font-size: 28px; }
     .juego-modos { grid-template-columns: 1fr; }
     .juego-titulo { font-size: 25px; }
     .juego-pregunta { font-size: 17px; }
@@ -8316,11 +8385,17 @@ function renderJuegoInicio() {
     + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span>'
     + '</button>').join('');
 
-  const modo = function (m, ico, tit, desc) {
+  const modo = function (m, ico, tit, desc, color) {
     const oc = (m === 'temaToggle')
       ? "var w=document.getElementById('juegoTemasWrap'); w.style.display = (w.style.display==='none'?'block':'none');"
       : "juegoIniciar('" + m + "')";
-    return '<button class="juego-modo" onclick="' + oc + '"><div class="juego-modo-ico">' + ico + '</div><div class="juego-modo-info"><div class="juego-modo-tit">' + tit + '</div><div class="juego-modo-desc">' + desc + '</div></div></button>';
+    return '<button class="juego-modo" style="--mc:' + color + '" onclick="' + oc + '">'
+      + '<div class="juego-modo-ico-wrap"><span class="juego-modo-ico">' + ico + '</span></div>'
+      + '<div class="juego-modo-info"><div class="juego-modo-tit">' + tit + '</div><div class="juego-modo-desc">' + desc + '</div></div>'
+      + '<span class="juego-modo-arrow">→</span></button>';
+  };
+  const stat = function (ico, num, lbl) {
+    return '<div class="juego-stat"><div class="juego-stat-ico">' + ico + '</div><div class="juego-stat-num">' + num + '</div><div class="juego-stat-lbl">' + lbl + '</div></div>';
   };
 
   card.innerHTML =
@@ -8344,10 +8419,10 @@ function renderJuegoInicio() {
     +       (niv.sig ? '<div class="juego-nivel-falta">Te faltan ' + niv.falta + ' aciertos</div>' : '<div class="juego-nivel-falta">¡Eres una leyenda! 🏆</div>') +
     '</div>'
     +     '<div class="juego-stats">'
-    +       '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor puntaje</div></div>'
-    +       '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Racha diaria</div></div>'
-    +       '<div class="juego-stat"><div class="juego-stat-num">' + (p.partidas || 0) + '</div><div class="juego-stat-lbl">Partidas</div></div>'
-    +       '<div class="juego-stat"><div class="juego-stat-num">' + falladasN + '</div><div class="juego-stat-lbl">Por repasar</div></div>'
+    +       stat('🏅', (p.mejor || 0), 'Mejor puntaje')
+    +       stat('🔥', (p.rachaDiaria || 0), 'Racha diaria')
+    +       stat('🎮', (p.partidas || 0), 'Partidas')
+    +       stat('📌', falladasN, 'Por repasar')
     +     '</div>'
     +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
     +       '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
@@ -8355,10 +8430,10 @@ function renderJuegoInicio() {
     +   '<div class="juego-col">'
     +     '<div class="juego-modos-tit">Elige cómo jugar</div>'
     +     '<div class="juego-modos">'
-    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.')
-    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.')
-    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'))
-    +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.')
+    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
+    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
+    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
+    +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
     +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
     +   '</div>'
