@@ -4114,7 +4114,7 @@
     background: linear-gradient(135deg, #fbbf24, #d97706);
     box-shadow: 0 3px 9px rgba(0,0,0,.28);
   }
-  .juego-nivel-badge-txt { text-align: left; line-height: 1.15; }
+  .juego-nivel-badge-txt { display: flex; flex-direction: column; gap: 3px; text-align: left; line-height: 1.15; }
   .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 14px; }
   .juego-nivel-badge-sub { color: rgba(255,255,255,.72); font-size: 10.5px; font-weight: 600; }
   /* Progreso del nivel sobre el hero. */
@@ -4179,6 +4179,7 @@
     border: 1px solid #fcd99b; border-radius: 16px; padding: 14px 16px;
     font-size: 13.5px; line-height: 1.5; color: #7c2d12;
   }
+  .juego-dato-full { margin-top: 18px; }
   .juego-dato-tit { font-weight: 800; color: var(--ambar); margin-bottom: 5px; }
   .juego-dato-link { margin-top: 8px; }
   .juego-dato-link a { color: var(--guinda); font-weight: 800; text-decoration: none; }
@@ -8467,10 +8468,10 @@ function renderJuegoInicio() {
     +   '<div class="juego-col">'
     +     '<div class="juego-modos-tit">📚 Elige la ley</div>'
     +     '<div class="juego-leyes">' + selLeyes + '</div>'
-    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
-    +       '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
     +   '</div>'
     + '</div>'
+    + '<div class="juego-dato juego-dato-full"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
+    +   '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
     + '<div class="juego-puntajes">'
     +   '<div class="juego-puntajes-tit">📊 Tus puntajes</div>'
     +   '<div class="juego-stats">'
