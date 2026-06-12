@@ -3976,7 +3976,11 @@
   /* --- Pantalla de inicio --- */
   .juego-titulo { font-family: var(--serif); font-size: 30px; color: var(--guinda); margin: 4px 0 2px; line-height: 1.05; }
   .juego-sub { color: var(--tinta-suave); font-size: 13.5px; margin-bottom: 18px; }
-  .juego-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 4px; }
+  .juego-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0; }
+  @media (max-width: 560px) { .juego-stats { grid-template-columns: repeat(2, 1fr); } }
+  /* Bloque de puntajes (hasta abajo, a todo lo ancho). */
+  .juego-puntajes { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--linea); }
+  .juego-puntajes-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 12px; }
   .juego-stat {
     background: #fff; border: 1px solid var(--linea);
     border-radius: 16px; padding: 13px 10px; text-align: center;
@@ -4092,8 +4096,32 @@
     background: radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
     pointer-events: none;
   }
-  .juego-card.home .juego-titulo { color: #fff; font-size: 34px; margin: 0; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.28); position: relative; }
-  .juego-card.home .juego-sub { color: rgba(255,255,255,.82); font-size: 13.5px; margin: 7px 0 0; position: relative; }
+  .juego-hero-top {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    flex-wrap: wrap; position: relative;
+  }
+  .juego-card.home .juego-titulo { color: #fff; font-size: 31px; margin: 0; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.28); }
+  .juego-card.home .juego-sub { color: rgba(255,255,255,.82); font-size: 13.5px; margin: 9px 0 0; position: relative; }
+  /* Insignia de nivel junto al título (Aprendiz, Conocedor…). */
+  .juego-nivel-badge {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px; padding: 6px 15px 6px 7px;
+  }
+  .juego-nivel-badge-ico {
+    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    box-shadow: 0 3px 9px rgba(0,0,0,.28);
+  }
+  .juego-nivel-badge-txt { text-align: left; line-height: 1.15; }
+  .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 14px; }
+  .juego-nivel-badge-sub { color: rgba(255,255,255,.72); font-size: 10.5px; font-weight: 600; }
+  /* Progreso del nivel sobre el hero. */
+  .juego-hero-prog { max-width: 340px; margin: 16px auto 0; position: relative; }
+  .juego-hero-prog-barra { height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .juego-hero-prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #fbbf24, #34d399); transition: width .6s ease; }
+  .juego-hero-prog-txt { color: rgba(255,255,255,.8); font-size: 11px; font-weight: 600; margin-top: 6px; }
   .juego-frase {
     position: relative; display: inline-block; margin-top: 15px; max-width: 90%;
     color: #fff; font-style: italic; font-size: 14px; font-weight: 500;
@@ -4104,20 +4132,25 @@
   .juego-card.home .juego-cerrar { background: rgba(255,255,255,.18); color: #fff; }
   .juego-card.home .juego-cerrar:hover { background: rgba(255,255,255,.30); }
 
-  /* Selector de leyes */
-  .juego-leyes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  /* Selector de leyes (lista vertical). */
+  .juego-leyes { display: flex; flex-direction: column; gap: 8px; }
   .juego-ley-chip {
-    display: flex; align-items: center; gap: 7px; cursor: pointer;
-    border: 1.5px solid var(--linea); background: #fff; border-radius: 999px;
-    padding: 7px 14px; transition: all .15s ease;
+    display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%;
+    border: 1.5px solid var(--linea); background: #fff; border-radius: 14px;
+    padding: 10px 14px; transition: all .15s ease; text-align: left;
   }
-  .juego-ley-chip:hover { border-color: var(--guinda); background: var(--guinda-tenue); transform: translateY(-1px); }
-  .juego-ley-chip.activa { border-color: var(--guinda); background: var(--guinda); box-shadow: 0 6px 16px rgba(105,28,50,.25); }
-  .juego-ley-chip.activa .juego-ley-abrev, .juego-ley-chip.activa .juego-ley-nom { color: #fff; }
-  .juego-ley-emoji { font-size: 17px; }
-  .juego-ley-abrev { font-weight: 800; font-size: 13px; color: var(--guinda); }
+  .juego-ley-chip:hover { border-color: var(--guinda); background: var(--guinda-tenue); transform: translateX(2px); }
+  .juego-ley-chip.activa { border-color: var(--guinda); background: var(--guinda); box-shadow: 0 6px 16px rgba(105,28,50,.22); }
+  .juego-ley-chip.activa .juego-ley-abrev { color: #fff; }
+  .juego-ley-chip.activa .juego-ley-nom { color: rgba(255,255,255,.82); }
+  .juego-ley-chip.activa .juego-ley-emoji { background: rgba(255,255,255,.20); }
+  .juego-ley-emoji {
+    font-size: 19px; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; background: var(--crema);
+  }
+  .juego-ley-txt { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+  .juego-ley-abrev { font-weight: 800; font-size: 14px; color: var(--guinda); }
   .juego-ley-nom { font-size: 11.5px; color: var(--tinta-suave); font-weight: 600; }
-  @media (max-width: 560px) { .juego-ley-nom { display: none; } }
 
   .juego-home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
   @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
@@ -8377,12 +8410,12 @@ function renderJuegoInicio() {
   preguntas.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
   const chips = temas.map(t => '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t) + '</button>').join('');
 
-  // Selector de leyes (chips).
+  // Selector de leyes (lista vertical).
   const selLeyes = JUEGO_LEYES.map(l =>
     '<button class="juego-ley-chip' + (l.id === juegoLeyActual ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
     + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
-    + '<span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
-    + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span>'
+    + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
+    + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
     + '</button>').join('');
 
   const modo = function (m, ico, tit, desc, color) {
@@ -8398,14 +8431,23 @@ function renderJuegoInicio() {
     return '<div class="juego-stat"><div class="juego-stat-ico">' + ico + '</div><div class="juego-stat-num">' + num + '</div><div class="juego-stat-lbl">' + lbl + '</div></div>';
   };
 
+  // Insignia de nivel (Aprendiz, Conocedor…) junto al título.
+  const badge =
+    '<div class="juego-nivel-badge"><span class="juego-nivel-badge-ico">🎖️</span>'
+    + '<span class="juego-nivel-badge-txt"><span class="juego-nivel-badge-nom">' + escapeHtml(niv.nombre) + '</span>'
+    + '<span class="juego-nivel-badge-sub">' + (niv.sig ? 'Siguiente: ' + escapeHtml(niv.sig) : '¡Nivel máximo! 🏆') + '</span></span></div>';
+  const heroProg =
+    '<div class="juego-hero-prog"><div class="juego-hero-prog-barra"><div class="juego-hero-prog-fill" style="width:' + niv.pct + '%"></div></div>'
+    + '<div class="juego-hero-prog-txt">' + (niv.sig ? 'Te faltan ' + niv.falta + ' aciertos para ' + escapeHtml(niv.sig) : '¡Eres una leyenda de la normatividad!') + '</div></div>';
+
   card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<div class="juego-hero">'
-    +   '<div class="juego-titulo">⚖️ Reta a la Ley</div>'
+    +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div>' + badge + '</div>'
     +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + '</div>'
+    +   heroProg
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
-    + '<div class="juego-leyes">' + selLeyes + '</div>'
     + '<div class="juego-buscar">'
     +   '<input id="juegoArtInput" type="text" autocomplete="off" placeholder="Buscar artículo de ' + escapeHtml(ley.abrev) + '… (ej. 27 o 27 bis)" onkeydown="if(event.key===\'Enter\')juegoBuscarArticulo()">'
     +   '<button onclick="juegoBuscarArticulo()">🔎 Ver artículo</button>'
@@ -8413,22 +8455,7 @@ function renderJuegoInicio() {
     + '<div id="juegoArtRes"></div>'
     + '<div class="juego-home-grid">'
     +   '<div class="juego-col">'
-    +     '<div class="juego-panel juego-nivel-panel">'
-    +       '<div class="juego-nivel-top"><span class="juego-nivel-ico">🎖️</span><div><div class="juego-nivel-nombre">' + niv.nombre + '</div><div class="juego-nivel-sub2">' + (niv.sig ? 'Siguiente: ' + escapeHtml(niv.sig) : '¡Nivel máximo!') + '</div></div></div>'
-    +       '<div class="juego-nivel-barra"><div class="juego-nivel-relleno" style="width:' + niv.pct + '%"></div></div>'
-    +       (niv.sig ? '<div class="juego-nivel-falta">Te faltan ' + niv.falta + ' aciertos</div>' : '<div class="juego-nivel-falta">¡Eres una leyenda! 🏆</div>') +
-    '</div>'
-    +     '<div class="juego-stats">'
-    +       stat('🏅', (p.mejor || 0), 'Mejor puntaje')
-    +       stat('🔥', (p.rachaDiaria || 0), 'Racha diaria')
-    +       stat('🎮', (p.partidas || 0), 'Partidas')
-    +       stat('📌', falladasN, 'Por repasar')
-    +     '</div>'
-    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
-    +       '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
-    +   '</div>'
-    +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit">Elige cómo jugar</div>'
+    +     '<div class="juego-modos-tit">🎮 Elige cómo jugar</div>'
     +     '<div class="juego-modos">'
     +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
     +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
@@ -8436,6 +8463,21 @@ function renderJuegoInicio() {
     +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
     +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
+    +   '</div>'
+    +   '<div class="juego-col">'
+    +     '<div class="juego-modos-tit">📚 Elige la ley</div>'
+    +     '<div class="juego-leyes">' + selLeyes + '</div>'
+    +     '<div class="juego-dato"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
+    +       '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="juego-puntajes">'
+    +   '<div class="juego-puntajes-tit">📊 Tus puntajes</div>'
+    +   '<div class="juego-stats">'
+    +     stat('🏅', (p.mejor || 0), 'Mejor puntaje')
+    +     stat('🔥', (p.rachaDiaria || 0), 'Racha diaria')
+    +     stat('🎮', (p.partidas || 0), 'Partidas')
+    +     stat('📌', falladasN, 'Por repasar')
     +   '</div>'
     + '</div>';
 }
