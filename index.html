@@ -2834,6 +2834,22 @@
   }
 
   /* Acciones del header del modal de detalle: Editar + cerrar (×), juntos. */
+  /* "Visto por" dentro del detalle, bajo el ID. */
+  .modal-vistos {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+    margin-top: 8px;
+  }
+  .modal-vistos-ojo {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--tinta-tenue);
+  }
+  .modal-vistos .vto-acron {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.03em;
+    background: var(--grafito-tenue); color: var(--grafito);
+    padding: 2px 7px; border-radius: 99px;
+  }
+  .modal-vistos .vto-acron.vto-creador { background: var(--guinda-tenue); color: var(--guinda); }
+
   .modal-header-acciones { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .modal-editar-header {
     display: inline-flex; align-items: center; gap: 6px;
@@ -6202,16 +6218,11 @@ function esTareaDeEnlace(t) {
 
 // ===== "Visto por" — quién ha abierto la tarea =====
 // Se registra/lee con la BITÁCORA (acción 'visto'), sin tocar el backend.
-// Quedan marcados: el CREADOR, los PARTICIPANTES y el DIRECTOR (Adrián), que ve
-// todo y por eso sí se agrega a cualquier tarea que abra. Nadie más.
+// Queda marcado CUALQUIERA que pueda ABRIR la tarea: el acceso ya está
+// controlado por lo que cada quien ve en su tablero (el Director ve todo; un
+// subdirector/jefe solo lo suyo). Si la pudo abrir, tiene acceso → se registra.
 function puedeMarcarVisto(t) {
-  if (!usuarioActual || !t) return false;
-  if (usuarioActual.rol === 'Director') return true;                           // el Director ve todo
-  const yo = formatearNombre(usuarioActual.nombre || '');
-  if (t.creado_por && formatearNombre(t.creado_por) === yo) return true;       // creador
-  const miArea = areaDelUsuario(usuarioActual);
-  if (miArea && (participantesDe(t) || []).indexOf(miArea) >= 0) return true;   // área participante
-  return esResponsableDe(t, usuarioActual);                                    // responsable directo
+  return !!(usuarioActual && t);
 }
 
 // Registra (una sola vez por persona) que el usuario actual abrió la tarea.
@@ -7864,6 +7875,16 @@ function abrirDetalle(t) {
   const vencida = esVencida(fechaAt) && !concluidaDet && !todoMarcadoDet;
   const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso' && !concluidaDet;
 
+  // "Visto por": quién ha abierto la tarea (ya incluye al usuario actual, porque
+  // marcarVisto corrió arriba). El creador va primero (en guinda).
+  const _vistosDet = vistosDeTarea(t);
+  const vistosDetHTML = _vistosDet.length
+    ? '<div class="modal-vistos" title="Visto por: ' + escapeHtml(_vistosDet.map(v => v.nombre + (v.creador ? ' (creador)' : '')).join(', ')) + '">' +
+        '<span class="modal-vistos-ojo">👁 Visto por:</span>' +
+        _vistosDet.map(v => '<span class="vto-acron' + (v.creador ? ' vto-creador' : '') + '">' + escapeHtml(v.acron) + '</span>').join('') +
+      '</div>'
+    : '';
+
   modal.innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
@@ -7876,6 +7897,7 @@ function abrirDetalle(t) {
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
           ${concluidaDet ? '<span class="concluida-chip" style="margin: 0;">✓ Concluida</span>' : ''}
         </div>
+        ${vistosDetHTML}
       </div>
       <div class="modal-header-acciones">
         ${usuarioPuedeEditar(t) ? `<button class="modal-editar-header" onclick="abrirEditarTarea('${t.id}')" title="Editar la tarea">
