@@ -3711,6 +3711,23 @@
     border-radius: 4px;
   }
   .accion-item-del:hover { background: #fee2e2; }
+  /* Adjuntar archivo POR ACCIÓN en el formulario de captura. */
+  .accion-item-clip {
+    background: transparent; border: 0; cursor: pointer;
+    font-size: 15px; padding: 2px 6px; line-height: 1; border-radius: 4px;
+    opacity: 0.7;
+  }
+  .accion-item-clip:hover { background: var(--guinda-tenue); opacity: 1; }
+  .accion-item-adj {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--guinda); background: var(--guinda-tenue);
+    padding: 2px 6px; border-radius: 99px; max-width: 150px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .accion-adj-x {
+    background: transparent; border: 0; cursor: pointer; color: var(--rojo);
+    font-size: 13px; line-height: 1; padding: 0 2px; flex: 0 0 auto;
+  }
   .acciones-agregar {
     display: flex; gap: 6px;
   }
@@ -5198,7 +5215,9 @@ function aplicarSesion() {
     document.getElementById('kpisSubGrupo').style.display = '';
     document.getElementById('kpisGrupoTitulo').textContent = 'Resumen general';
     document.getElementById('btnNuevo').style.display = '';
-    document.getElementById('navTitulo').textContent = 'Tablero de Tareas';
+    const navTitDir = document.getElementById('navTitulo');
+    navTitDir.textContent = 'Dirección de Procesos Administrativos de Construcción';
+    navTitDir.title = 'Dirección de Procesos Administrativos de Construcción';
     tabActiva = 'TODAS';
 
   } else {
@@ -9339,7 +9358,7 @@ function tituloCapturista() {
 // NO se quede el acrónimo corto (SPAC) sino el nombre completo.
 function tituloNavCompleto() {
   if (!usuarioActual) return 'Tablero de Tareas';
-  if (usuarioActual.rol === 'Director') return 'Tablero de Tareas';
+  if (usuarioActual.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
   const nombresSubs = {
     'SA': 'Subdirección de Archivo',
     'SGOI': 'Subdirección de Gestión de Obras Inducidas',
@@ -10429,6 +10448,7 @@ function cargarAreas() {
 
 function abrirNuevaTarea(tEdit) {
   archivoPendiente = null;   // (compat) ya no se usa: ahora es lista
+  ACC_ADJ_FORM = {};         // archivos pendientes por acción (captura)
   tareaEditando = tEdit || null;
   const ed = tareaEditando;
   // Estado de adjuntos del formulario: lista de {tipo, nombre, url?, file?}.
@@ -10626,10 +10646,7 @@ function abrirNuevaTarea(tEdit) {
             <label>Acciones <span class="req">*</span></label>
             <div id="nt_acciones_lista" class="acciones-lista">${
               (valAccion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-                .map(a => '<div class="accion-item">' +
-                  '<input type="text" class="accion-item-input" value="' + escapeHtml(a) + '" maxlength="200">' +
-                  '<button type="button" class="accion-item-del" title="Quitar" onclick="this.parentElement.remove(); sincAcciones();">×</button>' +
-                '</div>').join('')
+                .map(a => htmlAccionItem(a)).join('')
             }</div>
             <div class="acciones-agregar">
               <input type="text" id="nt_acciones_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarAccionForm();}">
@@ -10692,6 +10709,26 @@ let archivoPendiente = null;
 let adjuntosForm = [];
 
 // === Editor visual de acciones del checklist en el formulario ===
+// Archivos adjuntos PENDIENTES por acción (solo al CAPTURAR): { accId: File }.
+// Se suben y enlazan a su acción justo DESPUÉS de crear la tarea.
+let ACC_ADJ_FORM = {};
+let ACC_ADJ_SEQ = 0;
+
+// HTML de un renglón de acción. El botón de adjuntar (📎) solo aparece al CREAR
+// (no al editar, donde los adjuntos por acción se manejan desde el detalle).
+function htmlAccionItem(texto) {
+  const id = 'acc' + (++ACC_ADJ_SEQ);
+  const clip = !tareaEditando
+    ? '<button type="button" class="accion-item-clip" title="Adjuntar archivo a esta acción" onclick="pickAdjAccion(\'' + id + '\')">📎</button>' +
+      '<span class="accion-item-adj" data-acc-adj="' + id + '" style="display:none"></span>'
+    : '';
+  return '<div class="accion-item" data-acc-id="' + id + '">' +
+    '<input type="text" class="accion-item-input" value="' + escapeHtml(texto) + '" maxlength="200">' +
+    clip +
+    '<button type="button" class="accion-item-del" title="Quitar" onclick="quitarAccionItem(this)">×</button>' +
+  '</div>';
+}
+
 // Agrega el texto del input "+ Agregar acción" a la lista visual y limpia el input.
 function agregarAccionForm() {
   const inp = document.getElementById('nt_acciones_input');
@@ -10700,15 +10737,66 @@ function agregarAccionForm() {
   if (!txt) return;
   const lista = document.getElementById('nt_acciones_lista');
   if (!lista) return;
-  const item = document.createElement('div');
-  item.className = 'accion-item';
-  item.innerHTML =
-    '<input type="text" class="accion-item-input" value="' + escapeHtml(txt) + '" maxlength="200">' +
-    '<button type="button" class="accion-item-del" title="Quitar" onclick="this.parentElement.remove(); sincAcciones();">×</button>';
-  lista.appendChild(item);
+  lista.insertAdjacentHTML('beforeend', htmlAccionItem(txt));
   inp.value = '';
   inp.focus();
   sincAcciones();
+}
+
+// Quita un renglón de acción (y su archivo pendiente, si tenía).
+function quitarAccionItem(btn) {
+  const item = btn.closest('.accion-item');
+  if (item) {
+    const id = item.getAttribute('data-acc-id');
+    if (id) delete ACC_ADJ_FORM[id];
+    item.remove();
+  }
+  sincAcciones();
+}
+
+// Selecciona un archivo para una acción (queda pendiente; se sube al crear).
+function pickAdjAccion(accId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.onchange = function () {
+    if (input.files && input.files.length) {
+      ACC_ADJ_FORM[accId] = input.files[0];
+      actualizarAdjAccionLabel(accId);
+    }
+  };
+  input.click();
+}
+function quitarAdjAccionForm(accId) {
+  delete ACC_ADJ_FORM[accId];
+  actualizarAdjAccionLabel(accId);
+}
+function actualizarAdjAccionLabel(accId) {
+  const span = document.querySelector('[data-acc-adj="' + accId + '"]');
+  if (!span) return;
+  const f = ACC_ADJ_FORM[accId];
+  if (f) {
+    span.style.display = '';
+    span.innerHTML = '📄 ' + escapeHtml(f.name) +
+      ' <button type="button" class="accion-adj-x" title="Quitar archivo" onclick="quitarAdjAccionForm(\'' + accId + '\')">×</button>';
+  } else {
+    span.style.display = 'none';
+    span.innerHTML = '';
+  }
+}
+
+// Lee las acciones del formulario que tienen archivo pendiente, en orden, para
+// enlazarlas a su item del checklist tras crear la tarea.
+function leerAccionesAdjuntos() {
+  const out = [];
+  document.querySelectorAll('#nt_acciones_lista .accion-item').forEach(item => {
+    const input = item.querySelector('.accion-item-input');
+    const texto = input ? (input.value || '').trim() : '';
+    if (!texto) return;
+    const id = item.getAttribute('data-acc-id');
+    const file = id && ACC_ADJ_FORM[id];
+    if (file) out.push({ texto: texto, file: file });
+  });
+  return out;
 }
 // Sincroniza la lista visual con el <textarea> oculto que se manda al guardar.
 function sincAcciones() {
@@ -10920,6 +11008,8 @@ function guardarNuevaTarea() {
   // El textarea oculto se sincroniza desde la lista visual antes de leerlo.
   sincAcciones();
   const accion = document.getElementById('nt_accion').value.trim();
+  // Archivos pendientes por acción (solo al CREAR). Se suben tras crear la tarea.
+  const accionesArchivos = tareaEditando ? [] : leerAccionesAdjuntos();
   const fecha = document.getElementById('nt_fecha').value;
   // Si quedó texto en el campo de link sin agregar con "+ Link", se toma igual.
   const urlSuelta = (document.getElementById('nt_url').value || '').trim();
@@ -10970,7 +11060,7 @@ function guardarNuevaTarea() {
     }
     if (enAppScript()) {
       if (editando) { enviarEditarTarea(datos, btn, textoBtn); return; }
-      enviarCrearTarea(datos, btn);   // UNA sola tarea con varios participantes
+      enviarCrearTarea(datos, btn, accionesArchivos);   // UNA sola tarea con varios participantes
       return;
     }
     // Modo demo (GitHub): solo en pantalla.
@@ -11061,7 +11151,7 @@ function enviarEditarTarea(datos, btn, textoBtn) {
 }
 
 // Escribe la tarea en el Google Sheet (Apps Script) y recarga.
-function enviarCrearTarea(datos, btn) {
+function enviarCrearTarea(datos, btn, accionesArchivos) {
   if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
   google.script.run
     .withSuccessHandler(function (res) {
@@ -11085,7 +11175,11 @@ function enviarCrearTarea(datos, btn) {
           });
       }
       cerrarModal();
-      cargarTareasAppScript(true);
+      // Tras recargar (ya existe la tarea + su checklist), sube los archivos que
+      // se adjuntaron a cada acción en la captura y enlázalos a su item.
+      cargarTareasAppScript(true, function () {
+        subirAdjuntosDeAcciones(res.id, accionesArchivos);
+      });
       cargarAreas();   // por si se agregó un área nueva con "Otra"
       toast('Tarea creada y guardada', 'ok');
     })
@@ -11095,6 +11189,53 @@ function enviarCrearTarea(datos, btn) {
       creandoTarea = false;
     })
     .crearTarea(SESION_TOKEN, datos);
+}
+
+// Sube los archivos adjuntados a cada acción durante la CAPTURA y los enlaza al
+// item del checklist correspondiente (emparejando por el texto de la acción).
+// Corre después de crear la tarea, cuando ya existe su checklist.
+function subirAdjuntosDeAcciones(idTarea, lista) {
+  if (!idTarea || !Array.isArray(lista) || !lista.length) return;
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const items = obtenerChecklist(t);
+  const usados = new Set();
+  const pendientes = [];
+  lista.forEach(function (a) {
+    if (!a || !a.file) return;
+    const idx = items.findIndex(function (it, i) {
+      return !usados.has(i) && String(it.texto || '').trim() === String(a.texto || '').trim();
+    });
+    if (idx < 0) return;
+    usados.add(idx);
+    pendientes.push({ idx: idx, file: a.file });
+  });
+  if (!pendientes.length) return;
+  toast('Subiendo ' + pendientes.length + ' archivo(s) de acciones…', 'ok');
+  let i = 0;
+  const siguiente = function () {
+    if (i >= pendientes.length) {
+      persistirEstado(t);
+      renderizar();
+      toast('Adjuntos de acciones listos.', 'ok');
+      return;
+    }
+    const p = pendientes[i++];
+    const reader = new FileReader();
+    reader.onload = function () {
+      const base64 = String(reader.result).split(',')[1] || '';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.ok) { items[p.idx].adjunto = res.url; items[p.idx].adjunto_nombre = p.file.name; }
+          siguiente();
+        })
+        .withFailureHandler(function () { siguiente(); })
+        .subirArchivo(SESION_TOKEN, p.file.name, p.file.type, base64);
+    };
+    reader.onerror = siguiente;
+    reader.readAsDataURL(p.file);
+  };
+  siguiente();
 }
 
 // ============== CARGAR EXCEL ==============
