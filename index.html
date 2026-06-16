@@ -7042,7 +7042,7 @@ function crearTarjeta(t) {
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
     </div>
-    ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipNueva}${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}</div>` : ''}
+    ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}${chipNueva}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
