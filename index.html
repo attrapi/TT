@@ -2291,15 +2291,15 @@
     margin-bottom: 8px;
   }
 
-  /* Chip "Nueva": azul y palpitando (como Vencida/Hoy) para llamar la atención.
+  /* Chip "Nueva": morado y palpitando (como Vencida/Hoy) para llamar la atención.
      Aparece las primeras 48 h desde que se capturó la tarea (se quita solo). */
   @keyframes pulso-nueva {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(21,101,192,0.55); transform: scale(1); }
-    50%      { box-shadow: 0 0 0 7px rgba(21,101,192,0); transform: scale(1.04); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.55); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 7px rgba(124,58,237,0); transform: scale(1.04); }
   }
   .nueva-chip {
     display: inline-block;
-    background: var(--azul, #1565C0);
+    background: #7C3AED;
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -5615,14 +5615,22 @@ function opcionesResponsableHTML(valSel) {
     const sel = (valSel === v || valSel === nombreCortoResp(r) || valSel === r.nombreCompleto);
     return '<option value="' + escapeHtml(v) + '"' + (sel ? ' selected' : '') + '>' + escapeHtml(txt) + '</option>';
   };
+  // Responsable que va HASTA ARRIBA de su grupo (el subdirector del área).
+  const DESTACADO_GRUPO = { SPAC: 'mario', SGOI: 'fabiola' };
   GRUPOS.forEach(g => {
-    const items = lista.filter(r => {
+    let items = lista.filter(r => {
       const sub = String(r.subdireccion || '').toUpperCase();
       if (g.cod === '')      return CONOCIDAS.indexOf(sub) < 0;           // sin área conocida
       if (g.cod === 'STAFF') return sub === 'STAFF' || sub === 'ENLACE'; // Staff = ENLACE interno
       return sub === g.cod;
     });
     if (!items.length) return;
+    // Pone al destacado del grupo primero; el resto conserva su orden (sort estable).
+    const dest = DESTACADO_GRUPO[g.cod];
+    if (dest) {
+      const esDest = r => (nombreCortoResp(r) + ' ' + (r.nombreCompleto || '')).toLowerCase().indexOf(dest) >= 0;
+      items = items.slice().sort((a, b) => (esDest(a) ? 0 : 1) - (esDest(b) ? 0 : 1));
+    }
     html += '<optgroup label="' + escapeHtml(g.label) + '">' + items.map(opcion).join('') + '</optgroup>';
   });
   // "Otro (escribir)…" SOLO para el Director. Los capturistas (subdirectores y
@@ -5685,9 +5693,14 @@ function responsablesDesdeTAREAS() {
 //   "Lic. María Dolores Carrasco Zamora"  → "María Dolores"
 //   "Arq. Luis Guillermo Favila Hernández"→ "Luis Guillermo"
 //   "Adrián Tavares"                      → "Adrián"
+// Títulos profesionales que se OCULTAN al mostrar el nombre (Ing., Lic., Biól./
+// Biol., …). Centralizado para que todas las vistas lo apliquen igual.
+const RE_TITULO_NOMBRE = /^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|bi[oó]l\.|c\.|prof\.|profa\.)\s*/i;
+function quitarTitulo(s) { return String(s || '').replace(RE_TITULO_NOMBRE, '').trim(); }
+
 function nombresSinApellidos(nombre) {
   if (!nombre) return '';
-  var n = String(nombre).replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
+  var n = quitarTitulo(nombre);
   var p = n.split(/\s+/);
   if (p.length <= 2) return p[0] || '';
   var corte = p.length - 2;   // se quitan los 2 apellidos
@@ -5710,7 +5723,7 @@ function nombreCortoResp(r) {
   // no perder el apellido compuesto.
   const particulas = ['de', 'la', 'las', 'los', 'del', 'y', 'e', 'san', 'santa'];
   const ultima = corto.toLowerCase().split(/\s+/).pop();
-  if (corto && particulas.indexOf(ultima) < 0) return corto;
+  if (corto && particulas.indexOf(ultima) < 0) return quitarTitulo(corto);
   return nombresSinApellidos(r.nombreCompleto || r.nombre || '');
 }
 
@@ -5755,7 +5768,7 @@ function nombreNiceResp(stored) {
         return full === pl || full.indexOf(pl + ' ') === 0;
       });
     }
-    return r ? nombreCortoResp(r) : p;
+    return r ? nombreCortoResp(r) : quitarTitulo(p);
   }).filter(Boolean).join(', ');
 }
 
@@ -10475,7 +10488,7 @@ function abrirNuevaTarea(tEdit) {
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
   let codigosAsignables = usuarioActual.rol === 'Director'
-    ? ['JDPC','JDIMA','SPAC','JDGA','JDGOI','SGOI','SA','ENLACE','DPAC']
+    ? ['DPAC','SGOI','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
   participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
