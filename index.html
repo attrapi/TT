@@ -713,6 +713,8 @@
   .bitacora-accion.desarchivar { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.reabrir     { background: var(--ambar-tenue); color: var(--ambar); }
   .bitacora-accion.reprogramar { background: #ffedd5; color: #c2410c; }
+  .bitacora-accion.comentario  { background: #ccfbf1; color: #0f766e; }   /* Comentario (hilo) — teal */
+  .bitacora-accion.observacion { background: #e0f2fe; color: #0369a1; }   /* Observación — azul cielo */
   .bitacora-accion.mover       { background: var(--grafito-tenue); color: var(--grafito); }
   .bitacora-accion.enviar      { background: var(--azul-tenue); color: var(--azul); }
   /* Acciones del checklist (agregar/quitar/editar una acción): morado. */
@@ -2849,6 +2851,34 @@
     padding: 2px 7px; border-radius: 99px;
   }
   .modal-vistos .vto-acron.vto-creador { background: var(--guinda-tenue); color: var(--guinda); }
+
+  /* ===== Comentarios (hilo de conversación de la tarea) ===== */
+  .conv-hilo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .conv-vacio { color: var(--tinta-tenue); font-size: 12px; font-style: italic; padding: 6px 2px; }
+  .conv-msg {
+    background: #fff; border: 1px solid var(--linea); border-left: 3px solid var(--guinda);
+    border-radius: 8px; padding: 8px 11px;
+  }
+  .conv-msg-cab { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .conv-acron {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.03em;
+    background: var(--guinda-tenue); color: var(--guinda); padding: 2px 7px; border-radius: 99px;
+  }
+  .conv-nombre { font-size: 12px; font-weight: 700; color: var(--tinta); }
+  .conv-fecha { font-size: 10.5px; color: var(--tinta-tenue); margin-left: auto; }
+  .conv-texto { font-size: 13px; color: var(--tinta); white-space: pre-wrap; line-height: 1.45; }
+  .conv-input { display: flex; gap: 8px; align-items: flex-end; }
+  .conv-textarea {
+    flex: 1; min-height: 38px; max-height: 140px; resize: vertical;
+    border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px;
+    font-family: var(--sans); font-size: 13px; color: var(--tinta);
+  }
+  .conv-textarea:focus { outline: none; border-color: var(--guinda); }
+  .conv-enviar {
+    background: var(--guinda); color: #fff; border: 0; border-radius: 8px;
+    padding: 9px 16px; font-weight: 700; font-size: 13px; cursor: pointer; flex: 0 0 auto;
+  }
+  .conv-enviar:hover { background: var(--guinda-oscuro); }
 
   .modal-header-acciones { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .modal-editar-header {
@@ -7806,7 +7836,7 @@ function abrirDetalle(t) {
 
   marcarVisto(t);   // registra que esta persona (creador/participante) la abrió
 
-  const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id && b.accion !== 'visto');
+  const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id && b.accion !== 'visto' && b.accion !== 'comentario');
 
   const btnEditarDetalle = usuarioPuedeEditar(t)
     ? `<button class="btn-ics" onclick="abrirEditarTarea('${t.id}')" title="Editar los datos de la tarea">
@@ -7963,6 +7993,14 @@ function abrirDetalle(t) {
         <div class="modal-seccion-titulo">Observaciones</div>
         ${(function(){
           try { return renderObservacionesHTML(t); }
+          catch (err) { return ''; }
+        })()}
+      </div>
+
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Comentarios</div>
+        ${(function(){
+          try { return renderComentariosHTML(t); }
           catch (err) { return ''; }
         })()}
       </div>
@@ -10280,6 +10318,52 @@ function renderObservacionesHTML(t) {
   }).join('') + '</div>';
 }
 
+// ===== Comentarios (hilo de conversación de la tarea) =====
+// Los mensajes se guardan en la BITÁCORA (acción 'comentario'), sin tocar el
+// backend. Puede escribir cualquiera con acceso (= que pueda abrir la tarea).
+function renderComentariosHTML(t) {
+  const ts = s => { const d = parsearFechaHora(s); return d ? d.getTime() : 0; };
+  const msgs = (BITACORA || [])
+    .filter(b => b && b.accion === 'comentario' && b.id_tarea === t.id)
+    .slice().sort((a, b) => ts(a.fecha) - ts(b.fecha));
+  let html = '<div class="conv-hilo">';
+  if (!msgs.length) {
+    html += '<div class="conv-vacio">— sin comentarios todavía —</div>';
+  } else {
+    msgs.forEach(b => {
+      const nom = formatearNombre(b.usuario || '');
+      html += '<div class="conv-msg">' +
+        '<div class="conv-msg-cab">' +
+          '<span class="conv-acron">' + escapeHtml(acronimoPersona(b.usuario)) + '</span>' +
+          '<span class="conv-nombre">' + escapeHtml(nom) + '</span>' +
+          '<span class="conv-fecha">' + escapeHtml(b.fecha || '') + '</span>' +
+        '</div>' +
+        '<div class="conv-texto">' + escapeHtml(b.comentario || '') + '</div>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+  html += '<div class="conv-input">' +
+    '<textarea id="conv_input_' + t.id + '" class="conv-textarea" maxlength="800" ' +
+      'placeholder="Escribe un comentario o responde… (Ctrl+Enter para enviar)" ' +
+      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();enviarComentario(\'' + t.id + '\');}"></textarea>' +
+    '<button type="button" class="conv-enviar" onclick="enviarComentario(\'' + t.id + '\')">Enviar</button>' +
+  '</div>';
+  return html;
+}
+
+function enviarComentario(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const inp = document.getElementById('conv_input_' + idTarea);
+  if (!inp) return;
+  const texto = (inp.value || '').trim();
+  if (!texto) return;
+  registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: texto });
+  inp.value = '';
+  abrirDetalle(t);   // repinta el modal con el nuevo mensaje
+}
+
 // ===== Acciones de interacción del checklist y observaciones =====
 // Etiqueta visible de la columna de un área en el checklist.
 function etiquetaColumnaArea(cod) {
@@ -10354,6 +10438,13 @@ function guardarObsArea(idTarea, cod, valor) {
   if (obsDeArea(t, cod) === nuevo) return;   // sin cambios → no escribe
   fijarObsArea(t, cod, nuevo);
   persistirEstado(t);
+  // Deja constancia en la bitácora (con su píldora) de que se editó la observación.
+  if (nuevo.trim()) {
+    const etq = etiquetaColumnaArea(cod);
+    const resumen = nuevo.length > 80 ? nuevo.slice(0, 80) + '…' : nuevo;
+    registrarEnBitacora({ accion: 'observacion', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Observación de ' + etq + ': "' + resumen + '"' });
+  }
 }
 // Wrappers de compatibilidad.
 function guardarObsResp(idTarea, valor) {
@@ -11486,6 +11577,8 @@ const ACCION_LABEL = {
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta',
   reprogramar: 'Reprogramada',
+  comentario:  'Comentario',
+  observacion: 'Observación',
   completar:   'Finalizada',
   a_tiempo:    'En tiempo',
   fuera_tiempo:'Fuera de tiempo'
