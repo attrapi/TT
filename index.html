@@ -9744,6 +9744,15 @@ function enviarRecordatorio(idTarea, canal) {
     if (accion && accion !== '—') {
       lineas.push('', '➡️ *Acción a tomar*', accion);
     }
+    // Hilo de comentarios (la conversación de la tarea).
+    const _coments = comentariosDeTarea(t);
+    if (_coments.length) {
+      lineas.push('', sep, '💬 *Hilo (' + _coments.length + ')*');
+      _coments.forEach(function (c) {
+        lineas.push('', '*' + c.autor + '*' + (c.fecha ? ' · _' + c.fecha + '_' : '') + (c.editado ? ' _(editado)_' : ''),
+          '   ' + (c.texto || ''));
+      });
+    }
     lineas.push('', sep, '_Sistema TT · ATTRAPI_');
 
     // Si conocemos el teléfono del responsable de la tarea, abrimos WhatsApp
@@ -9772,6 +9781,13 @@ function enviarRecordatorio(idTarea, canal) {
     ];
     if (acuerdos && acuerdos !== '—') cuerpoLineas.push('', 'Acuerdos realizados:', acuerdos);
     if (accion && accion !== '—') cuerpoLineas.push('', 'Acción a tomar:', accion);
+    const _comentMail = comentariosDeTarea(t);
+    if (_comentMail.length) {
+      cuerpoLineas.push('', 'Hilo de comentarios (' + _comentMail.length + '):');
+      _comentMail.forEach(function (c) {
+        cuerpoLineas.push('- ' + c.autor + (c.fecha ? ' (' + c.fecha + ')' : '') + ': ' + (c.texto || ''));
+      });
+    }
     cuerpoLineas.push('', '— Sistema TT · ATTRAPI');
     const url = 'mailto:' + encodeURIComponent(CORREO_NOTIFICAR) + '?subject=' + encodeURIComponent(asunto) + '&body=' + encodeURIComponent(cuerpoLineas.join('\n'));
     window.location.href = url;
