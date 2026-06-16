@@ -4277,7 +4277,16 @@
   }
   .juego-nivel-badge-txt { display: flex; flex-direction: column; gap: 1px; text-align: left; line-height: 1.1; }
   .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 13px; font-family: 'Baloo 2', var(--sans); }
-  .juego-nivel-badge-sub { color: rgba(255,255,255,.74); font-size: 9.5px; font-weight: 600; }
+  .juego-nivel-badge-sub { color: rgba(255,255,255,.78); font-size: 9.5px; font-weight: 600; }
+  /* Barra de progreso DENTRO de la insignia (avance al siguiente nivel). */
+  .juego-nivel-badge-bar {
+    display: block; height: 5px; width: 100%; min-width: 122px;
+    border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; margin: 3px 0 2px;
+  }
+  .juego-nivel-badge-fill {
+    display: block; height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, #fbbf24, #34d399); transition: width .6s ease;
+  }
   /* En móvil la insignia baja a estática para no encimarse con el título. */
   @media (max-width: 560px) {
     .juego-nivel-badge { position: static; margin: 0 auto 4px; }
@@ -4296,6 +4305,12 @@
   /* Botón cerrar legible sobre el hero oscuro. */
   .juego-card.home .juego-cerrar { background: rgba(255,255,255,.18); color: #fff; }
   .juego-card.home .juego-cerrar:hover { background: rgba(255,255,255,.30); }
+  /* Botón "← Regresar" en el inicio del juego (sobre el hero oscuro), arriba-izq. */
+  .juego-card.home .juego-regresar {
+    position: absolute; top: 14px; left: 16px; z-index: 3; margin: 0;
+    background: rgba(255,255,255,.18); color: #fff;
+  }
+  .juego-card.home .juego-regresar:hover { background: rgba(255,255,255,.30); }
 
   /* Selector de leyes (lista vertical). */
   .juego-leyes { display: flex; flex-direction: column; gap: 8px; }
@@ -9154,22 +9169,23 @@ function renderJuegoInicio() {
     return '<div class="juego-stat"><div class="juego-stat-ico">' + ico + '</div><div class="juego-stat-num">' + num + '</div><div class="juego-stat-lbl">' + lbl + '</div></div>';
   };
 
-  // Insignia de nivel (Aprendiz, Conocedor…) junto al título.
+  // Insignia de nivel (Aprendiz, Conocedor…) con su BARRA DE PROGRESO adentro,
+  // para que se vea el avance al siguiente nivel.
   const badge =
     '<div class="juego-nivel-badge"><span class="juego-nivel-badge-ico">🎖️</span>'
-    + '<span class="juego-nivel-badge-txt"><span class="juego-nivel-badge-nom">' + escapeHtml(niv.nombre) + '</span>'
-    + '<span class="juego-nivel-badge-sub">' + (niv.sig ? 'Siguiente: ' + escapeHtml(niv.sig) : '¡Nivel máximo! 🏆') + '</span></span></div>';
-  const heroProg =
-    '<div class="juego-hero-prog"><div class="juego-hero-prog-barra"><div class="juego-hero-prog-fill" style="width:' + niv.pct + '%"></div></div>'
-    + '<div class="juego-hero-prog-txt">' + (niv.sig ? 'Te faltan ' + niv.falta + ' aciertos para ' + escapeHtml(niv.sig) : '¡Eres una leyenda de la normatividad!') + '</div></div>';
+    + '<span class="juego-nivel-badge-txt">'
+    +   '<span class="juego-nivel-badge-nom">' + escapeHtml(niv.nombre) + '</span>'
+    +   '<span class="juego-nivel-badge-bar"><span class="juego-nivel-badge-fill" style="width:' + niv.pct + '%"></span></span>'
+    +   '<span class="juego-nivel-badge-sub">' + (niv.sig ? 'Faltan ' + niv.falta + ' para ' + escapeHtml(niv.sig) : '¡Nivel máximo! 🏆') + '</span>'
+    + '</span></div>';
 
   card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
+    + '<button class="juego-regresar" onclick="cerrarJuegoLopsrm()">← Regresar</button>'
     + '<div class="juego-hero">'
     +   badge
     +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div></div>'
     +   '<div class="juego-hero-ley">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b> · ' + escapeHtml(ley.nombre) + '</div>'
-    +   heroProg
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
     + '<div class="juego-buscar">'
