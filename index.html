@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --guinda: #691C32;
@@ -4247,23 +4247,33 @@
     display: flex; align-items: center; justify-content: center; gap: 14px;
     flex-wrap: wrap; position: relative;
   }
-  .juego-card.home .juego-titulo { color: #fff; font-size: 31px; margin: 0; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.28); }
+  .juego-card.home .juego-titulo {
+    color: #fff; font-size: 34px; margin: 0; line-height: 1.05;
+    font-family: 'Baloo 2', var(--sans); font-weight: 800; letter-spacing: .2px;
+    text-shadow: 0 2px 14px rgba(0,0,0,.28);
+  }
   .juego-card.home .juego-sub { color: rgba(255,255,255,.82); font-size: 13.5px; margin: 9px 0 0; position: relative; }
-  /* Insignia de nivel junto al título (Aprendiz, Conocedor…). */
+  /* Insignia de nivel: ARRIBA A LA DERECHA del hero, aparte del título. Compacta. */
   .juego-nivel-badge {
-    display: inline-flex; align-items: center; gap: 9px;
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
-    border-radius: 999px; padding: 6px 15px 6px 7px;
+    position: absolute; top: 16px; right: 58px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.26);
+    border-radius: 999px; padding: 5px 13px 5px 6px;
+    backdrop-filter: blur(3px);
   }
   .juego-nivel-badge-ico {
-    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
     background: linear-gradient(135deg, #fbbf24, #d97706);
     box-shadow: 0 3px 9px rgba(0,0,0,.28);
   }
-  .juego-nivel-badge-txt { display: flex; flex-direction: column; gap: 3px; text-align: left; line-height: 1.15; }
-  .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 14px; }
-  .juego-nivel-badge-sub { color: rgba(255,255,255,.72); font-size: 10.5px; font-weight: 600; }
+  .juego-nivel-badge-txt { display: flex; flex-direction: column; gap: 1px; text-align: left; line-height: 1.1; }
+  .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 13px; font-family: 'Baloo 2', var(--sans); }
+  .juego-nivel-badge-sub { color: rgba(255,255,255,.74); font-size: 9.5px; font-weight: 600; }
+  /* En móvil la insignia baja a estática para no encimarse con el título. */
+  @media (max-width: 560px) {
+    .juego-nivel-badge { position: static; margin: 0 auto 4px; }
+  }
   /* Progreso del nivel sobre el hero. */
   .juego-hero-prog { max-width: 340px; margin: 16px auto 0; position: relative; }
   .juego-hero-prog-barra { height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
@@ -4299,9 +4309,15 @@
   .juego-ley-abrev { font-weight: 800; font-size: 14px; color: var(--guinda); }
   .juego-ley-nom { font-size: 11.5px; color: var(--tinta-suave); font-weight: 600; }
 
-  .juego-home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
-  @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
+  .juego-home-grid { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
   .juego-col { display: flex; flex-direction: column; gap: 14px; }
+  /* Numerito de paso (1 = elige ley, 2 = elige cómo jugar). */
+  .juego-paso-n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; margin-right: 7px;
+    background: var(--guinda); color: #fff; font-size: 12px; font-weight: 800;
+    font-family: 'Baloo 2', var(--sans); vertical-align: middle;
+  }
 
   /* Panel de nivel: tarjeta destacada tipo "insignia". */
   .juego-panel { background: var(--crema); border: 1px solid var(--linea); border-radius: 16px; padding: 14px 16px; }
@@ -4332,7 +4348,7 @@
   .juego-dato-link a { color: var(--guinda); font-weight: 800; text-decoration: none; }
   .juego-dato-link a:hover { text-decoration: underline; }
 
-  .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 2px; }
+  .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 16px; margin-bottom: 2px; font-family: 'Baloo 2', var(--sans); }
   /* En el home los modos van en UNA columna (icono + texto + flecha). */
   .juego-home-grid .juego-modos { grid-template-columns: 1fr; gap: 11px; }
   .juego-home-grid .juego-modo {
@@ -9074,7 +9090,8 @@ function renderJuegoInicio() {
   card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<div class="juego-hero">'
-    +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div>' + badge + '</div>'
+    +   badge
+    +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div></div>'
     +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + '</div>'
     +   heroProg
     +   '<div class="juego-frase">“' + frase + '”</div>'
@@ -9086,7 +9103,11 @@ function renderJuegoInicio() {
     + '<div id="juegoArtRes"></div>'
     + '<div class="juego-home-grid">'
     +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit">🎮 Elige cómo jugar</div>'
+    +     '<div class="juego-modos-tit"><span class="juego-paso-n">1</span> Elige la ley</div>'
+    +     '<div class="juego-leyes">' + selLeyes + '</div>'
+    +   '</div>'
+    +   '<div class="juego-col">'
+    +     '<div class="juego-modos-tit"><span class="juego-paso-n">2</span> Elige cómo jugar</div>'
     +     '<div class="juego-modos">'
     +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
     +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
@@ -9094,10 +9115,6 @@ function renderJuegoInicio() {
     +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
     +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
-    +   '</div>'
-    +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit">📚 Elige la ley</div>'
-    +     '<div class="juego-leyes">' + selLeyes + '</div>'
     +   '</div>'
     + '</div>'
     + '<div class="juego-dato juego-dato-full"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
