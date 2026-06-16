@@ -4326,6 +4326,20 @@
     background: var(--guinda); color: #fff; font-size: 12px; font-weight: 800;
     font-family: 'Baloo 2', var(--sans); vertical-align: middle;
   }
+  .juego-paso-hint { font-size: 12.5px; color: var(--tinta-tenue); margin: -6px 0 2px; }
+  /* Cabecera del paso 2: ley elegida + "cambiar ley". */
+  .juego-ley-elegida {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--guinda-tenue); border: 1px solid var(--guinda-claro);
+    border-radius: 12px; padding: 8px 12px; margin-bottom: 4px;
+  }
+  .juego-ley-elegida-txt { font-size: 14px; color: var(--guinda); }
+  .juego-ley-elegida-txt b { font-weight: 800; }
+  .juego-cambiar-ley {
+    background: #fff; border: 1px solid var(--guinda); color: var(--guinda);
+    border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .juego-cambiar-ley:hover { background: var(--guinda); color: #fff; }
 
   /* Panel de nivel: tarjeta destacada tipo "insignia". */
   .juego-panel { background: var(--crema); border: 1px solid var(--linea); border-radius: 16px; padding: 14px 16px; }
@@ -8964,10 +8978,15 @@ const JUEGO_LEYES = [
   { id:'lga', abrev:'LGA', nombre:'Archivos', desc:'Ley General de Archivos', emoji:'🗄️', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGA.pdf', preguntas: LGA_PREGUNTAS }
 ];
 let juegoLeyActual = 'lopsrm';
+let juegoPaso = 1;   // 1 = elegir la ley · 2 = elegir cómo jugar
 function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || JUEGO_LEYES[0]; }
 function _juegoPreguntas() { return _juegoLey().preguntas; }
 function _juegoStoreKey() { return 'juego_' + juegoLeyActual + '_v1'; }
 function juegoCambiarLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; renderJuegoInicio(); } }
+// Paso 1 → 2: elegida la ley, aparece "Elige cómo jugar".
+function juegoElegirLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; juegoPaso = 2; renderJuegoInicio(); } }
+// Volver al paso 1 (cambiar de ley).
+function juegoVolverPaso1() { juegoPaso = 1; renderJuegoInicio(); }
 
 // Carga diferida del archivo con el TEXTO ÍNTEGRO de los artículos (es grande,
 // solo se baja cuando el usuario busca por primera vez).
@@ -9033,6 +9052,7 @@ function _juegoNivel(ac) {
 
 function abrirJuegoLopsrm() {
   if (!esDanielDeLaGarza()) return;
+  juegoPaso = 1;   // siempre arranca eligiendo la ley
   document.getElementById('juegoLopsrm').classList.add('abierto');
   renderJuegoInicio();
 }
@@ -9067,7 +9087,7 @@ function renderJuegoInicio() {
 
   // Selector de leyes (lista vertical).
   const selLeyes = JUEGO_LEYES.map(l =>
-    '<button class="juego-ley-chip' + (l.id === juegoLeyActual ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
+    '<button class="juego-ley-chip' + (l.id === juegoLeyActual ? ' activa' : '') + '" onclick="juegoElegirLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
     + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
     + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
     + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
@@ -9110,20 +9130,26 @@ function renderJuegoInicio() {
     + '</div>'
     + '<div id="juegoArtRes"></div>'
     + '<div class="juego-home-grid">'
-    +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit"><span class="juego-paso-n">1</span> Elige la ley</div>'
-    +     '<div class="juego-leyes">' + selLeyes + '</div>'
-    +   '</div>'
-    +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit"><span class="juego-paso-n">2</span> Elige cómo jugar</div>'
-    +     '<div class="juego-modos">'
-    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
-    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
-    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
-    +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
-    +     '</div>'
-    +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
-    +   '</div>'
+    +   (juegoPaso === 1
+    +     ? '<div class="juego-col">'
+    +       + '<div class="juego-modos-tit"><span class="juego-paso-n">1</span> Elige la ley</div>'
+    +       + '<div class="juego-paso-hint">Elige una ley para continuar →</div>'
+    +       + '<div class="juego-leyes">' + selLeyes + '</div>'
+    +       + '</div>'
+    +     : '<div class="juego-col">'
+    +       + '<div class="juego-ley-elegida">'
+    +         + '<button class="juego-cambiar-ley" onclick="juegoVolverPaso1()">← Cambiar ley</button>'
+    +         + '<span class="juego-ley-elegida-txt">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b></span>'
+    +       + '</div>'
+    +       + '<div class="juego-modos-tit"><span class="juego-paso-n">2</span> Elige cómo jugar</div>'
+    +       + '<div class="juego-modos">'
+    +         + modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
+    +         + modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
+    +         + modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
+    +         + modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
+    +       + '</div>'
+    +       + '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
+    +       + '</div>')
     + '</div>'
     + '<div class="juego-dato juego-dato-full"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
     +   '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
