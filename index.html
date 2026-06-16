@@ -7821,11 +7821,24 @@ function parsearFechaHora(s) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Respaldo local de la hora de creación. Cuando ESTE dispositivo crea una tarea,
+// guardamos su sello aquí para que la píldora "Nueva" aparezca al instante, sin
+// depender de que el servidor regrese fecha_creacion en la recarga.
+let CREACION_LOCAL = {};
+try { CREACION_LOCAL = JSON.parse(localStorage.getItem('tt_creacion_local') || '{}') || {}; } catch (e) { CREACION_LOCAL = {}; }
+function marcarCreacionLocal(id) {
+  if (!id) return;
+  CREACION_LOCAL[id] = ahoraStamp();
+  try { localStorage.setItem('tt_creacion_local', JSON.stringify(CREACION_LOCAL)); } catch (e) {}
+}
+
 // "Nueva": la tarea se capturó hace menos de 48 horas. Se basa en fecha_creacion
-// (cuándo se dio de alta), no en la fecha de atención. La píldora se quita sola
-// al pasar las 48 h.
+// (cuándo se dio de alta), no en la fecha de atención. Si el servidor aún no la
+// regresa, usa el sello local de este dispositivo. La píldora se quita sola al
+// pasar las 48 h.
 function esNueva(t) {
-  const d = parsearFechaHora(t && t.fecha_creacion);
+  if (!t) return false;
+  const d = parsearFechaHora(t.fecha_creacion) || parsearFechaHora(CREACION_LOCAL[t.id]);
   if (!d) return false;
   const horas = (Date.now() - d.getTime()) / 3600000;
   return horas >= 0 && horas < 48;
@@ -10987,6 +11000,9 @@ function enviarCrearTarea(datos, btn) {
         return;
       }
       archivoPendiente = null;
+      // Sello local de creación → la píldora "Nueva" sale al instante (48 h),
+      // sin esperar a que el servidor regrese fecha_creacion.
+      marcarCreacionLocal(res.id);
       // Seguimiento: registra en la bitácora cada acción INICIAL (las que se
       // capturan al crear), igual que las que se agregan después, para que el
       // historial tenga continuidad y no se vea "vacío".
