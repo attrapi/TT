@@ -2291,15 +2291,15 @@
     margin-bottom: 8px;
   }
 
-  /* Chip "Nueva": turquesa y palpitando (como Vencida/Hoy) para llamar la atención.
-     Aparece las primeras 48 h desde que se capturó la tarea (se quita solo). */
+  /* Chip "Nueva": rosa mexicano y palpitando (como Vencida/Hoy) para llamar la
+     atención. Aparece las primeras 48 h desde que se capturó la tarea (se quita solo). */
   @keyframes pulso-nueva {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(13,148,136,0.55); transform: scale(1); }
-    50%      { box-shadow: 0 0 0 7px rgba(13,148,136,0); transform: scale(1.04); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(219,39,119,0.55); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 7px rgba(219,39,119,0); transform: scale(1.04); }
   }
   .nueva-chip {
     display: inline-block;
-    background: #0D9488;
+    background: #DB2777;
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -5712,10 +5712,27 @@ function nombresSinApellidos(nombre) {
   return p.slice(0, corte).join(' ');
 }
 
-// Nombre a mostrar en "Responsable directo": el `nombre_corto` del perfil si lo
-// tiene (ej. 'Nora Franco'), si no se deriva con nombresSinApellidos.
+// Sobrescrituras manuales del nombre a MOSTRAR (cuando el derivado automático no
+// es el que se quiere ver). Solo cambia el texto en pantalla; el valor guardado
+// (para matches) NO cambia. Clave = todos los tokens deben estar en el nombre
+// completo (minúsculas).
+const NOMBRE_CORTO_OVERRIDE = [
+  { incluye: ['mario', 'franca'], corto: 'Mario Franca' }
+];
+function nombreCortoOverride(nombreCompleto) {
+  const n = String(nombreCompleto || '').toLowerCase();
+  const hit = NOMBRE_CORTO_OVERRIDE.find(o => o.incluye.every(t => n.indexOf(t) >= 0));
+  return hit ? hit.corto : '';
+}
+
+// Nombre a mostrar en "Responsable directo": una sobrescritura manual si existe,
+// luego el `nombre_corto` del perfil (ej. 'Nora Franco'), si no se deriva con
+// nombresSinApellidos.
 function nombreCortoResp(r) {
   if (!r) return '';
+  const fullName = (typeof r === 'string') ? r : (r.nombreCompleto || r.nombre || '');
+  const override = nombreCortoOverride(fullName);
+  if (override) return override;
   if (typeof r === 'string') return nombresSinApellidos(r);
   const corto = (r.nombre_corto && String(r.nombre_corto).trim()) || '';
   // Si el `nombre_corto` del perfil quedó TRUNCADO en una partícula ("Daniel de
