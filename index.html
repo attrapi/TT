@@ -5666,6 +5666,17 @@ function poblarSelectResponsables() {
   renderResponsablesForm();
 }
 
+// El conteo del botón Historial (entre otros) del DIRECTOR depende de RESPONSABLES:
+// esTareaDeEnlace excluye las tareas de enlace. Como esa lista llega async, al
+// actualizarla hay que recalcular los conteos; si no, el número del botón se queda
+// SIN excluir (cuenta de más) hasta el siguiente render, y no coincide con lo que
+// se ve al abrir el Historial.
+function refrescarConteosPorResponsables() {
+  if (!usuarioActual) return;
+  actualizarConteosTabs();
+  if (vistaActiva === 'papelera') renderizarPapelera();
+}
+
 function cargarResponsables() {
   // 1) Hidrata del caché local: así el dropdown NUNCA sale vacío mientras llega
   //    la respuesta del servidor (esto evita el "solo aparece Otro").
@@ -5675,6 +5686,7 @@ function cargarResponsables() {
   // 2) Fallback: nombres ya presentes en las tareas cargadas.
   responsablesDesdeTAREAS();
   poblarSelectResponsables();
+  refrescarConteosPorResponsables();   // el Historial del Director depende de esta lista
   // 3) Refresca desde el servidor y guarda en caché para la próxima vez.
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
@@ -5683,6 +5695,7 @@ function cargarResponsables() {
         RESPONSABLES = res.responsables;
         try { localStorage.setItem('tt_responsables_v1', JSON.stringify(RESPONSABLES)); } catch (e) {}
         poblarSelectResponsables();
+        refrescarConteosPorResponsables();
       }
     })
     .withFailureHandler(function () { /* deja el fallback/caché que ya armamos */ })
