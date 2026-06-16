@@ -2291,11 +2291,15 @@
     margin-bottom: 8px;
   }
 
-  /* Chip "Nueva": verde. Aparece las primeras 48 h desde que se capturó la
-     tarea (se quita solo). Resalta lo recién llegado. */
+  /* Chip "Nueva": azul y palpitando (como Vencida/Hoy) para llamar la atención.
+     Aparece las primeras 48 h desde que se capturó la tarea (se quita solo). */
+  @keyframes pulso-nueva {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(21,101,192,0.55); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 7px rgba(21,101,192,0); transform: scale(1.04); }
+  }
   .nueva-chip {
     display: inline-block;
-    background: var(--verde, #15803D);
+    background: var(--azul, #1565C0);
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -2304,6 +2308,7 @@
     padding: 2px 9px;
     border-radius: 999px;
     margin-bottom: 8px;
+    animation: pulso-nueva 1.4s ease-in-out infinite;
   }
 
   /* Chip "Reprogramada": naranja. Aparece cuando el creador cambió la fecha
