@@ -5955,6 +5955,10 @@ function cargarBitacora() {
         BITACORA.length = 0;
         res.bitacora.forEach(function (b) { BITACORA.push(b); });
         if (vistaActiva === 'bitacora') renderizarBitacora();
+        // Las tarjetas muestran "Visto por" desde la bitácora. Como esta llega
+        // async DESPUÉS del primer render, hay que repintar el tablero para que
+        // los acrónimos aparezcan (si no, se quedan sin los vistos de antes).
+        else if (usuarioActual) renderizar();
       }
     })
     .obtenerBitacora(SESION_TOKEN);
@@ -6247,7 +6251,7 @@ const ACRONIMO_OVERRIDE = [
   { incluye: ['fabiola'],   acron: 'FA' },
   { incluye: ['amanda'],    acron: 'AMA' },
   { incluye: ['samanta'],   acron: 'STAFF' },
-  { incluye: ['guillermo'], acron: 'GM' },
+  { incluye: ['guillermo'], acron: 'GF' },
   { incluye: ['nora'],      acron: 'NOR' },
   { incluye: ['cesar'],     acron: 'CJC' },
   { incluye: ['daniel'],    acron: 'DGC' },
