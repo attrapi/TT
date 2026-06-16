@@ -6231,7 +6231,15 @@ function marcarVisto(t) {
 // del nombre completo (sin distinguir acentos/mayúsculas). Gana sobre las
 // iniciales automáticas y sobre lo guardado, así aplica también a vistos viejos.
 const ACRONIMO_OVERRIDE = [
-  // { incluye: ['adrian', 'tavares'], acron: 'AT' },
+  { incluye: ['adrian'],    acron: 'AT' },
+  { incluye: ['mario'],     acron: 'MF' },
+  { incluye: ['fabiola'],   acron: 'FA' },
+  { incluye: ['amanda'],    acron: 'AMA' },
+  { incluye: ['samanta'],   acron: 'STAFF' },
+  { incluye: ['guillermo'], acron: 'GM' },
+  { incluye: ['nora'],      acron: 'NOR' },
+  { incluye: ['cesar'],     acron: 'CJC' },
+  { incluye: ['daniel'],    acron: 'DGC' },
 ];
 function _normNom(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 function acronimoOverride(nombre) {
