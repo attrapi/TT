@@ -2248,6 +2248,7 @@
   .tarjeta-id-fila {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     margin-bottom: 10px;
+    padding-right: 30px;   /* aire para que el ID + "visto" no se encimen con la papelera (esquina sup. der.) */
   }
   .tarjeta-id-fila .tarjeta-id { margin-bottom: 0; }
   .tarjeta-id-fila .vencida-chip,
@@ -2281,8 +2282,8 @@
   /* "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID. El creador
      va primero (en guinda); el resto en gris. */
   .tarjeta-vistos {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-    margin: -2px 0 8px;
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px;
+    margin: 0;
   }
   .tarjeta-vistos-ojo { font-size: 11px; opacity: 0.65; }
   .tarjeta-vistos .vto-acron {
@@ -2820,9 +2821,10 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 18px;   /* aire entre el título y los botones (Editar/×) para que no se toquen */
   }
 
-  .modal-header-info { flex: 1; }
+  .modal-header-info { flex: 1; min-width: 0; }   /* min-width:0 → el título envuelve dentro de su columna */
 
   .modal-id {
     font-family: 'SF Mono', 'Consolas', monospace;
@@ -2851,13 +2853,13 @@
     font-size: 22px;
     color: var(--tinta);
     line-height: 1.3;
+    overflow-wrap: anywhere;   /* títulos largos cortan/envuelven, no se desbordan hacia los botones */
   }
 
   /* Acciones del header del modal de detalle: Editar + cerrar (×), juntos. */
   /* "Visto por" dentro del detalle, bajo el ID. */
   .modal-vistos {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
-    margin-top: 8px;
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px;
   }
   .modal-vistos-ojo {
     font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
@@ -7236,8 +7238,8 @@ function crearTarjeta(t) {
   html += `
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
+      ${vistosHTML}
     </div>
-    ${vistosHTML}
     ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida || chipHilo) ? `<div class="tarjeta-chips">${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}${chipHilo}${chipNueva}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
@@ -7955,10 +7957,10 @@ function abrirDetalle(t) {
         <div class="modal-titulo">${escapeHtml(tema)}</div>
         <div class="modal-meta">
           <span class="modal-id" data-sub="${t.subdireccion}" data-pre="${(String(t.id).split('-')[0] || '').toUpperCase()}">${t.id}</span>
+          ${vistosDetHTML}
           ${vencida ? '<span class="vencida-chip" style="margin: 0;">⚠ Vencida</span>' : ''}
           ${concluidaDet ? '<span class="concluida-chip" style="margin: 0;">✓ Concluida</span>' : ''}
         </div>
-        ${vistosDetHTML}
       </div>
       <div class="modal-header-acciones">
         ${usuarioPuedeEditar(t) ? `<button class="modal-editar-header" onclick="abrirEditarTarea('${t.id}')" title="Editar la tarea">
