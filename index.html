@@ -6208,18 +6208,18 @@ function numeroId(id) {
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
 }
 
-// Orden del TABLERO: por FECHA DE ATENCIÓN descendente (la más reciente arriba).
-// Las tareas sin fecha (permanentes/vacías) caen al final. Empate de fecha →
-// por número de ID ascendente, para que su posición sea estable (si mueves una
-// tarjeta entre columnas y la regresas, vuelve al mismo lugar).
-function ordenarPorFechaReciente(lista) {
+// Orden del TABLERO: por FECHA DE ATENCIÓN ascendente (la más vieja arriba, la
+// más reciente abajo). Las tareas sin fecha (permanentes/vacías) caen al final.
+// Empate de fecha → por número de ID ascendente, para que su posición sea
+// estable (si mueves una tarjeta entre columnas y la regresas, vuelve a su lugar).
+function ordenarPorFechaAtencion(lista) {
   return [...lista].sort((a, b) => {
     const fa = a.fecha_atencion || a.fecha_limite || '';
     const fb = b.fecha_atencion || b.fecha_limite || '';
     if (!fa && !fb) return numeroId(a.id) - numeroId(b.id);
     if (!fa) return 1;    // a sin fecha → al final
     if (!fb) return -1;   // b sin fecha → al final
-    if (fa !== fb) return fb.localeCompare(fa);   // descendente: más reciente arriba
+    if (fa !== fb) return fa.localeCompare(fb);   // ascendente: más vieja arriba
     return numeroId(a.id) - numeroId(b.id);       // desempate estable por ID
   });
 }
@@ -6616,7 +6616,7 @@ function renderizarTablero() {
   });
 
   cols.forEach(col => {
-    const tareasCol = ordenarPorFechaReciente(lista.filter(t => colDeTarea.get(t) === col.id));
+    const tareasCol = ordenarPorFechaAtencion(lista.filter(t => colDeTarea.get(t) === col.id));
     const colEl = document.createElement('div');
     // Color de la columna: morado/olivo/azul/naranja según el área.
     colEl.className = 'columna col-' + col.id.toLowerCase() + ' col-color-' + (col.color || 'olivo');
@@ -6718,7 +6718,7 @@ function renderizarEnlaces() {
 
   enlaces.forEach(function (en, i) {
     const persona = { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto };
-    const tareasCol = ordenarPorFechaReciente(activas.filter(function (t) { return esResponsableDe(t, persona); }));
+    const tareasCol = ordenarPorFechaAtencion(activas.filter(function (t) { return esResponsableDe(t, persona); }));
     const colEl = document.createElement('div');
     colEl.className = 'columna col-color-' + colores[i % colores.length];
     colEl.innerHTML =
