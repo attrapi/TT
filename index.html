@@ -2897,6 +2897,14 @@
     padding: 9px 16px; font-weight: 700; font-size: 13px; cursor: pointer; flex: 0 0 auto;
   }
   .conv-enviar:hover { background: var(--guinda-oscuro); }
+  .conv-editado { font-size: 10px; color: var(--tinta-tenue); font-style: italic; }
+  .conv-acciones { display: flex; gap: 6px; margin-top: 6px; }
+  .conv-btn {
+    background: transparent; border: 1px solid var(--linea); border-radius: 6px;
+    padding: 2px 9px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--tinta-suave);
+  }
+  .conv-btn:hover { background: var(--guinda-tenue); border-color: var(--guinda); color: var(--guinda); }
+  .conv-btn.conv-btn-del:hover { background: #fee2e2; border-color: var(--rojo); color: var(--rojo); }
 
   .modal-header-acciones { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .modal-editar-header {
@@ -8009,15 +8017,7 @@ function abrirDetalle(t) {
         })()}
       </div>
       <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Observaciones</div>
-        ${(function(){
-          try { return renderObservacionesHTML(t); }
-          catch (err) { return ''; }
-        })()}
-      </div>
-
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Comentarios</div>
+        <div class="modal-seccion-titulo">Hilo</div>
         ${(function(){
           try { return renderComentariosHTML(t); }
           catch (err) { return ''; }
@@ -8084,6 +8084,7 @@ function finalizarConComentarios() {
 
 function cerrarModal() {
   document.getElementById('modalFondo').classList.remove('activo');
+  COMENTARIO_EDITANDO = null;
   tareaAbierta = null;
   tareaEditando = null;
   archivoPendiente = null;
@@ -8132,10 +8133,10 @@ function esReprogramada(t) {
   return BITACORA.some(b => b && b.id_tarea === t.id && b.accion === 'reprogramar');
 }
 
-// ¿La tarea tiene un hilo de comentarios (al menos uno)?
+// ¿La tarea tiene un hilo de comentarios (al menos uno NO borrado)?
 function tieneHilo(t) {
   if (!t || !Array.isArray(BITACORA)) return false;
-  return BITACORA.some(b => b && b.id_tarea === t.id && b.accion === 'comentario');
+  return comentariosDeTarea(t).length > 0;
 }
 
 function esVencida(fecha) {
@@ -10343,28 +10344,69 @@ function renderObservacionesHTML(t) {
   }).join('') + '</div>';
 }
 
-// ===== Comentarios (hilo de conversación de la tarea) =====
+// ===== Hilo de comentarios de la tarea =====
 // Los mensajes se guardan en la BITÁCORA (acción 'comentario'), sin tocar el
-// backend. Puede escribir cualquiera con acceso (= que pueda abrir la tarea).
-function renderComentariosHTML(t) {
+// backend. Puede escribir cualquiera con acceso. Como la bitácora es append-only,
+// cada comentario lleva un id propio (en estatus_nuevo); editar/borrar agrega una
+// entrada con ese mismo id (estatus_anterior='edit'/'del') y el hilo reconstruye
+// el estado actual. Editar/Borrar SOLO los ve y los puede hacer el AUTOR.
+let COMENTARIO_EDITANDO = null;   // cid del comentario en edición (o null)
+
+function nuevoCid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+// Reconstruye los comentarios actuales: aplica ediciones y oculta borrados.
+function comentariosDeTarea(t) {
+  if (!t) return [];
   const ts = s => { const d = parsearFechaHora(s); return d ? d.getTime() : 0; };
-  const msgs = (BITACORA || [])
+  const ent = (BITACORA || [])
     .filter(b => b && b.accion === 'comentario' && b.id_tarea === t.id)
     .slice().sort((a, b) => ts(a.fecha) - ts(b.fecha));
+  const byCid = {}, orden = [];
+  ent.forEach(b => {
+    const cid = String(b.estatus_nuevo || '').trim();
+    const op  = String(b.estatus_anterior || '').trim();
+    const clave = cid || ('legacy:' + (b.fecha || '') + ':' + (b.usuario || ''));
+    if (!byCid[clave]) { byCid[clave] = { cid: cid, autor: formatearNombre(b.usuario || ''), fecha: b.fecha, texto: '', deleted: false, editado: false }; orden.push(clave); }
+    const g = byCid[clave];
+    if (op === 'del') g.deleted = true;
+    else if (op === 'edit') { g.texto = b.comentario || ''; g.editado = true; }
+    else { g.texto = b.comentario || ''; g.fecha = b.fecha; g.autor = formatearNombre(b.usuario || ''); }
+  });
+  return orden.map(k => byCid[k]).filter(g => !g.deleted);
+}
+
+function renderComentariosHTML(t) {
+  const msgs = comentariosDeTarea(t);
+  const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '';
   let html = '<div class="conv-hilo">';
   if (!msgs.length) {
     html += '<div class="conv-vacio">— sin comentarios todavía —</div>';
   } else {
-    msgs.forEach(b => {
-      const nom = formatearNombre(b.usuario || '');
+    msgs.forEach(g => {
+      const esAutor = !!(yo && g.autor === yo && g.cid);   // solo el autor (y con id) edita/borra
       html += '<div class="conv-msg">' +
         '<div class="conv-msg-cab">' +
-          '<span class="conv-acron">' + escapeHtml(acronimoPersona(b.usuario)) + '</span>' +
-          '<span class="conv-nombre">' + escapeHtml(nom) + '</span>' +
-          '<span class="conv-fecha">' + escapeHtml(b.fecha || '') + '</span>' +
-        '</div>' +
-        '<div class="conv-texto">' + escapeHtml(b.comentario || '') + '</div>' +
-      '</div>';
+          '<span class="conv-acron">' + escapeHtml(acronimoPersona(g.autor)) + '</span>' +
+          '<span class="conv-nombre">' + escapeHtml(g.autor) + '</span>' +
+          (g.editado ? '<span class="conv-editado">(editado)</span>' : '') +
+          '<span class="conv-fecha">' + escapeHtml(g.fecha || '') + '</span>' +
+        '</div>';
+      if (COMENTARIO_EDITANDO && COMENTARIO_EDITANDO === g.cid) {
+        html += '<textarea id="conv_edit_' + g.cid + '" class="conv-textarea" maxlength="800">' + escapeHtml(g.texto) + '</textarea>' +
+          '<div class="conv-acciones">' +
+            '<button type="button" class="conv-btn" onclick="guardarEdicionComentario(\'' + t.id + '\',\'' + g.cid + '\')">Guardar</button>' +
+            '<button type="button" class="conv-btn" onclick="cancelarEdicionComentario()">Cancelar</button>' +
+          '</div>';
+      } else {
+        html += '<div class="conv-texto">' + escapeHtml(g.texto) + '</div>';
+        if (esAutor) {
+          html += '<div class="conv-acciones">' +
+            '<button type="button" class="conv-btn" onclick="editarComentarioUI(\'' + g.cid + '\')">Editar</button>' +
+            '<button type="button" class="conv-btn conv-btn-del" onclick="borrarComentario(\'' + t.id + '\',\'' + g.cid + '\')">Borrar</button>' +
+          '</div>';
+        }
+      }
+      html += '</div>';
     });
   }
   html += '</div>';
@@ -10384,9 +10426,35 @@ function enviarComentario(idTarea) {
   if (!inp) return;
   const texto = (inp.value || '').trim();
   if (!texto) return;
-  registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: texto });
+  registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: texto });
   inp.value = '';
   abrirDetalle(t);   // repinta el modal con el nuevo mensaje
+}
+
+function editarComentarioUI(cid) { COMENTARIO_EDITANDO = cid; if (tareaAbierta) abrirDetalle(tareaAbierta); }
+function cancelarEdicionComentario() { COMENTARIO_EDITANDO = null; if (tareaAbierta) abrirDetalle(tareaAbierta); }
+
+function guardarEdicionComentario(idTarea, cid) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  const inp = document.getElementById('conv_edit_' + cid);
+  if (!t || !inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  const g = comentariosDeTarea(t).find(x => x.cid === cid);
+  if (!g || (usuarioActual && formatearNombre(usuarioActual.nombre || '') !== g.autor)) { COMENTARIO_EDITANDO = null; abrirDetalle(t); return; }
+  registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: 'edit', estatus_nuevo: cid, comentario: txt });
+  COMENTARIO_EDITANDO = null;
+  abrirDetalle(t);
+}
+
+function borrarComentario(idTarea, cid) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  const g = comentariosDeTarea(t).find(x => x.cid === cid);
+  if (!g || (usuarioActual && formatearNombre(usuarioActual.nombre || '') !== g.autor)) return;   // solo el autor
+  if (!confirm('¿Borrar tu comentario?')) return;
+  registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: 'del', estatus_nuevo: cid, comentario: '' });
+  abrirDetalle(t);
 }
 
 // ===== Acciones de interacción del checklist y observaciones =====
@@ -11667,6 +11735,9 @@ window.corregirBitacorasViejas = corregirBitacorasViejas;
 // ¿Este movimiento de bitácora es visible para el usuario actual?
 function bitacoraVisible(b) {
   if (b && b.accion === 'visto') return false;   // los "visto" no son movimientos: no ensucian la Bitácora
+  // De los comentarios, en el log global se muestra solo el original (no las
+  // ediciones/borrados, que llevan estatus_anterior 'edit'/'del').
+  if (b && b.accion === 'comentario' && String(b.estatus_anterior || '').trim()) return false;
   const tarea = TAREAS.find(t => t.id === b.id_tarea);
   if (usuarioActual.rol === 'Director') {
     // El Director no ve jefaturas. Las tareas eliminadas (sin match) sí se ven.
