@@ -2258,6 +2258,23 @@
   .tarjeta-chips .nueva-chip,
   .tarjeta-chips .reprog-chip { margin: 0; }
 
+  /* "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID. El creador
+     va primero (en guinda); el resto en gris. */
+  .tarjeta-vistos {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+    margin: -2px 0 8px;
+  }
+  .tarjeta-vistos-ojo { font-size: 11px; opacity: 0.65; }
+  .tarjeta-vistos .vto-acron {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.03em;
+    background: var(--grafito-tenue); color: var(--grafito);
+    padding: 1px 5px; border-radius: 99px;
+  }
+  .tarjeta-vistos .vto-acron.vto-creador {
+    background: var(--guinda-tenue); color: var(--guinda);
+  }
+  .tarjeta-vistos .vto-mas { font-size: 9px; color: var(--tinta-tenue); font-weight: 700; }
+
   /* Chip "Vencida": rojo y palpitando para llamar la atención de un pendiente
      que ya pasó su fecha límite. */
   @keyframes pulso-vencida {
@@ -6183,6 +6200,56 @@ function esTareaDeEnlace(t) {
   });
 }
 
+// ===== "Visto por" — quién ha abierto la tarea =====
+// Se registra/lee con la BITÁCORA (acción 'visto'), sin tocar el backend. Solo
+// cuentan el CREADOR y los PARTICIPANTES (no un Director que solo supervisa una
+// tarea ajena).
+function puedeMarcarVisto(t) {
+  if (!usuarioActual || !t) return false;
+  const yo = formatearNombre(usuarioActual.nombre || '');
+  if (t.creado_por && formatearNombre(t.creado_por) === yo) return true;       // creador
+  const miArea = areaDelUsuario(usuarioActual);
+  if (miArea && (participantesDe(t) || []).indexOf(miArea) >= 0) return true;   // área participante
+  return esResponsableDe(t, usuarioActual);                                    // responsable directo
+}
+
+// Registra (una sola vez por persona) que el usuario actual abrió la tarea.
+function marcarVisto(t) {
+  if (!t || !puedeMarcarVisto(t)) return;
+  const yo = formatearNombre(usuarioActual.nombre || '');
+  if (t.creado_por && formatearNombre(t.creado_por) === yo) return;   // el creador ya se muestra siempre
+  const ya = (BITACORA || []).some(b => b && b.accion === 'visto' && b.id_tarea === t.id
+    && formatearNombre(b.usuario || '') === yo);
+  if (ya) return;
+  registrarEnBitacora({ accion: 'visto', id_tarea: t.id, estatus_anterior: '', estatus_nuevo: '',
+    comentario: usuarioActual.iniciales || inicialesDe(usuarioActual.nombre) });
+  renderizar();   // refresca la tarjeta con el nuevo acrónimo
+}
+
+// Lista ordenada {acron, nombre, creador} de quién ha visto la tarea. El creador
+// SIEMPRE va primero (la hizo); luego los demás por orden en que la abrieron.
+function vistosDeTarea(t) {
+  if (!t) return [];
+  const ts = s => { const d = parsearFechaHora(s); return d ? d.getTime() : 0; };
+  const out = [], seen = new Set();
+  if (t.creado_por) {
+    const nom = formatearNombre(t.creado_por);
+    out.push({ acron: inicialesDe(t.creado_por), nombre: nom, creador: true });
+    seen.add(nom.toLowerCase());
+  }
+  (BITACORA || [])
+    .filter(b => b && b.accion === 'visto' && b.id_tarea === t.id)
+    .slice().sort((a, b) => ts(a.fecha) - ts(b.fecha))
+    .forEach(b => {
+      const nom = formatearNombre(b.usuario || '');
+      const k = nom.toLowerCase();
+      if (!nom || seen.has(k)) return;
+      seen.add(k);
+      out.push({ acron: (b.comentario && b.comentario.trim()) || inicialesDe(b.usuario), nombre: nom, creador: false });
+    });
+  return out;
+}
+
 function etiquetaEstatus(estatus) {
   const esDir = usuarioActual && usuarioActual.rol === 'Director';
   if (esDir) {
@@ -7054,6 +7121,15 @@ function crearTarjeta(t) {
   const chipConcluida = _concluida                   ? '<span class="concluida-chip">✓ Concluida</span>' : '';
   const chipNueva     = !esValidada && esNueva(t)        ? '<span class="nueva-chip">★ Nueva</span>'         : '';
   const chipReprog    = !esValidada && esReprogramada(t) ? '<span class="reprog-chip">↻ Reprogramada</span>' : '';
+  // "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID (creador 1°).
+  const _vistos = vistosDeTarea(t);
+  const vistosHTML = (!esValidada && _vistos.length)
+    ? '<div class="tarjeta-vistos" title="Visto por: ' + escapeHtml(_vistos.map(v => v.nombre + (v.creador ? ' (creador)' : '')).join(', ')) + '">' +
+        '<span class="tarjeta-vistos-ojo">👁</span>' +
+        _vistos.slice(0, 6).map(v => '<span class="vto-acron' + (v.creador ? ' vto-creador' : '') + '">' + escapeHtml(v.acron) + '</span>').join('') +
+        (_vistos.length > 6 ? '<span class="vto-mas">+' + (_vistos.length - 6) + '</span>' : '') +
+      '</div>'
+    : '';
   // Orden de la tarjeta (lo que se ve sin abrir el modal):
   //   Tema → Área responsable → Responsable directo → Fecha de atención.
   // Las "Áreas involucradas" y el resto del detalle aparecen al abrir el modal.
@@ -7061,6 +7137,7 @@ function crearTarjeta(t) {
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
     </div>
+    ${vistosHTML}
     ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}${chipNueva}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
@@ -7684,7 +7761,9 @@ function abrirDetalle(t) {
   tareaAbierta = t;
   const modal = document.getElementById('modal');
 
-  const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id);
+  marcarVisto(t);   // registra que esta persona (creador/participante) la abrió
+
+  const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id && b.accion !== 'visto');
 
   const btnEditarDetalle = usuarioPuedeEditar(t)
     ? `<button class="btn-ics" onclick="abrirEditarTarea('${t.id}')" title="Editar los datos de la tarea">
@@ -11415,6 +11494,7 @@ window.corregirBitacorasViejas = corregirBitacorasViejas;
 
 // ¿Este movimiento de bitácora es visible para el usuario actual?
 function bitacoraVisible(b) {
+  if (b && b.accion === 'visto') return false;   // los "visto" no son movimientos: no ensucian la Bitácora
   const tarea = TAREAS.find(t => t.id === b.id_tarea);
   if (usuarioActual.rol === 'Director') {
     // El Director no ve jefaturas. Las tareas eliminadas (sin match) sí se ven.
