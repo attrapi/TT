@@ -4317,8 +4317,32 @@
   .juego-ley-abrev { font-weight: 800; font-size: 14px; color: var(--guinda); }
   .juego-ley-nom { font-size: 11.5px; color: var(--tinta-suave); font-weight: 600; }
 
-  .juego-home-grid { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
+  .juego-home-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
   .juego-col { display: flex; flex-direction: column; gap: 14px; }
+  /* Ley actual en el header (debajo del título). */
+  .juego-hero-ley {
+    display: inline-flex; align-items: center; gap: 8px; margin: 11px auto 0;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.26);
+    border-radius: 999px; padding: 6px 16px; color: #fff; font-size: 14px;
+    font-family: 'Baloo 2', var(--sans); position: relative;
+  }
+  .juego-hero-ley b { font-weight: 800; }
+  /* Pista y etiquetas de la progresión de leyes. */
+  .juego-leyes-hint { font-size: 12px; color: var(--tinta-tenue); margin: -4px 0 2px; }
+  .juego-ley-tag {
+    margin-left: auto; flex: 0 0 auto; font-size: 10px; font-weight: 800;
+    color: var(--guinda); background: var(--guinda-tenue); border-radius: 999px; padding: 2px 8px;
+  }
+  .juego-ley-chip.activa .juego-ley-tag { background: rgba(255,255,255,.22); color: #fff; }
+  .juego-ley-tag.abierta { color: var(--verde); background: var(--verde-tenue); }
+  /* Ley BLOQUEADA: apagada, sin hover, cursor not-allowed. */
+  .juego-ley-chip.bloqueada {
+    opacity: .6; cursor: not-allowed; background: var(--grafito-tenue); border-style: dashed;
+  }
+  .juego-ley-chip.bloqueada:hover { transform: none; border-color: var(--linea); background: var(--grafito-tenue); }
+  .juego-ley-chip.bloqueada .juego-ley-emoji { background: #e5e7eb; }
+  .juego-ley-chip.bloqueada .juego-ley-nom { color: var(--tinta-tenue); }
   /* Numerito de paso (1 = elige ley, 2 = elige cómo jugar). */
   .juego-paso-n {
     display: inline-flex; align-items: center; justify-content: center;
@@ -8977,16 +9001,16 @@ const JUEGO_LEYES = [
   { id:'lgeepa', abrev:'LGEEPA', nombre:'Medio Ambiente', desc:'Ley General del Equilibrio Ecológico y la Protección al Ambiente', emoji:'🌳', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGEEPA.pdf', preguntas: LGEEPA_PREGUNTAS },
   { id:'lga', abrev:'LGA', nombre:'Archivos', desc:'Ley General de Archivos', emoji:'🗄️', pdf:'https://www.diputados.gob.mx/LeyesBiblio/pdf/LGA.pdf', preguntas: LGA_PREGUNTAS }
 ];
-let juegoLeyActual = 'lopsrm';
-let juegoPaso = 1;   // 1 = elegir la ley · 2 = elegir cómo jugar
+let juegoLeyActual = 'lopsrm';   // por default: Ley de Obras Públicas (LOPSRM)
 function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || JUEGO_LEYES[0]; }
 function _juegoPreguntas() { return _juegoLey().preguntas; }
 function _juegoStoreKey() { return 'juego_' + juegoLeyActual + '_v1'; }
-function juegoCambiarLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; renderJuegoInicio(); } }
-// Paso 1 → 2: elegida la ley, aparece "Elige cómo jugar".
-function juegoElegirLey(id) { if (JUEGO_LEYES.some(l => l.id === id)) { juegoLeyActual = id; juegoPaso = 2; renderJuegoInicio(); } }
-// Volver al paso 1 (cambiar de ley).
-function juegoVolverPaso1() { juegoPaso = 1; renderJuegoInicio(); }
+// Cambia de ley SOLO si está desbloqueada (las bloqueadas no se pueden elegir).
+function juegoCambiarLey(id) {
+  const idx = JUEGO_LEYES.findIndex(l => l.id === id);
+  if (idx < 0 || !juegoLeyDesbloqueada(idx)) return;
+  juegoLeyActual = id; renderJuegoInicio();
+}
 
 // Carga diferida del archivo con el TEXTO ÍNTEGRO de los artículos (es grande,
 // solo se baja cuando el usuario busca por primera vez).
@@ -9042,17 +9066,28 @@ function _juegoGuardar(p) { try { localStorage.setItem(_juegoStoreKey(), JSON.st
 function _juegoHoy() { return new Date().toISOString().split('T')[0]; }
 function _juegoAyer() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
 function _juegoKey(q) { return q.art + '|' + q.pregunta.slice(0, 28); }
+const JUEGO_NIVELES = [{m:0,n:'Aprendiz'},{m:20,n:'Conocedor'},{m:50,n:'Especialista'},{m:100,n:'Experto'},{m:200,n:'Maestro'}];
+// Aciertos para DOMINAR una ley (nivel máximo) y desbloquear la siguiente.
+const JUEGO_UMBRAL_DESBLOQUEO = JUEGO_NIVELES[JUEGO_NIVELES.length - 1].m;
 function _juegoNivel(ac) {
-  const N = [{m:0,n:'Aprendiz'},{m:20,n:'Conocedor'},{m:50,n:'Especialista'},{m:100,n:'Experto'},{m:200,n:'Maestro LOPSRM'}];
+  const N = JUEGO_NIVELES;
   let i = 0; for (let k = 0; k < N.length; k++) if (ac >= N[k].m) i = k;
   const sig = N[i + 1];
   const pct = sig ? Math.min(100, Math.round((ac - N[i].m) / (sig.m - N[i].m) * 100)) : 100;
   return { nombre: N[i].n, pct, sig: sig ? sig.n : null, falta: sig ? (sig.m - ac) : 0 };
 }
+// Aciertos acumulados guardados de una ley (para la progresión/desbloqueo).
+function _juegoAciertosDe(leyId) {
+  try { return (JSON.parse(localStorage.getItem('juego_' + leyId + '_v1')) || {}).totalAciertos || 0; } catch (e) { return 0; }
+}
+// Una ley está desbloqueada si es la primera, o si ya dominaste (nivel máximo) la anterior.
+function juegoLeyDesbloqueada(idx) {
+  if (idx <= 0) return true;
+  return _juegoAciertosDe(JUEGO_LEYES[idx - 1].id) >= JUEGO_UMBRAL_DESBLOQUEO;
+}
 
 function abrirJuegoLopsrm() {
   if (!esDanielDeLaGarza()) return;
-  juegoPaso = 1;   // siempre arranca eligiendo la ley
   document.getElementById('juegoLopsrm').classList.add('abierto');
   renderJuegoInicio();
 }
@@ -9085,13 +9120,26 @@ function renderJuegoInicio() {
   preguntas.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
   const chips = temas.map(t => '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t) + '</button>').join('');
 
-  // Selector de leyes (lista vertical).
-  const selLeyes = JUEGO_LEYES.map(l =>
-    '<button class="juego-ley-chip' + (l.id === juegoLeyActual ? ' activa' : '') + '" onclick="juegoElegirLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
-    + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
-    + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
-    + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
-    + '</button>').join('');
+  // Selector/progresión de leyes: la actual y las desbloqueadas son elegibles;
+  // las demás aparecen BLOQUEADAS (🔒) hasta dominar la anterior.
+  const nivMax = JUEGO_NIVELES[JUEGO_NIVELES.length - 1].n;
+  const selLeyes = JUEGO_LEYES.map(function (l, i) {
+    const activa = l.id === juegoLeyActual;
+    if (juegoLeyDesbloqueada(i)) {
+      return '<button class="juego-ley-chip' + (activa ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
+        + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
+        + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
+        + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
+        + (activa ? '<span class="juego-ley-tag">Actual</span>' : '<span class="juego-ley-tag abierta">✓ Abierta</span>')
+        + '</button>';
+    }
+    const prev = JUEGO_LEYES[i - 1];
+    return '<button class="juego-ley-chip bloqueada" disabled title="Bloqueada">'
+      + '<span class="juego-ley-emoji">🔒</span>'
+      + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
+      + '<span class="juego-ley-nom">Llega a <b>' + escapeHtml(nivMax) + '</b> en ' + escapeHtml(prev.abrev) + ' para desbloquear</span></span>'
+      + '</button>';
+  }).join('');
 
   const modo = function (m, ico, tit, desc, color) {
     const oc = (m === 'temaToggle')
@@ -9120,7 +9168,7 @@ function renderJuegoInicio() {
     + '<div class="juego-hero">'
     +   badge
     +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div></div>'
-    +   '<div class="juego-sub">Domina la normatividad jugando · ' + escapeHtml(ley.abrev) + '</div>'
+    +   '<div class="juego-hero-ley">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b> · ' + escapeHtml(ley.nombre) + '</div>'
     +   heroProg
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
@@ -9130,26 +9178,21 @@ function renderJuegoInicio() {
     + '</div>'
     + '<div id="juegoArtRes"></div>'
     + '<div class="juego-home-grid">'
-    +   (juegoPaso === 1
-    +     ? '<div class="juego-col">'
-    +       + '<div class="juego-modos-tit"><span class="juego-paso-n">1</span> Elige la ley</div>'
-    +       + '<div class="juego-paso-hint">Elige una ley para continuar →</div>'
-    +       + '<div class="juego-leyes">' + selLeyes + '</div>'
-    +       + '</div>'
-    +     : '<div class="juego-col">'
-    +       + '<div class="juego-ley-elegida">'
-    +         + '<button class="juego-cambiar-ley" onclick="juegoVolverPaso1()">← Cambiar ley</button>'
-    +         + '<span class="juego-ley-elegida-txt">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b></span>'
-    +       + '</div>'
-    +       + '<div class="juego-modos-tit"><span class="juego-paso-n">2</span> Elige cómo jugar</div>'
-    +       + '<div class="juego-modos">'
-    +         + modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
-    +         + modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
-    +         + modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
-    +         + modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
-    +       + '</div>'
-    +       + '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
-    +       + '</div>')
+    +   '<div class="juego-col">'
+    +     '<div class="juego-modos-tit">🎮 Elige cómo jugar</div>'
+    +     '<div class="juego-modos">'
+    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
+    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
+    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
+    +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
+    +     '</div>'
+    +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
+    +   '</div>'
+    +   '<div class="juego-col">'
+    +     '<div class="juego-modos-tit">📚 Leyes</div>'
+    +     '<div class="juego-leyes-hint">Domina una ley (nivel <b>' + escapeHtml(nivMax) + '</b>) para desbloquear la siguiente.</div>'
+    +     '<div class="juego-leyes">' + selLeyes + '</div>'
+    +   '</div>'
     + '</div>'
     + '<div class="juego-dato juego-dato-full"><div class="juego-dato-tit">💡 Dato del día · ' + escapeHtml(dato.art) + '</div><div>' + escapeHtml(dato.simple || dato.explica) + '</div>'
     +   '<div class="juego-dato-link"><a href="' + ley.pdf + '" target="_blank" rel="noopener">📖 ' + escapeHtml(dato.art) + ' · ver ' + escapeHtml(ley.abrev) + '</a></div></div>'
