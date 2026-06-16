@@ -6201,11 +6201,12 @@ function esTareaDeEnlace(t) {
 }
 
 // ===== "Visto por" — quién ha abierto la tarea =====
-// Se registra/lee con la BITÁCORA (acción 'visto'), sin tocar el backend. Solo
-// cuentan el CREADOR y los PARTICIPANTES (no un Director que solo supervisa una
-// tarea ajena).
+// Se registra/lee con la BITÁCORA (acción 'visto'), sin tocar el backend.
+// Quedan marcados: el CREADOR, los PARTICIPANTES y el DIRECTOR (Adrián), que ve
+// todo y por eso sí se agrega a cualquier tarea que abra. Nadie más.
 function puedeMarcarVisto(t) {
   if (!usuarioActual || !t) return false;
+  if (usuarioActual.rol === 'Director') return true;                           // el Director ve todo
   const yo = formatearNombre(usuarioActual.nombre || '');
   if (t.creado_por && formatearNombre(t.creado_por) === yo) return true;       // creador
   const miArea = areaDelUsuario(usuarioActual);
@@ -6226,6 +6227,22 @@ function marcarVisto(t) {
   renderizar();   // refresca la tarjeta con el nuevo acrónimo
 }
 
+// Acrónimos PERSONALIZADOS para el "Visto por". Se emparejan por tokens dentro
+// del nombre completo (sin distinguir acentos/mayúsculas). Gana sobre las
+// iniciales automáticas y sobre lo guardado, así aplica también a vistos viejos.
+const ACRONIMO_OVERRIDE = [
+  // { incluye: ['adrian', 'tavares'], acron: 'AT' },
+];
+function _normNom(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function acronimoOverride(nombre) {
+  const n = _normNom(nombre);
+  const hit = ACRONIMO_OVERRIDE.find(o => o.incluye.every(t => n.indexOf(_normNom(t)) >= 0));
+  return hit ? hit.acron : '';
+}
+function acronimoPersona(nombre) {
+  return acronimoOverride(nombre) || inicialesDe(nombre);
+}
+
 // Lista ordenada {acron, nombre, creador} de quién ha visto la tarea. El creador
 // SIEMPRE va primero (la hizo); luego los demás por orden en que la abrieron.
 function vistosDeTarea(t) {
@@ -6234,7 +6251,7 @@ function vistosDeTarea(t) {
   const out = [], seen = new Set();
   if (t.creado_por) {
     const nom = formatearNombre(t.creado_por);
-    out.push({ acron: inicialesDe(t.creado_por), nombre: nom, creador: true });
+    out.push({ acron: acronimoPersona(t.creado_por), nombre: nom, creador: true });
     seen.add(nom.toLowerCase());
   }
   (BITACORA || [])
@@ -6245,7 +6262,7 @@ function vistosDeTarea(t) {
       const k = nom.toLowerCase();
       if (!nom || seen.has(k)) return;
       seen.add(k);
-      out.push({ acron: (b.comentario && b.comentario.trim()) || inicialesDe(b.usuario), nombre: nom, creador: false });
+      out.push({ acron: acronimoOverride(b.usuario) || (b.comentario && b.comentario.trim()) || inicialesDe(b.usuario), nombre: nom, creador: false });
     });
   return out;
 }
