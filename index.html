@@ -10430,7 +10430,8 @@ function enviarComentario(idTarea) {
   if (!texto) return;
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: texto });
   inp.value = '';
-  abrirDetalle(t);   // repinta el modal con el nuevo mensaje
+  renderizar();       // refresca el chip 💬 Hilo en la tarjeta
+  abrirDetalle(t);    // repinta el modal con el nuevo mensaje
 }
 
 function editarComentarioUI(cid) { COMENTARIO_EDITANDO = cid; if (tareaAbierta) abrirDetalle(tareaAbierta); }
@@ -10456,6 +10457,7 @@ function borrarComentario(idTarea, cid) {
   if (!g || (usuarioActual && formatearNombre(usuarioActual.nombre || '') !== g.autor)) return;   // solo el autor
   if (!confirm('¿Borrar tu comentario?')) return;
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: 'del', estatus_nuevo: cid, comentario: '' });
+  renderizar();   // por si era el único comentario, quita el chip 💬 Hilo
   abrirDetalle(t);
 }
 
