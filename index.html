@@ -5680,6 +5680,7 @@ let RESPONSABLES = [];
 //   • Staff/Enlace u otros perfiles: sin restricción.
 function responsableVisibleEnCaptura(r) {
   if (!usuarioActual || usuarioActual.rol === 'Director') return true;
+  if (esSubdirectorSPAC()) return true;   // Mario (subdirector SPAC): ve a todos, como el Director
   const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
   if (['SA', 'SGOI', 'SPAC'].indexOf(miSub) < 0) return true;   // Staff/Enlace: sin filtro
   const esMismaPersona = r && r.nombreCompleto && usuarioActual.nombre &&
@@ -5759,9 +5760,9 @@ function opcionesResponsableHTML(valSel) {
     }
     html += '<optgroup label="' + escapeHtml(g.label) + '">' + items.map(opcion).join('') + '</optgroup>';
   });
-  // "Otro (escribir)…" SOLO para el Director. Los capturistas (subdirectores y
-  // jefes) eligen de la lista de personas, no escriben nombres libres.
-  if (usuarioActual && usuarioActual.rol === 'Director') {
+  // "Otro (escribir)…" para el Director y el subdirector de SPAC (Mario). Los demás
+  // capturistas (otros subdirectores y jefes) eligen de la lista, no escriben libre.
+  if (usuarioActual && (usuarioActual.rol === 'Director' || esSubdirectorSPAC())) {
     html += '<option value="__OTRO__"' + (valSel === '__OTRO__' ? ' selected' : '') + '>✏️ Otro (escribir)…</option>';
   }
   return html;
@@ -7072,6 +7073,16 @@ function esSubdirectorConJefaturas() {
     && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
     && !jefaturaCodigo(usuarioActual.jefatura)
     && !esEnlaceUser();   // un enlace no es subdirector (no arrastra tarjetas)
+}
+
+// Subdirector de SPAC (Mario): al CAPTURAR puede asignar a CUALQUIER área y elegir
+// a CUALQUIER responsable, igual que el Director.
+function esSubdirectorSPAC() {
+  return !!usuarioActual
+    && usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === 'SPAC'
+    && !jefaturaCodigo(usuarioActual.jefatura)
+    && !esEnlaceUser();
 }
 
 // Agrega un área (nombre completo) a "areas_involucradas" sin duplicar. Es la
@@ -10846,8 +10857,8 @@ function abrirNuevaTarea(tEdit) {
   ];
   // Filtra según el rol del usuario.
   let opcionesPermitidas;
-  if (usuarioActual.rol === 'Director') {
-    opcionesPermitidas = catalogoArea;
+  if (usuarioActual.rol === 'Director' || esSubdirectorSPAC()) {
+    opcionesPermitidas = catalogoArea;   // Director y subdirector SPAC (Mario): todas las áreas
   } else {
     opcionesPermitidas = catalogoArea.filter(o => o.sub === usuarioActual.subdireccion);
     // Si la usuaria es Jefa (Jefatura asignada): SOLO su propia jefatura. No ve
@@ -10882,7 +10893,7 @@ function abrirNuevaTarea(tEdit) {
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
-  let codigosAsignables = usuarioActual.rol === 'Director'
+  let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC())
     ? ['DPAC','SGOI','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
