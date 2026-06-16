@@ -4756,6 +4756,13 @@ const SPAC_INTERVALO_MS = 30000;
 let SPAC_TIMER = null;
 let SPAC_ULTIMA_SYNC = null;
 
+// IDs que el usuario acaba de enviar al Historial (soft-delete) en ESTA sesión.
+// Una recarga toma `eliminada` del servidor; si la baja aún no llegó allá, la
+// tarea "reviviría" o, si era recién creada y no está publicada, DESAPARECERÍA.
+// Mientras el id viva aquí, forzamos eliminada=true en cada recarga/sync. Se
+// quita al restaurar o al borrar definitivamente.
+const ELIMINADAS_PENDIENTES = new Set();
+
 // Códigos de las dos Jefaturas que dependen de SPAC y sus nombres visibles.
 const JEFATURAS_SPAC = {
   PROCEDIMIENTOS: 'Jefatura de Departamento de Procedimientos de Construcción',
@@ -4961,8 +4968,16 @@ async function sincronizarSPAC() {
     // Reemplaza SOLO el bloque SPAC; deja intactas SA, SGOI y ENLACE.
     const otras = TAREAS.filter(t => t.subdireccion !== 'SPAC');
     nuevas.forEach(asegurarCamposChecklist);
+    // Reaplica las bajas pendientes (que un sync no resucite lo eliminado).
+    nuevas.forEach(n => { if (ELIMINADAS_PENDIENTES.has(n.id)) n.eliminada = true; });
+    // Conserva las tareas SPAC creadas en ESTA sesión que aún no aparecen en el
+    // CSV publicado (Google tarda en republicar), para que no se borren en cada
+    // sync de 30 s. Solo las locales (creadas o enviadas al Historial localmente).
+    const idsNuevas = new Set(nuevas.map(n => n.id));
+    const localesSPAC = [...previas.values()].filter(t =>
+      !idsNuevas.has(t.id) && (CREACION_LOCAL[t.id] || ELIMINADAS_PENDIENTES.has(t.id)));
     TAREAS.length = 0;
-    TAREAS.push(...otras, ...nuevas);
+    TAREAS.push(...otras, ...nuevas, ...localesSPAC);
 
     SPAC_ULTIMA_SYNC = new Date();
 
@@ -5957,6 +5972,10 @@ function cargarTareasAppScript(preservar, onListo) {
           if ((orden[p.estatus] || 0) > (orden[n.estatus] || 0)) n.estatus = p.estatus;
         });
       }
+      // Una recarga toma `eliminada` del servidor; si la baja local aún no se
+      // refleja allá (carrera), forzamos la baja para que la tarea recién enviada
+      // al Historial NO reaparezca en el tablero ni desaparezca del Historial.
+      nuevas.forEach(n => { if (n && ELIMINADAS_PENDIENTES.has(n.id)) n.eliminada = true; });
       // Seguro: las tareas de jefatura no entran a la cola de validación del
       // Director (Atendida/validada), así que se normalizan a En Proceso… PERO
       // si YA fueron COMPLETADAS (Archivada) por el subdirector/jefe, se respeta
@@ -7397,6 +7416,7 @@ function eliminarTarea(idTarea) {
   t.eliminada = true;
   t.eliminado_por = usuarioActual.nombre;
   t.fecha_eliminacion = ahoraStamp();
+  ELIMINADAS_PENDIENTES.add(idTarea);   // que una recarga no la reviva/desaparezca
   registrarEnBitacora({ accion: 'eliminar', id_tarea: idTarea, estatus_anterior: t.estatus, estatus_nuevo: 'Historial' });
   cerrarModal();
   persistirEliminada(t);   // persiste el Historial (no por persistirEstado)
@@ -7419,6 +7439,7 @@ function restaurarTarea(idTarea) {
     t.eliminado_por = '';
     t.fecha_eliminacion = '';
   }
+  ELIMINADAS_PENDIENTES.delete(idTarea);   // ya no es una baja pendiente
   if (t.estatus === 'Archivada') {
     t.estatus = 'En Proceso';
     t.finalizado_por = '';
@@ -7457,6 +7478,7 @@ function eliminarDefinitivo(idTarea) {
         // de recargar los 9 archivos. Con duplicados, cada clic quita una copia.
         const i = TAREAS.findIndex(x => x.id === idTarea);
         if (i >= 0) TAREAS.splice(i, 1);
+        ELIMINADAS_PENDIENTES.delete(idTarea);
         try { const c = JSON.parse(localStorage.getItem('tt_tareas_cache_v2') || '[]'); localStorage.setItem('tt_tareas_cache_v2', JSON.stringify(c.filter(x => x.id !== idTarea))); } catch (e) {}
         renderizar();
         if (vistaActiva === 'papelera') renderizarPapelera();
@@ -7468,6 +7490,7 @@ function eliminarDefinitivo(idTarea) {
   }
   const i = TAREAS.indexOf(t);
   if (i >= 0) TAREAS.splice(i, 1);
+  ELIMINADAS_PENDIENTES.delete(idTarea);
   renderizar();
   renderizarPapelera();
   toast('Tarea ' + idTarea + ' eliminada (demo)', 'ok');
