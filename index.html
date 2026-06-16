@@ -712,6 +712,7 @@
   .bitacora-accion.atender     { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.desarchivar { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.reabrir     { background: var(--ambar-tenue); color: var(--ambar); }
+  .bitacora-accion.reprogramar { background: #ffedd5; color: #c2410c; }
   .bitacora-accion.mover       { background: var(--grafito-tenue); color: var(--grafito); }
   .bitacora-accion.enviar      { background: var(--azul-tenue); color: var(--azul); }
   /* Acciones del checklist (agregar/quitar/editar una acción): morado. */
@@ -2253,7 +2254,9 @@
      de eliminar (arriba a la derecha) no se les encime. */
   .tarjeta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
   .tarjeta-chips .vencida-chip,
-  .tarjeta-chips .vence-hoy-chip { margin: 0; }
+  .tarjeta-chips .vence-hoy-chip,
+  .tarjeta-chips .nueva-chip,
+  .tarjeta-chips .reprog-chip { margin: 0; }
 
   /* Chip "Vencida": rojo y palpitando para llamar la atención de un pendiente
      que ya pasó su fecha límite. */
@@ -2278,6 +2281,36 @@
   .concluida-chip {
     display: inline-block;
     background: var(--verde, #166534);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+
+  /* Chip "Nueva": verde. Aparece las primeras 48 h desde que se capturó la
+     tarea (se quita solo). Resalta lo recién llegado. */
+  .nueva-chip {
+    display: inline-block;
+    background: var(--verde, #15803D);
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+
+  /* Chip "Reprogramada": naranja. Aparece cuando el creador cambió la fecha
+     de atención (queda registrado en la bitácora). */
+  .reprog-chip {
+    display: inline-block;
+    background: #ea580c;
     color: white;
     font-size: 10px;
     font-weight: 800;
@@ -6175,14 +6208,19 @@ function numeroId(id) {
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
 }
 
-// Orden del TABLERO: por número de ID ascendente (SPAC-001 antes que SPAC-002).
-// Como el ID no cambia al mover una tarea entre columnas, su posición es
-// estable: si la regresas a su columna, vuelve al lugar que le corresponde.
-function ordenarPorId(lista) {
+// Orden del TABLERO: por FECHA DE ATENCIÓN descendente (la más reciente arriba).
+// Las tareas sin fecha (permanentes/vacías) caen al final. Empate de fecha →
+// por número de ID ascendente, para que su posición sea estable (si mueves una
+// tarjeta entre columnas y la regresas, vuelve al mismo lugar).
+function ordenarPorFechaReciente(lista) {
   return [...lista].sort((a, b) => {
-    const na = numeroId(a.id), nb = numeroId(b.id);
-    if (na !== nb) return na - nb;
-    return String(a.id).localeCompare(String(b.id));   // desempate estable
+    const fa = a.fecha_atencion || a.fecha_limite || '';
+    const fb = b.fecha_atencion || b.fecha_limite || '';
+    if (!fa && !fb) return numeroId(a.id) - numeroId(b.id);
+    if (!fa) return 1;    // a sin fecha → al final
+    if (!fb) return -1;   // b sin fecha → al final
+    if (fa !== fb) return fb.localeCompare(fa);   // descendente: más reciente arriba
+    return numeroId(a.id) - numeroId(b.id);       // desempate estable por ID
   });
 }
 
@@ -6578,7 +6616,7 @@ function renderizarTablero() {
   });
 
   cols.forEach(col => {
-    const tareasCol = ordenarPorId(lista.filter(t => colDeTarea.get(t) === col.id));
+    const tareasCol = ordenarPorFechaReciente(lista.filter(t => colDeTarea.get(t) === col.id));
     const colEl = document.createElement('div');
     // Color de la columna: morado/olivo/azul/naranja según el área.
     colEl.className = 'columna col-' + col.id.toLowerCase() + ' col-color-' + (col.color || 'olivo');
@@ -6680,7 +6718,7 @@ function renderizarEnlaces() {
 
   enlaces.forEach(function (en, i) {
     const persona = { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto };
-    const tareasCol = ordenarPorId(activas.filter(function (t) { return esResponsableDe(t, persona); }));
+    const tareasCol = ordenarPorFechaReciente(activas.filter(function (t) { return esResponsableDe(t, persona); }));
     const colEl = document.createElement('div');
     colEl.className = 'columna col-color-' + colores[i % colores.length];
     colEl.innerHTML =
@@ -6927,6 +6965,8 @@ function crearTarjeta(t) {
   const chipVencida   = !esValidada && vencida       ? '<span class="vencida-chip">⚠ Vencida</span>' : '';
   const chipVenceHoy  = !esValidada && venceEsteDia  ? '<span class="vence-hoy-chip">⏰ Hoy</span>'   : '';
   const chipConcluida = _concluida                   ? '<span class="concluida-chip">✓ Concluida</span>' : '';
+  const chipNueva     = !esValidada && esNueva(t)        ? '<span class="nueva-chip">★ Nueva</span>'         : '';
+  const chipReprog    = !esValidada && esReprogramada(t) ? '<span class="reprog-chip">↻ Reprogramada</span>' : '';
   // Orden de la tarjeta (lo que se ve sin abrir el modal):
   //   Tema → Área responsable → Responsable directo → Fecha de atención.
   // Las "Áreas involucradas" y el resto del detalle aparecen al abrir el modal.
@@ -6934,7 +6974,7 @@ function crearTarjeta(t) {
     <div class="tarjeta-id-fila">
       <span class="tarjeta-id">${t.id}</span>
     </div>
-    ${(chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipVencida}${chipVenceHoy}${chipConcluida}</div>` : ''}
+    ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipNueva}${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -7770,6 +7810,33 @@ function cerrarModal() {
 }
 
 // ============== UTILIDADES ==============
+
+// Parsea "dd/mm/yyyy HH:mm" (formato de fecha_creacion que manda el servidor)
+// a un objeto Date. Si viene en otro formato, intenta el parseo nativo.
+function parsearFechaHora(s) {
+  if (!s) return null;
+  const m = String(s).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[ T](\d{2}):(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// "Nueva": la tarea se capturó hace menos de 48 horas. Se basa en fecha_creacion
+// (cuándo se dio de alta), no en la fecha de atención. La píldora se quita sola
+// al pasar las 48 h.
+function esNueva(t) {
+  const d = parsearFechaHora(t && t.fecha_creacion);
+  if (!d) return false;
+  const horas = (Date.now() - d.getTime()) / 3600000;
+  return horas >= 0 && horas < 48;
+}
+
+// "Reprogramada": el creador cambió la fecha de atención en algún momento. Se
+// detecta por la bitácora (acción 'reprogramar'), que se registra al editar.
+function esReprogramada(t) {
+  if (!t || !Array.isArray(BITACORA)) return false;
+  return BITACORA.some(b => b && b.id_tarea === t.id && b.accion === 'reprogramar');
+}
 
 function esVencida(fecha) {
   if (!fecha) return false;
@@ -10782,6 +10849,10 @@ function guardarNuevaTarea() {
 
   creandoTarea = true;   // de aquí en adelante, bloquea reenvíos hasta cerrar/error
   const editando = !!tareaEditando;
+  // Fecha de atención ANTES de editar: si cambia, se registra como "reprogramar"
+  // para mostrar la píldora "Reprogramada" en la tarjeta.
+  const fechaAnterior = editando ? (tareaEditando.fecha_atencion || tareaEditando.fecha_limite || '') : '';
+  const idEditando    = editando ? tareaEditando.id : '';
   const btn = document.getElementById('nt_btnCrear');
   const textoBtn = editando ? 'Guardar cambios' : 'Crear Tarea';
   const datos = {
@@ -10802,6 +10873,16 @@ function guardarNuevaTarea() {
   const finalizar = function (adjuntos) {
     datos.adjuntos = adjuntos;
     datos.url = (adjuntos[0] && adjuntos[0].url) || '';   // compat: primer adjunto
+    // Si el creador cambió la fecha de atención, queda anotado en la bitácora
+    // (enciende la píldora "Reprogramada"). Solo si antes ya tenía fecha y es
+    // distinta a la nueva.
+    if (editando && fechaAnterior && fecha && fechaAnterior !== fecha) {
+      registrarEnBitacora({
+        accion: 'reprogramar', id_tarea: idEditando,
+        estatus_anterior: fechaAnterior, estatus_nuevo: fecha,
+        comentario: 'Fecha de atención: ' + formatearFecha(fechaAnterior) + ' → ' + formatearFecha(fecha)
+      });
+    }
     if (enAppScript()) {
       if (editando) { enviarEditarTarea(datos, btn, textoBtn); return; }
       enviarCrearTarea(datos, btn);   // UNA sola tarea con varios participantes
@@ -10827,6 +10908,7 @@ function guardarNuevaTarea() {
         descripcion: acuerdos, observaciones: accion,
         tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
         fecha_atencion: fecha, fecha_limite: fecha,
+        fecha_creacion: ahoraStamp(),   // habilita la píldora "Nueva" (48 h) en demo
         avance: 0, estatus: 'En Proceso',
         adjuntos: adjuntos, url: datos.url, validado_por: '', fecha_validacion: '', comentarios_director: ''
       };
@@ -11041,6 +11123,7 @@ const ACCION_LABEL = {
   atender:     'Finalizada', // legado (antes "atender")
   liberar:     'Liberada',   // legado
   devolver:    'Devuelta',
+  reprogramar: 'Reprogramada',
   completar:   'Finalizada',
   a_tiempo:    'En tiempo',
   fuera_tiempo:'Fuera de tiempo'
