@@ -4157,6 +4157,14 @@
   }
   .juego-tema-chip:hover { border-color: var(--guinda); background: var(--crema); }
   .juego-volver { margin-top: 18px; background: none; border: none; color: var(--tinta-suave); font-weight: 700; cursor: pointer; font-size: 13px; }
+  /* Botón "← Regresar" durante la partida: vuelve al inicio (elegir ley/modo). */
+  .juego-regresar {
+    display: inline-flex; align-items: center; gap: 5px; margin-bottom: 10px;
+    border: none; background: #f3f4f6; color: #444;
+    border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 700;
+    cursor: pointer; line-height: 1;
+  }
+  .juego-regresar:hover { background: #e5e7eb; }
 
   /* --- Barra superior de juego (vidas, racha, progreso) --- */
   .juego-hud { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
@@ -9197,6 +9205,7 @@ function renderJuegoPregunta(elegido) {
   }
   document.getElementById('juegoCard').innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
+    + '<button class="juego-regresar" onclick="renderJuegoInicio()">← Regresar</button>'
     + '<div class="juego-hud">'
     +   '<span class="juego-vidas">' + corazones + '</span>'
     +   (JUEGO.racha >= 2 ? '<span class="juego-racha">🔥 ' + JUEGO.racha + '</span>' : '')
