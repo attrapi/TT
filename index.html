@@ -2258,7 +2258,24 @@
   .tarjeta-chips .vencida-chip,
   .tarjeta-chips .vence-hoy-chip,
   .tarjeta-chips .nueva-chip,
-  .tarjeta-chips .reprog-chip { margin: 0; }
+  .tarjeta-chips .reprog-chip,
+  .tarjeta-chips .hilo-chip { margin: 0; }
+
+  /* Chip "Hilo": teal. Aparece cuando la tarea tiene al menos un comentario.
+     Color distinto de Vencida (rojo), Hoy (naranja), Concluida (olivo),
+     Reprogramada (naranja) y Nueva (morado-vino). */
+  .hilo-chip {
+    display: inline-block;
+    background: #0d9488;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
 
   /* "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID. El creador
      va primero (en guinda); el resto en gris. */
@@ -7194,6 +7211,7 @@ function crearTarjeta(t) {
   const chipConcluida = _concluida                   ? '<span class="concluida-chip">✓ Concluida</span>' : '';
   const chipNueva     = !esValidada && esNueva(t)        ? '<span class="nueva-chip">★ Nueva</span>'         : '';
   const chipReprog    = !esValidada && esReprogramada(t) ? '<span class="reprog-chip">↻ Reprogramada</span>' : '';
+  const chipHilo      = tieneHilo(t)                     ? '<span class="hilo-chip">💬 Hilo</span>' : '';
   // "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID (creador 1°).
   const _vistos = vistosDeTarea(t);
   const vistosHTML = (!esValidada && _vistos.length)
@@ -7211,7 +7229,7 @@ function crearTarjeta(t) {
       <span class="tarjeta-id">${t.id}</span>
     </div>
     ${vistosHTML}
-    ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida) ? `<div class="tarjeta-chips">${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}${chipNueva}</div>` : ''}
+    ${(chipNueva || chipReprog || chipVencida || chipVenceHoy || chipConcluida || chipHilo) ? `<div class="tarjeta-chips">${chipReprog}${chipVencida}${chipVenceHoy}${chipConcluida}${chipHilo}${chipNueva}</div>` : ''}
     <dl class="tarjeta-campos">
       <dt>Tema</dt>
       <dd class="campo-tema">${escapeHtml(tema)}</dd>
@@ -8111,6 +8129,12 @@ function esNueva(t) {
 function esReprogramada(t) {
   if (!t || !Array.isArray(BITACORA)) return false;
   return BITACORA.some(b => b && b.id_tarea === t.id && b.accion === 'reprogramar');
+}
+
+// ¿La tarea tiene un hilo de comentarios (al menos uno)?
+function tieneHilo(t) {
+  if (!t || !Array.isArray(BITACORA)) return false;
+  return BITACORA.some(b => b && b.id_tarea === t.id && b.accion === 'comentario');
 }
 
 function esVencida(fecha) {
