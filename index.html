@@ -5307,6 +5307,7 @@ let dashDetalleSel = 'todo'; // Dashboard · detalle: todo|sub|jef|PROCEDIMIENTO
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
 let formTareaAbierto = false; // true mientras el formulario Crear/Editar está abierto (bloquea cierre accidental)
 let comentariosNuevaTarea = []; // comentarios escritos en el hilo ANTES de crear la tarea (se guardan al crearla)
+let BORRADOR_HILO = {};         // texto del comentario AÚN sin enviar, por tarea (sobrevive a re-dibujos del modal)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
 
@@ -8183,6 +8184,7 @@ function cerrarModal() {
   creandoTarea = false;   // libera el candado anti-doble-envío
   formTareaAbierto = false;
   comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
+  BORRADOR_HILO = {};           // descarta borradores de comentario sin enviar
 }
 
 // ============== UTILIDADES ==============
@@ -10564,8 +10566,10 @@ function renderComentariosHTML(t) {
   html += '</div>';
   html += '<div class="conv-input">' +
     '<textarea id="conv_input_' + t.id + '" class="conv-textarea" maxlength="800" ' +
+      'oninput="BORRADOR_HILO[\'' + t.id + '\']=this.value" ' +
       'placeholder="Escribe un comentario o responde… (Ctrl+Enter para enviar)" ' +
-      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();enviarComentario(\'' + t.id + '\');}"></textarea>' +
+      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();enviarComentario(\'' + t.id + '\');}">' +
+      escapeHtml(BORRADOR_HILO[t.id] || '') + '</textarea>' +
     '<button type="button" class="conv-enviar" onclick="enviarComentario(\'' + t.id + '\')">Enviar</button>' +
   '</div>';
   return html;
@@ -10596,8 +10600,10 @@ function renderHiloNuevoHTML() {
   html += '</div>';
   html += '<div class="conv-input">' +
     '<textarea id="conv_input_nuevo" class="conv-textarea" maxlength="800" ' +
+      'oninput="BORRADOR_HILO[\'__nuevo__\']=this.value" ' +
       'placeholder="Escribe un comentario… (se guardará al crear la tarea)" ' +
-      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();agregarComentarioNuevaTarea();}"></textarea>' +
+      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();agregarComentarioNuevaTarea();}">' +
+      escapeHtml(BORRADOR_HILO['__nuevo__'] || '') + '</textarea>' +
     '<button type="button" class="conv-enviar" onclick="agregarComentarioNuevaTarea()">Agregar</button>' +
   '</div>';
   return html;
@@ -10610,6 +10616,7 @@ function agregarComentarioNuevaTarea() {
   if (!txt) return;
   comentariosNuevaTarea.push({ texto: txt });
   inp.value = '';
+  delete BORRADOR_HILO['__nuevo__'];   // ya se agregó: descarta el borrador
   const box = document.getElementById('hiloBox');
   if (box) box.innerHTML = renderHiloNuevoHTML();
 }
@@ -10639,6 +10646,7 @@ function enviarComentario(idTarea) {
   if (!texto) return;
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: texto });
   inp.value = '';
+  delete BORRADOR_HILO[idTarea];   // ya se envió: descarta el borrador
   renderizar();       // refresca el chip 💬 Hilo en la tarjeta
   if (!repintarHilo(t)) abrirDetalle(t);    // repinta el hilo con el nuevo mensaje
 }
