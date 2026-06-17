@@ -224,6 +224,9 @@
       if (datos.nivel) { upd.nivel = datos.nivel; upd.area = areaDeDatos(datos); upd.jefatura = (datos.nivel === 'jefatura') ? (datos.jefatura || '') : ''; }
       if (datos.participantes !== undefined) upd.participantes = Array.isArray(datos.participantes) ? datos.participantes : [];
       if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
+      // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
+      // acciones agregadas/quitadas no se guardaban (solo cambiaba `accion`).
+      if (datos.checklist_json !== undefined) { try { upd.checklist = JSON.parse(datos.checklist_json || '[]'); } catch (e) {} }
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
       if (r.error && /adjuntos|participantes/i.test(r.error.message || '')) {

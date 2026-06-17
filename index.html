@@ -10178,12 +10178,16 @@ function participantesDe(t) {
   // como validador), lo ignoramos aquí para que NO pinte su columna en el
   // checklist ni deje la tarea atorada esperando una validación que el Director no
   // hace. (Limpieza en lectura; no se toca el dato guardado.)
-  // Detectamos "tarea de jefatura" de forma robusta: por nivel, por el PREFIJO del
-  // ID (JDPC-… / JDIMA-… / JDGA-… / JDGOI-…) o porque ya hay una jefatura entre los
-  // participantes — así también arregla tareas viejas cuyo `nivel` quedó mal.
+  // Detectamos "tarea de jefatura" por su PROPIA identidad: el nivel o el PREFIJO
+  // del ID (JDPC-… / JDIMA-… / JDGA-… / JDGOI-…). OJO: NO basta con que una
+  // jefatura sea PARTICIPANTE — una tarea de subdirección (SPAC-006) puede
+  // involucrar a una jefatura (JDGOI) y aun así el Director valida; ahí su columna
+  // DPAC debe conservarse. Solo si el ID no es de una subdirección conocida usamos
+  // el participante como respaldo (datos viejos con `nivel`/ID mal).
   const prefId = String(t.id || '').split('-')[0].toUpperCase();
   const jefPorId = PREFIJO_JEFATURA[prefId] ? prefId : '';
-  const esJefatura = t.nivel === 'jefatura' || !!jefPorId || parts.some(p => PREFIJO_JEFATURA[p]);
+  const esSubdirPorId = ['SPAC', 'SGOI', 'SA', 'DPAC', 'ENLACE'].indexOf(prefId) >= 0;
+  const esJefatura = t.nivel === 'jefatura' || !!jefPorId || (!esSubdirPorId && parts.some(p => PREFIJO_JEFATURA[p]));
   if (esJefatura) {
     let limpio = parts.filter(p => p !== 'DPAC' && p !== 'ENLACE');
     // Si por el ID es una jefatura y no quedó su área (dato viejo con solo DPAC),
@@ -11568,6 +11572,14 @@ function guardarNuevaTarea() {
     participantes,
     responsable, tema, areas, acuerdos, accion, fecha
   };
+  // Al EDITAR, el editor de Acciones cambia el texto, pero lo que se MUESTRA es el
+  // `checklist`. Si no lo enviamos, las acciones agregadas/quitadas/editadas no se
+  // guardan (la columna accion cambia, el checklist no). Mandamos el checklist
+  // combinado: conserva las palomitas de las acciones que ya existían (match por
+  // texto) y agrega las nuevas en blanco.
+  if (editando) {
+    datos.checklist_json = JSON.stringify(mergearChecklist(tareaEditando.checklist || [], accion));
+  }
   // ID por ENLACE: si el responsable es un enlace, el código usa SUS iniciales
   // (NPF-001, CJC-001, DGC-001) en vez del prefijo de área. Solo al crear.
   if (!editando) {
