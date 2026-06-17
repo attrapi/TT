@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TT · Sistema de Gestión y Validación de Tareas</title>
+<!-- === Autoría y derechos === -->
+<meta name="author" content="Daniel de la Garza Cordero">
+<meta name="copyright" content="© 2026 Daniel de la Garza Cordero — Enlace de Subdirección de Procesos Administrativos de Construcción. Todos los derechos reservados.">
+<meta name="dcterms.rights" content="© 2026 Daniel de la Garza Cordero. Todos los derechos reservados.">
+<meta name="dcterms.rightsHolder" content="Daniel de la Garza Cordero">
+<meta name="rights" content="© 2026 Daniel de la Garza Cordero. Todos los derechos reservados.">
+<link rel="author" type="text/plain" href="humans.txt">
 <!-- === Versión SUPABASE: librería + puente que reemplaza a google.script.run === -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-shim.js"></script>
@@ -11057,15 +11064,9 @@ function abrirNuevaTarea(tEdit) {
   const yoNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   const puedeCambiarFecha = !ed || !ed.creado_por || ed.creado_por === yoNombre;
   const valUrl = ed ? (ed.url || '') : '';
-  // Para marcar bien los chips al editar: canonicalizamos los nombres viejos
-  // (p. ej. "Enlace del Director" → "Staff") para que coincidan con AREAS.
-  const areasEd = ed
-    ? (ed.areas_involucradas || '').split(',')
-        .map(s => s.trim())
-        .map(s => s === 'Enlace del Director' ? 'Staff' : s)
-        .map(s => s.toLowerCase())
-        .filter(Boolean)
-    : [];
+  // "Otra área involucrada" ahora es un campo de texto libre que vive debajo de
+  // "Responsable directo". Al editar se precarga con lo que la tarea ya tenía.
+  const valAreasTexto = ed ? (ed.areas_involucradas || '') : '';
 
   // Opciones del campo "Área responsable":
   //   • El Director ve TODO (3 subdirs + 4 jefaturas + DPAC + Staff).
@@ -11177,26 +11178,14 @@ function abrirNuevaTarea(tEdit) {
             <label>Responsable directo <span class="req">*</span></label>
             <div id="nt_responsables_lista"></div>
             <button type="button" class="acciones-agregar-btn" onclick="agregarResponsableRow()" style="margin-top:8px;">+ Agregar otro responsable</button>
+            <input type="text" id="nt_areaOtra" maxlength="200" value="${escapeHtml(valAreasTexto)}" placeholder="Otra área involucrada (escríbela y se sumará a la tarea)" style="margin-top:8px;">
+            <div class="form-hint">Si participa otra área además de la responsable, escríbela aquí (sepáralas con comas).</div>
           </div>
 
           <div class="form-campo">
             <label>Fecha de atención <span class="req">*</span></label>
             <input type="date" id="nt_fecha" required value="${valFecha}" ${puedeCambiarFecha ? '' : 'disabled'}>
             ${puedeCambiarFecha ? '' : '<div class="form-hint">Solo quien creó la tarea puede cambiar la fecha.</div>'}
-          </div>
-
-          <div class="form-campo full">
-            <label>Áreas involucradas</label>
-            <div class="areas-multi" id="nt_areas">
-              ${areasDisponibles().map(a => {
-                // Etiqueta visible del chip: jefaturas con texto descriptivo
-                // ("JD Gestión …"); subdirecciones con su acrónimo (SPAC, SGOI…).
-                const label = etiquetaChip(a);
-                return `<label class="area-chip" title="${escapeHtml(a)}"><input type="checkbox" value="${escapeHtml(a)}" ${areasEd.indexOf(a.toLowerCase()) >= 0 ? 'checked' : ''}>${escapeHtml(label)}</label>`;
-              }).join('')}
-            </div>
-            <input type="text" id="nt_areaOtra" maxlength="200" placeholder="Otra área (escríbela y se agregará a la lista)" style="margin-top:8px;">
-            <div class="form-hint">Marca todas las que apliquen. Si falta alguna, escríbela en "Otra" y quedará disponible para la próxima.</div>
           </div>
 
           <div class="form-campo full">
@@ -11570,10 +11559,10 @@ function guardarNuevaTarea() {
   const _resps = leerResponsablesDOM().map(s => String(s || '').trim()).filter(Boolean);
   const responsable = _resps.filter((r, i) => _resps.indexOf(r) === i).join(', ');
   const tema = document.getElementById('nt_tema').value.trim();
-  const areasMarcadas = Array.from(document.querySelectorAll('#nt_areas input:checked')).map(c => c.value);
-  const otraArea = (document.getElementById('nt_areaOtra').value || '').trim();
-  if (otraArea) areasMarcadas.push(otraArea);
-  const areas = areasMarcadas.join(', ');
+  // "Áreas involucradas" ahora es un solo campo de texto libre (debajo de
+  // Responsable directo). Lo que se escriba se guarda tal cual.
+  const otraAreaEl = document.getElementById('nt_areaOtra');
+  const areas = otraAreaEl ? otraAreaEl.value.trim() : '';
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
   // El textarea oculto se sincroniza desde la lista visual antes de leerlo.
   sincAcciones();

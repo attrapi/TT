@@ -1,0 +1,13 @@
+/* TEAM */
+
+  Autor y responsable: Daniel de la Garza Cordero
+  Cargo: Enlace de Subdirección de Procesos Administrativos de Construcción
+  De: México
+
+/* SITE */
+
+  Nombre: TT · Sistema de Gestión y Validación de Tareas
+  Copyright: © 2026 Daniel de la Garza Cordero. Todos los derechos reservados.
+  Estándar: HTML5, CSS3, JavaScript
+  Componentes: Supabase, PWA (manifest + service worker)
+  Idioma: Español
