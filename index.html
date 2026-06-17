@@ -4895,7 +4895,7 @@
 </div>
 
 <!-- ========== MODAL ========== -->
-<div class="modal-fondo" id="modalFondo" onclick="if(event.target===this) cerrarModal()">
+<div class="modal-fondo" id="modalFondo" onclick="if(event.target===this && !formTareaAbierto) cerrarModal()">
   <div class="modal" id="modal"></div>
 </div>
 
@@ -5305,6 +5305,7 @@ let busquedaValidadas = '';  // texto del buscador de la vista Validadas
 let dashAreaSel = 'TODAS';   // Dashboard · área elegida (solo Director)
 let dashDetalleSel = 'todo'; // Dashboard · detalle: todo|sub|jef|PROCEDIMIENTOS|MANUALES
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
+let formTareaAbierto = false; // true mientras el formulario Crear/Editar está abierto (bloquea cierre accidental)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
 
@@ -8108,10 +8109,10 @@ function abrirDetalle(t) {
       </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Hilo</div>
-        ${(function(){
+        <div id="hiloBox">${(function(){
           try { return renderComentariosHTML(t); }
           catch (err) { return ''; }
-        })()}
+        })()}</div>
       </div>
 
       ${false /* "Devuelta para corrección" eliminado: el flujo ya no usa Devolver/Reenviar (la validación es por checklist). */ ? `
@@ -8179,6 +8180,7 @@ function cerrarModal() {
   tareaEditando = null;
   archivoPendiente = null;
   creandoTarea = false;   // libera el candado anti-doble-envío
+  formTareaAbierto = false;
 }
 
 // ============== UTILIDADES ==============
@@ -10559,6 +10561,16 @@ function renderComentariosHTML(t) {
   return html;
 }
 
+// Repinta SOLO el hilo (#hiloBox) en el modal abierto, sin reconstruir todo el
+// modal. Así funciona igual en el detalle y en el formulario de editar (donde
+// reabrir el detalle perdería lo que se está capturando). Si no hay #hiloBox a
+// la vista (caso raro), cae a reabrir el detalle.
+function repintarHilo(t) {
+  const box = document.getElementById('hiloBox');
+  if (box) { box.innerHTML = renderComentariosHTML(t); return true; }
+  return false;
+}
+
 function enviarComentario(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
@@ -10569,11 +10581,11 @@ function enviarComentario(idTarea) {
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: texto });
   inp.value = '';
   renderizar();       // refresca el chip 💬 Hilo en la tarjeta
-  abrirDetalle(t);    // repinta el modal con el nuevo mensaje
+  if (!repintarHilo(t)) abrirDetalle(t);    // repinta el hilo con el nuevo mensaje
 }
 
-function editarComentarioUI(cid) { COMENTARIO_EDITANDO = cid; if (tareaAbierta) abrirDetalle(tareaAbierta); }
-function cancelarEdicionComentario() { COMENTARIO_EDITANDO = null; if (tareaAbierta) abrirDetalle(tareaAbierta); }
+function editarComentarioUI(cid) { COMENTARIO_EDITANDO = cid; const t = tareaAbierta || tareaEditando; if (t && !repintarHilo(t) && tareaAbierta) abrirDetalle(tareaAbierta); }
+function cancelarEdicionComentario() { COMENTARIO_EDITANDO = null; const t = tareaAbierta || tareaEditando; if (t && !repintarHilo(t) && tareaAbierta) abrirDetalle(tareaAbierta); }
 
 function guardarEdicionComentario(idTarea, cid) {
   const t = TAREAS.find(x => x.id === idTarea);
@@ -10582,10 +10594,10 @@ function guardarEdicionComentario(idTarea, cid) {
   const txt = (inp.value || '').trim();
   if (!txt) return;
   const g = comentariosDeTarea(t).find(x => x.cid === cid);
-  if (!g || (usuarioActual && formatearNombre(usuarioActual.nombre || '') !== g.autor)) { COMENTARIO_EDITANDO = null; abrirDetalle(t); return; }
+  if (!g || (usuarioActual && formatearNombre(usuarioActual.nombre || '') !== g.autor)) { COMENTARIO_EDITANDO = null; if (!repintarHilo(t)) abrirDetalle(t); return; }
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: 'edit', estatus_nuevo: cid, comentario: txt });
   COMENTARIO_EDITANDO = null;
-  abrirDetalle(t);
+  if (!repintarHilo(t)) abrirDetalle(t);
 }
 
 function borrarComentario(idTarea, cid) {
@@ -10596,7 +10608,7 @@ function borrarComentario(idTarea, cid) {
   if (!confirm('¿Borrar tu comentario?')) return;
   registrarEnBitacora({ accion: 'comentario', id_tarea: idTarea, estatus_anterior: 'del', estatus_nuevo: cid, comentario: '' });
   renderizar();   // por si era el único comentario, quita el chip 💬 Hilo
-  abrirDetalle(t);
+  if (!repintarHilo(t)) abrirDetalle(t);
 }
 
 // ===== Acciones de interacción del checklist y observaciones =====
@@ -11130,6 +11142,14 @@ function abrirNuevaTarea(tEdit) {
           </div>
         </div>
       </form>
+      ${ed ? `
+        <div class="modal-seccion modal-seccion-ancha" style="margin-top:18px;">
+          <div class="modal-seccion-titulo">Hilo</div>
+          <div id="hiloBox">${(function(){
+            try { return renderComentariosHTML(ed); }
+            catch (err) { return ''; }
+          })()}</div>
+        </div>` : ''}
     </div>
     <div class="modal-acciones">
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
@@ -11137,6 +11157,7 @@ function abrirNuevaTarea(tEdit) {
     </div>
   `;
   document.getElementById('modalFondo').classList.add('activo');
+  formTareaAbierto = true;     // mientras esté abierto, no se cierra por clic afuera / Escape
   renderAdjuntosForm();        // pinta la lista de adjuntos (existentes/nuevos)
   renderResponsablesForm();    // pinta los selectores de responsable(s)
 }
@@ -12304,9 +12325,10 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// Cerrar modal con ESC
+// Cerrar modal con ESC (pero NO el formulario de Crear/Editar: ahí solo se sale
+// con Cancelar/×/Guardar, para no perder lo que se está escribiendo).
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') cerrarModal();
+  if (e.key === 'Escape' && !formTareaAbierto) cerrarModal();
 });
 
 // === ARRANQUE ===
