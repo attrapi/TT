@@ -2256,7 +2256,7 @@
 
   /* Chips de Vencida/Hoy en su PROPIO renglón (debajo del ID) para que el botón
      de eliminar (arriba a la derecha) no se les encime. */
-  .tarjeta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+  .tarjeta-chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 10px; }
   .tarjeta-chips .vencida-chip,
   .tarjeta-chips .vence-hoy-chip,
   .tarjeta-chips .nueva-chip,
@@ -2277,7 +2277,6 @@
     padding: 2px 9px;
     border-radius: 999px;
     margin-bottom: 8px;
-    line-height: 1.4;   /* iguala la altura a los chips de solo texto */
   }
   /* El emoji 💬 se dibuja más alto que las letras y agrandaba el chip; lo
      achicamos y centramos para que el "Hilo" mida igual que los demás. */
