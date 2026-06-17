@@ -712,6 +712,8 @@
   .bitacora-accion.atender     { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.desarchivar { background: var(--verde-tenue); color: var(--verde); }
   .bitacora-accion.reabrir     { background: var(--ambar-tenue); color: var(--ambar); }
+  .bitacora-accion.desvalidar,
+  .bitacora-accion.descompletar { background: var(--ambar-tenue); color: var(--ambar); }
   .bitacora-accion.reprogramar { background: #ffedd5; color: #c2410c; }
   .bitacora-accion.comentario  { background: #ccfbf1; color: #0f766e; }   /* Comentario (hilo) — teal */
   .bitacora-accion.observacion { background: #e0f2fe; color: #0369a1; }   /* Observación — azul cielo */
@@ -10702,6 +10704,9 @@ function yaSeRegistroCompletadaColumna(idTarea, cod) {
     if (!b || b.id_tarea !== idTarea) continue;
     const k = (b.accion || '').toLowerCase();
     if (k === 'accion_add' || k === 'accion_del') return false;   // cambió el set de acciones → es una completada nueva
+    // Si lo más reciente para esta columna fue RETIRAR la validación/completada,
+    // entonces volver a palomearla SÍ debe registrarse de nuevo (no hay una vigente).
+    if ((k === 'desvalidar' || k === 'descompletar') && codDesdeComentario(b.comentario) === cod) return false;
     if ((k === 'completar_col' || k === 'validar') && codDesdeComentario(b.comentario) === cod) return true;
   }
   return false;
@@ -10739,6 +10744,17 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
     registrarEnBitacora({
       accion: 'seguimiento', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
       comentario: 'Columna ' + etqCol + ' ' + marcadosCol + '/' + totalCol + ' · ✓ "' + items[idx].texto + '"'
+    });
+  } else if (!valor && eraTodaCompletaAntes) {
+    // Se DESPALOMEÓ una columna que estaba completa → queda constancia de que se
+    // retiró la validación/completada (el "Validada/Completada" previo se conserva).
+    const colsT = participantesDe(t);
+    const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
+    const esValidador = esTop && nivelDeArea(cod) <= 1;
+    registrarEnBitacora({
+      accion: esValidador ? 'desvalidar' : 'descompletar',
+      id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '',
+      comentario: 'Columna ' + etqCol + (esValidador ? ' validación retirada' : ' completada retirada')
     });
   }
   persistirEstado(t);  // guarda el checklist (sobrevive al F5)
@@ -11915,6 +11931,8 @@ const ACCION_LABEL = {
   accion_edit: 'Acción editada',
   seguimiento: 'Seguimiento',
   completar_col:'Completada',
+  desvalidar:  'Validación retirada',
+  descompletar:'Completada retirada',
   enviar:      'Enviada a validación',
   eliminar:    'Enviada al Historial',
   restaurar:   'Restaurada',
@@ -11947,7 +11965,7 @@ function etiquetaAccionBita(b) {
 
 // Del comentario "Columna SPAC completada/validada" saca el código de área.
 function codDesdeComentario(comentario) {
-  const m = String(comentario || '').match(/^Columna\s+(.+?)\s+(?:completada|validada)$/i);
+  const m = String(comentario || '').match(/^Columna\s+(.+?)\s+(?:completada|validada|validación retirada|completada retirada)$/i);
   if (!m) return '';
   const etq = m[1].trim();
   if (/^director$/i.test(etq)) return 'DPAC';
