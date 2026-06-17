@@ -2277,6 +2277,14 @@
     padding: 2px 9px;
     border-radius: 999px;
     margin-bottom: 8px;
+    line-height: 1.4;   /* iguala la altura a los chips de solo texto */
+  }
+  /* El emoji 💬 se dibuja más alto que las letras y agrandaba el chip; lo
+     achicamos y centramos para que el "Hilo" mida igual que los demás. */
+  .hilo-chip .hilo-emoji {
+    font-size: 8px;
+    vertical-align: middle;
+    line-height: 1;
   }
 
   /* "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID. El creador
@@ -7313,7 +7321,7 @@ function crearTarjeta(t) {
   const chipConcluida = _concluida                   ? '<span class="concluida-chip">✓ Concluida</span>' : '';
   const chipNueva     = !esValidada && esNueva(t)        ? '<span class="nueva-chip">★ Nueva</span>'         : '';
   const chipReprog    = !esValidada && esReprogramada(t) ? '<span class="reprog-chip">↻ Reprogramada</span>' : '';
-  const chipHilo      = tieneHilo(t)                     ? '<span class="hilo-chip">💬 Hilo</span>' : '';
+  const chipHilo      = tieneHilo(t)                     ? '<span class="hilo-chip"><span class="hilo-emoji">💬</span> Hilo</span>' : '';
   // "Visto por": acrónimos de quién ha abierto la tarea, bajo el ID (creador 1°).
   const _vistos = vistosDeTarea(t);
   const vistosHTML = (!esValidada && _vistos.length)
