@@ -5306,6 +5306,7 @@ let dashAreaSel = 'TODAS';   // Dashboard · área elegida (solo Director)
 let dashDetalleSel = 'todo'; // Dashboard · detalle: todo|sub|jef|PROCEDIMIENTOS|MANUALES
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
 let formTareaAbierto = false; // true mientras el formulario Crear/Editar está abierto (bloquea cierre accidental)
+let comentariosNuevaTarea = []; // comentarios escritos en el hilo ANTES de crear la tarea (se guardan al crearla)
 // Destinatario por defecto del botón "Notificar" (se puede editar en el correo).
 const CORREO_NOTIFICAR = '';
 
@@ -8181,6 +8182,7 @@ function cerrarModal() {
   archivoPendiente = null;
   creandoTarea = false;   // libera el candado anti-doble-envío
   formTareaAbierto = false;
+  comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
 }
 
 // ============== UTILIDADES ==============
@@ -10561,6 +10563,55 @@ function renderComentariosHTML(t) {
   return html;
 }
 
+// Hilo de una tarea que TODAVÍA no existe (formulario de Crear). Los comentarios
+// se guardan en `comentariosNuevaTarea` y se registran de verdad al crear la
+// tarea (cuando ya tiene código). Mismo estilo visual que el hilo normal.
+function renderHiloNuevoHTML() {
+  const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '';
+  let html = '<div class="conv-hilo">';
+  if (!comentariosNuevaTarea.length) {
+    html += '<div class="conv-vacio">— sin comentarios todavía —</div>';
+  } else {
+    comentariosNuevaTarea.forEach((c, i) => {
+      html += '<div class="conv-msg">' +
+        '<div class="conv-msg-cab">' +
+          '<span class="conv-acron">' + escapeHtml(acronimoPersona(yo)) + '</span>' +
+          '<span class="conv-nombre">' + escapeHtml(yo) + '</span>' +
+        '</div>' +
+        '<div class="conv-texto">' + escapeHtml(c.texto) + '</div>' +
+        '<div class="conv-acciones">' +
+          '<button type="button" class="conv-btn conv-btn-del" onclick="quitarComentarioNuevaTarea(' + i + ')">Quitar</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+  html += '<div class="conv-input">' +
+    '<textarea id="conv_input_nuevo" class="conv-textarea" maxlength="800" ' +
+      'placeholder="Escribe un comentario… (se guardará al crear la tarea)" ' +
+      'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();agregarComentarioNuevaTarea();}"></textarea>' +
+    '<button type="button" class="conv-enviar" onclick="agregarComentarioNuevaTarea()">Agregar</button>' +
+  '</div>';
+  return html;
+}
+
+function agregarComentarioNuevaTarea() {
+  const inp = document.getElementById('conv_input_nuevo');
+  if (!inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  comentariosNuevaTarea.push({ texto: txt });
+  inp.value = '';
+  const box = document.getElementById('hiloBox');
+  if (box) box.innerHTML = renderHiloNuevoHTML();
+}
+
+function quitarComentarioNuevaTarea(i) {
+  comentariosNuevaTarea.splice(i, 1);
+  const box = document.getElementById('hiloBox');
+  if (box) box.innerHTML = renderHiloNuevoHTML();
+}
+
 // Repinta SOLO el hilo (#hiloBox) en el modal abierto, sin reconstruir todo el
 // modal. Así funciona igual en el detalle y en el formulario de editar (donde
 // reabrir el detalle perdería lo que se está capturando). Si no hay #hiloBox a
@@ -10922,6 +10973,7 @@ function abrirNuevaTarea(tEdit) {
   ACC_ADJ_FORM = {};         // archivos pendientes por acción (captura)
   tareaEditando = tEdit || null;
   const ed = tareaEditando;
+  if (!ed) comentariosNuevaTarea = [];   // hilo en blanco para una tarea nueva
   // Estado de adjuntos del formulario: lista de {tipo, nombre, url?, file?}.
   // Al editar arranca con los adjuntos existentes (tipo 'existente').
   adjuntosForm = ed ? adjuntosDe(ed).map(a => ({ tipo: 'existente', url: a.url, nombre: a.nombre })) : [];
@@ -11142,14 +11194,13 @@ function abrirNuevaTarea(tEdit) {
           </div>
         </div>
       </form>
-      ${ed ? `
-        <div class="modal-seccion modal-seccion-ancha" style="margin-top:18px;">
-          <div class="modal-seccion-titulo">Hilo</div>
-          <div id="hiloBox">${(function(){
-            try { return renderComentariosHTML(ed); }
-            catch (err) { return ''; }
-          })()}</div>
-        </div>` : ''}
+      <div class="modal-seccion modal-seccion-ancha" style="margin-top:18px;">
+        <div class="modal-seccion-titulo">Hilo</div>
+        <div id="hiloBox">${(function(){
+          try { return ed ? renderComentariosHTML(ed) : renderHiloNuevoHTML(); }
+          catch (err) { return ''; }
+        })()}</div>
+      </div>
     </div>
     <div class="modal-acciones">
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
@@ -11574,6 +11625,8 @@ function guardarNuevaTarea() {
       // Seguimiento: cada acción inicial también queda en la bitácora.
       String(accion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
         .forEach(a => registrarEnBitacora({ accion: 'accion_add', id_tarea: nueva.id, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + a + '"' }));
+      // Comentarios del hilo capturados antes de crear (demo).
+      comentariosNuevaTarea.forEach(c => registrarEnBitacora({ accion: 'comentario', id_tarea: nueva.id, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: c.texto }));
       cerrarModal(); renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       toast('Tarea ' + nueva.id + ' creada (demo)', 'ok');
@@ -11653,6 +11706,11 @@ function enviarCrearTarea(datos, btn, accionesArchivos) {
           .forEach(function (a) {
             registrarEnBitacora({ accion: 'accion_add', id_tarea: res.id, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + a + '"' });
           });
+        // Comentarios escritos en el hilo ANTES de crear la tarea: ahora que ya
+        // tiene código, se registran de verdad (en orden).
+        comentariosNuevaTarea.forEach(function (c) {
+          registrarEnBitacora({ accion: 'comentario', id_tarea: res.id, estatus_anterior: '', estatus_nuevo: nuevoCid(), comentario: c.texto });
+        });
       }
       cerrarModal();
       // Tras recargar (ya existe la tarea + su checklist), sube los archivos que
