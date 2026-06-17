@@ -202,7 +202,9 @@
         r = await sb.from('tareas').insert(fila).select('codigo').single();
       }
       if (r.error) return { ok: false, error: r.error.message };
-      try { await sb.from('bitacora').insert({ tarea_codigo: r.data.codigo, usuario: fila.creado_por, accion: 'crear', estatus_anterior: '—', estatus_nuevo: 'En Proceso' }); } catch (e) {}
+      // La entrada de bitácora "crear" la escribe el TRIGGER trg_log_crear_tarea
+      // (supabase/bitacora-crear-trigger.sql), en la misma transacción del INSERT,
+      // para que nunca falte como pasó con DPAC-004. NO insertar aquí (duplicaría).
       return { ok: true, id: r.data.codigo };
     },
     actualizarTarea: async function (token, id, datos) {
