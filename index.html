@@ -10189,7 +10189,11 @@ function participantesDe(t) {
   const esSubdirPorId = ['SPAC', 'SGOI', 'SA', 'DPAC', 'ENLACE'].indexOf(prefId) >= 0;
   const esJefatura = t.nivel === 'jefatura' || !!jefPorId || (!esSubdirPorId && parts.some(p => PREFIJO_JEFATURA[p]));
   if (esJefatura) {
-    let limpio = parts.filter(p => p !== 'DPAC' && p !== 'ENLACE');
+    // Conserva DPAC/ENLACE si están EXPLÍCITAMENTE en los participantes elegidos
+    // (el Director/Staff quiere su columna de validación). Solo se quitan cuando
+    // vienen heredados/derivados (tareas viejas), no cuando se eligieron a mano.
+    const explicitos = (Array.isArray(t.participantes) ? t.participantes : []).map(p => String(p || '').toUpperCase());
+    let limpio = parts.filter(p => (p !== 'DPAC' && p !== 'ENLACE') || explicitos.indexOf(p) >= 0);
     // Si por el ID es una jefatura y no quedó su área (dato viejo con solo DPAC),
     // la añadimos para que el checklist muestre la columna correcta (la del jefe).
     if (jefPorId && limpio.indexOf(jefPorId) < 0) limpio.push(jefPorId);
