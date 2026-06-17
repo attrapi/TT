@@ -4895,7 +4895,7 @@
 </div>
 
 <!-- ========== MODAL ========== -->
-<div class="modal-fondo" id="modalFondo" onclick="if(event.target===this && !formTareaAbierto) cerrarModal()">
+<div class="modal-fondo" id="modalFondo" onclick="if(event.target===this && !formTareaAbierto && !tareaAbierta) cerrarModal()">
   <div class="modal" id="modal"></div>
 </div>
 
@@ -12407,10 +12407,11 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// Cerrar modal con ESC (pero NO el formulario de Crear/Editar: ahí solo se sale
-// con Cancelar/×/Guardar, para no perder lo que se está escribiendo).
+// Cerrar modal con ESC, EXCEPTO el formulario de Crear/Editar y el detalle de una
+// tarea abierta: ahí solo se sale con la × (o Cancelar/Guardar), para no cerrarlo
+// por accidente mientras se escribe/revisa.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !formTareaAbierto) cerrarModal();
+  if (e.key === 'Escape' && !formTareaAbierto && !tareaAbierta) cerrarModal();
 });
 
 // === ARRANQUE ===
