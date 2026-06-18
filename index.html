@@ -11238,11 +11238,19 @@ function abrirNuevaTarea(tEdit) {
     ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.accion_a_tomar || ''))
     : '';
   const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
-  // Solo el CREADOR de la tarea puede cambiar su fecha de atención. Al crear,
-  // siempre se permite (eres tú la que la pone). Al editar, se compara
-  // creado_por contra el usuario actual.
+  // Quién puede cambiar la FECHA DE ATENCIÓN al editar:
+  //   • El CREADOR de la tarea (la puso él).
+  //   • Quien está POR ENCIMA en la jerarquía de esa tarea: el Director (ve todo)
+  //     y el subdirector de la subdirección de la tarea (aunque no la hayan creado).
+  // Al crear, siempre se permite (eres tú quien la pone).
   const yoNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  const puedeCambiarFecha = !ed || !ed.creado_por || ed.creado_por === yoNombre;
+  const esCreadorTarea  = !ed || !ed.creado_por || ed.creado_por === yoNombre;
+  const esSubdirDeTarea = usuarioActual.rol === 'Capturista'
+    && usuarioActual.subdireccion === ((ed && ed.subdireccion) || '')
+    && !jefaturaCodigo(usuarioActual.jefatura)
+    && !esEnlaceUser();
+  const puedeCambiarFecha = !ed || esCreadorTarea
+    || usuarioActual.rol === 'Director' || esSubdirDeTarea;
   const valUrl = ed ? (ed.url || '') : '';
   // "Otra área involucrada" ahora es un campo de texto libre que vive debajo de
   // "Responsable directo". Al editar se precarga con lo que la tarea ya tenía.
@@ -11365,7 +11373,7 @@ function abrirNuevaTarea(tEdit) {
           <div class="form-campo">
             <label>Fecha de atención <span class="req">*</span></label>
             <input type="date" id="nt_fecha" required value="${valFecha}" ${puedeCambiarFecha ? '' : 'disabled'}>
-            ${puedeCambiarFecha ? '' : '<div class="form-hint">Solo quien creó la tarea puede cambiar la fecha.</div>'}
+            ${puedeCambiarFecha ? '' : '<div class="form-hint">Solo el creador o un superior (subdirección/dirección) puede cambiar la fecha.</div>'}
           </div>
 
           <div class="form-campo full">
