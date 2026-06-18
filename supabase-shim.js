@@ -335,6 +335,30 @@
       } catch (e) { return { ok: false, error: String(e) }; }
     },
 
+    // ---- CORREO (aviso al crear tarea, vía el MISMO mini Apps Script de Drive) ----
+    // El remitente real es la cuenta del Apps Script; deNombre/replyTo hacen que
+    // el correo aparezca a nombre del usuario que creó la tarea (y las respuestas
+    // le llegan a él). NO requiere contraseñas de los demás usuarios.
+    enviarCorreo: async function (datos) {
+      datos = datos || {};
+      try {
+        var resp = await fetch(DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ accion: 'correo',
+            para: datos.para || '', asunto: datos.asunto || '', cuerpo: datos.cuerpo || '',
+            deNombre: datos.deNombre || '', replyTo: datos.replyTo || '' }) });
+        return await resp.json();
+      } catch (e) { return { ok: false, error: String(e) }; }
+    },
+    // Resuelve el/los correo(s) de personas por su NOMBRE (para autollenar "Para").
+    correoDe: async function (nombres) {
+      try {
+        var arr = Array.isArray(nombres) ? nombres : [nombres];
+        var r = await sb.rpc('correos_de_personas', { p_nombres: arr });
+        if (r.error || !r.data) return { ok: true, correos: [] };
+        return { ok: true, correos: r.data.map(function (x) { return x.email; }).filter(Boolean) };
+      } catch (e) { return { ok: false, error: String(e), correos: [] }; }
+    },
+
     // ---- no-ops (existían en Apps Script, aquí no aplican) ----
     // Cambiar la contraseña del usuario logueado.
     cambiarContrasena: async function (token, nueva) {

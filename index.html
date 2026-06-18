@@ -11408,6 +11408,19 @@ function abrirNuevaTarea(tEdit) {
             <div id="nt_adjuntos_lista" class="adjuntos-lista"></div>
             <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.</div>
           </div>
+
+          ${ed ? '' : `
+          <div class="form-campo full">
+            <label class="nt-correo-label" style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin:0">
+              <input type="checkbox" id="nt_enviarCorreo" onchange="toggleCorreoTarea(this.checked)" style="width:auto;margin:0"> Enviar aviso por correo al responsable
+            </label>
+            <div id="nt_correoBox" style="display:none;margin-top:10px">
+              <input type="text" id="nt_correoPara" placeholder="Correo(s) del destinatario, separados por coma" style="width:100%;margin-bottom:8px">
+              <input type="text" id="nt_correoAsunto" placeholder="Asunto del correo" style="width:100%;margin-bottom:8px">
+              <textarea id="nt_correoCuerpo" rows="7" placeholder="Mensaje del correo" style="width:100%"></textarea>
+              <div class="form-hint">Se enviará a nombre de <strong id="nt_correoDe">—</strong>. Si el destinatario responde, le llegará a tu correo.</div>
+            </div>
+          </div>`}
         </div>
       </form>
       <div class="modal-seccion modal-seccion-ancha" style="margin-top:18px;">
@@ -11454,6 +11467,8 @@ function abrirEditarTarea(id) {
 let archivoPendiente = null;
 // Adjuntos del formulario en curso: lista de {tipo:'existente'|'archivo'|'link', nombre, url?, file?}.
 let adjuntosForm = [];
+// Aviso por correo capturado al crear (se envía tras crear la tarea). null = no enviar.
+let correoTareaPendiente = null;
 
 // === Editor visual de acciones del checklist en el formulario ===
 // Archivos adjuntos PENDIENTES por acción (solo al CAPTURAR): { accId: File }.
@@ -11769,6 +11784,23 @@ function guardarNuevaTarea() {
     return;
   }
 
+  // Aviso por correo (opcional): se captura AHORA, antes de cerrar el modal, y se
+  // envía tras crear la tarea (ver enviarCrearTarea). Solo al CREAR.
+  correoTareaPendiente = null;
+  const _chkCorreo = document.getElementById('nt_enviarCorreo');
+  if (!tareaEditando && _chkCorreo && _chkCorreo.checked) {
+    const _para = (document.getElementById('nt_correoPara').value || '').trim();
+    if (_para) {
+      correoTareaPendiente = {
+        para: _para,
+        asunto: (document.getElementById('nt_correoAsunto').value || '').trim() || ('Nueva tarea: ' + tema),
+        cuerpo: (document.getElementById('nt_correoCuerpo').value || '').trim(),
+        deNombre: (usuarioActual && usuarioActual.nombre) ? formatearNombre(usuarioActual.nombre) : 'TT',
+        replyTo: (usuarioActual && usuarioActual.email) ? usuarioActual.email : ''
+      };
+    }
+  }
+
   creandoTarea = true;   // de aquí en adelante, bloquea reenvíos hasta cerrar/error
   const editando = !!tareaEditando;
   // Fecha de atención ANTES de editar: si cambia, se registra como "reprogramar"
@@ -11944,6 +11976,8 @@ function enviarCrearTarea(datos, btn, accionesArchivos) {
       });
       cargarAreas();   // por si se agregó un área nueva con "Otra"
       toast('Tarea creada y guardada', 'ok');
+      // Aviso por correo opcional (si se palomeó "Enviar por correo" al crear).
+      if (correoTareaPendiente) { enviarCorreoTareaAhora(correoTareaPendiente); correoTareaPendiente = null; }
     })
     .withFailureHandler(function (e) {
       toast('Error: ' + (e && e.message ? e.message : e), 'error');
@@ -11951,6 +11985,61 @@ function enviarCrearTarea(datos, btn, accionesArchivos) {
       creandoTarea = false;
     })
     .crearTarea(SESION_TOKEN, datos);
+}
+
+// Envía el aviso por correo (vía el Apps Script). No bloquea la creación: si
+// falla el correo, la tarea ya quedó creada igual.
+function enviarCorreoTareaAhora(c) {
+  if (!c || !c.para) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok) toast('Aviso enviado por correo', 'ok');
+      else toast('Tarea creada, pero el correo no se envió: ' + ((res && res.error) || 'revisa el destinatario'), 'error');
+    })
+    .withFailureHandler(function (e) {
+      toast('Tarea creada; el correo falló: ' + (e && e.message ? e.message : e), 'error');
+    })
+    .enviarCorreo(c);
+}
+
+// Muestra/oculta el bloque de correo y, al abrirlo, prellena asunto/cuerpo con
+// los datos del formulario y autollena el "Para" con el correo del responsable.
+function toggleCorreoTarea(on) {
+  const box = document.getElementById('nt_correoBox');
+  if (box) box.style.display = on ? 'block' : 'none';
+  if (!on) return;
+  const tema  = (document.getElementById('nt_tema').value || '').trim();
+  const fechaV = document.getElementById('nt_fecha').value || '';
+  const fechaTxt = fechaV ? formatearFechaLarga(fechaV) : 'Permanente';
+  const resps = leerResponsablesDOM().map(s => String(s || '').trim()).filter(Boolean);
+  const respTxt = resps.join(', ');
+  const creador = (usuarioActual && usuarioActual.nombre) ? formatearNombre(usuarioActual.nombre) : '';
+  const elDe = document.getElementById('nt_correoDe'); if (elDe) elDe.textContent = creador || '—';
+  const elAsunto = document.getElementById('nt_correoAsunto');
+  const elCuerpo = document.getElementById('nt_correoCuerpo');
+  // No pisar lo que el usuario ya haya escrito.
+  if (elAsunto && !elAsunto.value) elAsunto.value = 'Nueva tarea asignada' + (tema ? ': ' + tema : '');
+  if (elCuerpo && !elCuerpo.value) {
+    elCuerpo.value =
+      'Hola ' + (respTxt || '') + ':\n\n' +
+      'Se te asignó una nueva tarea.\n\n' +
+      'Tema: ' + tema + '\n' +
+      'Fecha de atención: ' + fechaTxt + '\n' +
+      'Creada por: ' + creador + '\n\n' +
+      'Puedes responder este correo para escribirle a quien la creó.';
+  }
+  // Autollena el "Para" con el correo del responsable (si se puede resolver).
+  const elPara = document.getElementById('nt_correoPara');
+  if (elPara && !elPara.value && resps.length) {
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res && res.ok && res.correos && res.correos.length && !elPara.value) {
+          elPara.value = res.correos.join(', ');
+        }
+      })
+      .withFailureHandler(function () { /* si no se puede, el usuario lo escribe a mano */ })
+      .correoDe(resps);
+  }
 }
 
 // Sube los archivos adjuntados a cada acción durante la CAPTURA y los enlaza al
