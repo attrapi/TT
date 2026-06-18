@@ -11,8 +11,8 @@
 //    WEBHOOK_SECRET   (opcional) palabra secreta que el webhook manda en el header
 //
 //  Deploy:  supabase functions deploy aviso-tarea --no-verify-jwt
+//  (o desde el panel: crear función "aviso-tarea", pegar esto y apagar Verify JWT)
 // =====================================================================
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const FROM           = Deno.env.get("FROM") ?? "TT <onboarding@resend.dev>";
@@ -59,7 +59,7 @@ async function leerPlantilla(): Promise<{ asunto: string; cuerpo: string; activo
   return rows[0] ?? null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   try {
     // Si configuraste WEBHOOK_SECRET, el webhook debe mandarlo en este header.
     if (WEBHOOK_SECRET && req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
