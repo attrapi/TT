@@ -7944,8 +7944,7 @@ var HIST_BUSCAR = '';      // texto del buscador
 var HIST_ANIO   = '';      // '' = todos los años
 var HIST_AREA   = '';      // '' = todas las áreas (id de columna)
 var HIST_ESTATUS = '';     // '' | 'completada' | 'eliminada'
-var HIST_ABIERTOS = new Set();   // claves "colId|YYYY-MM" de meses ABIERTOS
-var HIST_VISTOS   = new Set();   // meses ya inicializados (para abrir el más reciente 1 sola vez)
+var HIST_ABIERTOS = new Set();   // claves "colId|YYYY-MM" de meses ABIERTOS (vacío = todos cerrados)
 
 function histSetBuscar(v)  { HIST_BUSCAR  = v || ''; renderizarPapelera(); }
 function histSetAnio(v)    { HIST_ANIO    = v || ''; renderizarPapelera(); }
@@ -8053,8 +8052,7 @@ function histRenderColumna(cuerpo, colId, tareasCol) {
   claves.forEach(function (ym, i) {
     var g = grupos[ym];
     var key = colId + '|' + ym;
-    // Default (1 sola vez por mes): abre el más reciente, deja el resto plegado.
-    if (!HIST_VISTOS.has(key)) { HIST_VISTOS.add(key); if (i === 0) HIST_ABIERTOS.add(key); }
+    // Todos los meses arrancan CERRADOS; solo se abren si el usuario da clic.
     var abierto = HIST_ABIERTOS.has(key);
     var etiqueta = (ym === 'sin')
       ? 'Sin fecha'
