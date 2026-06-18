@@ -3835,6 +3835,19 @@
     gap: 10px; padding: 10px 2px 2px;
   }
   .hist-mes:not(.is-open) > .hist-mes-body { display: none; }
+  /* El encabezado del mes toma el color SÓLIDO de su columna (igual que la
+     marca del tablero), en vez del gris, para que combine con la página. */
+  .col-color-morado      .hist-mes-head { background: #7c3aed; }
+  .col-color-olivo       .hist-mes-head { background: #6b8e23; }
+  .col-color-azul        .hist-mes-head { background: #1d4ed8; }
+  .col-color-naranja     .hist-mes-head { background: #c2410c; }
+  .col-color-indigo      .hist-mes-head { background: #4338ca; }
+  .col-color-ambar       .hist-mes-head { background: #d97706; }
+  .col-color-verdeoscuro .hist-mes-head { background: #047857; }
+  .col-color-cafe        .hist-mes-head { background: #78350f; }
+  .historial-col-body .hist-mes-head { color: #fff; }
+  .historial-col-body .hist-mes-head:hover { filter: brightness(1.08); }
+  .historial-col-body .hist-mes-conteo { background: rgba(0,0,0,0.28); color: #fff; }
 
   /* Editor visual de acciones en el formulario de Nueva Tarea / Editar. */
   .acciones-lista {
