@@ -3793,6 +3793,49 @@
   /* Los IDs mantienen su color de área pero un poco más apagados */
   .historial-col-body .tarjeta .tarjeta-id { opacity: 0.92; }
 
+  /* === Historial: barra de filtros (buscar / año / área / estatus) === */
+  .historial-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin: 12px 0 4px;
+  }
+  .historial-toolbar .filtros-buscar { flex: 1 1 240px; min-width: 190px; }
+  .historial-toolbar .dash-select { flex: 0 0 auto; }
+  .hist-chips { display: inline-flex; gap: 4px; }
+  .hist-chip {
+    border: 1px solid var(--linea-fuerte); background: #fff; color: var(--tinta-suave);
+    border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans);
+  }
+  .hist-chip:hover { background: var(--crema); }
+  .hist-chip.is-on { background: var(--guinda); color: #fff; border-color: var(--guinda); }
+
+  /* === Historial: agrupación por mes (acordeón) dentro de cada columna === */
+  /* Cuando el cuerpo está agrupado, las secciones de mes se APILAN (bloque),
+     no en grid; el grid va dentro de cada mes. La doble clase gana en
+     especificidad a la regla de una sola columna. */
+  .historial-cols[style*="--hist-cols: 1"] .historial-col-body.hist-agrupado,
+  .historial-col-body.hist-agrupado { display: block; }
+  .historial-col-body.hist-agrupado .hist-mes + .hist-mes { margin-top: 10px; }
+  .hist-mes-head {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: #e5e7eb; color: #1f2937; border: none; border-radius: 6px;
+    padding: 8px 11px; cursor: pointer; font-family: var(--sans);
+    font-size: 12px; font-weight: 700;
+  }
+  .hist-mes-head:hover { background: #d1d5db; }
+  .hist-mes-flecha { transition: transform .15s ease; font-size: 10px; }
+  .hist-mes.is-open > .hist-mes-head .hist-mes-flecha { transform: rotate(90deg); }
+  .hist-mes-nombre { flex: 1; text-align: left; }
+  .hist-mes-conteo {
+    background: #1f2937; color: #fff; border-radius: 999px;
+    font-size: 10px; padding: 1px 8px; font-weight: 700;
+  }
+  .hist-mes-body {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px; padding: 10px 2px 2px;
+  }
+  .hist-mes:not(.is-open) > .hist-mes-body { display: none; }
+
   /* Editor visual de acciones en el formulario de Nueva Tarea / Editar. */
   .acciones-lista {
     display: flex; flex-direction: column; gap: 6px;
@@ -4898,6 +4941,16 @@
       <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
     </div>
     <div class="reportes-subtitulo">Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.</div>
+    <div class="historial-toolbar" id="historialToolbar">
+      <input type="search" class="filtros-buscar" id="histBuscar" placeholder="🔎 Buscar tema, código o responsable…" oninput="histSetBuscar(this.value)">
+      <select class="dash-select" id="histAnio" onchange="histSetAnio(this.value)"></select>
+      <select class="dash-select" id="histArea" onchange="histSetArea(this.value)" style="display:none"></select>
+      <div class="hist-chips" id="histEstatusChips">
+        <button type="button" class="hist-chip is-on" data-est="" onclick="histSetEstatus('')">Todas</button>
+        <button type="button" class="hist-chip" data-est="completada" onclick="histSetEstatus('completada')">Completadas</button>
+        <button type="button" class="hist-chip" data-est="eliminada" onclick="histSetEstatus('eliminada')">Eliminadas</button>
+      </div>
+    </div>
     <div class="historial-cols" id="papeleraGrid"></div>
   </div>
 
@@ -7886,35 +7939,180 @@ function columnasHistorial() {
   return columnasPorRol();
 }
 
+// ---- Historial: estado de filtros (la vista es de CONSULTA, no de volcado) ----
+var HIST_BUSCAR = '';      // texto del buscador
+var HIST_ANIO   = '';      // '' = todos los años
+var HIST_AREA   = '';      // '' = todas las áreas (id de columna)
+var HIST_ESTATUS = '';     // '' | 'completada' | 'eliminada'
+var HIST_ABIERTOS = new Set();   // claves "colId|YYYY-MM" de meses ABIERTOS
+var HIST_VISTOS   = new Set();   // meses ya inicializados (para abrir el más reciente 1 sola vez)
+
+function histSetBuscar(v)  { HIST_BUSCAR  = v || ''; renderizarPapelera(); }
+function histSetAnio(v)    { HIST_ANIO    = v || ''; renderizarPapelera(); }
+function histSetArea(v)    { HIST_AREA    = v || ''; renderizarPapelera(); }
+function histSetEstatus(v) { HIST_ESTATUS = v || ''; renderizarPapelera(); }
+function histToggleMes(key){ if (HIST_ABIERTOS.has(key)) HIST_ABIERTOS.delete(key); else HIST_ABIERTOS.add(key); renderizarPapelera(); }
+
+// Parsea 'YYYY-MM-DD' o 'DD/MM/AAAA …' → {anio, mes (0-11)}. null si no puede.
+function histParseFecha(s) {
+  s = String(s || '').trim(); if (!s) return null;
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return { anio: +m[1], mes: +m[2] - 1 };
+  m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);    if (m) return { anio: +m[3], mes: +m[2] - 1 };
+  var d = new Date(s); if (!isNaN(d.getTime())) return { anio: d.getFullYear(), mes: d.getMonth() };
+  return null;
+}
+// Fecha con la que la tarea ENTRÓ al historial (validación/finalización o baja).
+function histFechaTarea(t) {
+  var s = t.eliminada ? t.fecha_eliminacion : (t.fecha_validacion || t.fecha_finalizacion);
+  s = s || t.fecha_atencion || t.fecha_limite || t.fecha_creacion;
+  return histParseFecha(s);
+}
+function histEsCompletada(t) { return !t.eliminada && t.estatus === 'Archivada'; }
+
+// Aplica buscador + año + estatus (el área se filtra por columna, aparte).
+function histAplicarFiltros(lista) {
+  var q = HIST_BUSCAR.trim().toLowerCase();
+  return lista.filter(function (t) {
+    if (HIST_ESTATUS === 'eliminada'  && !t.eliminada) return false;
+    if (HIST_ESTATUS === 'completada' && !histEsCompletada(t)) return false;
+    if (HIST_ANIO) { var f = histFechaTarea(t); if (!f || String(f.anio) !== HIST_ANIO) return false; }
+    if (q) {
+      var blob = ((t.id || '') + ' ' + (t.tema || t.titulo || '') + ' ' + (t.responsable || '')).toLowerCase();
+      if (blob.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+}
+
+// Llena el select de Años con los años presentes en TODO el historial del usuario.
+function histPoblarAnios(base) {
+  var sel = document.getElementById('histAnio'); if (!sel) return;
+  var set = {};
+  base.forEach(function (t) { var f = histFechaTarea(t); if (f) set[f.anio] = 1; });
+  var anios = Object.keys(set).sort(function (a, b) { return b - a; });
+  var opts = '<option value="">Todos los años</option>' +
+    anios.map(function (a) { return '<option value="' + a + '">' + a + '</option>'; }).join('');
+  if (sel.innerHTML !== opts) sel.innerHTML = opts;
+  sel.value = HIST_ANIO;
+}
+// El filtro de Área solo tiene sentido si el usuario ve varias columnas (Director).
+function histPoblarAreas(cols) {
+  var sel = document.getElementById('histArea'); if (!sel) return;
+  if (cols.length <= 1) { sel.style.display = 'none'; HIST_AREA = ''; return; }
+  sel.style.display = '';
+  var opts = '<option value="">Todas las áreas</option>' +
+    cols.map(function (c) { return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.titulo) + '</option>'; }).join('');
+  if (sel.innerHTML !== opts) sel.innerHTML = opts;
+  sel.value = HIST_AREA;
+}
+function histMarcarChips() {
+  var cont = document.getElementById('histEstatusChips'); if (!cont) return;
+  Array.prototype.forEach.call(cont.querySelectorAll('.hist-chip'), function (b) {
+    b.classList.toggle('is-on', (b.getAttribute('data-est') || '') === HIST_ESTATUS);
+  });
+}
+
+// Tarjeta compacta del Historial (ID + Tema + chip de origen + acciones).
+function histCrearCard(t) {
+  var card = document.createElement('div');
+  card.className = 'tarjeta';
+  card.setAttribute('data-sub', t.subdireccion || '');
+  card.setAttribute('data-pre', (String(t.id || '').split('-')[0] || '').toUpperCase());
+  card.onclick = function () { abrirDetalle(t); };
+  var tema  = (t.tema || t.titulo || '— sin tema —');
+  var idVis = (t.id || '???');
+  var origenHist = t.eliminada ? 'Eliminada'
+                 : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
+  var html = '<div class="tarjeta-id">' + escapeHtml(idVis) + '</div>' +
+    '<div class="tarjeta-origen-hist">' + escapeHtml(origenHist) + '</div>' +
+    '<dl class="tarjeta-campos"><dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd></dl>';
+  if (puedeGestionarHistorial(t)) {
+    html += '<div class="tarjeta-acciones">' +
+      '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')" title="Restaurar">↺ Restaurar</button>' +
+      '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')" title="Eliminar definitivo">🗑 Eliminar</button>' +
+    '</div>';
+  }
+  card.innerHTML = html;
+  return card;
+}
+
+// Pinta las tareas de una columna AGRUPADAS por mes (acordeón). El mes más
+// reciente queda abierto por defecto; el resto plegado para no scrollear.
+function histRenderColumna(cuerpo, colId, tareasCol) {
+  var grupos = {};   // ym -> {anio, mes, items:[]}
+  tareasCol.forEach(function (t) {
+    var f = histFechaTarea(t);
+    var ym = f ? (f.anio + '-' + String(f.mes + 1).padStart(2, '0')) : 'sin';
+    if (!grupos[ym]) grupos[ym] = { anio: f ? f.anio : 0, mes: f ? f.mes : -1, items: [] };
+    grupos[ym].items.push(t);
+  });
+  // Más reciente primero; 'Sin fecha' al final.
+  var claves = Object.keys(grupos).sort(function (a, b) {
+    if (a === 'sin') return 1; if (b === 'sin') return -1; return b.localeCompare(a);
+  });
+  claves.forEach(function (ym, i) {
+    var g = grupos[ym];
+    var key = colId + '|' + ym;
+    // Default (1 sola vez por mes): abre el más reciente, deja el resto plegado.
+    if (!HIST_VISTOS.has(key)) { HIST_VISTOS.add(key); if (i === 0) HIST_ABIERTOS.add(key); }
+    var abierto = HIST_ABIERTOS.has(key);
+    var etiqueta = (ym === 'sin')
+      ? 'Sin fecha'
+      : (MESES_LARGOS[g.mes].charAt(0).toUpperCase() + MESES_LARGOS[g.mes].slice(1) + ' ' + g.anio);
+    var sec = document.createElement('div');
+    sec.className = 'hist-mes' + (abierto ? ' is-open' : '');
+    var head = document.createElement('button');
+    head.type = 'button';
+    head.className = 'hist-mes-head';
+    head.onclick = function () { histToggleMes(key); };
+    head.innerHTML = '<span class="hist-mes-flecha">▸</span>' +
+                     '<span class="hist-mes-nombre">' + escapeHtml(etiqueta) + '</span>' +
+                     '<span class="hist-mes-conteo">' + g.items.length + '</span>';
+    sec.appendChild(head);
+    var body = document.createElement('div');
+    body.className = 'hist-mes-body';
+    // Solo se construyen las tarjetas del mes ABIERTO → menos DOM = escala mejor.
+    if (abierto) g.items.forEach(function (t) { body.appendChild(histCrearCard(t)); });
+    sec.appendChild(body);
+    cuerpo.appendChild(sec);
+  });
+}
+
 function renderizarPapelera() {
   const grid = document.getElementById('papeleraGrid');
   const meta = document.getElementById('papeleraMeta');
   if (!grid) return;
   actualizarVistaDirPill();   // muestra el switch "Ver como Dirección" si aplica
-  const lista = ordenarPorFecha(tareasPapelera());
+
+  const base = tareasPapelera();          // todo el historial del usuario (sin filtros)
+  const cols = columnasHistorial();
+  histPoblarAnios(base);
+  histPoblarAreas(cols);
+  histMarcarChips();
+
+  // Recientes primero + filtros de buscador/año/estatus aplicados.
+  const lista = ordenarPorFecha(histAplicarFiltros(base)).reverse();
   if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
   const cont = document.getElementById('sidebarConteoPapelera');
-  if (cont) cont.textContent = lista.length;
+  if (cont) cont.textContent = base.length;   // el contador del sidebar muestra el total real
 
   grid.innerHTML = '';
-  if (!lista.length) {
+  if (!base.length) {
     grid.innerHTML = '<div class="validadas-vacio">El historial está vacío.</div>';
     return;
   }
-  // Si solo hay 1 columna, se expande a todo el ancho; si hay más, se reparten.
-  const cols = columnasHistorial();
-  grid.style.setProperty('--hist-cols', cols.length || 1);
 
-  cols.forEach(col => {
+  // Si hay filtro de área, se muestra solo esa columna; si no, todas.
+  const colsVis = HIST_AREA ? cols.filter(c => c.id === HIST_AREA) : cols;
+  grid.style.setProperty('--hist-cols', colsVis.length || 1);
+
+  colsVis.forEach(col => {
     const tareasCol = lista.filter(col.filtro);
     const colEl = document.createElement('div');
     colEl.className = 'historial-col col-color-' + (col.color || 'olivo');
     const subt = col.subtitulo
       ? '<div class="col-subtitulo" title="' + escapeHtml(col.subtitulo) + '">' + escapeHtml(col.subtitulo) + '</div>'
       : '';
-    // Si solo hay una columna en el Historial, las tarjetas van en grid (varias
-    // por fila) para no estirarse a todo el ancho.
-    const claseCuerpo = (cols.length === 1) ? 'historial-col-body col-body-grid' : 'historial-col-body';
     colEl.innerHTML =
       '<div class="col-header">' +
         '<div class="col-marca"></div>' +
@@ -7923,42 +8121,13 @@ function renderizarPapelera() {
         '</div>' +
         '<div class="col-conteo">' + tareasCol.length + '</div>' +
       '</div>' +
-      '<div class="' + claseCuerpo + '"></div>';
+      '<div class="historial-col-body hist-agrupado"></div>';
     const cuerpo = colEl.querySelector('.historial-col-body');
     if (!tareasCol.length) {
+      cuerpo.classList.remove('hist-agrupado');
       cuerpo.innerHTML = '<div class="vacio">— sin tareas —</div>';
     } else {
-      tareasCol.forEach(t => {
-        try {
-          const card = document.createElement('div');
-          card.className = 'tarjeta';
-          card.setAttribute('data-sub', t.subdireccion || '');
-          card.setAttribute('data-pre', (String(t.id || '').split('-')[0] || '').toUpperCase());
-          card.onclick = () => abrirDetalle(t);
-          const areas = mostrarAreas(t.areas_involucradas) || NOMBRE_SUB[t.subdireccion] || '—';
-          const tema  = (t.tema || t.titulo || '— sin tema —');
-          const idVis = (t.id || '???');
-          const origenHist = t.eliminada ? 'Eliminada'
-                           : (t.estatus === 'Archivada' ? 'Completada' : etiquetaEstatus(t.estatus));
-          // Tarjeta de Historial COMPACTA: solo ID + Tema (el resto se ve al
-          // abrir la tarea). El origen (Completada/Eliminada) va como chip chico.
-          let html = '<div class="tarjeta-id">' + escapeHtml(idVis) + '</div>' +
-            '<div class="tarjeta-origen-hist">' + escapeHtml(origenHist) + '</div>' +
-            '<dl class="tarjeta-campos">' +
-              '<dt>Tema</dt><dd class="campo-tema">' + escapeHtml(tema) + '</dd>' +
-            '</dl>';
-          if (puedeGestionarHistorial(t)) {
-            html += '<div class="tarjeta-acciones">' +
-              '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')" title="Restaurar">↺ Restaurar</button>' +
-              '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')" title="Eliminar definitivo">🗑 Eliminar</button>' +
-            '</div>';
-          }
-          card.innerHTML = html;
-          cuerpo.appendChild(card);
-        } catch (err) {
-          console.warn('Historial: no pude pintar la tarea', t && t.id, err);
-        }
-      });
+      histRenderColumna(cuerpo, col.id, tareasCol);
     }
     grid.appendChild(colEl);
   });
