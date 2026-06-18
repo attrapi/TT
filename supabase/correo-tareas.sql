@@ -49,16 +49,32 @@ create policy plantilla_upd on public.plantilla_correo
 -- en perfiles.nombre). Esta función traduce esos nombres a sus correos reales
 -- (que viven en auth.users). security definer para poder leer auth.users sin
 -- exponerla. La usa la Edge Function vía RPC.
+-- OJO: la app guarda el responsable como NOMBRE CORTO derivado (sin los 2
+-- apellidos finales y sin título). Ej.: guarda "Daniel de la Garza" aunque el
+-- perfil sea "Daniel de la Garza Cordero", o "Mario Alberto" para
+-- "Ing. Mario Alberto Ramírez Franca". Por eso NO se puede casar por igualdad
+-- exacta: se casa por "el nombre del perfil EMPIEZA CON lo guardado" (tolerando
+-- también un título profesional al inicio).
 create or replace function public.correos_de_personas(p_nombres text[])
   returns table (nombre text, email text)
   language sql stable security definer set search_path = public as
 $$
-  select p.nombre, u.email
+  select distinct p.nombre, u.email
   from public.perfiles p
   join auth.users u on u.id = p.id
   where p.activo = true
     and u.email is not null
-    and p.nombre = any (p_nombres);
+    and exists (
+      select 1
+      from unnest(p_nombres) as req(n)
+      where trim(req.n) <> ''
+        and (
+          p.nombre ilike trim(req.n) || '%'
+          or regexp_replace(p.nombre,
+               '^(ing|lic|arq|dr|dra|mtra|mtro|mat|bi[oó]l|c|prof|profa)\.\s*',
+               '', 'i') ilike trim(req.n) || '%'
+        )
+    );
 $$;
 
 -- Verificación rápida (cambia los nombres por unos reales):
