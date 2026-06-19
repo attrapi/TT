@@ -1807,6 +1807,20 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .filtros-buscar:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  /* Filtro por estado (junto al buscador). */
+  .filtros-estatus {
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: var(--sans);
+    background: #fff;
+    color: var(--tinta);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+  }
+  .filtros-estatus:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .filtros-estatus.activo { border-color: var(--guinda); color: var(--guinda); font-weight: 700; }
   /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
   .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
 
@@ -4880,6 +4894,12 @@
   <div class="filtros">
     <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevaTarea()">+ Nueva Tarea</button>
     <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
+    <select class="filtros-estatus" id="filtroEstatus" onchange="filtrarEstatusSelect(this.value)" title="Filtrar por estado">
+      <option value="">Todos los estados</option>
+      <option value="proceso">En Proceso</option>
+      <option value="validar">Para validar</option>
+      <option value="vencidas">Vencidas</option>
+    </select>
     <div class="filtros-spacer"></div>
   </div>
 
@@ -6801,6 +6821,13 @@ function actualizarKPIs() {
     c.classList.toggle('kpi-activa', !!jefaturaActiva && c.dataset.jef === jefaturaActiva));
   document.querySelectorAll('.kpi[data-est]').forEach(c =>
     c.classList.toggle('kpi-activa', !!estatusFiltro && c.dataset.est === estatusFiltro));
+  // Mantiene el <select> de la barra en sintonía con el filtro activo (sea por
+  // el select o por clic en un círculo del KPI).
+  const selEst = document.getElementById('filtroEstatus');
+  if (selEst) {
+    selEst.value = (estatusFiltro === 'proceso' || estatusFiltro === 'validar' || estatusFiltro === 'vencidas') ? estatusFiltro : '';
+    selEst.classList.toggle('activo', !!selEst.value);
+  }
 }
 
 // Dibuja el donut del Resumen general (4 segmentos: En Proceso sin vencer,
@@ -7568,6 +7595,14 @@ function filtrarPorEnlace(i) {
 function filtrarPorEstatus(estado) {
   if (estado === 'validadas') { cambiarVista('papelera'); return; }
   estatusFiltro = (estatusFiltro === estado) ? null : estado;
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
+// Filtro por estado desde el <select> de la barra (junto al buscador). A
+// diferencia de los círculos del KPI, ASIGNA directo (no alterna). '' = Todos.
+function filtrarEstatusSelect(valor) {
+  estatusFiltro = valor || null;
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
