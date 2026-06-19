@@ -363,6 +363,34 @@
       } catch (e) { return { ok: false, error: String(e), correos: [] }; }
     },
 
+    // ---- PLANTILLA DEL CORREO (asunto + cuerpo con variables {{...}}) ----
+    // La LEE cualquier usuario autenticado (la app la usa para prellenar el
+    // aviso al crear una tarea). Solo el DIRECTOR la puede GUARDAR (lo impone
+    // la RLS de la tabla plantilla_correo; aquí se detecta si no hubo permiso).
+    leerPlantillaCorreo: async function () {
+      try {
+        var r = await sb.from('plantilla_correo').select('asunto,cuerpo,activo').eq('id', 1).single();
+        if (r.error || !r.data) return { ok: false, error: r.error ? r.error.message : 'sin plantilla' };
+        return { ok: true, asunto: r.data.asunto || '', cuerpo: r.data.cuerpo || '', activo: r.data.activo !== false };
+      } catch (e) { return { ok: false, error: String(e) }; }
+    },
+    guardarPlantillaCorreo: async function (datos) {
+      datos = datos || {};
+      try {
+        var upd = {
+          asunto: String(datos.asunto || ''),
+          cuerpo: String(datos.cuerpo || ''),
+          activo: datos.activo !== false,
+          updated_at: new Date().toISOString()
+        };
+        var r = await sb.from('plantilla_correo').update(upd).eq('id', 1).select('id');
+        if (r.error) return { ok: false, error: r.error.message };
+        // La RLS deja a los no-Director actualizar 0 filas (sin error): lo detectamos.
+        if (!r.data || !r.data.length) return { ok: false, error: 'Solo el Director puede editar la plantilla.' };
+        return { ok: true };
+      } catch (e) { return { ok: false, error: String(e) }; }
+    },
+
     // ---- no-ops (existían en Apps Script, aquí no aplican) ----
     // Cambiar la contraseña del usuario logueado.
     cambiarContrasena: async function (token, nueva) {

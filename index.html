@@ -4728,6 +4728,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8"  y2="13"/><line x1="16" y1="17" x2="8"  y2="17"/><line x1="10" y1="9"  x2="8"  y2="9"/></svg>
           <span class="sidebar-label">Reportes</span>
         </button>
+        <!-- Ajustes del correo de aviso (plantilla asunto/cuerpo). Solo Director. -->
+        <button class="sidebar-item" id="sidebarAjustesCorreo" style="display:none" onclick="abrirAjustesCorreo()" title="Editar la plantilla del correo de aviso al crear una tarea">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6 12 13 2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+          <span class="sidebar-label">Correo de aviso</span>
+        </button>
         <!-- Organigrama: abre el sitio del organigrama en pestaña nueva. -->
         <button class="sidebar-item" id="sidebarOrganigrama" onclick="window.open('https://attrapi.github.io/organigramaATTRAPI/', '_blank', 'noopener')" title="Abrir el organigrama (nueva pestaña)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="3" y="17" width="6" height="5" rx="1"/><rect x="15" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M6 17v-2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2"/></svg>
@@ -5585,6 +5590,9 @@ function aplicarSesion() {
   // Juego "Reta a la Ley": por ahora SOLO Daniel de la Garza (enlace), para probarlo.
   const juegoBtn = document.getElementById('sidebarJuegoLopsrm');
   if (juegoBtn) juegoBtn.style.display = esDanielDeLaGarza() ? '' : 'none';
+  // Ajustes del correo de aviso (plantilla): SOLO el Director (Adrián) la edita.
+  const ajustesCorreoBtn = document.getElementById('sidebarAjustesCorreo');
+  if (ajustesCorreoBtn) ajustesCorreoBtn.style.display = (usuarioActual.rol === 'Director') ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -12002,6 +12010,89 @@ function enviarCorreoTareaAhora(c) {
     .enviarCorreo(c);
 }
 
+// ============== AJUSTES · PLANTILLA DEL CORREO DE AVISO ==============
+// Editor (solo Director) del asunto y cuerpo que se PRELLENAN al crear una
+// tarea con aviso por correo. Admite variables {{...}} que se reemplazan con
+// los datos reales de la tarea. Quien crea la tarea puede ajustar el texto
+// antes de enviar (la plantilla es solo la base).
+function abrirAjustesCorreo() {
+  if (typeof cerrarSidebar === 'function') cerrarSidebar();
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id">AJUSTES</div>
+        <div class="modal-titulo">Plantilla del correo de aviso</div>
+      </div>
+      <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint" style="margin-bottom:14px; line-height:1.6">
+        Este texto se <strong>prellena</strong> al crear una tarea con aviso por correo; quien la
+        crea puede ajustarlo antes de enviar. Escribe variables entre llaves y se reemplazan
+        solas con los datos de la tarea:<br>
+        <code>{{responsable}}</code> <code>{{tema}}</code> <code>{{fecha}}</code>
+        <code>{{area}}</code> <code>{{creador}}</code>
+        <span style="opacity:.7">(<code>{{codigo}}</code> aún no existe al crear, queda en blanco).</span>
+      </p>
+      <div class="form-campo full" style="margin-bottom:14px">
+        <label for="aj_asunto">Asunto</label>
+        <input type="text" id="aj_asunto" placeholder="Asunto del correo" style="width:100%">
+      </div>
+      <div class="form-campo full">
+        <label for="aj_cuerpo">Cuerpo</label>
+        <textarea id="aj_cuerpo" rows="12" placeholder="Mensaje del correo" style="width:100%"></textarea>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer; font-weight:600">
+        <input type="checkbox" id="aj_activo" style="width:auto; margin:0"> Enviar avisos por correo
+        <span style="font-weight:400; opacity:.7">(si lo apagas, no se manda ningún aviso al crear tareas)</span>
+      </label>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal btn-modal-primario" type="button" id="aj_btnGuardar" onclick="guardarAjustesCorreo()">Guardar</button>
+    </div>
+  `;
+  document.getElementById('modalFondo').classList.add('activo');
+  // Carga los valores actuales de la plantilla.
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok) {
+        const a = document.getElementById('aj_asunto');
+        const c = document.getElementById('aj_cuerpo');
+        const v = document.getElementById('aj_activo');
+        if (a) a.value = res.asunto || '';
+        if (c) c.value = res.cuerpo || '';
+        if (v) v.checked = res.activo !== false;
+      } else {
+        toast('No se pudo cargar la plantilla: ' + ((res && res.error) || ''), 'error');
+      }
+    })
+    .withFailureHandler(function () { toast('No se pudo cargar la plantilla', 'error'); })
+    .leerPlantillaCorreo();
+}
+
+function guardarAjustesCorreo() {
+  const btn = document.getElementById('aj_btnGuardar');
+  const asunto = (document.getElementById('aj_asunto').value || '').trim();
+  const cuerpo = (document.getElementById('aj_cuerpo').value || '').trim();
+  const activo = !!document.getElementById('aj_activo').checked;
+  if (!asunto || !cuerpo) { toast('El asunto y el cuerpo no pueden quedar vacíos', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok) { toast('Plantilla guardada', 'ok'); cerrarModal(); }
+      else {
+        toast((res && res.error) || 'No se pudo guardar', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+      }
+    })
+    .withFailureHandler(function (e) {
+      toast('No se pudo guardar: ' + (e && e.message ? e.message : e), 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+    })
+    .guardarPlantillaCorreo({ asunto: asunto, cuerpo: cuerpo, activo: activo });
+}
+
 // Muestra/oculta el bloque de correo y, al abrirlo, prellena asunto/cuerpo con
 // los datos del formulario y autollena el "Para" con el correo del responsable.
 function toggleCorreoTarea(on) {
@@ -12017,17 +12108,42 @@ function toggleCorreoTarea(on) {
   const elDe = document.getElementById('nt_correoDe'); if (elDe) elDe.textContent = creador || '—';
   const elAsunto = document.getElementById('nt_correoAsunto');
   const elCuerpo = document.getElementById('nt_correoCuerpo');
-  // No pisar lo que el usuario ya haya escrito.
-  if (elAsunto && !elAsunto.value) elAsunto.value = 'Nueva tarea asignada' + (tema ? ': ' + tema : '');
-  if (elCuerpo && !elCuerpo.value) {
-    elCuerpo.value =
+  // Área (subdirección) de la tarea = la primera área marcada en el formulario.
+  const _areasMarc = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
+  const area = _areasMarc[0] || '';
+  // Valores que reemplazan los {{...}} de la plantilla. {{codigo}} aún no existe
+  // al crear, queda vacío.
+  const vars = { responsable: respTxt, tema: tema, fecha: fechaTxt, creador: creador, area: area, codigo: '' };
+  const rellena = (s) => String(s || '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] != null ? vars[k] : ''));
+  // Respaldo si no se puede leer la plantilla configurada en Ajustes (Director).
+  const asuntoDef = 'Nueva tarea asignada' + (tema ? ': ' + tema : '');
+  const cuerpoDef =
       'Hola ' + (respTxt || '') + ':\n\n' +
       'Se te asignó una nueva tarea.\n\n' +
       'Tema: ' + tema + '\n' +
       'Fecha de atención: ' + fechaTxt + '\n' +
       'Creada por: ' + creador + '\n\n' +
       'Puedes responder este correo para escribirle a quien la creó.';
-  }
+  // Lee la plantilla y prellena asunto/cuerpo (sin pisar lo que el usuario ya
+  // escribió). Si el Director desactivó los avisos, cancela el envío.
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && res.activo === false) {
+        toast('Los avisos por correo están desactivados en Ajustes', 'error');
+        const chk = document.getElementById('nt_enviarCorreo');
+        if (chk) chk.checked = false;
+        if (box) box.style.display = 'none';
+        return;
+      }
+      const usaTpl = res && res.ok;
+      if (elAsunto && !elAsunto.value) elAsunto.value = (usaTpl && res.asunto) ? rellena(res.asunto) : asuntoDef;
+      if (elCuerpo && !elCuerpo.value) elCuerpo.value = (usaTpl && res.cuerpo) ? rellena(res.cuerpo) : cuerpoDef;
+    })
+    .withFailureHandler(function () {
+      if (elAsunto && !elAsunto.value) elAsunto.value = asuntoDef;
+      if (elCuerpo && !elCuerpo.value) elCuerpo.value = cuerpoDef;
+    })
+    .leerPlantillaCorreo();
   // Autollena el "Para" con el correo del responsable (si se puede resolver).
   const elPara = document.getElementById('nt_correoPara');
   if (elPara && !elPara.value && resps.length) {
