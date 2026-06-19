@@ -18,7 +18,7 @@
   // Apps Script DEDICADO al correo, dueño = tt.notificaciones@gmail.com (el
   // remitente real es esa cuenta). Pega aquí la URL .../exec cuando lo publiques.
   // Mientras esté vacío, el correo cae al DRIVE_URL de arriba (respaldo).
-  var CORREO_URL   = '';
+  var CORREO_URL   = 'https://script.google.com/macros/s/AKfycbwiCRiXRvPJLo9iK8S2s56Aqnq5mq6Aip5J_UwXwQfKU9FrpC3JwG5zSoEuCnlpW17K/exec';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var USUARIO_ACTUAL = null;   // perfil del usuario logueado (para creado_por, etc.)
