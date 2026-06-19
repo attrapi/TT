@@ -12,11 +12,10 @@
 --   {{codigo}} {{tema}} {{fecha}} {{responsable}} {{creador}} {{area}}
 create table if not exists public.plantilla_correo (
   id         int primary key default 1,
-  asunto     text not null default 'Nueva tarea asignada: {{codigo}} — {{tema}}',
+  asunto     text not null default 'Nueva tarea asignada: {{tema}}',
   cuerpo     text not null default
     'Hola {{responsable}}:' || chr(10) || chr(10) ||
     'Se te asignó una nueva tarea.' || chr(10) || chr(10) ||
-    'Código: {{codigo}}' || chr(10) ||
     'Tema: {{tema}}' || chr(10) ||
     'Área: {{area}}' || chr(10) ||
     'Fecha de atención: {{fecha}}' || chr(10) ||
