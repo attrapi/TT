@@ -6344,10 +6344,11 @@ function obtenerTareasFiltradas() {
   }
   // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
 
-  // El Director NO ve las tareas asignadas a un ENLACE (son seguimiento interno
-  // de SPAC entre el subdirector y sus enlaces).
+  // El Director NO ve las tareas PURAMENTE de enlace (seguimiento interno de SPAC
+  // entre el subdirector y sus enlaces). Las MIXTAS (con algún responsable que no
+  // es enlace) sí las ve.
   if (usuarioActual.rol === 'Director') {
-    lista = lista.filter(t => !esTareaDeEnlace(t));
+    lista = lista.filter(t => !esTareaSoloEnlaces(t));
   }
 
   if (prioridadActiva !== 'TODAS') {
@@ -6446,6 +6447,21 @@ function esTareaDeEnlace(t) {
   if (!t) return false;
   return (RESPONSABLES || []).some(function (r) {
     return r && r.es_enlace && esResponsableDe(t, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
+  });
+}
+// ¿TODOS los responsables de la tarea son enlaces? El Director solo OCULTA las
+// tareas puramente de enlace; si hay al menos un responsable que NO es enlace
+// (p. ej. un subdirector), la tarea es "mixta" y el Director SÍ la ve.
+function esTareaSoloEnlaces(t) {
+  if (!t) return false;
+  const nombres = String(t.responsable || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!nombres.length) return false;
+  // Cada nombre de responsable debe corresponder a una persona marcada es_enlace.
+  return nombres.every(function (nom) {
+    return (RESPONSABLES || []).some(function (r) {
+      return r && r.es_enlace
+        && esResponsableDe({ responsable: nom }, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
+    });
   });
 }
 
@@ -6683,7 +6699,7 @@ function actualizarKPIs() {
     if (!(t.eliminada || t.estatus === 'Archivada')) return false;
     if (modoEnlaces) return esTareaDeEnlace(t) && t.subdireccion === usuarioActual.subdireccion;
     if (usuarioActual.rol === 'Director') {
-      if (esTareaDeEnlace(t)) return false;   // el Director no ve tareas de enlace
+      if (esTareaSoloEnlaces(t)) return false;   // el Director no ve tareas PURAMENTE de enlace
       return tabActiva === 'TODAS' || t.subdireccion === tabActiva
           || (tabActiva === 'ENLACE' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
     }
@@ -7894,8 +7910,8 @@ function tareasPapelera() {
   // Historial incluye DOS cosas: las tareas COMPLETADAS (estatus=Archivada)
   // y las ELIMINADAS (eliminada=true).
   let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
-  // El Director NO ve las tareas de enlace (seguimiento interno de SPAC).
-  if (usuarioActual.rol === 'Director') return lista.filter(t => !esTareaDeEnlace(t));
+  // El Director NO ve las tareas PURAMENTE de enlace (seguimiento interno de SPAC).
+  if (usuarioActual.rol === 'Director') return lista.filter(t => !esTareaSoloEnlaces(t));
   // Enlace SPAC: solo SU historial (donde fue responsable directo).
   if (esEnlaceUser()) {
     return lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
