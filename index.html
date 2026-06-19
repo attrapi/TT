@@ -5565,8 +5565,10 @@ function aplicarSesion() {
     if (sidebarEnlacesBtn) sidebarEnlacesBtn.style.display = 'none';
     // Historial SÍ visible: el enlace ve las tareas suyas que se desechan/archivan.
     if (btnHistorial) btnHistorial.style.display = '';
+    // Los enlaces SÍ pueden crear sus propias tareas (responsable = ellos mismos),
+    // así aparecen en su tablero. El formulario los bloquea a sí mismos.
     const btnNuevoEl = document.getElementById('btnNuevo');
-    if (btnNuevoEl) btnNuevoEl.style.display = 'none';
+    if (btnNuevoEl) btnNuevoEl.style.display = '';
     const navTitEl = document.getElementById('navTitulo');
     if (navTitEl) navTitEl.textContent = 'Enlace';
     tabActiva = usuarioActual.subdireccion;
@@ -11351,6 +11353,10 @@ function abrirNuevaTarea(tEdit) {
     : opcionesPermitidas.map(o => o.v);
   // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
   participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
+  // Un ENLACE creando una tarea solo se asigna a SU propia área (para que caiga en
+  // su tablero); no elige otras áreas ni jefaturas.
+  const esEnlaceCreando = esEnlaceUser() && !ed;
+  if (esEnlaceCreando && miAreaUser) codigosAsignables = [miAreaUser];
   const asignablesHTML = codigosAsignables.map(function (cod) {
     // El área propia del creador se marca y bloquea (siempre participa): el
     // subdirector/jefe como ejecutor, el Director (DPAC) como validador.
@@ -11399,7 +11405,7 @@ function abrirNuevaTarea(tEdit) {
           <div class="form-campo">
             <label>Responsable directo <span class="req">*</span></label>
             <div id="nt_responsables_lista"></div>
-            <button type="button" class="acciones-agregar-btn" onclick="agregarResponsableRow()" style="margin-top:8px;">+ Agregar otro responsable</button>
+            ${esEnlaceCreando ? '' : '<button type="button" class="acciones-agregar-btn" onclick="agregarResponsableRow()" style="margin-top:8px;">+ Agregar otro responsable</button>'}
             <input type="text" id="nt_areaOtra" maxlength="200" value="${escapeHtml(valAreasTexto)}" placeholder="Otra área involucrada (escríbela y se sumará a la tarea)" style="margin-top:8px;">
             <div class="form-hint">Si participa otra área además de la responsable, escríbela aquí (sepáralas con comas).</div>
           </div>
@@ -11718,6 +11724,16 @@ function leerResponsablesDOM() {
 function renderResponsablesForm() {
   const cont = document.getElementById('nt_responsables_lista');
   if (!cont) return;
+  // Un ENLACE solo se asigna a sí mismo: fila única bloqueada (su tarea va a su
+  // propio tablero). No puede cambiar, agregar ni quitar responsables.
+  if (esEnlaceUser() && !tareaEditando) {
+    const miNombre = nombresSinApellidos(usuarioActual.nombre || '') || formatearNombre(usuarioActual.nombre || '');
+    responsablesForm = [miNombre];
+    cont.innerHTML = '<div class="responsable-row">' +
+      '<input type="text" class="nt-resp-sel" value="' + escapeHtml(miNombre) + '" disabled style="opacity:.85; flex:1;">' +
+    '</div>';
+    return;
+  }
   if (!responsablesForm.length) responsablesForm = [''];
   cont.innerHTML = responsablesForm.map(function (val, i) {
     const opts = opcionesResponsableHTML(val);
