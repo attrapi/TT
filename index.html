@@ -5324,6 +5324,13 @@ function esSubdirectorSPACReal() {
   return !!(u && u.rol === 'Capturista' && u.subdireccion === 'SPAC' && !jefaturaCodigo(u.jefatura) && !u.es_enlace);
 }
 
+// ¿El usuario REAL es el subdirector de SA (Amanda)? Para darle el enlace a DPAC
+// en el header, igual que al Director y al subdirector de SPAC.
+function esSubdirectorSAReal() {
+  const u = usuarioReal || usuarioActual;
+  return !!(u && u.rol === 'Capturista' && u.subdireccion === 'SA' && !jefaturaCodigo(u.jefatura) && !u.es_enlace);
+}
+
 // Entra/sale de la vista "como Dirección" (solo lectura).
 function toggleVistaDirector() {
   if (!esSubdirectorSPACReal()) return;
@@ -5576,7 +5583,7 @@ function aplicarSesion() {
   // subdirector de SPAC (Mario).
   const brandDpac = document.getElementById('brandDpac');
   if (brandDpac) {
-    const esDirBrand = usuarioActual.rol === 'Director' || esSubdirectorSPACReal();
+    const esDirBrand = usuarioActual.rol === 'Director' || esSubdirectorSPACReal() || esSubdirectorSAReal();
     brandDpac.classList.toggle('dpac-pill', esDirBrand);
     brandDpac.onclick = esDirBrand ? function () { window.open('https://attrapi.github.io/DPAC/', '_blank', 'noopener'); } : null;
     brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
