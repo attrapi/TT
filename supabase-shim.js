@@ -15,6 +15,10 @@
   var DOMINIO      = '@attrapi.gob.mx';     // se agrega al usuario corto para el login
   // Mini Apps Script (solo adjuntos a Drive). Se conecta en el siguiente paso.
   var DRIVE_URL    = 'https://script.google.com/macros/s/AKfycbyZgAmAerXuSXlI3l_WAre1rLfSFt3Omt1C_48S2DUH24ySkRW0L5lIJrTVyaH-OXI6xw/exec';
+  // Apps Script DEDICADO al correo, dueño = tt.notificaciones@gmail.com (el
+  // remitente real es esa cuenta). Pega aquí la URL .../exec cuando lo publiques.
+  // Mientras esté vacío, el correo cae al DRIVE_URL de arriba (respaldo).
+  var CORREO_URL   = '';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var USUARIO_ACTUAL = null;   // perfil del usuario logueado (para creado_por, etc.)
@@ -342,7 +346,7 @@
     enviarCorreo: async function (datos) {
       datos = datos || {};
       try {
-        var resp = await fetch(DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        var resp = await fetch(CORREO_URL || DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ accion: 'correo',
             para: datos.para || '', asunto: datos.asunto || '', cuerpo: datos.cuerpo || '',
             deNombre: datos.deNombre || '', replyTo: datos.replyTo || '' }) });
