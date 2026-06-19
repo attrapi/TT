@@ -8209,7 +8209,10 @@ function abrirDetalle(t) {
   // Flujo nuevo: la validación es por checklist. El ÚNICO botón de acción
   // primaria es "Completada" (verde) y aparece cuando TODAS las casillas están
   // paloma. Validar/Devolver/Finalizar/Reenviar quedaron obsoletos.
-  const todoListo = !t.eliminada && t.estatus !== 'Archivada' && checklistTodoMarcado(t);
+  // Una tarea SIN acciones no tiene nada que palomear: se considera lista para
+  // completar/validar (si no, quedaría atorada sin forma de cerrarla).
+  const _sinAccionesDet = obtenerChecklist(t).length === 0;
+  const todoListo = !t.eliminada && t.estatus !== 'Archivada' && (checklistTodoMarcado(t) || _sinAccionesDet);
 
   if (t.eliminada) {
     if (puedeGestionarHistorial(t)) {
@@ -11035,7 +11038,7 @@ function completarTarea(idTarea) {
     toast('Solo el participante de mayor jerarquía puede marcar la tarea como completada.', 'error');
     return;
   }
-  if (!checklistTodoMarcado(t)) {
+  if (obtenerChecklist(t).length > 0 && !checklistTodoMarcado(t)) {
     toast('Faltan acciones por marcar.', 'error');
     return;
   }
