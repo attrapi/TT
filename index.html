@@ -6691,7 +6691,7 @@ function actualizarKPIs() {
   // checklist TODO palomeado (lista para que el validador la complete) o
   // CONCLUIDA (responsables listos, falta validar). Estas NO cuentan como
   // "Vencidas" aunque haya pasado la fecha (el trabajo sí se hizo).
-  const esLista    = t => checklistTodoMarcado(t) || responsablesListos(t);
+  const esLista    = tareaEsLista;   // fuente única (misma que Reportes y Carga)
   const listasN    = activas.filter(esLista).length;
   const vencidas   = activas.filter(t => esVencida(t.fecha_limite) && !esLista(t)).length;
   const enProcesoN = activas.length - listasN;
@@ -9678,11 +9678,14 @@ function renderizarDashboard() {
   document.getElementById('dashResumenChip').textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
 
   // Dona por estatus (En Proceso al día | Vencidas | Por validar | Validadas).
-  const enProc = lista.filter(t => t.estatus === 'En Proceso');
+  // MISMA lógica que el KPI/Reportes: una tarea "lista" (checklist completo o
+  // responsables listos) cuenta como "Para validar", no como "En Proceso".
+  const activasDash = lista.filter(t => !t.eliminada && t.estatus !== 'Archivada' && !t.en_validadas);
+  const porValidar = activasDash.filter(t => tareaEsLista(t)).length;
+  const enProc = activasDash.filter(t => !tareaEsLista(t));
   const vencidas = enProc.filter(t => esVencida(t.fecha_limite)).length;
   const identificadas = enProc.length - vencidas;
-  const porValidar = lista.filter(t => t.estatus === 'Atendida' && !t.en_validadas).length;
-  const validadas  = lista.filter(t => t.estatus === 'Archivada' || t.en_validadas).length;
+  const validadas  = lista.filter(t => !t.eliminada && (t.estatus === 'Archivada' || t.en_validadas)).length;
   const segs = [
     { label: etiquetaEstatus('En Proceso'), valor: identificadas, color: '#B45309' },
     { label: 'Vencidas',    valor: vencidas,    color: '#B91C1C' },
@@ -10277,6 +10280,13 @@ function responsablesListos(t) {
   if (checklistTodoMarcado(t)) return false;
   const ejecutores = cols.slice(0, cols.length - 1);   // todos menos el validador (último = top)
   return items.every(it => ejecutores.every(cod => marcadoDeArea(it, t, cod)));
+}
+// ¿La tarea ya está "lista para validar"? (checklist completo o responsables
+// listos). Para los CONTEOS cuenta como "Para validar", NO como "En Proceso",
+// aunque su campo estatus siga en 'En Proceso'. FUENTE ÚNICA usada por el KPI,
+// Reportes y Carga, para que TODAS las jerarquías muestren el mismo número.
+function tareaEsLista(t) {
+  return checklistTodoMarcado(t) || responsablesListos(t);
 }
 // % de avance: marcadas / (ítems × nº de participantes).
 function checklistAvance(t) {
@@ -12504,8 +12514,8 @@ function renderizarCarga() {
   //     JDGA/JDGOI→SGOI), así que el filtro por subdirección ya las incluye.
   //   (Los jefes/jefas no llegan aquí: no tienen Carga en el menú.)
   let universo = usuarioActual.rol === 'Capturista'
-    ? TAREAS.filter(t => t.subdireccion === usuarioActual.subdireccion)
-    : TAREAS.filter(t => t.nivel !== 'jefatura');
+    ? TAREAS.filter(t => !t.eliminada && t.subdireccion === usuarioActual.subdireccion)
+    : TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura');
 
   // Agrupar por responsable
   const porResponsable = {};
@@ -12525,10 +12535,13 @@ function renderizarCarga() {
   }
 
   grid.innerHTML = filas.map(f => {
+    // Mismos conteos que el KPI/Reportes: una tarea "lista" cuenta como "Para
+    // validar", no como "En Proceso".
+    const activasF = f.tareas.filter(t => t.estatus !== 'Archivada');
     const total = f.tareas.length;
-    const enProcesos = f.tareas.filter(t => t.estatus === 'En Proceso').length;
-    const atendidas  = f.tareas.filter(t => t.estatus === 'Atendida').length;
-    const vencidas   = f.tareas.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
+    const enProcesos = activasF.filter(t => !tareaEsLista(t)).length;
+    const atendidas  = activasF.filter(t => tareaEsLista(t)).length;
+    const vencidas   = activasF.filter(t => !tareaEsLista(t) && esVencida(t.fecha_limite)).length;
 
     const iniciales = f.responsable.split(' ').filter(p => p.length > 0).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
@@ -12586,14 +12599,14 @@ function exportarPDF(sub, jefatura) {
   // esa jefatura. Reporte normal: por subdirección, excluyendo jefaturas.
   let lista, nombreReporte, headerSub, mostrarSub;
   if (jefatura) {
-    lista = TAREAS.filter(t => t.nivel === 'jefatura' && t.jefatura === jefatura && t.subdireccion === sub);
+    lista = TAREAS.filter(t => !t.eliminada && t.nivel === 'jefatura' && t.jefatura === jefatura && t.subdireccion === sub);
     nombreReporte = JEFATURAS_SPAC[jefatura] || 'Jefatura';
     const etiq = jefatura === 'MANUALES' ? 'Jef. Manuales' : 'Jef. Procedimientos';
     const cj = COLOR_SUB[sub] || { bg: '#F3F4F6', fg: '#374151' };
     headerSub = `<span class="rep-sub-pill" style="background:${cj.bg};color:${cj.fg};">${etiq}</span>`;
     mostrarSub = false;
   } else {
-    const base = TAREAS.filter(t => t.nivel !== 'jefatura');
+    const base = TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura');
     lista = (sub === 'TODAS') ? base : base.filter(t => t.subdireccion === sub);
     nombreReporte = NOMBRE_SUB[sub];
     headerSub = (sub === 'TODAS') ? '' : `<span class="rep-sub-pill" style="background:${(COLOR_SUB[sub]||{}).bg};color:${(COLOR_SUB[sub]||{}).fg};">${sub}</span>`;
@@ -12604,10 +12617,13 @@ function exportarPDF(sub, jefatura) {
   const fechaTxt = String(ahora.getDate()).padStart(2,'0') + '/' + String(ahora.getMonth()+1).padStart(2,'0') + '/' + ahora.getFullYear();
   const horaTxt = String(ahora.getHours()).padStart(2,'0') + ':' + String(ahora.getMinutes()).padStart(2,'0');
 
+  // Conteos con la MISMA lógica que el KPI: una tarea "lista" (checklist completo
+  // o responsables listos) cuenta como "Para validar", no como "En Proceso".
+  const activasRep = lista.filter(t => t.estatus !== 'Archivada');
   const total = lista.length;
-  const enProceso = lista.filter(t => t.estatus === 'En Proceso').length;
-  const atendidas = lista.filter(t => t.estatus === 'Atendida').length;
-  const vencidas  = lista.filter(t => t.estatus === 'En Proceso' && esVencida(t.fecha_limite)).length;
+  const enProceso = activasRep.filter(t => !tareaEsLista(t)).length;
+  const atendidas = activasRep.filter(t => tareaEsLista(t)).length;
+  const vencidas  = activasRep.filter(t => !tareaEsLista(t) && esVencida(t.fecha_limite)).length;
 
   // Filas, ordenadas por subdirección y luego por fecha límite
   const ordenadas = [...lista].sort((a, b) => {
@@ -12616,15 +12632,19 @@ function exportarPDF(sub, jefatura) {
   });
 
   const filas = ordenadas.map(t => {
-    const vencida = t.estatus === 'En Proceso' && esVencida(t.fecha_limite);
+    // Estado EFECTIVO (igual que el KPI/conteos): "lista" = Para validar.
+    const esLst    = t.estatus !== 'Archivada' && tareaEsLista(t);
+    const vencida  = t.estatus !== 'Archivada' && !tareaEsLista(t) && esVencida(t.fecha_limite);
     const c = COLOR_SUB[t.subdireccion] || { bg: '#F3F4F6', fg: '#374151' };
     const subPill = `<span class="sub-pill" style="background:${c.bg};color:${c.fg};">${t.subdireccion}</span>`;
     const estatusClase = t.estatus === 'Archivada'
       ? 'estatus-archivada'
-      : (t.estatus === 'Atendida' ? 'estatus-atendida' : (vencida ? 'estatus-vencida' : 'estatus-proceso'));
+      : (esLst ? 'estatus-atendida' : (vencida ? 'estatus-vencida' : 'estatus-proceso'));
     // Cuando vence, mostramos sólo "Vencida" (rojo) en lugar de
     // "En Proceso (vencida)" — más corto, no se encima con la fecha.
-    const estatusTexto = vencida ? 'Vencida' : etiquetaEstatus(t.estatus);
+    const estatusTexto = vencida ? 'Vencida'
+      : (t.estatus === 'Archivada' ? etiquetaEstatus('Archivada')
+        : (esLst ? etiquetaEstatus('Atendida') : etiquetaEstatus('En Proceso')));
     return `
       <tr>
         <td class="col-id">${t.id}</td>
