@@ -31,6 +31,13 @@ function doPost(e) {
 
     var opciones = { name: datos.deNombre || NOMBRE_REMITENTE };
     if (datos.replyTo) opciones.replyTo = String(datos.replyTo).trim();
+    // Copia de conocimiento (p. ej. a quien crea la tarea). Se omite cualquier
+    // correo que ya esté en "Para" (no tiene caso duplicarlo).
+    if (datos.cc) {
+      var cc = String(datos.cc).split(',').map(function (x) { return x.trim(); })
+        .filter(function (x) { return x && para.indexOf(x) < 0; });
+      if (cc.length) opciones.cc = cc.join(',');
+    }
 
     GmailApp.sendEmail(
       para.join(','),

@@ -349,7 +349,7 @@
         var resp = await fetch(CORREO_URL || DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ accion: 'correo',
             para: datos.para || '', asunto: datos.asunto || '', cuerpo: datos.cuerpo || '',
-            deNombre: datos.deNombre || '', replyTo: datos.replyTo || '' }) });
+            deNombre: datos.deNombre || '', replyTo: datos.replyTo || '', cc: datos.cc || '' }) });
         return await resp.json();
       } catch (e) { return { ok: false, error: String(e) }; }
     },

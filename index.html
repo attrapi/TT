@@ -11830,7 +11830,11 @@ function guardarNuevaTarea() {
         asunto: (document.getElementById('nt_correoAsunto').value || '').trim() || ('Nueva tarea: ' + tema),
         cuerpo: (document.getElementById('nt_correoCuerpo').value || '').trim(),
         deNombre: (usuarioActual && usuarioActual.nombre) ? formatearNombre(usuarioActual.nombre) : 'TT',
-        replyTo: (usuarioActual && usuarioActual.email) ? usuarioActual.email : ''
+        replyTo: (usuarioActual && usuarioActual.email) ? usuarioActual.email : '',
+        // Copia de conocimiento para quien crea la tarea (CC, no destinatario
+        // principal). Si el creador también es responsable, el Apps Script evita
+        // duplicarlo en CC.
+        cc: (usuarioActual && usuarioActual.email) ? usuarioActual.email : ''
       };
     }
   }
