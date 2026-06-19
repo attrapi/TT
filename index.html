@@ -2846,14 +2846,15 @@
     background: #fff;
     transition: padding 0.18s ease;
   }
-  /* Al hacer scroll hacia abajo, el encabezado encoge ligeramente. */
+  /* Al hacer scroll hacia abajo, el encabezado encoge ligeramente. El cambio de
+     altura es pequeño a propósito (menos reflujo = regreso más suave, sin saltos). */
   .modal.scrolled .modal-header {
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: 16px;
+    padding-bottom: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);   /* sutil separación del contenido */
   }
   .modal-titulo { transition: font-size 0.18s ease; }
-  .modal.scrolled .modal-titulo { font-size: 17px; }
+  .modal.scrolled .modal-titulo { font-size: 19px; }
 
   .modal-header-info { flex: 1; min-width: 0; }   /* min-width:0 → el título envuelve dentro de su columna */
 
@@ -8408,8 +8409,15 @@ function cerrarModal() {
 // Header del modal "sticky": al hacer scroll hacia abajo dentro del modal,
 // añade la clase .scrolled (el encabezado encoge ligeramente). Se llama desde
 // el onscroll del #modal.
+// HISTÉRESIS: encoge al pasar de 56px y vuelve a su tamaño al bajar de 28px. La
+// banda muerta (28–56) es mayor que el cambio de altura del header (~19px), así
+// que no oscila ("brincos"); y como el umbral de expansión (28) es alto, regresa
+// a su tamaño inicial en cuanto te acercas arriba (ya no "le cuesta volver").
 function onModalScroll(el) {
-  if (el) el.classList.toggle('scrolled', el.scrollTop > 6);
+  if (!el) return;
+  const y = el.scrollTop;
+  if (y > 56) el.classList.add('scrolled');
+  else if (y < 28) el.classList.remove('scrolled');
 }
 
 // ============== UTILIDADES ==============
