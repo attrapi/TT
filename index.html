@@ -2827,6 +2827,9 @@
     max-height: 90vh;
     overflow-y: auto;
     overflow-x: hidden;   /* nunca scroll horizontal aunque el contenido sea ancho */
+    /* Evita el "scroll chaining": al llegar al tope/fondo del modal, el scroll NO
+       se pasa a la página de atrás. */
+    overscroll-behavior: contain;
     border-radius: 2px;
     border-top: 4px solid var(--guinda);
   }
