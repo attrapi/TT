@@ -2838,7 +2838,22 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 18px;   /* aire entre el título y los botones (Editar/×) para que no se toquen */
+    /* Sticky: el encabezado (tema, ID, vistos, Editar, ×) se queda pegado arriba
+       al hacer scroll dentro del modal. */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #fff;
+    transition: padding 0.18s ease;
   }
+  /* Al hacer scroll hacia abajo, el encabezado encoge ligeramente. */
+  .modal.scrolled .modal-header {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);   /* sutil separación del contenido */
+  }
+  .modal-titulo { transition: font-size 0.18s ease; }
+  .modal.scrolled .modal-titulo { font-size: 17px; }
 
   .modal-header-info { flex: 1; min-width: 0; }   /* min-width:0 → el título envuelve dentro de su columna */
 
@@ -4983,7 +4998,7 @@
 
 <!-- ========== MODAL ========== -->
 <div class="modal-fondo" id="modalFondo" onclick="if(event.target===this && !formTareaAbierto && !tareaAbierta) cerrarModal()">
-  <div class="modal" id="modal"></div>
+  <div class="modal" id="modal" onscroll="onModalScroll(this)"></div>
 </div>
 
 <!-- ========== TOAST ========== -->
@@ -8377,6 +8392,9 @@ function finalizarConComentarios() {
 
 function cerrarModal() {
   document.getElementById('modalFondo').classList.remove('activo');
+  // Reinicia el scroll y el estado "compacto" del header para el próximo modal.
+  const _m = document.getElementById('modal');
+  if (_m) { _m.scrollTop = 0; _m.classList.remove('scrolled'); }
   COMENTARIO_EDITANDO = null;
   tareaAbierta = null;
   tareaEditando = null;
@@ -8385,6 +8403,13 @@ function cerrarModal() {
   formTareaAbierto = false;
   comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
   BORRADOR_HILO = {};           // descarta borradores de comentario sin enviar
+}
+
+// Header del modal "sticky": al hacer scroll hacia abajo dentro del modal,
+// añade la clase .scrolled (el encabezado encoge ligeramente). Se llama desde
+// el onscroll del #modal.
+function onModalScroll(el) {
+  if (el) el.classList.toggle('scrolled', el.scrollTop > 6);
 }
 
 // ============== UTILIDADES ==============
@@ -11817,7 +11842,13 @@ function guardarNuevaTarea() {
   correoTareaPendiente = null;
   const _chkCorreo = document.getElementById('nt_enviarCorreo');
   if (!tareaEditando && _chkCorreo && _chkCorreo.checked) {
-    const _para = (document.getElementById('nt_correoPara').value || '').trim();
+    const _paraRaw = (document.getElementById('nt_correoPara').value || '').trim();
+    // No auto-notificarse: el creador nunca es destinatario principal de su
+    // propio aviso (puede ir en CC). Si al quitarse a sí mismo NO queda nadie
+    // más (se asignó la tarea a sí mismo), no se manda correo.
+    const _miCorreo = String((usuarioActual && usuarioActual.email) || '').trim().toLowerCase();
+    const _para = _paraRaw.split(',').map(s => s.trim()).filter(Boolean)
+      .filter(e => e.toLowerCase() !== _miCorreo).join(', ');
     if (_para) {
       correoTareaPendiente = {
         para: _para,
@@ -12171,10 +12202,13 @@ function toggleCorreoTarea(on) {
   // Autollena el "Para" con el correo del responsable (si se puede resolver).
   const elPara = document.getElementById('nt_correoPara');
   if (elPara && !elPara.value && resps.length) {
+    const _miCorreo = String((usuarioActual && usuarioActual.email) || '').trim().toLowerCase();
     google.script.run
       .withSuccessHandler(function (res) {
         if (res && res.ok && res.correos && res.correos.length && !elPara.value) {
-          elPara.value = res.correos.join(', ');
+          // No autollenar con tu propio correo: no te avisas a ti mismo (sí vas en CC).
+          const dest = res.correos.filter(function (e) { return String(e).trim().toLowerCase() !== _miCorreo; });
+          if (dest.length) elPara.value = dest.join(', ');
         }
       })
       .withFailureHandler(function () { /* si no se puede, el usuario lo escribe a mano */ })
