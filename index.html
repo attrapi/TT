@@ -4659,7 +4659,7 @@
             <span class="nav-usuario-rol" id="userRol">Director</span>
           </div>
         </div>
-        <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Actualizar todo (tareas, bitácora y catálogos) sin salir de la sesión">
+        <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Recargar la app: datos frescos y la última versión (como F5), sin cerrar tu sesión">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
           <span>Actualizar</span>
         </button>
@@ -5272,34 +5272,14 @@ async function sincronizarSPAC() {
 // perfil; este botón evita ese rebote: vuelve a leer el Sheet publicado
 // (que es la fuente "viva" de las tareas SPAC) y re-renderiza la vista
 // actual sin tocar la sesión.
-async function actualizarDatos() {
-  // Puede dispararse desde el botón del header (navActualizar) o el de filtros.
+function actualizarDatos() {
+  // RECARGA REAL de la página (como F5). Así no solo trae datos frescos, también
+  // la última versión publicada de la app: al cambiar de usuario en caliente,
+  // antes los cambios no se reflejaban hasta un Ctrl+F5 manual. La sesión se
+  // reanuda sola (el token sigue guardado), así que NO regresa al login.
   const btns = [document.getElementById('navActualizar'), document.getElementById('btnActualizar')].filter(Boolean);
-  if (btns.some(b => b.disabled)) return;
   btns.forEach(b => { b.disabled = true; b.classList.add('sincronizando'); });
-  try {
-    if (enAppScript()) {
-      // Espera a que las tareas recarguen para que el spinner gire mientras
-      // carga (tope de seguridad por si el servidor tarda o no responde).
-      await new Promise(function (resolve) {
-        let listo = false;
-        const fin = function () { if (!listo) { listo = true; resolve(); } };
-        cargarTareasAppScript(true, fin);   // recarga tareas (conserva avance local)
-        cargarBitacora();                   // refresca el historial
-        cargarResponsables();               // refresca la lista de responsables
-        cargarAreas();                      // refresca el catálogo de áreas
-        setTimeout(fin, 6000);
-      });
-      toast('Información actualizada', 'ok');
-    } else {
-      await sincronizarSPAC();
-      toast('Información actualizada', 'ok');
-    }
-  } catch (err) {
-    toast('No se pudo actualizar', 'error');
-  } finally {
-    btns.forEach(b => { b.disabled = false; b.classList.remove('sincronizando'); });
-  }
+  location.reload();
 }
 
 function iniciarSincronizacionSPAC() {
@@ -5611,22 +5591,10 @@ function salir() {
     try { google.script.run.cerrarSesion(SESION_TOKEN); } catch (e) {}
   }
   try { localStorage.removeItem('tt_token'); } catch (e) {}   // olvida la sesión recordada
-  SESION_TOKEN = null;
-  usuarioActual = null;
-  document.getElementById('app').classList.remove('activa');
-  document.getElementById('pantallaAcceso').style.display = 'flex';
-  tabActiva = 'TODAS';
-  jefaturaActiva = null;
-  prioridadActiva = 'TODAS';
-  if (enAppScript()) {
-    usuarioLoginSel = null;
-    const c = document.getElementById('loginContrasena'); if (c) c.value = '';
-    const m = document.getElementById('loginUsuarioManual'); if (m) m.value = '';
-    const e = document.getElementById('loginError'); if (e) e.textContent = '';
-    const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-    // Al salir: login de correo + contraseña, SIN listar a todos los usuarios.
-    loginModoManual();
-  }
+  // Recarga al salir: la próxima entrada (cambiar de usuario) arranca con la
+  // página limpia y la última versión publicada, sin datos del usuario anterior
+  // pegados. Sin token guardado, la recarga muestra el login.
+  location.reload();
 }
 
 // ============== LOGIN REAL (Apps Script) ==============
