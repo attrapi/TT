@@ -12623,6 +12623,7 @@ function exportarPDF(sub, jefatura) {
   const total = lista.length;
   const enProceso = activasRep.filter(t => !tareaEsLista(t)).length;
   const atendidas = activasRep.filter(t => tareaEsLista(t)).length;
+  const validadas = lista.filter(t => t.estatus === 'Archivada').length;
   const vencidas  = activasRep.filter(t => !tareaEsLista(t) && esVencida(t.fecha_limite)).length;
 
   // Filas, ordenadas por subdirección y luego por fecha límite
@@ -12700,12 +12701,13 @@ function exportarPDF(sub, jefatura) {
   .rep-info-sub { font-size: 9.5px; color: #6A6A6A; margin-top: 4px; line-height: 1.35; }
   .rep-sub-pill { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
 
-  .rep-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .rep-resumen { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
   .rep-kpi { border: 1px solid #E5DFD7; border-radius: 4px; padding: 7px 10px; }
   .rep-kpi-valor { font-family: Georgia, serif; font-size: 20px; font-weight: 700; line-height: 1; }
   .rep-kpi-label { font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6A6A6A; margin-top: 4px; }
   .rep-kpi.proceso .rep-kpi-valor { color: #B45309; }
   .rep-kpi.atendida .rep-kpi-valor { color: #15803D; }
+  .rep-kpi.validada .rep-kpi-valor { color: #374151; }
   .rep-kpi.vencida .rep-kpi-valor { color: #B91C1C; }
 
   /* Tabla más compacta para que quepa en carta vertical */
@@ -12781,10 +12783,11 @@ function exportarPDF(sub, jefatura) {
   </div>
 
   <div class="rep-resumen">
-    <div class="rep-kpi"><div class="rep-kpi-valor">${total}</div><div class="rep-kpi-label">Total</div></div>
     <div class="rep-kpi proceso"><div class="rep-kpi-valor">${enProceso}</div><div class="rep-kpi-label">${etiquetaEstatus('En Proceso')}</div></div>
     <div class="rep-kpi atendida"><div class="rep-kpi-valor">${atendidas}</div><div class="rep-kpi-label">${etiquetaEstatus('Atendida')}</div></div>
+    <div class="rep-kpi validada"><div class="rep-kpi-valor">${validadas}</div><div class="rep-kpi-label">Validadas</div></div>
     <div class="rep-kpi vencida"><div class="rep-kpi-valor">${vencidas}</div><div class="rep-kpi-label">Vencidas</div></div>
+    <div class="rep-kpi"><div class="rep-kpi-valor">${total}</div><div class="rep-kpi-label">Total</div></div>
   </div>
 
   ${total === 0 ? '<div class="rep-vacio">No hay tareas que mostrar para este filtro.</div>' : `
