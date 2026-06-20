@@ -428,6 +428,16 @@
     background: rgba(105,28,50,0.15);
     color: var(--guinda);
   }
+  /* Grupo "Gestión": todos los items con borde guinda (mismo color) para que el
+     bloque se lea cohesivo con su encabezado guinda y se vea más cuidado. Tenue
+     en reposo; pleno al pasar el mouse o cuando está activo. */
+  #sidebarGrupoDirector .sidebar-item {
+    border-color: rgba(105,28,50,0.4);
+  }
+  #sidebarGrupoDirector .sidebar-item:hover,
+  #sidebarGrupoDirector .sidebar-item.activa {
+    border-color: var(--guinda);
+  }
   /* Botón Inicio: un toque más sólido que un item normal, color guinda
      pleno para que sirva de "regreso a casa" siempre visible. */
   .sidebar-inicio {
