@@ -10123,10 +10123,6 @@ function enviarRecordatorio(idTarea, canal) {
     // es estructurar el mensaje con emojis, separadores y negritas para que se
     // lea como una ficha visual aún siendo texto plano.
     const sep = '━━━━━━━━━━━━━━━━━━━';
-    const prio = prioridadDe(t);
-    const prioEmoji = prio === 'Alta' ? '🔴' : (prio === 'Media' ? '🟡' : '🟢');
-    const estatusEmoji = t.estatus === 'Atendida' ? '✅' : '🟠';
-    const venceEsteDia = venceHoy(t.fecha_atencion || t.fecha_limite) && t.estatus === 'En Proceso';
 
     const lineas = [
       '📌 *RECORDATORIO TT · ' + t.id + '*',
@@ -10136,19 +10132,12 @@ function enviarRecordatorio(idTarea, canal) {
       '*' + tema + '*',
       ''
     ];
-    if (venceEsteDia) lineas.push('⏰ *Ocurriendo hoy*', '');
     lineas.push(
       '👤 *Responsable*',
       '   ' + t.responsable,
       '',
-      '🏛️ *Áreas involucradas*',
-      '   ' + areas,
-      '',
       '📅 *Fecha de atención*',
-      '   ' + fechaTxt,
-      '',
-      prioEmoji + ' *Prioridad:* ' + prio,
-      estatusEmoji + ' *Estatus:* ' + etiquetaEstatus(t.estatus)
+      '   ' + fechaTxt
     );
     if (acuerdos && acuerdos !== '—') {
       lineas.push('', sep, '🤝 *Acuerdos realizados*', acuerdos);
