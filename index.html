@@ -1763,7 +1763,7 @@
     color: white;
     border: none;
     padding: 8px 16px;
-    border-radius: 2px;
+    border-radius: 999px;   /* pastilla, igual que el filtro de estado */
     font-family: var(--sans);
     font-size: 13px;
     font-weight: 600;
@@ -1807,20 +1807,31 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .filtros-buscar:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
-  /* Filtro por estado (junto al buscador). */
+  /* Filtro por estado (junto al buscador) — mismo color guinda que "Nueva Tarea",
+     con flecha blanca propia (appearance:none) para que se vea sobre el guinda. */
   .filtros-estatus {
-    border: 1px solid var(--linea);
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 8px 34px 8px 16px;
     font-size: 13px;
+    font-weight: 600;
     font-family: var(--sans);
-    background: #fff;
-    color: var(--tinta);
+    color: #fff;
     cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+    background-color: var(--guinda);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+    transition: background-color 0.15s;
   }
-  .filtros-estatus:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
-  .filtros-estatus.activo { border-color: var(--guinda); color: var(--guinda); font-weight: 700; }
+  .filtros-estatus:hover { background-color: var(--guinda-oscuro); }
+  .filtros-estatus:focus { outline: none; box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .filtros-estatus.activo { background-color: var(--guinda-oscuro); }
+  /* Las opciones del desplegable en blanco (legibles), no en guinda. */
+  .filtros-estatus option { background: #fff; color: var(--tinta); font-weight: 500; }
   /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
   .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
 
