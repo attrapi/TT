@@ -4004,7 +4004,11 @@
     box-shadow: 0 1px 4px rgba(105,28,50,0.08);
   }
   .checklist-cab, .checklist-fila {
-    display: grid; grid-template-columns: minmax(0, 1fr) 75px 75px 105px;
+    display: grid;
+    /* El número de casillas (una por participante) lo pasa el JS en --chk-cols.
+       Definir el grid aquí (y no inline) permite que la media query de móvil
+       ajuste los anchos para que el texto no se encime con las casillas. */
+    grid-template-columns: minmax(0, 1fr) repeat(var(--chk-cols, 2), 75px) 105px;
     align-items: center; gap: 10px; padding: 8px 12px;
   }
   /* Variante Staff (DPAC + Enlace): solo 1 casilla (Director) + adjunto. */
@@ -4171,7 +4175,6 @@
 
   @media (max-width: 700px) {
     .obs-doble { grid-template-columns: 1fr; }
-    .checklist-cab, .checklist-fila { grid-template-columns: 1fr 70px 70px; }
   }
 
   /* === RESPONSIVE · refuerzo para celular (≤640px) === */
@@ -4198,6 +4201,18 @@
 
     /* Tarjetas del tablero a todo el ancho disponible. */
     .col-cuerpo.col-cuerpo-grid { grid-template-columns: 1fr; }
+
+    /* CHECKLIST de acciones: en celular las casillas y el adjunto se achican
+       para dejar suficiente ancho a la columna de texto y que NO se encime con
+       las casillas (sobre todo con 2+ responsables). El texto largo envuelve
+       dentro de su celda, sin pisar nada. */
+    .checklist-cab, .checklist-fila {
+      grid-template-columns: minmax(0, 1fr) repeat(var(--chk-cols, 2), 34px) 58px;
+      gap: 6px; padding: 8px 10px;
+    }
+    .checklist-cab-resp, .checklist-cab-dir, .checklist-cab-adj { font-size: 9px; }
+    .checklist-adj-cell { max-width: 58px; padding: 4px 3px; font-size: 9.5px; }
+    .checklist-adj-link { max-width: 44px; }
 
     /* === Modal y formulario de CREAR/EDITAR tarea: a pantalla completa === */
     #modal { max-width: 100%; max-height: 100vh; border-radius: 0; }
@@ -10594,9 +10609,11 @@ function renderChecklistHTML(t) {
   const cols = participantesDe(t);                 // áreas participantes = columnas
   const puedeAlgo = puedeChecklist(t);             // participa: agregar/palomear/adjuntar
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  // Grid dinámico: Acción | (una casilla por participante) | Adjunto. El estilo
-  // inline gana sobre la plantilla fija del CSS (incluida la de móvil).
-  const gridStyle = 'grid-template-columns: minmax(0, 1fr) ' + cols.map(function () { return '75px'; }).join(' ') + ' 105px;';
+  // Grid dinámico: Acción | (una casilla por participante) | Adjunto. Solo se
+  // pasa el número de casillas como variable CSS (--chk-cols); el grid se define
+  // en el CSS para que la media query de móvil pueda reducir los anchos y el
+  // texto no se encime con las casillas.
+  const gridStyle = '--chk-cols: ' + cols.length + ';';
   const todasCols = function (item) { return cols.length > 0 && cols.every(function (cod) { return marcadoDeArea(item, t, cod); }); };
 
   const inputAgregar = puedeAlgo
