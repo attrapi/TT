@@ -7327,6 +7327,10 @@ function renderizarEnlaces() {
     return t.estatus !== 'Archivada' && (t.subdireccion === sub || tareaEnArea(t, sub));
   });
   const colores = ['azul', 'morado', 'naranja', 'olivo'];
+  // Con UN solo enlace la columna queda a todo el ancho; el cuerpo usa grid para
+  // que las tarjetas se acomoden (varias por fila) en vez de estirarse a lo ancho,
+  // igual que el tablero normal de una sola columna.
+  const cuerpoCls = enlaces.length === 1 ? 'col-cuerpo col-cuerpo-grid' : 'col-cuerpo';
 
   enlaces.forEach(function (en, i) {
     const persona = { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto };
@@ -7342,7 +7346,7 @@ function renderizarEnlaces() {
         '</div>' +
         '<div class="col-conteo">' + tareasCol.length + '</div>' +
       '</div>' +
-      '<div class="col-cuerpo"></div>';
+      '<div class="' + cuerpoCls + '"></div>';
     wrap.appendChild(colEl);
     const cuerpo = colEl.querySelector('.col-cuerpo');
     if (!tareasCol.length) {
