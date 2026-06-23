@@ -1791,7 +1791,7 @@
     transition: all 0.15s;
   }
   .filtros-buscar {
-    border: 1px solid var(--linea);
+    border: 1.5px solid var(--guinda);   /* borde institucional para que no se pierda */
     border-radius: 999px;
     padding: 7px 16px;
     font-size: 13px;
@@ -4951,12 +4951,19 @@
   <!-- "Nueva Tarea" y el buscador, juntos en la misma fila (a la izquierda). -->
   <div class="filtros">
     <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevaTarea()">+ Nueva Tarea</button>
-    <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable…" oninput="filtrarBuscar(this.value)">
+    <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable y fecha" oninput="filtrarBuscar(this.value)">
     <select class="filtros-estatus" id="filtroEstatus" onchange="filtrarEstatusSelect(this.value)" title="Filtrar por estado">
       <option value="">Todos los estados</option>
       <option value="proceso">En Proceso</option>
       <option value="validar">Para validar</option>
       <option value="vencidas">Vencidas</option>
+    </select>
+    <select class="filtros-estatus filtros-fecha" id="filtroFecha" onchange="filtrarFechaSelect(this.value)" title="Filtrar por fecha">
+      <option value="">Todas las fechas</option>
+      <option value="hoy">Hoy</option>
+      <option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option>
+      <option value="permanente">Permanentes</option>
     </select>
     <div class="filtros-spacer"></div>
   </div>
@@ -5481,6 +5488,7 @@ let tabActiva = 'TODAS';
 let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdirección)
 let enlaceActivo = null;     // nombre completo del enlace seleccionado (card "Pendientes por enlace") o null
 let estatusFiltro = null;    // 'proceso' | 'validar' | 'vencidas' filtro por círculo del Resumen (solo tablero)
+let fechaFiltro = '';        // '' | 'hoy' | 'semana' | 'mes' | 'permanente' filtro por fecha (junto al de estados)
 let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
@@ -6479,6 +6487,7 @@ function sinAcentos(s) {
 function coincideBusqueda(t, termino) {
   // Incluimos mostrarAreas() para que el buscador encuentre también por
   // ACRÓNIMO (ej. "SPAC" cae en "Subdirección ... (SPAC)").
+  const _f = t.fecha_atencion || t.fecha_limite || '';
   const txt = sinAcentos([
     t.tema || t.titulo || '',
     t.responsable || '',
@@ -6486,7 +6495,9 @@ function coincideBusqueda(t, termino) {
     t.areas_involucradas || '',
     mostrarAreas(t.areas_involucradas || ''),
     t.acuerdos_realizados || t.observaciones || '',
-    t.accion_a_tomar || t.descripcion || ''
+    t.accion_a_tomar || t.descripcion || '',
+    // Fecha: ISO + formateada (DD/MM/AAAA) para encontrar por "2026-06" o "23/06".
+    _f, formatearFecha(_f), (t.permanente ? 'permanente' : '')
   ].join(' '));
   return txt.indexOf(termino) >= 0;
 }
@@ -7171,6 +7182,10 @@ function renderizarTablero() {
       return true;
     });
   }
+  // Filtro por FECHA (junto al de estados): acota las tarjetas del tablero.
+  if (fechaFiltro) {
+    lista = lista.filter(t => tareaEnRangoFecha(t, fechaFiltro));
+  }
   const cols = columnasPorRol();
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
@@ -7728,6 +7743,28 @@ function filtrarEstatusSelect(valor) {
   estatusFiltro = valor || null;
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
+}
+function filtrarFechaSelect(valor) {
+  fechaFiltro = valor || '';
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+// ¿La tarea cae en el rango de fecha elegido? '' = todas. Compara la fecha de
+// atención contra hoy: 'hoy' = es hoy; 'semana' = próximos 7 días (incl. hoy);
+// 'mes' = mes calendario actual; 'permanente' = tareas sin fecha (permanentes).
+function tareaEnRangoFecha(t, rango) {
+  if (!rango) return true;
+  if (rango === 'permanente') return !!t.permanente;
+  if (t.permanente) return false;
+  const f = t.fecha_atencion || t.fecha_limite || '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return false;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const d = new Date(f + 'T00:00:00');
+  if (isNaN(d.getTime())) return false;
+  if (rango === 'hoy')    return d.getTime() === hoy.getTime();
+  if (rango === 'semana') { const fin = new Date(hoy); fin.setDate(hoy.getDate() + 7); return d >= hoy && d < fin; }
+  if (rango === 'mes')    return d.getFullYear() === hoy.getFullYear() && d.getMonth() === hoy.getMonth();
+  return true;
 }
 
 // Sello de fecha/hora "DD/MM/AAAA HH:MM" usado en bitácora y metadata.
