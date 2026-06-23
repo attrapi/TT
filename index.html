@@ -7713,7 +7713,7 @@ function cambiarTab(sub) {
   // subdirección, lo regresamos al Tablero (inicio) ANTES de renderizar. Así
   // los KPIs ("Pendientes por…") se pintan en el modo correcto y NO se quedan
   // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
-  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera'];
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
