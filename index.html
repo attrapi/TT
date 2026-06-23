@@ -3048,6 +3048,11 @@
 
   /* ===== Comentarios (hilo de conversación de la tarea) ===== */
   .conv-hilo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  /* Arroba (@) en el hilo: menú de sugerencias + resaltado de la mención. */
+  .arroba-menu { position: fixed; z-index: 6000; background: #fff; border: 1px solid var(--linea); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); max-height: 220px; overflow-y: auto; display: none; }
+  .arroba-item { padding: 8px 12px; font-size: 13px; cursor: pointer; color: var(--tinta); white-space: nowrap; }
+  .arroba-item:hover { background: var(--guinda-tenue); color: var(--guinda); }
+  .arroba-mention { color: var(--guinda); font-weight: 700; background: var(--guinda-tenue); border-radius: 4px; padding: 0 3px; }
   .conv-vacio { color: var(--tinta-tenue); font-size: 12px; font-style: italic; padding: 6px 2px; }
   .conv-msg {
     background: #fff; border: 1px solid var(--linea); border-left: 3px solid var(--guinda);
@@ -11427,6 +11432,74 @@ function comentariosDeTarea(t) {
   return orden.map(k => byCid[k]).filter(g => !g.deleted);
 }
 
+// ===== Arroba (@) en los hilos: autocompletar nombres (solo visual, no notifica) =====
+let _arrobaCtx = null;   // { el, start, end } del token @ que se está escribiendo
+// Lista de nombres para arrobar (responsables + el usuario actual), sin repetir.
+function personasArroba() {
+  const out = [], seen = {};
+  function add(n) {
+    n = formatearNombre(String(n || '')).trim();
+    if (n && !seen[n.toLowerCase()]) { seen[n.toLowerCase()] = 1; out.push(n); }
+  }
+  (RESPONSABLES || []).forEach(function (r) {
+    add((typeof nombreCortoResp === 'function' ? nombreCortoResp(r) : '') || (r && r.nombreCompleto));
+  });
+  if (usuarioActual) add(usuarioActual.nombre);
+  return out;
+}
+function arrobaMenu() {
+  let m = document.getElementById('arrobaMenu');
+  if (!m) { m = document.createElement('div'); m.id = 'arrobaMenu'; m.className = 'arroba-menu'; document.body.appendChild(m); }
+  return m;
+}
+// oninput del textarea del hilo: guarda el borrador y dispara el menú de @.
+function onComentarioInput(el, key) {
+  BORRADOR_HILO[key] = el.value;
+  mostrarArroba(el);
+}
+// Muestra el menú si justo antes del cursor hay un "@token" (sin espacios).
+function mostrarArroba(el) {
+  if (!el) return;
+  const pos = el.selectionStart;
+  const m = el.value.slice(0, pos).match(/@([^@\s]*)$/);
+  const menu = arrobaMenu();
+  if (!m) { menu.style.display = 'none'; _arrobaCtx = null; return; }
+  const q = sinAcentos(m[1]);
+  const opts = personasArroba().filter(function (n) { return q === '' || sinAcentos(n).indexOf(q) >= 0; }).slice(0, 6);
+  if (!opts.length) { menu.style.display = 'none'; _arrobaCtx = null; return; }
+  _arrobaCtx = { el: el, start: pos - m[0].length, end: pos };
+  menu.innerHTML = opts.map(function (n) {
+    return '<div class="arroba-item" onmousedown="event.preventDefault(); insertarArroba(this.getAttribute(\'data-n\'))" data-n="' + escapeHtml(n) + '">@' + escapeHtml(n) + '</div>';
+  }).join('');
+  const r = el.getBoundingClientRect();
+  menu.style.left = r.left + 'px';
+  menu.style.top = (r.bottom + 4) + 'px';
+  menu.style.minWidth = Math.min(r.width, 260) + 'px';
+  menu.style.display = 'block';
+}
+// Inserta "@Nombre " en lugar del token que se estaba escribiendo.
+function insertarArroba(nombre) {
+  if (!_arrobaCtx) return;
+  const el = _arrobaCtx.el, v = el.value;
+  el.value = v.slice(0, _arrobaCtx.start) + '@' + nombre + ' ' + v.slice(_arrobaCtx.end);
+  const caret = _arrobaCtx.start + nombre.length + 2;
+  el.focus(); el.setSelectionRange(caret, caret);
+  const key = (el.id === 'conv_input_nuevo') ? '__nuevo__' : el.id.replace('conv_input_', '');
+  BORRADOR_HILO[key] = el.value;
+  arrobaMenu().style.display = 'none';
+  _arrobaCtx = null;
+}
+function ocultarArroba() { setTimeout(function () { const m = document.getElementById('arrobaMenu'); if (m) m.style.display = 'none'; }, 150); }
+// Resalta las menciones @Nombre (de personas conocidas) en el texto ya escapado.
+function resaltarArrobas(textoEscapado) {
+  let s = textoEscapado;
+  personasArroba().slice().sort(function (a, b) { return b.length - a.length; }).forEach(function (n) {
+    const ne = escapeHtml(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp('@' + ne, 'g'), '<span class="arroba-mention">@' + escapeHtml(n) + '</span>');
+  });
+  return s;
+}
+
 function renderComentariosHTML(t) {
   const msgs = comentariosDeTarea(t);
   const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '';
@@ -11450,7 +11523,7 @@ function renderComentariosHTML(t) {
             '<button type="button" class="conv-btn" onclick="cancelarEdicionComentario()">Cancelar</button>' +
           '</div>';
       } else {
-        html += '<div class="conv-texto">' + escapeHtml(g.texto) + '</div>';
+        html += '<div class="conv-texto">' + resaltarArrobas(escapeHtml(g.texto)) + '</div>';
         if (esAutor) {
           html += '<div class="conv-acciones">' +
             '<button type="button" class="conv-btn" onclick="editarComentarioUI(\'' + g.cid + '\')">Editar</button>' +
@@ -11464,8 +11537,8 @@ function renderComentariosHTML(t) {
   html += '</div>';
   html += '<div class="conv-input">' +
     '<textarea id="conv_input_' + t.id + '" class="conv-textarea" maxlength="800" ' +
-      'oninput="BORRADOR_HILO[\'' + t.id + '\']=this.value" ' +
-      'placeholder="Escribe un comentario o responde… (Ctrl+Enter para enviar)" ' +
+      'oninput="onComentarioInput(this, \'' + t.id + '\')" onkeyup="mostrarArroba(this)" onclick="mostrarArroba(this)" onblur="ocultarArroba()" ' +
+      'placeholder="Escribe un comentario o responde… (@ para mencionar · Ctrl+Enter para enviar)" ' +
       'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();enviarComentario(\'' + t.id + '\');}">' +
       escapeHtml(BORRADOR_HILO[t.id] || '') + '</textarea>' +
     '<button type="button" class="conv-enviar" onclick="enviarComentario(\'' + t.id + '\')">Enviar</button>' +
@@ -11488,7 +11561,7 @@ function renderHiloNuevoHTML() {
           '<span class="conv-acron">' + escapeHtml(acronimoPersona(yo)) + '</span>' +
           '<span class="conv-nombre">' + escapeHtml(yo) + '</span>' +
         '</div>' +
-        '<div class="conv-texto">' + escapeHtml(c.texto) + '</div>' +
+        '<div class="conv-texto">' + resaltarArrobas(escapeHtml(c.texto)) + '</div>' +
         '<div class="conv-acciones">' +
           '<button type="button" class="conv-btn conv-btn-del" onclick="quitarComentarioNuevaTarea(' + i + ')">Quitar</button>' +
         '</div>' +
@@ -11498,8 +11571,8 @@ function renderHiloNuevoHTML() {
   html += '</div>';
   html += '<div class="conv-input">' +
     '<textarea id="conv_input_nuevo" class="conv-textarea" maxlength="800" ' +
-      'oninput="BORRADOR_HILO[\'__nuevo__\']=this.value" ' +
-      'placeholder="Escribe un comentario… (se guardará al crear la tarea)" ' +
+      'oninput="onComentarioInput(this, \'__nuevo__\')" onkeyup="mostrarArroba(this)" onclick="mostrarArroba(this)" onblur="ocultarArroba()" ' +
+      'placeholder="Escribe un comentario… (@ para mencionar · se guardará al crear la tarea)" ' +
       'onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();agregarComentarioNuevaTarea();}">' +
       escapeHtml(BORRADOR_HILO['__nuevo__'] || '') + '</textarea>' +
     '<button type="button" class="conv-enviar" onclick="agregarComentarioNuevaTarea()">Agregar</button>' +
