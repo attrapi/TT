@@ -4092,6 +4092,10 @@
     accent-color: var(--guinda);
   }
   .checklist-chk:disabled { cursor: default; opacity: 0.55; }
+  /* Celda de casilla (label que envuelve la casilla + su etiqueta de área). En
+     escritorio la etiqueta se oculta y la casilla queda centrada en su columna. */
+  .checklist-chk-cell { display: flex; align-items: center; justify-content: center; }
+  .checklist-chk-tag { display: none; }
   .checklist-texto { color: var(--tinta); line-height: 1.4; }
   .checklist-fila.completa .checklist-texto { text-decoration: line-through; color: var(--tinta-suave); }
   .checklist-vacio {
@@ -4234,17 +4238,24 @@
     /* Tarjetas del tablero a todo el ancho disponible. */
     .col-cuerpo.col-cuerpo-grid { grid-template-columns: 1fr; }
 
-    /* CHECKLIST de acciones: en celular las casillas y el adjunto se achican
-       para dejar suficiente ancho a la columna de texto y que NO se encime con
-       las casillas (sobre todo con 2+ responsables). El texto largo envuelve
-       dentro de su celda, sin pisar nada. */
-    .checklist-cab, .checklist-fila {
-      grid-template-columns: minmax(0, 1fr) repeat(var(--chk-cols, 2), 34px) 58px;
-      gap: 6px; padding: 8px 10px;
+    /* CHECKLIST de acciones en celular: se APILA cada fila. El nombre de la
+       acción va arriba a TODO el ancho (cómodo de leer aunque sea largo) y debajo
+       cada casilla para palomear con su etiqueta de área, y al final el adjunto.
+       El encabezado de columnas se oculta (cada casilla ya dice de quién es). */
+    .checklist-cab { display: none; }
+    .checklist-fila, .checklist-fila.checklist-fila-staff {
+      display: block; grid-template-columns: none;
+      padding: 12px 12px;
     }
-    .checklist-cab-resp, .checklist-cab-dir, .checklist-cab-adj { font-size: 9px; }
-    .checklist-adj-cell { max-width: 58px; padding: 4px 3px; font-size: 9.5px; }
-    .checklist-adj-link { max-width: 44px; }
+    .checklist-fila .checklist-texto { margin-bottom: 10px; }
+    .checklist-chk-cell {
+      justify-content: flex-start; gap: 10px;
+      padding: 5px 0; min-height: 30px;
+    }
+    .checklist-chk-tag {
+      display: inline; font-size: 12.5px; font-weight: 600; color: var(--guinda);
+    }
+    .checklist-adj-cell { max-width: none; margin-top: 8px; }
 
     /* === Modal y formulario de CREAR/EDITAR tarea: a pantalla completa === */
     #modal { max-width: 100%; max-height: 100vh; border-radius: 0; }
@@ -10864,9 +10875,15 @@ function renderChecklistHTML(t) {
       }
       const tip = autor ? ('Marcado por ' + autor + (fecha ? ' · ' + fecha : '')) : etiquetaColumnaArea(cod);
       const habilita = puedeMarcarArea(t, cod);
-      return '<input type="checkbox" class="checklist-chk"' + (marcado ? ' checked' : '') +
-        (habilita ? '' : ' disabled') +
-        ' onchange="toggleCheckArea(\'' + t.id + '\', ' + i + ', \'' + cod + '\', this.checked)" title="' + escapeHtml(tip) + '">';
+      // Envuelto en <label> con la etiqueta del área. En escritorio la etiqueta se
+      // oculta (la columna ya está rotulada en el encabezado); en móvil se muestra
+      // para que cada casilla diga de quién es (las filas se apilan en celular).
+      return '<label class="checklist-chk-cell">' +
+        '<span class="checklist-chk-tag">' + escapeHtml(etiquetaColumnaArea(cod)) + '</span>' +
+        '<input type="checkbox" class="checklist-chk"' + (marcado ? ' checked' : '') +
+          (habilita ? '' : ' disabled') +
+          ' onchange="toggleCheckArea(\'' + t.id + '\', ' + i + ', \'' + cod + '\', this.checked)" title="' + escapeHtml(tip) + '">' +
+        '</label>';
     }).join('');
 
     return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" style="' + gridStyle + '" title="' + escapeHtml(tooltipCreador) + '">' +
