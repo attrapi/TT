@@ -8886,6 +8886,12 @@ function cerrarModal() {
   formTareaAbierto = false;
   comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
   BORRADOR_HILO = {};           // descarta borradores de comentario sin enviar
+  // Con el filtro "No vistas" activo: al cerrar/guardar, la tarea recién abierta
+  // (ya marcada como vista) desaparece de la lista en ese momento.
+  if (verNoVistas) {
+    renderizar();
+    if (vistaActiva === 'calendario') renderizarCalendario();
+  }
 }
 
 // Header del modal "sticky": al hacer scroll hacia abajo dentro del modal,
