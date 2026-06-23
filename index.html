@@ -5899,7 +5899,8 @@ function aplicarUsuarioServidor(res) {
     rol: u.rol,                       // 'Director' o 'Capturista'
     subdireccion: u.subdireccion,     // TODAS / SA / SGOI / SPAC / ENLACE
     jefatura: u.jefatura || '',
-    es_enlace: !!u.es_enlace,         // ENLACE: vista limitada (solo sus tareas)
+    es_enlace: !!u.es_enlace,         // ENLACE: identidad de enlace (panel/asignable)
+    acceso_completo: !!u.acceso_completo,  // enlace con acceso completo: gestiona toda su subdirección
     nombre_corto: u.nombre_corto || '',
     iniciales: inicialesDe(u.nombre)
   };
