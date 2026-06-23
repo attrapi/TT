@@ -565,6 +565,46 @@
   .sidebar-papelera { margin-top: auto; }
   .sidebar-papelera svg { color: var(--rojo); }
 
+  /* === Asistencia (solo Mario): tardanzas de la semana === */
+  #asistenciaWrap { display: none; }
+  .app-main[data-vista="asistencia"] .kpis,
+  .app-main[data-vista="asistencia"] .tabs-wrap,
+  .app-main[data-vista="asistencia"] .filtros,
+  .app-main[data-vista="asistencia"] #tablero,
+  .app-main[data-vista="asistencia"] #calendarioWrap,
+  .app-main[data-vista="asistencia"] #bitacoraWrap,
+  .app-main[data-vista="asistencia"] #cargaWrap,
+  .app-main[data-vista="asistencia"] #reportesWrap,
+  .app-main[data-vista="asistencia"] #dashboardWrap,
+  .app-main[data-vista="asistencia"] #papeleraWrap,
+  .app-main[data-vista="asistencia"] #validadasWrap,
+  .app-main[data-vista="asistencia"] #enlacesWrap { display: none; }
+  .app-main[data-vista="asistencia"] #asistenciaWrap { display: block; }
+  .asistencia-wrap { padding: 18px 24px 48px; }
+  .asis-titulo { font-size: 22px; font-weight: 700; color: var(--guinda); margin: 0 0 4px; }
+  .asis-sub { color: var(--tinta-suave); font-size: 13px; margin-bottom: 16px; max-width: 620px; }
+  .asis-tabla-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--linea); border-radius: 12px; }
+  table.asis-tabla { border-collapse: collapse; width: 100%; min-width: 440px; }
+  .asis-tabla th, .asis-tabla td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--linea); }
+  .asis-tabla tbody tr:last-child td { border-bottom: none; }
+  .asis-tabla thead th { background: var(--guinda-tenue); color: var(--guinda); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .asis-tabla th.asis-col-persona, .asis-tabla td.asis-persona { text-align: left; font-weight: 600; color: var(--tinta); white-space: nowrap; }
+  .asis-celda { cursor: pointer; font-size: 18px; line-height: 1; user-select: none; width: 60px; color: var(--rojo); }
+  .asis-celda:hover { background: var(--guinda-tenue); }
+  .asis-celda.marcado { font-weight: 800; }
+  .asis-total { font-weight: 800; color: var(--tinta); }
+  .asis-total.lider { color: var(--rojo); }
+  .asis-acciones { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .asis-btn { border: none; border-radius: 999px; padding: 9px 18px; font-weight: 600; cursor: pointer; font-family: var(--sans); font-size: 13px; }
+  .asis-btn-rev { background: var(--guinda); color: #fff; }
+  .asis-btn-rev:hover { background: var(--guinda-oscuro); }
+  .asis-btn-reset { background: #fff; color: var(--guinda); border: 1.5px solid var(--guinda); }
+  .asis-resultado { margin-top: 20px; }
+  .asis-ganador-card { background: #fff; border: 2px solid var(--rojo); border-radius: 14px; padding: 18px 22px; text-align: center; animation: asis-reveal .55s ease; }
+  .asis-perdedor { display: inline-block; margin: 6px; padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 18px; animation: asis-shake .6s ease; }
+  @keyframes asis-reveal { 0% { transform: scale(.7); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes asis-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px) rotate(-2deg); } 40% { transform: translateX(6px) rotate(2deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+
   /* === Dashboard === */
   .dashboard-wrap { padding: 14px 24px 40px; }
   .dash-controles {
@@ -4832,6 +4872,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8"  y2="13"/><line x1="16" y1="17" x2="8"  y2="17"/><line x1="10" y1="9"  x2="8"  y2="9"/></svg>
           <span class="sidebar-label">Reportes</span>
         </button>
+        <!-- Asistencia (tardanzas de la semana): SOLO Mario. -->
+        <button class="sidebar-item" id="sidebarAsistencia" style="display:none" data-vista="asistencia" onclick="cambiarVista('asistencia')" title="Asistencia — tardanzas de la semana">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
+          <span class="sidebar-label">Asistencia</span>
+        </button>
         <!-- Ajustes del correo de aviso (plantilla asunto/cuerpo). Solo Director. -->
         <button class="sidebar-item" id="sidebarAjustesCorreo" style="display:none" onclick="abrirAjustesCorreo()" title="Editar la plantilla del correo de aviso al crear una tarea">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6 12 13 2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
@@ -5002,6 +5047,9 @@
     </div>
     <div class="bitacora-card" id="bitacoraLista"></div>
   </div>
+
+  <!-- Vista: Asistencia (tardanzas de la semana) — solo Mario. Se llena en JS. -->
+  <div class="asistencia-wrap" id="asistenciaWrap"></div>
 
   <!-- Vista: Carga por responsable -->
   <div class="carga-wrap" id="cargaWrap">
@@ -5699,6 +5747,9 @@ function aplicarSesion() {
   // Ajustes del correo de aviso (plantilla): SOLO el Director (Adrián) la edita.
   const ajustesCorreoBtn = document.getElementById('sidebarAjustesCorreo');
   if (ajustesCorreoBtn) ajustesCorreoBtn.style.display = (usuarioActual.rol === 'Director') ? '' : 'none';
+  // Asistencia (tardanzas): SOLO Mario.
+  const asisBtn = document.getElementById('sidebarAsistencia');
+  if (asisBtn) asisBtn.style.display = esMarioFranco() ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -10055,7 +10106,8 @@ function cambiarVista(v) {
     dashboard:  'Dashboard',
     validadas:  'Tareas Validadas',
     enlaces:    'Enlaces',
-    papelera:   'Historial'
+    papelera:   'Historial',
+    asistencia: 'Asistencia'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -10068,6 +10120,97 @@ function cambiarVista(v) {
   if (v === 'dashboard')  renderizarDashboard();
   if (v === 'enlaces')    renderizar();   // KPIs (modo enlaces) + columnas
   if (v === 'papelera')   renderizarPapelera();
+  if (v === 'asistencia') renderizarAsistencia();
+}
+
+// ===================== ASISTENCIA (solo Mario) =====================
+// Registro semanal de tardanzas: cuadrícula personas × días (Lun-Jue). Cada clic
+// pone/quita un tache (✗ = llegó tarde ese día). Suma las tardanzas por persona;
+// el viernes revela quién acumuló más (con empates y animación). Se guarda local
+// (localStorage, este equipo) y hay botón Restablecer. Es exclusivo de Mario.
+const ASIS_PERSONAS = ['Mario', 'César', 'Dolores', 'Nora', 'Guillermo', 'Fabián', 'Daniel'];
+const ASIS_DIAS = [['lun', 'Lunes'], ['mar', 'Martes'], ['mie', 'Miércoles'], ['jue', 'Jueves']];
+const ASIS_KEY = 'tt_asistencia_v1';
+
+function esMarioFranco() {
+  return !!usuarioActual && sinAcentos(usuarioActual.nombre || '').indexOf('mario') >= 0;
+}
+function asisLeer() {
+  try { return JSON.parse(localStorage.getItem(ASIS_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function asisGuardar(st) { try { localStorage.setItem(ASIS_KEY, JSON.stringify(st)); } catch (e) {} }
+function asisTotal(st, p) { return ASIS_DIAS.reduce(function (n, d) { return n + ((st[p] && st[p][d[0]]) ? 1 : 0); }, 0); }
+
+function toggleAsistencia(persona, dia) {
+  const st = asisLeer();
+  if (!st[persona]) st[persona] = {};
+  st[persona][dia] = !st[persona][dia];
+  asisGuardar(st);
+  renderizarAsistencia();
+}
+function restablecerAsistencia() {
+  if (!confirm('¿Restablecer la asistencia de la semana? Se borran todos los taches.')) return;
+  asisGuardar({});
+  renderizarAsistencia();
+  if (typeof toast === 'function') toast('Asistencia restablecida', 'ok');
+}
+
+function renderizarAsistencia() {
+  const wrap = document.getElementById('asistenciaWrap');
+  if (!wrap) return;
+  const st = asisLeer();
+  const totales = {};
+  ASIS_PERSONAS.forEach(function (p) { totales[p] = asisTotal(st, p); });
+  const maxT = Math.max(0, Math.max.apply(null, ASIS_PERSONAS.map(function (p) { return totales[p]; })));
+
+  const cab = '<tr><th class="asis-col-persona">Persona</th>' +
+    ASIS_DIAS.map(function (d) { return '<th>' + d[1] + '</th>'; }).join('') +
+    '<th>Tardanzas</th></tr>';
+
+  const filas = ASIS_PERSONAS.map(function (p) {
+    const celdas = ASIS_DIAS.map(function (d) {
+      const on = !!(st[p] && st[p][d[0]]);
+      return '<td class="asis-celda' + (on ? ' marcado' : '') + '" onclick="toggleAsistencia(\'' + p + '\', \'' + d[0] + '\')" title="' + d[1] + '">' + (on ? '✗' : '') + '</td>';
+    }).join('');
+    const esLider = maxT > 0 && totales[p] === maxT;
+    return '<tr><td class="asis-persona">' + escapeHtml(p) + '</td>' + celdas +
+      '<td class="asis-total' + (esLider ? ' lider' : '') + '">' + totales[p] + '</td></tr>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<div class="asis-titulo">Asistencia · Tardanzas de la semana</div>' +
+    '<div class="asis-sub">Marca con un clic los días que cada quien llegó tarde (Lunes a Jueves). Cada ✗ suma una tardanza. El viernes se revela quién acumuló más.</div>' +
+    '<div class="asis-tabla-wrap"><table class="asis-tabla"><thead>' + cab + '</thead><tbody>' + filas + '</tbody></table></div>' +
+    '<div class="asis-acciones">' +
+      '<button class="asis-btn asis-btn-rev" onclick="revelarAsistencia()">Ver resultado</button>' +
+      '<button class="asis-btn asis-btn-reset" onclick="restablecerAsistencia()">Restablecer</button>' +
+    '</div>' +
+    '<div class="asis-resultado" id="asisResultado"></div>';
+
+  // El viernes el resultado aparece solo (por la mañana o cuando se abra).
+  if (new Date().getDay() === 5) revelarAsistencia();
+}
+
+function revelarAsistencia() {
+  const cont = document.getElementById('asisResultado');
+  if (!cont) return;
+  const st = asisLeer();
+  const totales = ASIS_PERSONAS.map(function (p) { return { p: p, n: asisTotal(st, p) }; });
+  const maxT = Math.max(0, Math.max.apply(null, totales.map(function (x) { return x.n; })));
+  if (maxT === 0) {
+    cont.innerHTML = '<div class="asis-ganador-card">🎉 ¡Nadie llegó tarde esta semana! Sin tardanzas.</div>';
+    return;
+  }
+  const perdedores = totales.filter(function (x) { return x.n === maxT; });
+  const empate = perdedores.length > 1;
+  const nombres = perdedores.map(function (x) {
+    return '<span class="asis-perdedor">😱 ' + escapeHtml(x.p) + ' · ' + x.n + (x.n === 1 ? ' tardanza' : ' tardanzas') + '</span>';
+  }).join('');
+  cont.innerHTML = '<div class="asis-ganador-card">' +
+    '<div style="font-size:15px;color:var(--tinta-suave);margin-bottom:10px;">' +
+      (empate ? '¡Empate! Los que más llegaron tarde:' : 'Quien más llegó tarde esta semana:') + '</div>' +
+    '<div>' + nombres + '</div>' +
+  '</div>';
 }
 
 // Tarjetas de la vista Reportes según el rol. El Director ve la consolidada y
