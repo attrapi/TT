@@ -14,8 +14,9 @@ update public.perfiles p set
   jefatura     = v.jefatura,
   activo       = true
 from (values
+  -- El Staff (DPAC + Enlace) lo gestiona SOLO el Director: ya no hay capturista
+  -- de Staff (área ENLACE) en el sistema.
   ('director@ejemplo.gob.mx',    'Director',                  'Director',   'DPAC',   ''),
-  ('staff@ejemplo.gob.mx',       'Staff de Dirección',        'Capturista', 'ENLACE', ''),
   ('subdir.spac@ejemplo.gob.mx', 'Subdirector(a) SPAC',       'Capturista', 'SPAC',   ''),
   ('subdir.sa@ejemplo.gob.mx',   'Subdirector(a) SA',         'Capturista', 'SA',     ''),
   ('subdir.sgoi@ejemplo.gob.mx', 'Subdirector(a) SGOI',       'Capturista', 'SGOI',   ''),

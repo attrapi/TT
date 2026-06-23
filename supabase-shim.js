@@ -61,6 +61,7 @@
       subdireccion: p ? String(p.subdireccion || '').toUpperCase() : '',
       jefatura: p ? (p.jefatura || '') : '',
       es_enlace: !!(p && p.es_enlace),
+      acceso_completo: !!(p && p.acceso_completo),
       nombre_corto: p ? (p.nombre_corto || '') : ''
     };
   }
@@ -109,6 +110,9 @@
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
+      enlaces: (r.enlaces && typeof r.enlaces === 'object' && !Array.isArray(r.enlaces))
+        ? { links: Array.isArray(r.enlaces.links) ? r.enlaces.links : [], desc: r.enlaces.desc || '' }
+        : { links: [], desc: '' },
       comentarios_director: '', comentario_devolucion: '', fuente: 'supabase'
     };
   }
@@ -147,10 +151,10 @@
       }) };
     },
     listarResponsables: async function () {
-      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura, es_enlace, nombre_corto').eq('activo', true);
+      var r = await sb.from('perfiles').select('nombre, rol, subdireccion, jefatura, es_enlace, acceso_completo, nombre_corto').eq('activo', true);
       if (r.error || !r.data) return { ok: true, responsables: [] };
       var out = r.data.filter(function (p) { return p.rol !== 'Director' && (p.nombre || '').trim(); })
-        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '', es_enlace: !!p.es_enlace, nombre_corto: p.nombre_corto || '' }; });
+        .map(function (p) { return { nombreCompleto: p.nombre.trim(), subdireccion: String(p.subdireccion || '').toUpperCase(), jefatura: p.jefatura || '', es_enlace: !!p.es_enlace, acceso_completo: !!p.acceso_completo, nombre_corto: p.nombre_corto || '' }; });
       return { ok: true, responsables: out };
     },
     listarTelefonos: async function () {
@@ -199,10 +203,11 @@
       // en la base, la creación sigue funcionando.
       if (Array.isArray(datos.participantes) && datos.participantes.length) fila.participantes = datos.participantes;
       if (Array.isArray(datos.adjuntos) && datos.adjuntos.length) fila.adjuntos = datos.adjuntos;
+      if (datos.enlaces && ((Array.isArray(datos.enlaces.links) && datos.enlaces.links.length) || datos.enlaces.desc)) fila.enlaces = datos.enlaces;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes/i.test(r.error.message || '')) {
-        delete fila.adjuntos; delete fila.participantes;
+      if (r.error && /adjuntos|participantes|enlaces/i.test(r.error.message || '')) {
+        delete fila.adjuntos; delete fila.participantes; delete fila.enlaces;
         r = await sb.from('tareas').insert(fila).select('codigo').single();
       }
       if (r.error) return { ok: false, error: r.error.message };
@@ -228,13 +233,14 @@
       if (datos.nivel) { upd.nivel = datos.nivel; upd.area = areaDeDatos(datos); upd.jefatura = (datos.nivel === 'jefatura') ? (datos.jefatura || '') : ''; }
       if (datos.participantes !== undefined) upd.participantes = Array.isArray(datos.participantes) ? datos.participantes : [];
       if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
+      if (datos.enlaces !== undefined) upd.enlaces = (datos.enlaces && typeof datos.enlaces === 'object') ? datos.enlaces : { links: [], desc: '' };
       // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
       // acciones agregadas/quitadas no se guardaban (solo cambiaba `accion`).
       if (datos.checklist_json !== undefined) { try { upd.checklist = JSON.parse(datos.checklist_json || '[]'); } catch (e) {} }
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes/i.test(r.error.message || '')) {
-        delete upd.adjuntos; delete upd.participantes;
+      if (r.error && /adjuntos|participantes|enlaces/i.test(r.error.message || '')) {
+        delete upd.adjuntos; delete upd.participantes; delete upd.enlaces;
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       if (r.error) return { ok: false, error: r.error.message };

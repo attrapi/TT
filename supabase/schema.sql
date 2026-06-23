@@ -24,6 +24,10 @@ alter table public.perfiles add column if not exists es_enlace boolean not null 
 -- Nombre corto / "como se le conoce" para mostrar en Responsable directo
 -- (ej. 'Nora Franco', 'Cesar Caballero', 'Daniel de la Garza'). Vacío = se deriva.
 alter table public.perfiles add column if not exists nombre_corto text not null default '';
+-- ACCESO COMPLETO para un enlace: aparece en el panel "Enlaces" y es asignable
+-- como cualquier enlace, PERO su sesión NO se restringe a "sus tareas": ve y
+-- gestiona toda su subdirección (incl. jefaturas), igual que el subdirector.
+alter table public.perfiles add column if not exists acceso_completo boolean not null default false;
 
 -- Al crear un usuario en Auth, se le crea su perfil automáticamente (rol básico).
 -- Luego el admin ajusta rol/subdirección.
@@ -98,6 +102,11 @@ alter table public.tareas
 -- observaciones_resp/observaciones_dir se conservan por compatibilidad).
 alter table public.tareas
   add column if not exists observaciones_areas jsonb not null default '{}';
+
+-- Enlaces de reunión (Meet, Zoom, Teams) + una breve descripción de la junta.
+-- Forma: { "links": ["https://...", ...], "desc": "texto" }.
+alter table public.tareas
+  add column if not exists enlaces jsonb not null default '{}';
 
 -- Autogenera el `codigo` (PREFIJO-### por área) y actualiza updated_at.
 create or replace function public.set_codigo_tarea()

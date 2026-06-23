@@ -485,6 +485,15 @@
   .sidebar-sub[data-sub="SA"]     .sidebar-conteo { background: rgba(194,65,12,0.15);  color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { background: rgba(124,58,237,0.15); color: #5b21b6; }
 
+  /* Items de JEFATURA en el menú (JDGA, JDGOI, JDPC, JDIMA): dependen de su
+     subdirección, por eso van indentados y un poco más chicos que la madre.
+     Filtran el tablero (cambiarJefatura); el estado activo usa el guinda
+     institucional. */
+  .sidebar-jef { padding-left: 30px; }
+  .sidebar-jef .sidebar-label { font-size: 13px; font-weight: 600; }
+  .sidebar-jef.activa { border-left: 4px solid var(--guinda); background: var(--guinda-tenue); }
+  .sidebar-jef.activa .sidebar-label { font-weight: 700; }
+
   /* === CONTROL DE VISIBILIDAD POR VISTA ===
      Cada vista alterna oculta/muestra los bloques que le corresponden. */
   .app-main[data-vista="tablero"]   #calendarioWrap,
@@ -2529,6 +2538,30 @@
     border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1; padding: 6px 9px; flex: none;
   }
   .responsable-row-x:hover { background: #fee2e2; border-color: #b91c1c; }
+
+  /* Enlaces de reunión en el FORMULARIO: una fila por link + ✕ para quitar. */
+  .enlaces-lista { display: flex; flex-direction: column; gap: 8px; }
+  .enlace-row { display: flex; align-items: center; gap: 8px; }
+  .enlace-row input { flex: 1; min-width: 0; }
+  .enlace-row-x {
+    background: transparent; border: 1px solid var(--linea); color: var(--rojo, #b91c1c);
+    border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1; padding: 6px 9px; flex: none;
+  }
+  .enlace-row-x:hover { background: #fee2e2; border-color: #b91c1c; }
+
+  /* Enlaces de reunión en el DETALLE: chips clicables + descripción debajo. */
+  .modal-enlaces { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .modal-enlace-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; max-width: 100%;
+    background: var(--guinda-tenue); color: var(--guinda);
+    border: 1px solid var(--guinda); border-radius: 4px;
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: all 0.14s;
+  }
+  .modal-enlace-link:hover { background: var(--guinda); color: #fff; }
+  .modal-enlaces-desc { color: var(--tinta-suave); font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin-top: 2px; }
 
   /* ID de tarjeta como pastilla coloreada por subdirección — así en la
      vista consolidada (TODAS) Adrián distingue de un vistazo de qué
@@ -4667,13 +4700,6 @@
             <div class="acceso-rol-cargo">Director · DPAC</div>
           </div>
         </button>
-        <button class="acceso-rol" onclick="ingresar('enlace')">
-          <div class="acceso-rol-icon" style="background: var(--sub-enlace-tenue); color: var(--sub-enlace);">EN</div>
-          <div class="acceso-rol-info">
-            <div class="acceso-rol-nombre">Enlace</div>
-            <div class="acceso-rol-cargo">Enlace administrativo del Director</div>
-          </div>
-        </button>
         <button class="acceso-rol" onclick="ingresar('cap_spac')">
           <div class="acceso-rol-icon" style="background: var(--sub-spac-tenue); color: var(--sub-spac);">SP</div>
           <div class="acceso-rol-info">
@@ -4765,7 +4791,12 @@
           <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
         </button>
-        <!-- Enlaces (solo subdirector SPAC): vista con una columna por enlace. -->
+        <!-- Jefaturas de la subdirección como items de menú (se llenan en
+             aplicarSesion según la subdirección del usuario; filtran el tablero
+             vía cambiarJefatura). Quedan entre la subdirección y "Enlaces". -->
+        <div id="sidebarJefaturas"></div>
+        <!-- Enlaces (subdirector/enlace con acceso completo de una subdirección
+             que tiene enlaces): vista con una columna por enlace. -->
         <button class="sidebar-item sidebar-enlaces" id="sidebarEnlaces" data-vista="enlaces" onclick="cambiarVista('enlaces')" style="display:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07l-.71.7"/><path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.4a5 5 0 0 0 7.07 7.07l.7-.7"/></svg>
           <span class="sidebar-label">Enlaces</span>
@@ -4904,19 +4935,11 @@
       </div>
     </div>
 
-    <!-- Pendientes por jefatura (solo el subdirector de SPAC). -->
+    <!-- Pendientes por jefatura (subdirector de una subdirección con jefaturas).
+         Las celdas se generan dinámicamente según las jefaturas de su área. -->
     <div class="kpi-card sub-card" id="kpisJefGrupo" style="display:none">
       <div class="kpis-grupo-titulo">Pendientes por jefatura</div>
-      <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-jef="PROCEDIMIENTOS" style="cursor:pointer" onclick="filtrarPorJefatura('PROCEDIMIENTOS')">
-          <div class="kpi-valor" id="kpiPendJDPC">0</div>
-          <div class="kpi-clave">JDPC</div>
-        </div>
-        <div class="kpi kpi-sub" data-jef="MANUALES" style="cursor:pointer" onclick="filtrarPorJefatura('MANUALES')">
-          <div class="kpi-valor" id="kpiPendJDIMA">0</div>
-          <div class="kpi-clave">JDIMA</div>
-        </div>
-      </div>
+      <div class="kpis-fila" id="kpisJefFila"></div>
     </div>
 
     <!-- Pendientes por enlace (solo en la vista Enlaces). Círculos dinámicos. -->
@@ -5074,7 +5097,8 @@
 
 const USUARIOS = {
   director: { email: 'adrian.tavares@attrapi.gob.mx', nombre: 'Ing. Adrián Tavares', rol: 'Director', subdireccion: 'TODAS', iniciales: 'AT' },
-  enlace:   { email: 'enlace.dpac@attrapi.gob.mx', nombre: 'SAMANTA', rol: 'Capturista', subdireccion: 'ENLACE', iniciales: 'SM' },
+  // El Staff (DPAC + Enlace) ya no tiene capturista propio: lo gestiona SOLO el
+  // Director (Adrián). Por eso no hay usuario "enlace".
   cap_sa:   { email: 'capturista.sa@attrapi.gob.mx', nombre: 'AMANDA', rol: 'Capturista', subdireccion: 'SA', iniciales: 'AM' },
   cap_sgoi: { email: 'capturista.sgoi@attrapi.gob.mx', nombre: 'FABIOLA', rol: 'Capturista', subdireccion: 'SGOI', iniciales: 'FA' },
   cap_spac: { email: 'capturista.spac@attrapi.gob.mx', nombre: 'MARIO', rol: 'Capturista', subdireccion: 'SPAC', iniciales: 'MA' }
@@ -5111,11 +5135,26 @@ let SPAC_ULTIMA_SYNC = null;
 // quita al restaurar o al borrar definitivamente.
 const ELIMINADAS_PENDIENTES = new Set();
 
-// Códigos de las dos Jefaturas que dependen de SPAC y sus nombres visibles.
-const JEFATURAS_SPAC = {
-  PROCEDIMIENTOS: 'Jefatura de Departamento de Procedimientos de Construcción',
-  MANUALES:       'Jefatura de Departamento de Implementación de Manuales Administrativos'
+// Catálogo de Jefaturas por subdirección: código de jefatura → nombre visible.
+// Antes solo existía SPAC; aquí se generaliza para que cualquier subdirección con
+// jefaturas (hoy SPAC y SGOI) las muestre como columnas/items de menú y en los
+// desgloses por jefatura.
+const JEFATURAS_POR_SUB = {
+  SPAC: {
+    PROCEDIMIENTOS: 'Jefatura de Departamento de Procedimientos de Construcción',
+    MANUALES:       'Jefatura de Departamento de Implementación de Manuales Administrativos'
+  },
+  SGOI: {
+    GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental',
+    GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas'
+  }
 };
+// Compatibilidad: las dos Jefaturas de SPAC (usado en Reportes).
+const JEFATURAS_SPAC = JEFATURAS_POR_SUB.SPAC;
+// Códigos de jefatura de una subdirección (vacío si no tiene jefaturas).
+function jefaturasDeSub(sub) {
+  return Object.keys(JEFATURAS_POR_SUB[String(sub || '').toUpperCase()] || {});
+}
 
 // Deduce el código de Jefatura a partir del texto de la columna "Jefatura"
 // (o de "Áreas involucradas" como respaldo). Mientras la columna se termina
@@ -5522,6 +5561,11 @@ function aplicarSesion() {
   });
   const btnNuevoReset = document.getElementById('btnNuevo');
   if (btnNuevoReset) btnNuevoReset.style.display = '';
+  // Limpia los items de jefatura del menú: se regeneran abajo según el rol/área.
+  // Sin esto se "pegarían" las jefaturas de la cuenta anterior al cambiar de
+  // usuario sin recargar.
+  const contJefReset = document.getElementById('sidebarJefaturas');
+  if (contJefReset) contJefReset.innerHTML = '';
   // Re-muestra los items de Gestión (Bitácora/Carga/Reportes/Organigrama); luego
   // cada rol oculta lo que no le toca. Evita que se "peguen" ocultos.
   if (grupoDir) grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) { b.style.display = ''; });
@@ -5562,6 +5606,26 @@ function aplicarSesion() {
     navTit.title = tituloNav;                   // mismo nombre completo en el tooltip
 
     tabActiva = usuarioActual.subdireccion;
+
+    // Jefaturas como items de menú: SOLO para el subdirector (capturista sin
+    // jefatura propia) o un enlace con acceso completo de una subdirección que
+    // tiene jefaturas. Cada botón filtra el tablero (cambiarJefatura). Las
+    // jefaturas siguen además como columnas del tablero.
+    const contJef = document.getElementById('sidebarJefaturas');
+    if (contJef) {
+      const codJefU = jefaturaCodigo(usuarioActual.jefatura);
+      const esSubConJef = !codJefU && !esEnlaceRestringido();
+      const jefs = esSubConJef ? jefaturasDeSub(usuarioActual.subdireccion) : [];
+      const dotVar = '--sub-' + String(usuarioActual.subdireccion || '').toLowerCase();
+      contJef.innerHTML = jefs.map(function (cod) {
+        const acr = ACRONIMO_JEFATURA[cod] || cod;
+        const nom = (JEFATURAS_POR_SUB[usuarioActual.subdireccion] || {})[cod] || acr;
+        return '<button class="sidebar-item sidebar-jef" data-jef="' + cod + '" '
+          + 'onclick="cambiarJefatura(\'' + cod + '\')" title="' + escapeHtml(nom) + '">'
+          + '<span class="sub-dot" style="background: var(' + dotVar + ')"></span>'
+          + '<span class="sidebar-label">' + acr + '</span></button>';
+      }).join('');
+    }
   }
 
   // Staff (ENLACE) tiene un panel mínimo SIN el grupo "Gestión", pero AHORA
@@ -5592,17 +5656,16 @@ function aplicarSesion() {
   if (btnCarga)    btnCarga.style.display    = esJefe ? 'none' : '';
   if (btnReportes) btnReportes.style.display = esJefe ? 'none' : '';
 
-  // "Enlaces" en el menú: SOLO para el subdirector de SPAC (no jefes, no enlaces).
+  // "Enlaces" en el menú: para el subdirector (sin jefatura) o un enlace con
+  // acceso completo, de CUALQUIER subdirección que tenga enlaces dados de alta.
   const sidebarEnlacesBtn = document.getElementById('sidebarEnlaces');
-  if (sidebarEnlacesBtn) {
-    const esSubSPAC = usuarioActual.rol === 'Capturista'
-      && usuarioActual.subdireccion === 'SPAC' && !esJefe && !esEnlaceUser();
-    sidebarEnlacesBtn.style.display = esSubSPAC ? '' : 'none';
-  }
+  actualizarBotonEnlaces();
 
   // ENLACE: panel mínimo. En el menú izquierdo: "Enlace" (su tablero) +
   // "Historial" (sus tareas) + SOLO "Organigrama" dentro de Gestión.
-  if (esEnlaceUser()) {
+  // (Solo los enlaces RESTRINGIDOS; un enlace con acceso completo conserva el
+  // menú completo de subdirectora.)
+  if (esEnlaceRestringido()) {
     // Muestra el grupo Gestión pero SOLO con el botón "Organigrama".
     if (grupoDir) {
       grupoDir.style.display = '';
@@ -6008,6 +6071,10 @@ function poblarSelectResponsables() {
 function refrescarConteosPorResponsables() {
   if (!usuarioActual) return;
   actualizarConteosTabs();
+  // El item "Enlaces" depende de si hay enlaces en la subdirección (dato que
+  // llega async); recalcular al actualizar RESPONSABLES para el primer login
+  // sin caché.
+  actualizarBotonEnlaces();
   if (vistaActiva === 'papelera') renderizarPapelera();
 }
 
@@ -6374,7 +6441,7 @@ function obtenerTareasFiltradas() {
   if (usuarioActual.rol === 'Capturista') {
     const miArea = areaDelUsuario(usuarioActual);
     const codJef = jefaturaCodigo(usuarioActual.jefatura);
-    if (esEnlaceUser()) {
+    if (esEnlaceRestringido()) {
       // ENLACE: SOLO sus tareas (donde es responsable directo), de su subdirección.
       lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
     } else if (codJef) {
@@ -6418,7 +6485,7 @@ function obtenerTareasFiltradas() {
   // general Y el tablero a esa jefatura. Igual que cuando el Director hace clic en
   // una subdirección. No aplica en la vista Enlaces (ahí manda el filtro de enlace).
   if (jefaturaActiva && usuarioActual.rol === 'Capturista'
-      && !esEnlaceUser() && !jefaturaCodigo(usuarioActual.jefatura) && vistaActiva !== 'enlaces') {
+      && !esEnlaceRestringido() && !jefaturaCodigo(usuarioActual.jefatura) && vistaActiva !== 'enlaces') {
     const acr = ACRONIMO_JEFATURA[jefaturaActiva] || jefaturaActiva;
     lista = lista.filter(t => tareaEnArea(t, acr));
   }
@@ -6475,11 +6542,39 @@ function filtrarValidadas(texto) {
 function esEnlace() {
   return usuarioActual && usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'ENLACE';
 }
-// ¿El usuario es un ENLACE (capturista marcado es_enlace)? Solo ve/atiende SUS
-// tareas (donde es responsable directo); no valida, no edita acciones, no borra.
+// ¿El usuario es un ENLACE (capturista marcado es_enlace)? Esto es IDENTIDAD:
+// define quién es enlace para la etiqueta del header, el panel "Enlaces" y ser
+// asignable como responsable directo. NO implica por sí solo vista restringida
+// (ver esEnlaceRestringido): un enlace con acceso_completo gestiona toda su
+// subdirección, como el subdirector.
 function esEnlaceUser(u) {
   u = u || usuarioActual;
   return !!(u && u.rol === 'Capturista' && u.es_enlace);
+}
+// ¿El usuario es un enlace RESTRINGIDO? (enlace SIN acceso completo.) Solo estos
+// ven únicamente SUS tareas y no validan/editan/borran. Un enlace con
+// acceso_completo=true es enlace de identidad pero con permisos de subdirector.
+function esEnlaceRestringido(u) {
+  u = u || usuarioActual;
+  return esEnlaceUser(u) && !(u && u.acceso_completo);
+}
+// ¿Hay enlaces (es_enlace) dados de alta en la subdirección `sub`?
+function hayEnlacesEnSub(sub) {
+  sub = String(sub || '').toUpperCase();
+  return (RESPONSABLES || []).some(function (r) {
+    return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === sub;
+  });
+}
+// Muestra/oculta el item "Enlaces" del menú. Lo ve el subdirector (capturista sin
+// jefatura) o un enlace con acceso completo, de una subdirección con enlaces. Se
+// recalcula al cargar/actualizar RESPONSABLES (que llega async tras el login).
+function actualizarBotonEnlaces() {
+  const btn = document.getElementById('sidebarEnlaces');
+  if (!btn || !usuarioActual) return;
+  const esJefeU = !!jefaturaCodigo(usuarioActual.jefatura);
+  const puedeVer = usuarioActual.rol === 'Capturista' && !esJefeU
+    && !esEnlaceRestringido() && hayEnlacesEnSub(usuarioActual.subdireccion);
+  btn.style.display = puedeVer ? '' : 'none';
 }
 // ¿La tarea tiene a `u` como responsable directo? (responsable puede traer
 // varios nombres separados por coma; el dropdown guarda el nombre corto.)
@@ -6644,7 +6739,7 @@ function usuarioPuedeFinalizar(t) {
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual || !t) return false;
   if (SOLO_LECTURA) return false;     // vista de Dirección = solo lectura
-  if (esEnlaceUser()) return false;   // el enlace no borra/edita la tarea
+  if (esEnlaceRestringido()) return false;   // el enlace restringido no borra/edita la tarea
   // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
   // Puede enviar cualquiera al Historial.
   if (usuarioActual.rol === 'Director') return true;
@@ -6758,7 +6853,7 @@ function actualizarKPIs() {
     // Staff (Samanta) ve DPAC + ENLACE.
     if (esEnlace()) return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
     // Enlace SPAC: solo SU historial (donde es responsable directo).
-    if (esEnlaceUser()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
+    if (esEnlaceRestringido()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
     return t.subdireccion === usuarioActual.subdireccion;
   });
   const archivadas = enHistorial.length;
@@ -6807,10 +6902,9 @@ function actualizarKPIs() {
         const limpio = String(nom || '').replace(/^(ing\.|lic\.|arq\.|dr\.|dra\.|mtra\.|mtro\.|mat\.|c\.|prof\.|profa\.)\s*/i, '').trim();
         return limpio.split(/\s+/)[0] || String(nom || '');
       };
-      const ORDEN = ['nora', 'cesar', 'daniel'];
-      const ord = nom => { const n = String(nom || '').toLowerCase(); for (let k = 0; k < ORDEN.length; k++) if (n.indexOf(ORDEN[k]) >= 0) return k; return 99; };
-      const enlaces = (RESPONSABLES || []).filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
-        .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto));
+      const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
+      const enlaces = (RESPONSABLES || []).filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === miSub)
+        .sort((a, b) => (nombreCortoResp(a) || a.nombreCompleto || '').localeCompare(nombreCortoResp(b) || b.nombreCompleto || '', 'es'));
       window._enlacesKPI = enlaces;   // para que filtrarPorEnlace(i) sepa a quién
       fila.innerHTML = enlaces.map((en, i) => {
         const n = TAREAS.filter(t => activa(t) && t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto })).length;
@@ -6837,16 +6931,29 @@ function actualizarKPIs() {
     if (enlaceCard) enlaceCard.style.display = 'none';
     if (subCard) subCard.style.display = 'none';
     // "Pendientes por jefatura" SOLO se muestra al SUBDIRECTOR (Capturista sin
-    // jefatura asignada). Los jefes (Guillermo JDPC, Dolores JDIMA, JDGA, JDGOI)
-    // no lo ven — ellos solo gestionan SU jefatura, no necesitan el desglose.
+    // jefatura asignada) o a un enlace con acceso completo, de una subdirección
+    // que TENGA jefaturas. Los jefes no lo ven (solo gestionan SU jefatura). Las
+    // celdas se generan dinámicamente según las jefaturas del área (SPAC: JDPC/
+    // JDIMA; SGOI: JDGA/JDGOI).
     const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
-    const tieneJef = usuarioActual.subdireccion === 'SPAC' && !codJefUser && !esEnlaceUser();
+    const jefsSub = jefaturasDeSub(usuarioActual.subdireccion);
+    const tieneJef = usuarioActual.rol === 'Capturista' && jefsSub.length > 0
+      && !codJefUser && !esEnlaceRestringido();
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
     if (tieneJef) {
+      const filaJ = document.getElementById('kpisJefFila');
       const pendJef = areaCod => TAREAS.filter(t =>
           !t.eliminada && t.estatus !== 'Archivada' && tareaEnArea(t, areaCod)).length;
-      document.getElementById('kpiPendJDPC').textContent = pendJef('JDPC');
-      document.getElementById('kpiPendJDIMA').textContent = pendJef('JDIMA');
+      if (filaJ) {
+        filaJ.innerHTML = jefsSub.map(function (cod) {
+          const acr = ACRONIMO_JEFATURA[cod] || cod;
+          const act = (jefaturaActiva === cod) ? ' kpi-activa' : '';
+          return '<div class="kpi kpi-sub' + act + '" data-jef="' + cod + '" style="cursor:pointer" '
+            + 'onclick="filtrarPorJefatura(\'' + cod + '\')">'
+            + '<div class="kpi-valor">' + pendJef(acr) + '</div>'
+            + '<div class="kpi-clave">' + acr + '</div></div>';
+        }).join('');
+      }
     }
   }
 
@@ -6967,8 +7074,10 @@ function actualizarConteosTabs() {
 //   - Subdirector de SGOI (futuro): 3 columnas → SGOI · JDGA · JDGOI
 function columnasPorRol() {
   if (!usuarioActual) return [];
-  // ENLACE: una sola columna con SUS tareas (ya filtradas en obtenerTareasFiltradas).
-  if (esEnlaceUser()) {
+  // ENLACE restringido: una sola columna con SUS tareas (ya filtradas en
+  // obtenerTareasFiltradas). Un enlace con acceso completo cae al flujo normal
+  // de su subdirección (columnas subdirección + jefaturas).
+  if (esEnlaceRestringido()) {
     return [{ id: 'MIS', titulo: 'Mis tareas', subtitulo: 'Tareas asignadas a mí',
               color: 'azul', filtro: () => true }];
   }
@@ -7183,37 +7292,36 @@ function renderizarTablero() {
   });
 }
 
-// Vista "Enlaces" (subdirector SPAC): una columna por enlace, con las tareas
-// donde ese enlace es el responsable directo. Solo lectura/seguimiento.
+// Vista "Enlaces" (subdirector o enlace con acceso completo): una columna por
+// enlace de SU subdirección, con las tareas donde ese enlace es responsable
+// directo. Solo lectura/seguimiento.
 function renderizarEnlaces() {
   const wrap = document.getElementById('enlacesWrap');
   if (!wrap) return;
+  const sub = String(usuarioActual && usuarioActual.subdireccion || '').toUpperCase();
   const enlaces = (RESPONSABLES || []).filter(function (r) {
-    return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC';
+    return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === sub;
   });
-  // Orden fijo de las columnas: Nora · César · Daniel (el resto al final).
-  const ORDEN_ENLACES = ['nora', 'cesar', 'daniel'];
-  const ordenEnlace = function (nombre) {
-    const n = String(nombre || '').toLowerCase();
-    for (let k = 0; k < ORDEN_ENLACES.length; k++) if (n.indexOf(ORDEN_ENLACES[k]) >= 0) return k;
-    return 99;
-  };
-  enlaces.sort(function (a, b) { return ordenEnlace(a.nombreCompleto) - ordenEnlace(b.nombreCompleto); });
+  // Orden alfabético por su nombre corto/visible (es).
+  enlaces.sort(function (a, b) {
+    return (nombreCortoResp(a) || a.nombreCompleto || '')
+      .localeCompare(nombreCortoResp(b) || b.nombreCompleto || '', 'es');
+  });
   wrap.innerHTML = '';
   if (!enlaces.length) {
     wrap.style.gridTemplateColumns = 'minmax(0, 1fr)';
     wrap.innerHTML = '<div class="columna"><div class="col-cuerpo"><div class="vacio">'
-      + 'Aún no hay enlaces dados de alta. Marca a Nora, César y Daniel como enlace '
-      + '(es_enlace = true) en su perfil y aparecerán aquí.</div></div></div>';
+      + 'Aún no hay enlaces dados de alta en esta subdirección. Marca es_enlace = true '
+      + 'en su perfil y aparecerán aquí.</div></div></div>';
     return;
   }
   wrap.style.setProperty('--tablero-cols', enlaces.length);
   wrap.style.gridTemplateColumns = enlaces.length === 1 ? 'minmax(0, 1fr)' : '';
 
-  // Tareas activas de SPAC (no archivadas) — obtenerTareasFiltradas ya aplica el
-  // buscador y excluye eliminadas.
+  // Tareas activas de SU subdirección (no archivadas) — obtenerTareasFiltradas ya
+  // aplica el buscador y excluye eliminadas.
   const activas = obtenerTareasFiltradas().filter(function (t) {
-    return t.estatus !== 'Archivada' && (t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC'));
+    return t.estatus !== 'Archivada' && (t.subdireccion === sub || tareaEnArea(t, sub));
   });
   const colores = ['azul', 'morado', 'naranja', 'olivo'];
 
@@ -7227,7 +7335,7 @@ function renderizarEnlaces() {
         '<div class="col-marca"></div>' +
         '<div class="col-titulo-wrap">' +
           '<div class="col-titulo">' + escapeHtml(formatearNombre(en.nombreCompleto)) + '</div>' +
-          '<div class="col-subtitulo">Enlace · SPAC</div>' +
+          '<div class="col-subtitulo">Enlace · ' + escapeHtml(sub) + '</div>' +
         '</div>' +
         '<div class="col-conteo">' + tareasCol.length + '</div>' +
       '</div>' +
@@ -7317,7 +7425,7 @@ function esSubdirectorConJefaturas() {
     && usuarioActual.rol === 'Capturista'
     && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
     && !jefaturaCodigo(usuarioActual.jefatura)
-    && !esEnlaceUser();   // un enlace no es subdirector (no arrastra tarjetas)
+    && !esEnlaceRestringido();   // un enlace restringido no arrastra; con acceso completo sí
 }
 
 // Subdirector de SPAC (Mario): al CAPTURAR puede asignar a CUALQUIER área y elegir
@@ -7979,8 +8087,8 @@ function tareasPapelera() {
   let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
   // El Director NO ve las tareas PURAMENTE de enlace (seguimiento interno de SPAC).
   if (usuarioActual.rol === 'Director') return lista.filter(t => !esTareaSoloEnlaces(t));
-  // Enlace SPAC: solo SU historial (donde fue responsable directo).
-  if (esEnlaceUser()) {
+  // Enlace restringido: solo SU historial (donde fue responsable directo).
+  if (esEnlaceRestringido()) {
     return lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
   }
   // Staff (Samanta): grupo compartido DPAC + ENLACE (mismo criterio que la
@@ -8014,26 +8122,27 @@ function columnasHistorial() {
         color: 'morado', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' }
     ];
   }
-  // Subdirector de SPAC: en el HISTORIAL agrega 3 columnas de enlace (Nora ·
-  // César · Daniel). Las tareas de un enlace van a SU columna (no a SPAC).
-  const esSubSPAC = usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === 'SPAC'
-    && !jefaturaCodigo(usuarioActual.jefatura) && !esEnlaceUser();
-  if (esSubSPAC) {
-    // Columnas SPAC/JDPC/JDIMA pero EXCLUYENDO las tareas de enlace.
+  // Subdirector (o enlace con acceso completo) de una subdirección CON enlaces:
+  // en el HISTORIAL agrega una columna por enlace. Las tareas de un enlace van a
+  // SU columna (no a la de la subdirección).
+  const sub = String(usuarioActual.subdireccion || '').toUpperCase();
+  const esSubConEnlaces = usuarioActual.rol === 'Capturista'
+    && !jefaturaCodigo(usuarioActual.jefatura) && !esEnlaceRestringido()
+    && hayEnlacesEnSub(sub);
+  if (esSubConEnlaces) {
+    // Columnas de su subdirección (subdir + jefaturas) EXCLUYENDO las tareas de enlace.
     const base = columnasPorRol().map(col => ({
       id: col.id, titulo: col.titulo, subtitulo: col.subtitulo, color: col.color,
       filtro: t => col.filtro(t) && !esTareaDeEnlace(t)
     }));
-    const ORDEN = ['nora', 'cesar', 'daniel'];
-    const ord = nom => { const n = String(nom || '').toLowerCase(); for (let k = 0; k < ORDEN.length; k++) if (n.indexOf(ORDEN[k]) >= 0) return k; return 99; };
     const colores = ['azul', 'morado', 'naranja'];
     const colsEnl = (RESPONSABLES || [])
-      .filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC')
-      .sort((a, b) => ord(a.nombreCompleto) - ord(b.nombreCompleto))
+      .filter(r => r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === sub)
+      .sort((a, b) => (nombreCortoResp(a) || a.nombreCompleto || '').localeCompare(nombreCortoResp(b) || b.nombreCompleto || '', 'es'))
       .map((en, i) => ({
         id: 'ENL_' + inicialesEnlace(en.nombreCompleto),
         titulo: nombreCortoResp(en),
-        subtitulo: 'Enlace · SPAC',
+        subtitulo: 'Enlace · ' + sub,
         color: colores[i % colores.length],
         filtro: t => esResponsableDe(t, { nombre: en.nombreCompleto, nombre_corto: en.nombre_corto })
       }));
@@ -8370,6 +8479,17 @@ function abrirDetalle(t) {
         <dd>${escapeHtml(areas)}</dd>
         <dt>Acuerdos realizados</dt>
         <dd>${escapeHtml(acuerdos)}</dd>
+        ${(function(){
+          const enl = enlacesDe(t);
+          if (!enl.links.length && !enl.desc) return '';
+          const _links = enl.links.map(function(u){
+            const m = etiquetaEnlace(u);
+            return '<a class="modal-enlace-link" href="' + escapeHtml(u) + '" target="_blank" rel="noopener" title="' + escapeHtml(u) + '">' + m.icono + ' ' + escapeHtml(m.nombre) + '</a>';
+          }).join('');
+          return '<dt>Enlaces de reunión</dt><dd><div class="modal-enlaces">' + _links +
+            (enl.desc ? '<div class="modal-enlaces-desc">' + escapeHtml(enl.desc) + '</div>' : '') +
+            '</div></dd>';
+        })()}
         ${(function(){
           const _adj = adjuntosDe(t);
           if (!_adj.length) return '';
@@ -9709,9 +9829,9 @@ function ocultarActualizando() {
 
 // ============== VISTA: DASHBOARD ==============
 
-// ¿El área tiene jefaturas? Hoy solo SPAC; cuando otras las tengan, se agregan
-// aquí y el selector de "Detalle" aparece solo, sin más cambios.
-function tieneJefaturasArea(area) { return area === 'SPAC'; }
+// ¿El área tiene jefaturas? Se deduce del catálogo JEFATURAS_POR_SUB (hoy SPAC y
+// SGOI). El selector de "Detalle" del Dashboard aparece solo para esas áreas.
+function tieneJefaturasArea(area) { return jefaturasDeSub(area).length > 0; }
 
 function cambiarDashArea(v)    { dashAreaSel = v; renderizarDashboard(); }
 function cambiarDashDetalle(v) { dashDetalleSel = v; renderizarDashboard(); }
@@ -9742,13 +9862,15 @@ function poblarControlesDashboard() {
     campoArea.style.display = 'none';
     if (tieneJefaturasArea(usuarioActual.subdireccion)) {
       campoDet.style.display = '';
+      // Las jefaturas concretas se agregan según la subdirección del usuario
+      // (SPAC: Procedimientos/Manuales; SGOI: Gestión Ambiental/Obras).
+      const catJef = JEFATURAS_POR_SUB[String(usuarioActual.subdireccion || '').toUpperCase()] || {};
       const dets = [
         ['todo', 'Subdirección + Jefaturas'],
         ['sub',  'Solo subdirección'],
-        ['jef',  'Solo jefaturas'],
-        ['PROCEDIMIENTOS', 'Jef. Procedimientos'],
-        ['MANUALES',       'Jef. Manuales']
-      ];
+        ['jef',  'Solo jefaturas']
+      ].concat(jefaturasDeSub(usuarioActual.subdireccion).map(cod =>
+        [cod, 'Jef. ' + (catJef[cod] || cod).replace(/^Jefatura de Departamento de /, '')]));
       selDet.innerHTML = dets.map(([v, l]) =>
         `<option value="${v}" ${v === dashDetalleSel ? 'selected' : ''}>${l}</option>`).join('');
     } else {
@@ -9768,7 +9890,7 @@ function tareasDashboard() {
     if (tieneJefaturasArea(usuarioActual.subdireccion)) {
       if (dashDetalleSel === 'sub')      lista = lista.filter(t => t.nivel !== 'jefatura');
       else if (dashDetalleSel === 'jef') lista = lista.filter(t => t.nivel === 'jefatura');
-      else if (dashDetalleSel === 'PROCEDIMIENTOS' || dashDetalleSel === 'MANUALES')
+      else if (jefaturasDeSub(usuarioActual.subdireccion).indexOf(dashDetalleSel) >= 0)
         lista = lista.filter(t => t.nivel === 'jefatura' && t.jefatura === dashDetalleSel);
       // 'todo' → subdirección + jefaturas (sin filtro extra)
     } else {
@@ -10536,6 +10658,25 @@ function adjuntosDe(t) {
   return [];
 }
 
+// Enlaces de reunión de una tarea, normalizados a { links: [url...], desc: '' }.
+// Tolera datos viejos (sin el campo) o mal formados.
+function enlacesDe(t) {
+  const e = t && t.enlaces;
+  if (e && typeof e === 'object' && !Array.isArray(e)) {
+    return { links: Array.isArray(e.links) ? e.links.filter(Boolean) : [], desc: String(e.desc || '') };
+  }
+  return { links: [], desc: '' };
+}
+
+// Detecta la plataforma del enlace para mostrar un ícono y nombre amigable.
+function etiquetaEnlace(url) {
+  const u = String(url || '').toLowerCase();
+  if (u.includes('meet.google'))                       return { icono: '🟢', nombre: 'Google Meet' };
+  if (u.includes('zoom.us') || u.includes('zoom.com')) return { icono: '🔵', nombre: 'Zoom' };
+  if (u.includes('teams.microsoft') || u.includes('teams.live')) return { icono: '🟣', nombre: 'Microsoft Teams' };
+  return { icono: '🔗', nombre: 'Enlace de reunión' };
+}
+
 // ¿El ítem está palomeado por el área `cod`? Lee del mapa nuevo `item.checks`;
 // si no existe, cae a los campos legados (check_resp = área ejecutora de menor
 // nivel; check_dir = dirección).
@@ -11097,7 +11238,7 @@ function guardarObsDir(idTarea, valor) { guardarObsArea(idTarea, 'DPAC', valor);
 function puedeCompletar(t) {
   if (!usuarioActual || !t) return false;
   if (SOLO_LECTURA) return false;     // vista de Dirección = solo lectura
-  if (esEnlaceUser()) return false;   // el enlace no valida/completa
+  if (esEnlaceRestringido()) return false;   // el enlace restringido no valida/completa
   const cols = participantesDe(t);
   if (!cols.length) return false;
   // Cierra/completa el participante de MAYOR jerarquía. participantesDe ordena
@@ -11343,6 +11484,10 @@ function abrirNuevaTarea(tEdit) {
   const valResp = ed ? (ed.responsable || '') : (esCapturista ? nombresSinApellidos(usuarioActual.nombre) : '');
   const valTema = ed ? (ed.tema || ed.titulo || '') : '';
   const valAcuerdos = ed ? (ed.acuerdos_realizados || '') : '';
+  // Enlaces de reunión: estado para las filas (uno por link) + descripción.
+  const _enlEd = ed ? enlacesDe(ed) : { links: [], desc: '' };
+  const valEnlacesDesc = _enlEd.desc || '';
+  enlacesForm = _enlEd.links.slice();
   // Acciones a tomar: editor de CHECKLIST. Al editar una tarea que ya tiene
   // checklist, prellenamos con sus renglones (uno por línea) para no perder
   // las palomas ya marcadas (mergearChecklist se encarga al guardar).
@@ -11360,7 +11505,7 @@ function abrirNuevaTarea(tEdit) {
   const esSubdirDeTarea = usuarioActual.rol === 'Capturista'
     && usuarioActual.subdireccion === ((ed && ed.subdireccion) || '')
     && !jefaturaCodigo(usuarioActual.jefatura)
-    && !esEnlaceUser();
+    && !esEnlaceRestringido();
   const puedeCambiarFecha = !ed || esCreadorTarea
     || usuarioActual.rol === 'Director' || esSubdirDeTarea;
   const valUrl = ed ? (ed.url || '') : '';
@@ -11431,7 +11576,7 @@ function abrirNuevaTarea(tEdit) {
   participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
   // Un ENLACE creando una tarea solo se asigna a SU propia área (para que caiga en
   // su tablero); no elige otras áreas ni jefaturas.
-  const esEnlaceCreando = esEnlaceUser() && !ed;
+  const esEnlaceCreando = esEnlaceRestringido() && !ed;
   if (esEnlaceCreando && miAreaUser) codigosAsignables = [miAreaUser];
   const asignablesHTML = codigosAsignables.map(function (cod) {
     // El área propia del creador se marca y bloquea (siempre participa): el
@@ -11498,6 +11643,14 @@ function abrirNuevaTarea(tEdit) {
           </div>
 
           <div class="form-campo full">
+            <label>Enlaces de reunión (Meet, Zoom, Teams)</label>
+            <div id="nt_enlaces_lista" class="enlaces-lista"></div>
+            <button type="button" class="acciones-agregar-btn" onclick="agregarEnlaceRow()" style="margin-top:8px;">+ Agregar enlace</button>
+            <textarea id="nt_enlaces_desc" maxlength="500" placeholder="Descripción de la junta (opcional): de qué se trata, día/hora…" style="margin-top:10px;">${escapeHtml(valEnlacesDesc)}</textarea>
+            <div class="form-hint">Pega los enlaces de la junta (Meet, Zoom, Teams). Usa “+ Agregar enlace” para sumar más de uno.</div>
+          </div>
+
+          <div class="form-campo full">
             <label>Acciones <span class="req">*</span></label>
             <div id="nt_acciones_lista" class="acciones-lista">${
               (valAccion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)
@@ -11556,6 +11709,7 @@ function abrirNuevaTarea(tEdit) {
   formTareaAbierto = true;     // mientras esté abierto, no se cierra por clic afuera / Escape
   renderAdjuntosForm();        // pinta la lista de adjuntos (existentes/nuevos)
   renderResponsablesForm();    // pinta los selectores de responsable(s)
+  renderEnlacesForm();         // pinta las filas de enlaces de reunión
 }
 
 // ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
@@ -11802,7 +11956,7 @@ function renderResponsablesForm() {
   if (!cont) return;
   // Un ENLACE solo se asigna a sí mismo: fila única bloqueada (su tarea va a su
   // propio tablero). No puede cambiar, agregar ni quitar responsables.
-  if (esEnlaceUser() && !tareaEditando) {
+  if (esEnlaceRestringido() && !tareaEditando) {
     const miNombre = nombresSinApellidos(usuarioActual.nombre || '') || formatearNombre(usuarioActual.nombre || '');
     responsablesForm = [miNombre];
     cont.innerHTML = '<div class="responsable-row">' +
@@ -11827,6 +11981,49 @@ function agregarResponsableRow() {
   responsablesForm = leerResponsablesDOM();
   responsablesForm.push('');
   renderResponsablesForm();
+}
+
+// === Enlaces de reunión (Meet/Zoom/Teams) en el formulario ===
+let enlacesForm = [];
+
+// Lee los links escritos en las filas (conserva lo tecleado al re-pintar).
+function leerEnlacesDOM() {
+  return Array.from(document.querySelectorAll('#nt_enlaces_lista .enlace-row input'))
+    .map(function (inp) { return inp.value.trim(); });
+}
+// Pinta una fila por link, con ✕ para quitar.
+function renderEnlacesForm() {
+  const cont = document.getElementById('nt_enlaces_lista');
+  if (!cont) return;
+  if (!enlacesForm.length) enlacesForm = [''];
+  cont.innerHTML = enlacesForm.map(function (val, i) {
+    return '<div class="enlace-row">' +
+      '<input type="url" maxlength="500" value="' + escapeHtml(val) + '" placeholder="https://… (Meet, Zoom o Teams)" autocomplete="off"' +
+        ' onkeydown="if(event.key===\'Enter\'){event.preventDefault();agregarEnlaceRow();}">' +
+      '<button type="button" class="enlace-row-x" title="Quitar enlace" onclick="quitarEnlaceRow(' + i + ')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+function agregarEnlaceRow() {
+  enlacesForm = leerEnlacesDOM();
+  enlacesForm.push('');
+  renderEnlacesForm();
+  // Enfoca la fila recién agregada para escribir de inmediato.
+  const inputs = document.querySelectorAll('#nt_enlaces_lista .enlace-row input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+function quitarEnlaceRow(i) {
+  enlacesForm = leerEnlacesDOM();
+  enlacesForm.splice(i, 1);
+  if (!enlacesForm.length) enlacesForm = [''];
+  renderEnlacesForm();
+}
+// Junta lo capturado en { links: [...], desc: '...' }, sin links vacíos.
+function leerEnlacesForm() {
+  const links = leerEnlacesDOM().filter(Boolean);
+  const descEl = document.getElementById('nt_enlaces_desc');
+  const desc = descEl ? descEl.value.trim() : '';
+  return { links: links, desc: desc };
 }
 function quitarResponsableRow(i) {
   responsablesForm = leerResponsablesDOM();
@@ -11893,6 +12090,8 @@ function guardarNuevaTarea() {
   const otraAreaEl = document.getElementById('nt_areaOtra');
   const areas = otraAreaEl ? otraAreaEl.value.trim() : '';
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
+  // Enlaces de reunión (Meet/Zoom/Teams) + descripción de la junta.
+  const enlaces = leerEnlacesForm();
   // El textarea oculto se sincroniza desde la lista visual antes de leerlo.
   sincAcciones();
   const accion = document.getElementById('nt_accion').value.trim();
@@ -11950,7 +12149,7 @@ function guardarNuevaTarea() {
     nivel: nivelElegido,
     jefatura: jefaturaElegida,
     participantes,
-    responsable, tema, areas, acuerdos, accion, fecha
+    responsable, tema, areas, acuerdos, accion, fecha, enlaces
   };
   // Al EDITAR, el editor de Acciones cambia el texto, pero lo que se MUESTRA es el
   // `checklist`. Si no lo enviamos, las acciones agregadas/quitadas/editadas no se
@@ -11992,7 +12191,7 @@ function guardarNuevaTarea() {
         subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
-        fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url
+        fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url, enlaces: enlaces
       });
       tareaEditando.checklist = mergearChecklist(tareaEditando.checklist || [], accion);
       const idEd = tareaEditando.id; tareaEditando = null;
@@ -12003,7 +12202,7 @@ function guardarNuevaTarea() {
         id: datos.codigo || generarSiguienteId(codElegido || sub), subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
-        descripcion: acuerdos, observaciones: accion,
+        descripcion: acuerdos, observaciones: accion, enlaces: enlaces,
         tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
         fecha_atencion: fecha, fecha_limite: fecha,
         fecha_creacion: ahoraStamp(),   // habilita la píldora "Nueva" (48 h) en demo
