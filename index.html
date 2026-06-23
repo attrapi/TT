@@ -2627,7 +2627,9 @@
   /* Edición inline de enlaces en el detalle: cada chip con × y un campo para sumar. */
   .modal-enlace-chip { display: inline-flex; align-items: center; gap: 4px; }
   .modal-enlace-quitar { background: transparent; border: 0; color: var(--rojo, #b91c1c); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
-  .modal-enlace-add { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .modal-enlace-add { display: flex; gap: 8px; align-items: center; margin-top: 0; flex-wrap: wrap; }
+  /* La etiqueta "Enlaces de reunión" se centra con su cuadro (no queda desfasada). */
+  .modal-campos dt.dt-enlaces { align-self: center; }
   .modal-enlace-add input { flex: 1 1 240px; min-width: 180px; padding: 7px 12px; border: 1px solid var(--linea); border-radius: 8px; font-size: 13px; font-family: var(--sans); }
   .modal-enlace-add input:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
   .modal-enlace-add .btn-mini { background: var(--guinda); color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
@@ -8774,7 +8776,7 @@ function abrirDetalle(t) {
           const agregar = editorEnl
             ? '<div class="modal-enlace-add"><input type="url" id="detEnlaceInput" placeholder="Pega un enlace (Meet, Zoom, Teams) y Enter" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();agregarEnlaceDetalle(\'' + t.id + '\');}"><button class="btn-mini" onclick="event.stopPropagation(); agregarEnlaceDetalle(\'' + t.id + '\')">+ Enlace</button></div>'
             : '';
-          return '<dt>Enlaces de reunión</dt><dd><div class="modal-enlaces">' + _links +
+          return '<dt class="dt-enlaces">Enlaces de reunión</dt><dd><div class="modal-enlaces">' + _links +
             (enl.desc ? '<div class="modal-enlaces-desc">' + escapeHtml(enl.desc) + '</div>' : '') +
             agregar + '</div></dd>';
         })()}
