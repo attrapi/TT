@@ -583,13 +583,14 @@
   .asistencia-wrap { padding: 18px 24px 48px; }
   .asis-titulo { font-size: 22px; font-weight: 700; color: var(--guinda); margin: 0 0 4px; }
   .asis-sub { color: var(--tinta-suave); font-size: 13px; margin-bottom: 16px; max-width: 620px; }
-  .asis-tabla-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--linea); border-radius: 12px; }
-  table.asis-tabla { border-collapse: collapse; width: 100%; min-width: 440px; }
-  .asis-tabla th, .asis-tabla td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--linea); }
+  /* Tabla compacta: hug del contenido (no se estira a todo el ancho). */
+  .asis-tabla-wrap { display: inline-block; max-width: 100%; overflow-x: auto; background: #fff; border: 1px solid var(--linea); border-radius: 12px; vertical-align: top; }
+  table.asis-tabla { border-collapse: collapse; width: auto; }
+  .asis-tabla th, .asis-tabla td { padding: 6px 10px; text-align: center; border-bottom: 1px solid var(--linea); }
   .asis-tabla tbody tr:last-child td { border-bottom: none; }
-  .asis-tabla thead th { background: var(--guinda-tenue); color: var(--guinda); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
-  .asis-tabla th.asis-col-persona, .asis-tabla td.asis-persona { text-align: left; font-weight: 600; color: var(--tinta); white-space: nowrap; }
-  .asis-celda { cursor: pointer; font-size: 18px; line-height: 1; user-select: none; width: 60px; color: var(--rojo); }
+  .asis-tabla thead th { background: var(--guinda-tenue); color: var(--guinda); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .asis-tabla th.asis-col-persona, .asis-tabla td.asis-persona { text-align: left; font-weight: 600; color: var(--tinta); white-space: nowrap; padding-right: 14px; }
+  .asis-celda { cursor: pointer; font-size: 16px; line-height: 1; user-select: none; width: 38px; color: var(--rojo); }
   .asis-celda:hover { background: var(--guinda-tenue); }
   .asis-celda.marcado { font-weight: 800; }
   .asis-total { font-weight: 800; color: var(--tinta); }
@@ -10182,7 +10183,7 @@ function renderizarAsistencia() {
 
   const cab = '<tr><th class="asis-col-persona">Persona</th>' +
     ASIS_DIAS.map(function (d) { return '<th>' + d[1] + '</th>'; }).join('') +
-    '<th>Tardanzas</th></tr>';
+    '<th>Acumulado</th></tr>';
 
   const filas = ASIS_PERSONAS.map(function (p) {
     const celdas = ASIS_DIAS.map(function (d) {
