@@ -11441,6 +11441,8 @@ function personasArroba() {
     n = formatearNombre(String(n || '')).trim();
     if (n && !seen[n.toLowerCase()]) { seen[n.toLowerCase()] = 1; out.push(n); }
   }
+  // El Director va primero (no viene en RESPONSABLES, que excluye rol Director).
+  if (typeof USUARIOS !== 'undefined' && USUARIOS.director) add(USUARIOS.director.nombre);
   (RESPONSABLES || []).forEach(function (r) {
     add((typeof nombreCortoResp === 'function' ? nombreCortoResp(r) : '') || (r && r.nombreCompleto));
   });
