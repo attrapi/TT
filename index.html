@@ -5609,7 +5609,7 @@ function aplicarSesion() {
         return '<button class="sidebar-item sidebar-jef" data-jef="' + cod + '" '
           + 'onclick="cambiarJefatura(\'' + cod + '\')" title="' + escapeHtml(nom) + '">'
           + '<span class="sub-dot" style="background: var(' + dotVar + ')"></span>'
-          + '<span class="sidebar-label">' + acr + '</span></button>';
+          + '<span class="sidebar-label">' + escapeHtml(nom) + '</span></button>';
       }).join('');
     }
   }
