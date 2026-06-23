@@ -2289,6 +2289,14 @@
     box-shadow: 0 6px 16px rgba(0,0,0,0.1);
     transform: translateY(-1px);
   }
+  /* Tarjeta recién editada: palpita DOS veces (aro guinda + leve zoom) para
+     ubicarla en el tablero tras guardar los cambios. */
+  .tarjeta.tarjeta-destacada { animation: tarjeta-pulso 0.7s ease 2; }
+  @keyframes tarjeta-pulso {
+    0%   { box-shadow: 0 0 0 0 rgba(105,28,50,0.55); transform: scale(1); }
+    45%  { box-shadow: 0 0 0 9px rgba(105,28,50,0); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 0 rgba(105,28,50,0); transform: scale(1); }
+  }
 
   /* Drag & drop: tanto subdirectores como Director pueden arrastrar
      tarjetas entre las 3 columnas. Aquí solo el feedback visual; la
@@ -2601,6 +2609,13 @@
   }
   .modal-enlace-link:hover { background: var(--guinda); color: #fff; }
   .modal-enlaces-desc { color: var(--tinta-suave); font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin-top: 2px; }
+  /* Edición inline de enlaces en el detalle: cada chip con × y un campo para sumar. */
+  .modal-enlace-chip { display: inline-flex; align-items: center; gap: 4px; }
+  .modal-enlace-quitar { background: transparent; border: 0; color: var(--rojo, #b91c1c); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .modal-enlace-add { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .modal-enlace-add input { flex: 1 1 240px; min-width: 180px; padding: 7px 12px; border: 1px solid var(--linea); border-radius: 8px; font-size: 13px; font-family: var(--sans); }
+  .modal-enlace-add input:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .modal-enlace-add .btn-mini { background: var(--guinda); color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 12.5px; cursor: pointer; }
 
   /* ID de tarjeta como pastilla coloreada por subdirección — así en la
      vista consolidada (TODAS) Adrián distingue de un vistazo de qué
@@ -5577,6 +5592,7 @@ let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdir
 let enlaceActivo = null;     // nombre completo del enlace seleccionado (card "Pendientes por enlace") o null
 let estatusFiltro = null;    // 'proceso' | 'validar' | 'vencidas' filtro por círculo del Resumen (solo tablero)
 let fechaFiltro = '';        // '' | 'hoy' | 'semana' | 'mes' | 'permanente' filtro por fecha (junto al de estados)
+let _tareaDestacada = null;  // id de la tarea recién editada: su tarjeta palpita al re-renderizar
 let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
@@ -7630,6 +7646,8 @@ function crearTarjeta(t) {
   if (venceEsteDia) card.classList.add('vence-hoy');
   if (vencida) card.classList.add('es-vencida');
   if (_concluida) card.classList.add('es-concluida');
+  // Tarjeta recién editada: resáltala (palpita 2 veces) para ubicarla.
+  if (_tareaDestacada && t.id === _tareaDestacada) card.classList.add('tarjeta-destacada');
 
   // Color de la TARJETA:
   //   • Todo palomeado → olivo (gana sobre todo).
@@ -8483,6 +8501,41 @@ function cambiarFechaDetalle(idTarea, nuevaFecha) {
   toast('Fecha de ' + t.id + ' actualizada', 'ok');
 }
 
+// Agrega/quita enlaces de reunión DESDE el modal de detalle (sin entrar a Editar).
+// Guarda al instante en el servidor y repinta el modal.
+function guardarEnlacesDetalle(t) {
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run
+      .withFailureHandler(function (e) { toast('No se pudieron guardar los enlaces: ' + (e && e.message ? e.message : e), 'error'); })
+      .actualizarTarea(SESION_TOKEN, t.id, { enlaces: t.enlaces });
+  }
+  renderizar();
+}
+function agregarEnlaceDetalle(idTarea) {
+  if (SOLO_LECTURA) return;
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !(usuarioPuedeEditar(t) || puedeChecklist(t))) return;
+  const inp = document.getElementById('detEnlaceInput');
+  let url = String(inp && inp.value || '').trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const enl = enlacesDe(t);
+  enl.links.push(url);
+  t.enlaces = { links: enl.links, desc: enl.desc };
+  guardarEnlacesDetalle(t);
+  abrirDetalle(t);
+}
+function quitarEnlaceDetalle(idTarea, idx) {
+  if (SOLO_LECTURA) return;
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !(usuarioPuedeEditar(t) || puedeChecklist(t))) return;
+  const enl = enlacesDe(t);
+  enl.links.splice(idx, 1);
+  t.enlaces = { links: enl.links, desc: enl.desc };
+  guardarEnlacesDetalle(t);
+  abrirDetalle(t);
+}
+
 // "Guardar cambios" del modal de detalle: los cambios inline (fecha, acciones,
 // palomeos) ya se guardan al instante; este botón re-guarda por seguridad, avisa
 // y cierra el modal. Da una confirmación clara de que quedó guardado.
@@ -8644,14 +8697,21 @@ function abrirDetalle(t) {
         <dd>${escapeHtml(acuerdos)}</dd>
         ${(function(){
           const enl = enlacesDe(t);
-          if (!enl.links.length && !enl.desc) return '';
-          const _links = enl.links.map(function(u){
+          // Editable inline para quien puede editar/participa (sin entrar a "Editar").
+          const editorEnl = !SOLO_LECTURA && (usuarioPuedeEditar(t) || puedeChecklist(t));
+          if (!enl.links.length && !enl.desc && !editorEnl) return '';
+          const _links = enl.links.map(function(u, i){
             const m = etiquetaEnlace(u);
-            return '<a class="modal-enlace-link" href="' + escapeHtml(u) + '" target="_blank" rel="noopener" title="' + escapeHtml(u) + '">' + m.icono + ' ' + escapeHtml(m.nombre) + '</a>';
+            return '<span class="modal-enlace-chip"><a class="modal-enlace-link" href="' + escapeHtml(u) + '" target="_blank" rel="noopener" title="' + escapeHtml(u) + '">' + m.icono + ' ' + escapeHtml(m.nombre) + '</a>' +
+              (editorEnl ? '<button class="modal-enlace-quitar" title="Quitar enlace" onclick="event.stopPropagation(); quitarEnlaceDetalle(\'' + t.id + '\', ' + i + ')">×</button>' : '') +
+              '</span>';
           }).join('');
+          const agregar = editorEnl
+            ? '<div class="modal-enlace-add"><input type="url" id="detEnlaceInput" placeholder="Pega un enlace (Meet, Zoom, Teams) y Enter" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();agregarEnlaceDetalle(\'' + t.id + '\');}"><button class="btn-mini" onclick="event.stopPropagation(); agregarEnlaceDetalle(\'' + t.id + '\')">+ Enlace</button></div>'
+            : '';
           return '<dt>Enlaces de reunión</dt><dd><div class="modal-enlaces">' + _links +
             (enl.desc ? '<div class="modal-enlaces-desc">' + escapeHtml(enl.desc) + '</div>' : '') +
-            '</div></dd>';
+            agregar + '</div></dd>';
         })()}
         ${(function(){
           const _adj = adjuntosDe(t);
@@ -12595,9 +12655,17 @@ function enviarEditarTarea(datos, btn, textoBtn) {
       if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar', 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } creandoTarea = false; return; }
       tareaEditando = null; archivoPendiente = null;
       cerrarModal();
+      _tareaDestacada = id;            // su tarjeta palpitará 2 veces al re-render
       cargarTareasAppScript(true);
       cargarAreas();
       toast('Tarea ' + id + ' actualizada', 'ok');
+      // Lleva la tarjeta editada a la vista para que se vea el palpitar; luego
+      // limpia el realce para que no se repita en renders posteriores.
+      setTimeout(function () {
+        const elDest = document.querySelector('.tarjeta[data-id="' + id + '"]');
+        if (elDest && elDest.scrollIntoView) elDest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 700);
+      setTimeout(function () { _tareaDestacada = null; }, 4000);
     })
     .withFailureHandler(function (e) { toast('Error: ' + (e && e.message ? e.message : e), 'error'); if (btn) { btn.disabled = false; btn.textContent = textoBtn || 'Guardar cambios'; } creandoTarea = false; })
     .actualizarTarea(SESION_TOKEN, id, datos);
