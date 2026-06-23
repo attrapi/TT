@@ -10135,8 +10135,25 @@ const ASIS_KEY = 'tt_asistencia_v1';
 function esMarioFranco() {
   return !!usuarioActual && sinAcentos(usuarioActual.nombre || '').indexOf('mario') >= 0;
 }
+// Lunes (inicio) de la semana actual, como 'YYYY-MM-DD' local. Sirve de "id" de
+// semana para el reinicio automático.
+function asisLunesDeSemana() {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const day = d.getDay();                       // 0=Dom, 1=Lun, … 6=Sáb
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));   // retrocede al lunes
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function asisLeer() {
-  try { return JSON.parse(localStorage.getItem(ASIS_KEY) || '{}') || {}; } catch (e) { return {}; }
+  let obj;
+  try { obj = JSON.parse(localStorage.getItem(ASIS_KEY) || '{}') || {}; } catch (e) { obj = {}; }
+  // Reinicio AUTOMÁTICO cada lunes: si la semana guardada no es la actual, se
+  // limpia sola (los taches son por semana).
+  const semana = asisLunesDeSemana();
+  if (obj._semana !== semana) {
+    obj = { _semana: semana };
+    asisGuardar(obj);
+  }
+  return obj;
 }
 function asisGuardar(st) { try { localStorage.setItem(ASIS_KEY, JSON.stringify(st)); } catch (e) {} }
 function asisTotal(st, p) { return ASIS_DIAS.reduce(function (n, d) { return n + ((st[p] && st[p][d[0]]) ? 1 : 0); }, 0); }
@@ -10179,7 +10196,7 @@ function renderizarAsistencia() {
 
   wrap.innerHTML =
     '<div class="asis-titulo">Asistencia · Tardanzas de la semana</div>' +
-    '<div class="asis-sub">Marca con un clic los días que cada quien llegó tarde (Lunes a Jueves). Cada ✗ suma una tardanza. El viernes se revela quién acumuló más.</div>' +
+    '<div class="asis-sub">Marca con un clic los días que cada quien llegó tarde (Lunes a Jueves). Cada ✗ suma una tardanza. El viernes se revela quién acumuló más. Se reinicia solo cada lunes (o con «Restablecer»).</div>' +
     '<div class="asis-tabla-wrap"><table class="asis-tabla"><thead>' + cab + '</thead><tbody>' + filas + '</tbody></table></div>' +
     '<div class="asis-acciones">' +
       '<button class="asis-btn asis-btn-rev" onclick="revelarAsistencia()">Ver resultado</button>' +
