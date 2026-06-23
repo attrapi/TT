@@ -6844,7 +6844,10 @@ function actualizarKPIs() {
   setLabel('kpiActivas',    'En Proceso');
   setLabel('kpiSemana',     'Para validar');
   setLabel('kpiArchivadas', 'Validadas');
-  document.getElementById('kpiActivas').textContent    = enProcesoN;
+  // "En Proceso" excluye las vencidas (estas tienen su propio círculo), igual que
+  // el donut ("En proceso sin vencer"). Así no se cuentan dos veces y el círculo
+  // coincide con el texto/leyenda.
+  document.getElementById('kpiActivas').textContent    = enProcesoN - vencidas;
   document.getElementById('kpiSemana').textContent     = listasN;
   document.getElementById('kpiArchivadas').textContent = archivadas;
 
@@ -7160,9 +7163,9 @@ function renderizarTablero() {
     lista = lista.filter(t => {
       const li = _esLista(t);
       const venc = esVencida(t.fecha_limite) && !li;
-      // "En Proceso" = todo lo no-listo (igual que el número del círculo, que
-      // incluye las vencidas). "Vencidas" es el subconjunto ya vencido.
-      if (estatusFiltro === 'proceso')  return !li;
+      // "En Proceso" = no-listo y SIN vencer (igual que el círculo y el donut, que
+      // separan las vencidas en su propio grupo). "Vencidas" es el grupo ya vencido.
+      if (estatusFiltro === 'proceso')  return !li && !venc;
       if (estatusFiltro === 'vencidas') return venc;
       if (estatusFiltro === 'validar')  return li;
       return true;
