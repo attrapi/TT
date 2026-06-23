@@ -1890,6 +1890,16 @@
   .filtros-estatus.activo { background-color: var(--guinda-oscuro); }
   /* Las opciones del desplegable en blanco (legibles), no en guinda. */
   .filtros-estatus option { background: #fff; color: var(--tinta); font-weight: 500; }
+  /* Toggle "No vistas": apagado = contorno guinda; encendido = relleno guinda. */
+  .filtros-novistas {
+    border: 1.5px solid var(--guinda); border-radius: 999px;
+    padding: 7px 16px; font-size: 13px; font-weight: 600; font-family: var(--sans);
+    background: #fff; color: var(--guinda); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .filtros-novistas:hover { background: var(--guinda-tenue); }
+  .filtros-novistas.activo { background: var(--guinda); color: #fff; }
+  .filtros-novistas.activo:hover { background: var(--guinda-oscuro); }
   /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
   .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
 
@@ -5065,6 +5075,7 @@
       <option value="mes">Este mes</option>
       <option value="permanente">Permanentes</option>
     </select>
+    <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 No vistas</button>
     <div class="filtros-spacer"></div>
   </div>
 
@@ -5593,6 +5604,7 @@ let enlaceActivo = null;     // nombre completo del enlace seleccionado (card "P
 let estatusFiltro = null;    // 'proceso' | 'validar' | 'vencidas' filtro por círculo del Resumen (solo tablero)
 let fechaFiltro = '';        // '' | 'hoy' | 'semana' | 'mes' | 'permanente' filtro por fecha (junto al de estados)
 let _tareaDestacada = null;  // id de la tarea recién editada: su tarjeta palpita al re-renderizar
+let verNoVistas = false;     // filtro "No vistas": solo tareas no abiertas en las últimas 24 h
 let prioridadActiva = 'TODAS';
 let tareaAbierta = null;
 let vistaActiva = 'tablero';
@@ -7293,6 +7305,10 @@ function renderizarTablero() {
   if (fechaFiltro) {
     lista = lista.filter(t => tareaEnRangoFecha(t, fechaFiltro));
   }
+  // Filtro "No vistas": solo las que NO has abierto en las últimas 24 h.
+  if (verNoVistas) {
+    lista = lista.filter(t => !tareaVistaReciente(t));
+  }
   const cols = columnasPorRol();
   const tablero = document.getElementById('tablero');
   tablero.innerHTML = '';
@@ -7855,6 +7871,30 @@ function filtrarEstatusSelect(valor) {
 }
 function filtrarFechaSelect(valor) {
   fechaFiltro = valor || '';
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+// === Filtro "No vistas" (por usuario, local a este equipo) ===
+// Registra cuándo abriste cada tarea; se considera "vista" si la abriste en las
+// últimas 24 h. El filtro muestra solo las NO vistas, así las revisas por día.
+function vistasKey() { return 'tt_vistas_v1_' + ((usuarioActual && usuarioActual.email) || 'anon'); }
+function vistasLeer() { try { return JSON.parse(localStorage.getItem(vistasKey()) || '{}') || {}; } catch (e) { return {}; } }
+function registrarVistaLocal(id) {
+  if (!id) return;
+  const m = vistasLeer();
+  m[id] = Date.now();
+  try { localStorage.setItem(vistasKey(), JSON.stringify(m)); } catch (e) {}
+  if (verNoVistas) renderizar();   // si el filtro está activo, la tarea sale al instante
+}
+function tareaVistaReciente(t) {
+  if (!t) return false;
+  const ts = vistasLeer()[t.id];
+  return !!ts && (Date.now() - ts) < 86400000;   // < 24 h
+}
+function toggleNoVistas() {
+  verNoVistas = !verNoVistas;
+  const b = document.getElementById('filtroNoVistas');
+  if (b) b.classList.toggle('activo', verNoVistas);
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
@@ -8552,6 +8592,7 @@ function abrirDetalle(t) {
   const modal = document.getElementById('modal');
 
   marcarVisto(t);   // registra que esta persona (creador/participante) la abrió
+  registrarVistaLocal(t.id);   // sello local (24 h) para el filtro "No vistas"
 
   const bitacoraTarea = BITACORA.filter(b => b.id_tarea === t.id && b.accion !== 'visto' && b.accion !== 'comentario');
 
