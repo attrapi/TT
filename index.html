@@ -4316,11 +4316,29 @@
     }
     .checklist-adj-cell { max-width: none; margin-top: 8px; }
 
-    /* === Modal y formulario de CREAR/EDITAR tarea: a pantalla completa === */
-    #modal { max-width: 100%; max-height: 100vh; border-radius: 0; }
-    .modal-header { padding: 16px 18px; }
+    /* === Modal a pantalla completa en celular ===
+       En Chrome/Safari de iPhone, 100vh e inset:0 se extienden DEBAJO de la barra
+       de direcciones (arriba) y la barra de pestañas (abajo), tapando el encabezado
+       del modal (nombre + ✗) y dejándolo sin poder cerrar. Se usa 100dvh (alto
+       VISIBLE real, descuenta esas barras) + safe-area para el notch / indicador. */
+    .modal-fondo {
+      padding: 0;
+      bottom: auto;
+      height: 100vh;            /* respaldo navegadores viejos */
+      height: 100dvh;           /* alto visible (sin barras del navegador) */
+      align-items: stretch;
+    }
+    #modal {
+      max-width: 100%; width: 100%;
+      max-height: 100vh; max-height: 100dvh;
+      border-radius: 0; border-top: none;
+    }
+    /* El encabezado (nombre + Editar + ✗) baja lo suficiente para no quedar bajo
+       la barra del navegador / notch. */
+    .modal-header { padding: calc(14px + env(safe-area-inset-top)) 18px 14px; }
     .modal-body { padding: 16px 18px; }
-    .modal-acciones { padding: 14px 18px; }
+    /* Los botones (Cerrar/WhatsApp) suben sobre la barra inferior / home indicator. */
+    .modal-acciones { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); }
     .modal-titulo { font-size: 18px; }
     .modal-grid { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr; gap: 14px; }
