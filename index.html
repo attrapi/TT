@@ -580,22 +580,22 @@
   .app-main[data-vista="asistencia"] #validadasWrap,
   .app-main[data-vista="asistencia"] #enlacesWrap { display: none; }
   .app-main[data-vista="asistencia"] #asistenciaWrap { display: block; }
-  .asistencia-wrap { padding: 20px 24px 48px; text-align: center; }
+  .asistencia-wrap { padding: 16px 24px 26px; text-align: center; }
   .asis-titulo { font-size: 24px; font-weight: 800; color: var(--guinda); margin: 0 0 2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
   .asis-titulo .asis-emoji { font-size: 26px; }
   .asis-sub { color: var(--tinta-suave); font-size: 13px; margin: 0 auto 18px; max-width: 640px; text-align: center; }
   /* Tarjeta compacta (hug del contenido) con sombra y encabezado en degradado. */
   .asis-card { display: inline-block; max-width: 100%; overflow-x: auto; border: 1px solid var(--linea); border-radius: 16px; box-shadow: 0 8px 26px rgba(105,28,50,0.12); background: #fff; vertical-align: top; }
   table.asis-tabla { border-collapse: collapse; width: auto; }
-  .asis-tabla thead th { background: linear-gradient(135deg, var(--guinda), var(--guinda-oscuro)); color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; padding: 13px 14px; }
+  .asis-tabla thead th { background: linear-gradient(135deg, var(--guinda), var(--guinda-oscuro)); color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; padding: 9px 14px; }
   .asis-tabla thead th.asis-col-persona { text-align: left; }
-  .asis-tabla td { padding: 9px 14px; text-align: center; border-top: 1px solid #f1e7eb; }
+  .asis-tabla td { padding: 5px 14px; text-align: center; border-top: 1px solid #f1e7eb; }
   .asis-tabla tbody tr:hover { background: #fbf7f8; }
   .asis-tabla td.asis-persona { text-align: left; white-space: nowrap; }
   .asis-persona-wrap { display: flex; align-items: center; gap: 10px; }
-  .asis-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 13px; flex: 0 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .asis-avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 12px; flex: 0 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
   .asis-nombre { font-weight: 600; color: var(--tinta); }
-  .asis-dia { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(105,28,50,0.40); background: #fff; cursor: pointer; font-size: 15px; font-weight: 800; color: #fff; line-height: 1; padding: 0; transition: transform .12s, background .12s, border-color .12s; }
+  .asis-dia { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(105,28,50,0.40); background: #fff; cursor: pointer; font-size: 14px; font-weight: 800; color: #fff; line-height: 1; padding: 0; transition: transform .12s, background .12s, border-color .12s; }
   .asis-dia:hover { border-color: var(--guinda); background: var(--guinda-tenue); }
   .asis-dia.on { background: var(--rojo); border-color: var(--rojo); animation: asis-pop .25s ease; }
   @keyframes asis-pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
@@ -10207,8 +10207,8 @@ function renderizarAsistencia() {
   const maxT = Math.max(0, Math.max.apply(null, ASIS_PERSONAS.map(function (p) { return totales[p]; })));
 
   const cab = '<tr><th class="asis-col-persona">Persona</th>' +
-    ASIS_DIAS.map(function (d) { return '<th>' + d[1].slice(0, 3) + '</th>'; }).join('') +
-    '<th>Acum.</th></tr>';
+    ASIS_DIAS.map(function (d) { return '<th>' + d[1] + '</th>'; }).join('') +
+    '<th>Acumulado</th></tr>';
 
   const filas = ASIS_PERSONAS.map(function (p, idx) {
     const ini = (p.charAt(0) || '?').toUpperCase();
