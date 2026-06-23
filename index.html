@@ -5080,7 +5080,7 @@
       <option value="mes">Este mes</option>
       <option value="permanente">Permanentes</option>
     </select>
-    <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 No vistas</button>
+    <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" onmouseenter="actualizarTituloNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 No vistas</button>
     <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
   </div>
@@ -7896,6 +7896,16 @@ function tareaVistaReciente(t) {
   if (!t) return false;
   const ts = vistasLeer()[t.id];
   return !!ts && (Date.now() - ts) < 86400000;   // < 24 h
+}
+// Tooltip del botón: cuántas tareas (visibles) has visto en 24 h y cuántas no.
+function actualizarTituloNoVistas() {
+  const b = document.getElementById('filtroNoVistas');
+  if (!b) return;
+  let base = [];
+  try { base = obtenerTareasFiltradas().filter(function (t) { return t.estatus !== 'Archivada' && !t.eliminada; }); } catch (e) {}
+  const vistas = base.filter(tareaVistaReciente).length;
+  const noVistas = base.length - vistas;
+  b.title = 'Vistas: ' + vistas + '   ·   No vistas: ' + noVistas + '   (no abiertas en las últimas 24 h)';
 }
 function toggleNoVistas() {
   verNoVistas = !verNoVistas;
