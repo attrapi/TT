@@ -7905,7 +7905,7 @@ function actualizarTituloNoVistas() {
   try { base = obtenerTareasFiltradas().filter(function (t) { return t.estatus !== 'Archivada' && !t.eliminada; }); } catch (e) {}
   const vistas = base.filter(tareaVistaReciente).length;
   const noVistas = base.length - vistas;
-  b.title = 'Vistas: ' + vistas + '   ·   No vistas: ' + noVistas + '   (no abiertas en las últimas 24 h)';
+  b.title = 'Vistas: ' + vistas + '   ·   No vistas: ' + noVistas;
 }
 function toggleNoVistas() {
   verNoVistas = !verNoVistas;
