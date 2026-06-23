@@ -3098,6 +3098,19 @@
     color: var(--rojo);
     font-weight: 600;
   }
+  /* Fecha editable dentro del modal de detalle (sin entrar a Editar). */
+  .modal-fecha-input {
+    font: inherit;
+    color: var(--tinta);
+    padding: 3px 8px;
+    border: 1px solid var(--linea);
+    border-radius: 7px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .modal-fecha-input:hover { border-color: var(--guinda); }
+  .modal-fecha-input:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .modal-campo-fecha-vencida .modal-fecha-input { color: var(--rojo); border-color: var(--rojo); }
   /* Meta del header del modal (estatus + prioridad + chip vence hoy) */
   .modal-meta {
     display: flex;
@@ -8337,6 +8350,36 @@ function renderizarPapelera() {
 
 // ============== MODAL ==============
 
+// Cambia la fecha de atención DESDE el modal de detalle, sin entrar a "Editar".
+// Pueden hacerlo todos los responsables/participantes de la tarea (y quien la
+// edita). Guarda al instante en el servidor, registra "Reprogramada" en la
+// bitácora y repinta el modal.
+function cambiarFechaDetalle(idTarea, nuevaFecha) {
+  if (SOLO_LECTURA) return;
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) return;
+  if (!(usuarioPuedeEditar(t) || puedeChecklist(t))) return;
+  nuevaFecha = String(nuevaFecha || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nuevaFecha)) return;   // fecha inválida → ignora
+  const anterior = t.fecha_atencion || t.fecha_limite || '';
+  if (anterior === nuevaFecha) return;                   // sin cambios
+  t.fecha_atencion = nuevaFecha; t.fecha_limite = nuevaFecha; t.permanente = false;
+  if (enAppScript() && SESION_TOKEN) {
+    google.script.run
+      .withFailureHandler(function (e) { toast('No se pudo cambiar la fecha: ' + (e && e.message ? e.message : e), 'error'); })
+      .actualizarTarea(SESION_TOKEN, t.id, { fecha: nuevaFecha });
+  }
+  registrarEnBitacora({
+    accion: 'reprogramar', id_tarea: t.id,
+    estatus_anterior: anterior, estatus_nuevo: nuevaFecha,
+    comentario: 'Fecha de atención: ' + (anterior ? formatearFecha(anterior) : '—') + ' → ' + formatearFecha(nuevaFecha)
+  });
+  abrirDetalle(t);   // repinta el modal con la fecha nueva
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+  toast('Fecha de ' + t.id + ' actualizada', 'ok');
+}
+
 function abrirDetalle(t) {
   tareaAbierta = t;
   const modal = document.getElementById('modal');
@@ -8418,6 +8461,9 @@ function abrirDetalle(t) {
   const todoMarcadoDet = checklistTodoMarcado(t);
   const vencida = esVencida(fechaAt) && !concluidaDet && !todoMarcadoDet;
   const venceEsteDia = venceHoy(fechaAt) && t.estatus === 'En Proceso' && !concluidaDet;
+  // La fecha se puede cambiar DESDE el modal (sin entrar a Editar) si el usuario
+  // participa en la tarea o la puede editar. Aplica a todos los responsables.
+  const puedeFechaDet = !SOLO_LECTURA && (usuarioPuedeEditar(t) || puedeChecklist(t));
 
   // "Visto por": quién ha abierto la tarea (ya incluye al usuario actual, porque
   // marcarVisto corrió arriba). El creador va primero (en guinda).
@@ -8464,7 +8510,9 @@ function abrirDetalle(t) {
         <dd class="${vencida ? 'modal-campo-fecha-vencida' : ''}">
           ${t.permanente
             ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
-            : `${formatearFechaLarga(fechaAt)}`}
+            : (puedeFechaDet
+                ? `<input type="date" class="modal-fecha-input" value="${fechaAt || ''}" onchange="cambiarFechaDetalle('${t.id}', this.value)" title="Cambiar la fecha de atención (se guarda al instante)">`
+                : `${formatearFechaLarga(fechaAt)}`)}
         </dd>
         <dt>Áreas involucradas</dt>
         <dd>${escapeHtml(areas)}</dd>
