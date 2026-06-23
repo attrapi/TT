@@ -405,17 +405,8 @@
     font-weight: 600;
   }
   .sidebar-item.activa svg { opacity: 1; }
-  /* Indicador activo: barrita izquierda dentro del subcard. */
-  .sidebar-item.activa::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 3px;
-    background: var(--guinda);
-    border-radius: 0 3px 3px 0;
-  }
+  /* (Se quitó la barrita vertical de "activo": el item seleccionado se distingue
+     solo por el fondo tenue y la negrita, en todos los perfiles.) */
   .sidebar-conteo {
     margin-left: auto;
     background: var(--grafito-tenue);
@@ -457,12 +448,6 @@
      aprovecha todo el ancho. La identidad de color se conserva en el estado
      activo (franja izquierda y fondo tenue). */
   .sub-dot { display: none; }
-  /* En items de subdirección activos, el dot conserva su color y agregamos
-     una franja izquierda con el color de la sub en lugar del guinda genérico. */
-  .sidebar-sub.activa[data-sub="SA"]::before     { background: var(--sub-sa); }
-  .sidebar-sub.activa[data-sub="SGOI"]::before   { background: var(--sub-sgoi); }
-  .sidebar-sub.activa[data-sub="SPAC"]::before   { background: var(--sub-spac); }
-  .sidebar-sub.activa[data-sub="ENLACE"]::before { background: var(--sub-enlace); }
   /* Colores BASE de los tabs del sidebar — coinciden con el fondo del header
      de cada columna del tablero. Así el panel izquierdo y el tablero se ven
      visualmente conectados (mismos colores para la misma subdirección). */
@@ -475,12 +460,11 @@
   .sidebar-sub[data-sub="SPAC"]   .sub-dot { background: #1d4ed8; }
   .sidebar-sub[data-sub="SA"]     .sub-dot { background: #c2410c; }
   .sidebar-sub[data-sub="ENLACE"] .sub-dot { background: #7c3aed; }
-  /* Estado ACTIVO: borde izquierdo más marcado + sombra sutil para señalar
-     cuál está seleccionado. */
-  .sidebar-sub.activa[data-sub="SGOI"]   { border-left: 4px solid #6b8e23; font-weight: 700; }
-  .sidebar-sub.activa[data-sub="SPAC"]   { border-left: 4px solid #1d4ed8; font-weight: 700; }
-  .sidebar-sub.activa[data-sub="SA"]     { border-left: 4px solid #c2410c; font-weight: 700; }
-  .sidebar-sub.activa[data-sub="ENLACE"] { border-left: 4px solid #7c3aed; font-weight: 700; }
+  /* Estado ACTIVO: solo negrita (sin barra/borde izquierdo). */
+  .sidebar-sub.activa[data-sub="SGOI"]   { font-weight: 700; }
+  .sidebar-sub.activa[data-sub="SPAC"]   { font-weight: 700; }
+  .sidebar-sub.activa[data-sub="SA"]     { font-weight: 700; }
+  .sidebar-sub.activa[data-sub="ENLACE"] { font-weight: 700; }
   /* Contador con tono más oscuro del mismo color */
   .sidebar-sub[data-sub="SGOI"]   .sidebar-conteo { background: rgba(107,142,35,0.18); color: #3f5713; }
   .sidebar-sub[data-sub="SPAC"]   .sidebar-conteo { background: rgba(29,78,216,0.15);  color: #1e3a8a; }
@@ -493,7 +477,7 @@
      institucional. */
   .sidebar-jef { padding-left: 30px; }
   .sidebar-jef .sidebar-label { font-size: 13px; font-weight: 600; }
-  .sidebar-jef.activa { border-left: 4px solid var(--guinda); background: var(--guinda-tenue); }
+  .sidebar-jef.activa { background: var(--guinda-tenue); }
   .sidebar-jef.activa .sidebar-label { font-weight: 700; }
 
   /* === CONTROL DE VISIBILIDAD POR VISTA ===
