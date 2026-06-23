@@ -580,29 +580,37 @@
   .app-main[data-vista="asistencia"] #validadasWrap,
   .app-main[data-vista="asistencia"] #enlacesWrap { display: none; }
   .app-main[data-vista="asistencia"] #asistenciaWrap { display: block; }
-  .asistencia-wrap { padding: 18px 24px 48px; }
-  .asis-titulo { font-size: 22px; font-weight: 700; color: var(--guinda); margin: 0 0 4px; }
-  .asis-sub { color: var(--tinta-suave); font-size: 13px; margin-bottom: 16px; max-width: 620px; }
-  /* Tabla compacta: hug del contenido (no se estira a todo el ancho). */
-  .asis-tabla-wrap { display: inline-block; max-width: 100%; overflow-x: auto; background: #fff; border: 1px solid var(--linea); border-radius: 12px; vertical-align: top; }
+  .asistencia-wrap { padding: 20px 24px 48px; }
+  .asis-titulo { font-size: 24px; font-weight: 800; color: var(--guinda); margin: 0 0 2px; display: flex; align-items: center; gap: 10px; }
+  .asis-titulo .asis-emoji { font-size: 26px; }
+  .asis-sub { color: var(--tinta-suave); font-size: 13px; margin: 0 0 18px; max-width: 640px; }
+  /* Tarjeta compacta (hug del contenido) con sombra y encabezado en degradado. */
+  .asis-card { display: inline-block; max-width: 100%; overflow-x: auto; border: 1px solid var(--linea); border-radius: 16px; box-shadow: 0 8px 26px rgba(105,28,50,0.12); background: #fff; vertical-align: top; }
   table.asis-tabla { border-collapse: collapse; width: auto; }
-  .asis-tabla th, .asis-tabla td { padding: 6px 10px; text-align: center; border-bottom: 1px solid var(--linea); }
-  .asis-tabla tbody tr:last-child td { border-bottom: none; }
-  .asis-tabla thead th { background: var(--guinda-tenue); color: var(--guinda); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
-  .asis-tabla th.asis-col-persona, .asis-tabla td.asis-persona { text-align: left; font-weight: 600; color: var(--tinta); white-space: nowrap; padding-right: 14px; }
-  .asis-celda { cursor: pointer; font-size: 16px; line-height: 1; user-select: none; width: 38px; color: var(--rojo); }
-  .asis-celda:hover { background: var(--guinda-tenue); }
-  .asis-celda.marcado { font-weight: 800; }
-  .asis-total { font-weight: 800; color: var(--tinta); }
-  .asis-total.lider { color: var(--rojo); }
-  .asis-acciones { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .asis-tabla thead th { background: linear-gradient(135deg, var(--guinda), var(--guinda-oscuro)); color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; padding: 13px 14px; }
+  .asis-tabla thead th.asis-col-persona { text-align: left; }
+  .asis-tabla td { padding: 9px 14px; text-align: center; border-top: 1px solid #f1e7eb; }
+  .asis-tabla tbody tr:hover { background: #fbf7f8; }
+  .asis-tabla td.asis-persona { text-align: left; white-space: nowrap; }
+  .asis-persona-wrap { display: flex; align-items: center; gap: 10px; }
+  .asis-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 13px; flex: 0 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .asis-nombre { font-weight: 600; color: var(--tinta); }
+  .asis-dia { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #e4e5ea; background: #fff; cursor: pointer; font-size: 15px; font-weight: 800; color: #fff; line-height: 1; padding: 0; transition: transform .12s, background .12s, border-color .12s; }
+  .asis-dia:hover { border-color: var(--guinda); background: var(--guinda-tenue); }
+  .asis-dia.on { background: var(--rojo); border-color: var(--rojo); animation: asis-pop .25s ease; }
+  @keyframes asis-pop { 0% { transform: scale(.5); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .asis-pill { display: inline-block; min-width: 34px; padding: 5px 12px; border-radius: 999px; background: #eef0f3; color: var(--tinta); font-weight: 800; font-size: 14px; }
+  .asis-pill.lider { background: #fee2e2; color: #991b1b; }
+  .asis-acciones { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
   .asis-btn { border: none; border-radius: 999px; padding: 9px 18px; font-weight: 600; cursor: pointer; font-family: var(--sans); font-size: 13px; }
   .asis-btn-rev { background: var(--guinda); color: #fff; }
   .asis-btn-rev:hover { background: var(--guinda-oscuro); }
   .asis-btn-reset { background: #fff; color: var(--guinda); border: 1.5px solid var(--guinda); }
-  .asis-resultado { margin-top: 20px; }
-  .asis-ganador-card { background: #fff; border: 2px solid var(--rojo); border-radius: 14px; padding: 18px 22px; text-align: center; animation: asis-reveal .55s ease; }
-  .asis-perdedor { display: inline-block; margin: 6px; padding: 10px 16px; border-radius: 12px; background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 18px; animation: asis-shake .6s ease; }
+  .asis-resultado { margin-top: 22px; }
+  .asis-ganador-card { display: inline-block; background: #fff; border: 2px solid var(--rojo); border-radius: 16px; padding: 20px 26px; text-align: center; box-shadow: 0 8px 26px rgba(185,28,28,0.15); animation: asis-reveal .55s ease; }
+  .asis-ganador-titulo { font-size: 15px; color: var(--tinta-suave); margin-bottom: 12px; font-weight: 600; }
+  .asis-perdedor { display: inline-flex; align-items: center; gap: 8px; margin: 6px; padding: 12px 18px; border-radius: 14px; background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 18px; animation: asis-shake .6s ease; }
+  .asis-perdedor .asis-emoji-big { font-size: 24px; }
   @keyframes asis-reveal { 0% { transform: scale(.7); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
   @keyframes asis-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px) rotate(-2deg); } 40% { transform: translateX(6px) rotate(2deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
 
@@ -10131,6 +10139,8 @@ function cambiarVista(v) {
 // (localStorage, este equipo) y hay botón Restablecer. Es exclusivo de Mario.
 const ASIS_PERSONAS = ['Mario', 'César', 'Dolores', 'Nora', 'Guillermo', 'Fabián', 'Daniel'];
 const ASIS_DIAS = [['lun', 'Lunes'], ['mar', 'Martes'], ['mie', 'Miércoles'], ['jue', 'Jueves']];
+// Color del avatar por persona (mismo índice que ASIS_PERSONAS).
+const ASIS_COLORES = ['#691c32', '#1d4ed8', '#db2777', '#0891b2', '#ea580c', '#16a34a', '#7c3aed'];
 const ASIS_KEY = 'tt_asistencia_v1';
 
 function esMarioFranco() {
@@ -10182,23 +10192,27 @@ function renderizarAsistencia() {
   const maxT = Math.max(0, Math.max.apply(null, ASIS_PERSONAS.map(function (p) { return totales[p]; })));
 
   const cab = '<tr><th class="asis-col-persona">Persona</th>' +
-    ASIS_DIAS.map(function (d) { return '<th>' + d[1] + '</th>'; }).join('') +
-    '<th>Acumulado</th></tr>';
+    ASIS_DIAS.map(function (d) { return '<th>' + d[1].slice(0, 3) + '</th>'; }).join('') +
+    '<th>Acum.</th></tr>';
 
-  const filas = ASIS_PERSONAS.map(function (p) {
+  const filas = ASIS_PERSONAS.map(function (p, idx) {
+    const ini = (p.charAt(0) || '?').toUpperCase();
+    const color = ASIS_COLORES[idx % ASIS_COLORES.length];
+    const avatar = '<span class="asis-avatar" style="background:' + color + '">' + escapeHtml(ini) + '</span>';
     const celdas = ASIS_DIAS.map(function (d) {
       const on = !!(st[p] && st[p][d[0]]);
-      return '<td class="asis-celda' + (on ? ' marcado' : '') + '" onclick="toggleAsistencia(\'' + p + '\', \'' + d[0] + '\')" title="' + d[1] + '">' + (on ? '✗' : '') + '</td>';
+      return '<td><button class="asis-dia' + (on ? ' on' : '') + '" onclick="toggleAsistencia(\'' + p + '\', \'' + d[0] + '\')" title="' + d[1] + '">' + (on ? '✗' : '') + '</button></td>';
     }).join('');
     const esLider = maxT > 0 && totales[p] === maxT;
-    return '<tr><td class="asis-persona">' + escapeHtml(p) + '</td>' + celdas +
-      '<td class="asis-total' + (esLider ? ' lider' : '') + '">' + totales[p] + '</td></tr>';
+    return '<tr><td class="asis-persona"><span class="asis-persona-wrap">' + avatar +
+      '<span class="asis-nombre">' + escapeHtml(p) + '</span></span></td>' + celdas +
+      '<td><span class="asis-pill' + (esLider ? ' lider' : '') + '">' + totales[p] + '</span></td></tr>';
   }).join('');
 
   wrap.innerHTML =
-    '<div class="asis-titulo">Asistencia · Tardanzas de la semana</div>' +
-    '<div class="asis-sub">Marca con un clic los días que cada quien llegó tarde (Lunes a Jueves). Cada ✗ suma una tardanza. El viernes se revela quién acumuló más. Se reinicia solo cada lunes (o con «Restablecer»).</div>' +
-    '<div class="asis-tabla-wrap"><table class="asis-tabla"><thead>' + cab + '</thead><tbody>' + filas + '</tbody></table></div>' +
+    '<div class="asis-titulo"><span class="asis-emoji">🕒</span> Asistencia de la semana</div>' +
+    '<div class="asis-sub">Marca con un clic los días que cada quien llegó tarde (Lun–Jue). Cada ✗ suma al acumulado. El viernes se revela quién acumuló más. Se reinicia solo cada lunes (o con «Restablecer»).</div>' +
+    '<div class="asis-card"><table class="asis-tabla"><thead>' + cab + '</thead><tbody>' + filas + '</tbody></table></div>' +
     '<div class="asis-acciones">' +
       '<button class="asis-btn asis-btn-rev" onclick="revelarAsistencia()">Ver resultado</button>' +
       '<button class="asis-btn asis-btn-reset" onclick="restablecerAsistencia()">Restablecer</button>' +
@@ -10216,17 +10230,18 @@ function revelarAsistencia() {
   const totales = ASIS_PERSONAS.map(function (p) { return { p: p, n: asisTotal(st, p) }; });
   const maxT = Math.max(0, Math.max.apply(null, totales.map(function (x) { return x.n; })));
   if (maxT === 0) {
-    cont.innerHTML = '<div class="asis-ganador-card">🎉 ¡Nadie llegó tarde esta semana! Sin tardanzas.</div>';
+    cont.innerHTML = '<div class="asis-ganador-card"><div style="font-size:30px;margin-bottom:6px;">🎉</div>' +
+      '<div class="asis-ganador-titulo" style="margin:0;">¡Nadie llegó tarde esta semana! Sin tardanzas.</div></div>';
     return;
   }
   const perdedores = totales.filter(function (x) { return x.n === maxT; });
   const empate = perdedores.length > 1;
   const nombres = perdedores.map(function (x) {
-    return '<span class="asis-perdedor">😱 ' + escapeHtml(x.p) + ' · ' + x.n + (x.n === 1 ? ' tardanza' : ' tardanzas') + '</span>';
+    return '<span class="asis-perdedor"><span class="asis-emoji-big">🐢</span> ' + escapeHtml(x.p) + ' · ' + x.n + (x.n === 1 ? ' tardanza' : ' tardanzas') + '</span>';
   }).join('');
   cont.innerHTML = '<div class="asis-ganador-card">' +
-    '<div style="font-size:15px;color:var(--tinta-suave);margin-bottom:10px;">' +
-      (empate ? '¡Empate! Los que más llegaron tarde:' : 'Quien más llegó tarde esta semana:') + '</div>' +
+    '<div class="asis-ganador-titulo">' +
+      (empate ? '🚨 ¡Empate! Los que más llegaron tarde:' : '🚨 Quien más llegó tarde esta semana:') + '</div>' +
     '<div>' + nombres + '</div>' +
   '</div>';
 }
