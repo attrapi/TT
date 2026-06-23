@@ -471,15 +471,6 @@
   .sidebar-sub[data-sub="SA"]     .sidebar-conteo { background: rgba(194,65,12,0.15);  color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { background: rgba(124,58,237,0.15); color: #5b21b6; }
 
-  /* Items de JEFATURA en el menú (JDGA, JDGOI, JDPC, JDIMA): dependen de su
-     subdirección, por eso van indentados y un poco más chicos que la madre.
-     Filtran el tablero (cambiarJefatura); el estado activo usa el guinda
-     institucional. */
-  .sidebar-jef { padding-left: 30px; }
-  .sidebar-jef .sidebar-label { font-size: 13px; font-weight: 600; }
-  .sidebar-jef.activa { background: var(--guinda-tenue); }
-  .sidebar-jef.activa .sidebar-label { font-weight: 700; }
-
   /* === CONTROL DE VISIBILIDAD POR VISTA ===
      Cada vista alterna oculta/muestra los bloques que le corresponden. */
   .app-main[data-vista="tablero"]   #calendarioWrap,
@@ -4215,8 +4206,14 @@
 
   /* === RESPONSIVE · refuerzo para celular (≤640px) === */
   @media (max-width: 640px) {
-    /* Nada se desborda a lo ancho. */
-    html, body { overflow-x: hidden; }
+    /* Nada se desborda a lo ancho: ni la página ni el contenido. */
+    html, body { overflow-x: hidden; max-width: 100%; }
+    #app, .app-body, .app-main { max-width: 100%; overflow-x: hidden; }
+    /* Padding lateral consistente en TODAS las vistas (las que no lo traían). */
+    #bitacoraWrap, #cargaWrap, #reportesWrap, #dashboardWrap,
+    #papeleraWrap, #validadasWrap { padding-left: 16px; padding-right: 16px; }
+    /* Enlaces: una sola columna en celular, con aire a los lados. */
+    #enlacesWrap { grid-template-columns: 1fr !important; padding-left: 16px; padding-right: 16px; }
 
     /* BITÁCORA: la tabla de 4 columnas se desbordaba en pantallas chicas.
        Aquí cada renglón se APILA como tarjeta (una cosa debajo de otra). */
@@ -4801,14 +4798,11 @@
           <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
         </button>
-        <!-- Jefaturas de la subdirección como items de menú (se llenan en
-             aplicarSesion según la subdirección del usuario; filtran el tablero
-             vía cambiarJefatura). Quedan entre la subdirección y "Enlaces". -->
-        <div id="sidebarJefaturas"></div>
         <!-- Enlaces (subdirector/enlace con acceso completo de una subdirección
-             que tiene enlaces): vista con una columna por enlace. -->
+             que tiene enlaces): vista con una columna por enlace. Sin ícono.
+             Las jefaturas NO van como items de menú: aparecen como columnas del
+             tablero al entrar a la subdirección (mismo flujo que SPAC/Mario). -->
         <button class="sidebar-item sidebar-enlaces" id="sidebarEnlaces" data-vista="enlaces" onclick="cambiarVista('enlaces')" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07l-.71.7"/><path d="M14 11a5 5 0 0 0-7.07 0L5.5 12.4a5 5 0 0 0 7.07 7.07l.7-.7"/></svg>
           <span class="sidebar-label">Enlaces</span>
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
@@ -4847,11 +4841,6 @@
         <button class="sidebar-item" id="sidebarOrganigrama" onclick="window.open('https://attrapi.github.io/organigramaATTRAPI/', '_blank', 'noopener')" title="Abrir el organigrama (nueva pestaña)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="3" y="17" width="6" height="5" rx="1"/><rect x="15" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M6 17v-2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2"/></svg>
           <span class="sidebar-label">Organigrama</span>
-        </button>
-        <!-- LOPSRM: abre el PDF de la Ley en pestaña nueva. Solo Director y subdirector SPAC. -->
-        <button class="sidebar-item" id="sidebarLopsrm" style="display:none" onclick="window.open('https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf', '_blank', 'noopener')" title="Abrir la LOPSRM (PDF, nueva pestaña)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span class="sidebar-label">LOPSRM</span>
         </button>
         <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace), en prueba. -->
         <button class="sidebar-item" id="sidebarJuegoLopsrm" style="display:none" onclick="abrirJuegoLopsrm()" title="Reta a la Ley — quiz para aprender la LOPSRM">
@@ -5571,11 +5560,6 @@ function aplicarSesion() {
   });
   const btnNuevoReset = document.getElementById('btnNuevo');
   if (btnNuevoReset) btnNuevoReset.style.display = '';
-  // Limpia los items de jefatura del menú: se regeneran abajo según el rol/área.
-  // Sin esto se "pegarían" las jefaturas de la cuenta anterior al cambiar de
-  // usuario sin recargar.
-  const contJefReset = document.getElementById('sidebarJefaturas');
-  if (contJefReset) contJefReset.innerHTML = '';
   // Re-muestra los items de Gestión (Bitácora/Carga/Reportes/Organigrama); luego
   // cada rol oculta lo que no le toca. Evita que se "peguen" ocultos.
   if (grupoDir) grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) { b.style.display = ''; });
@@ -5616,26 +5600,8 @@ function aplicarSesion() {
     navTit.title = tituloNav;                   // mismo nombre completo en el tooltip
 
     tabActiva = usuarioActual.subdireccion;
-
-    // Jefaturas como items de menú: SOLO para el subdirector (capturista sin
-    // jefatura propia) o un enlace con acceso completo de una subdirección que
-    // tiene jefaturas. Cada botón filtra el tablero (cambiarJefatura). Las
-    // jefaturas siguen además como columnas del tablero.
-    const contJef = document.getElementById('sidebarJefaturas');
-    if (contJef) {
-      const codJefU = jefaturaCodigo(usuarioActual.jefatura);
-      const esSubConJef = !codJefU && !esEnlaceRestringido();
-      const jefs = esSubConJef ? jefaturasDeSub(usuarioActual.subdireccion) : [];
-      const dotVar = '--sub-' + String(usuarioActual.subdireccion || '').toLowerCase();
-      contJef.innerHTML = jefs.map(function (cod) {
-        const acr = ACRONIMO_JEFATURA[cod] || cod;
-        const nom = (JEFATURAS_POR_SUB[usuarioActual.subdireccion] || {})[cod] || acr;
-        return '<button class="sidebar-item sidebar-jef" data-jef="' + cod + '" '
-          + 'onclick="cambiarJefatura(\'' + cod + '\')" title="' + escapeHtml(nom) + '">'
-          + '<span class="sub-dot" style="background: var(' + dotVar + ')"></span>'
-          + '<span class="sidebar-label">' + escapeHtml(nom) + '</span></button>';
-      }).join('');
-    }
+    // Las jefaturas NO se listan en el menú: aparecen como COLUMNAS del tablero al
+    // entrar a la subdirección (columnasPorRol), igual que SPAC/Mario.
   }
 
   // Staff (ENLACE) tiene un panel mínimo SIN el grupo "Gestión", pero AHORA
@@ -5719,11 +5685,6 @@ function aplicarSesion() {
     brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
   }
 
-  // LOPSRM en Gestión: SOLO el Director (Adrián) y el subdirector de SPAC (Mario).
-  const lopsrmBtn = document.getElementById('sidebarLopsrm');
-  if (lopsrmBtn) {
-    lopsrmBtn.style.display = (usuarioActual.rol === 'Director' || esSubdirectorSPACReal()) ? '' : 'none';
-  }
   // Juego "Reta a la Ley": por ahora SOLO Daniel de la Garza (enlace), para probarlo.
   const juegoBtn = document.getElementById('sidebarJuegoLopsrm');
   if (juegoBtn) juegoBtn.style.display = esDanielDeLaGarza() ? '' : 'none';
