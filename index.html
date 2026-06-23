@@ -1901,8 +1901,9 @@
   /* Activado = verde. */
   .filtros-novistas.activo { background: var(--verde); color: #fff; border-color: var(--verde); }
   .filtros-novistas.activo:hover { background: var(--verde); filter: brightness(0.95); }
-  /* Etiqueta de estado al lado del botón. */
-  .filtros-novistas-estado { font-size: 12px; font-weight: 700; color: var(--tinta-suave); align-self: center; }
+  /* Etiqueta de estado al lado del botón: solo aparece un momento al hacer clic. */
+  .filtros-novistas-estado { font-size: 12px; font-weight: 700; color: var(--tinta-suave); align-self: center; opacity: 0; transition: opacity 0.25s; }
+  .filtros-novistas-estado.show { opacity: 1; }
   .filtros-novistas-estado.on { color: var(--verde); }
   /* Buscador dentro de la vista Validadas: ocupa su propia fila. */
   .validadas-buscar { display: block; width: 100%; max-width: 360px; margin: 4px 0 16px; }
@@ -5080,7 +5081,7 @@
       <option value="permanente">Permanentes</option>
     </select>
     <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 No vistas</button>
-    <span class="filtros-novistas-estado" id="noVistasEstado">Desactivado</span>
+    <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
   </div>
 
@@ -7901,7 +7902,13 @@ function toggleNoVistas() {
   const b = document.getElementById('filtroNoVistas');
   if (b) b.classList.toggle('activo', verNoVistas);
   const est = document.getElementById('noVistasEstado');
-  if (est) { est.textContent = verNoVistas ? 'Activado' : 'Desactivado'; est.classList.toggle('on', verNoVistas); }
+  if (est) {
+    est.textContent = verNoVistas ? 'Activado' : 'Desactivado';
+    est.classList.toggle('on', verNoVistas);
+    est.classList.add('show');   // aparece solo al hacer clic y se desvanece a los ~1.8 s
+    clearTimeout(window._noVistasTimer);
+    window._noVistasTimer = setTimeout(function () { est.classList.remove('show'); }, 1800);
+  }
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
