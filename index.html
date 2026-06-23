@@ -8483,6 +8483,17 @@ function cambiarFechaDetalle(idTarea, nuevaFecha) {
   toast('Fecha de ' + t.id + ' actualizada', 'ok');
 }
 
+// "Guardar cambios" del modal de detalle: los cambios inline (fecha, acciones,
+// palomeos) ya se guardan al instante; este botón re-guarda por seguridad, avisa
+// y cierra el modal. Da una confirmación clara de que quedó guardado.
+function guardarCambiosDetalle(idTarea) {
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t) { cerrarModal(); return; }
+  try { persistirEstado(t); } catch (e) {}
+  if (typeof toast === 'function') toast('Cambios guardados', 'ok');
+  cerrarModal();
+}
+
 function abrirDetalle(t) {
   tareaAbierta = t;
   const modal = document.getElementById('modal');
@@ -8540,15 +8551,25 @@ function abrirDetalle(t) {
     botones += `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="reabrir('${t.id}')">↺ Reabrir</button>`;
   }
 
+  // "Guardar cambios": en el modal de detalle ya se puede cambiar la fecha y
+  // agregar acciones sin entrar a Editar; este botón confirma/guarda y cierra.
+  // Aparece para quien puede editar o participa en la tarea (no en solo lectura
+  // ni en tareas eliminadas).
+  const puedeGuardar = !t.eliminada && !SOLO_LECTURA && (usuarioPuedeEditar(t) || puedeChecklist(t));
+  const btnGuardar = puedeGuardar
+    ? `<button class="btn-modal" style="background:var(--guinda); color:#fff; border-color:var(--guinda);" onclick="guardarCambiosDetalle('${t.id}')">Guardar cambios</button>`
+    : '';
+
   // Orden de los botones (izq → der):
-  //   WhatsApp · Editar  ·  (espacio)  ·  Cerrar · Acciones primarias (Completada/Restaurar/Eliminar)
-  // Completada / Restaurar quedan al final del todo para que sean el último foco.
+  //   Guardar cambios · Acciones primarias (Completada/Restaurar)  ·  (espacio)  ·  Cerrar · WhatsApp
+  // WhatsApp queda hasta la derecha y "Cerrar" pegado a su izquierda.
   const acciones = `
     <div class="modal-acciones">
-      ${btnWA}
+      ${btnGuardar}
+      ${botones}
       <div style="flex:1"></div>
       <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
-      ${botones}
+      ${btnWA}
     </div>
   `;
 
