@@ -11152,7 +11152,20 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   cod = String(cod || '').toUpperCase();
   const eraTodaCompletaAntes = items.length > 0 && items.every(i => marcadoDeArea(i, t, cod));
   const autor = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
-  fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', valor ? ahoraStamp() : '');
+  const stamp = valor ? ahoraStamp() : '';
+  fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', stamp);
+  // El Director es la MÁXIMA AUTORIDAD: cuando palomea una acción en SU columna
+  // (DPAC/ENLACE), esa misma fila (acción) se da por palomeada automáticamente
+  // para TODOS los demás participantes/responsables. Solo al MARCAR (no al
+  // desmarcar). Así, si palomea 1 de 3 acciones, solo esa fila se valida para todos.
+  if (valor && usuarioActual.rol === 'Director' && (cod === 'DPAC' || cod === 'ENLACE')) {
+    participantesDe(t).forEach(function (otroCod) {
+      otroCod = String(otroCod || '').toUpperCase();
+      if (otroCod !== cod && !marcadoDeArea(items[idx], t, otroCod)) {
+        fijarMarcadoArea(items[idx], t, otroCod, true, autor, stamp);
+      }
+    });
+  }
   // Registro en bitácora:
   //   • Cada paloma (mientras FALTEN acciones) → "Seguimiento" con el avance X/Y.
   //   • Solo cuando se completa TODA la columna → "Completada" (o "Validada" si
