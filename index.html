@@ -10762,7 +10762,16 @@ function enviarRecordatorio(idTarea, canal) {
     if (acuerdos && acuerdos !== '—') {
       lineas.push('', sep, '🤝 *Acuerdos realizados*', acuerdos);
     }
-    if (accion && accion !== '—') {
+    // TODAS las acciones del checklist (no solo el campo viejo "Acción a tomar").
+    const _itemsWA = obtenerChecklist(t);
+    if (_itemsWA.length) {
+      const _colsWA = participantesDe(t);
+      lineas.push('', sep, '✅ *Acciones (' + _itemsWA.length + ')*');
+      _itemsWA.forEach(function (it, i) {
+        const hecho = _colsWA.length > 0 && _colsWA.every(function (cod) { return marcadoDeArea(it, t, cod); });
+        lineas.push('   ' + (hecho ? '✅' : '▫️') + ' ' + (i + 1) + '. ' + (it.texto || ''));
+      });
+    } else if (accion && accion !== '—') {
       lineas.push('', '➡️ *Acción a tomar*', accion);
     }
     // Hilo de comentarios (la conversación de la tarea).
