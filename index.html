@@ -7113,7 +7113,14 @@ function actualizarKPIs() {
       const pendJef = areaCod => TAREAS.filter(t =>
           !t.eliminada && t.estatus !== 'Archivada' && tareaEnArea(t, areaCod)).length;
       if (filaJ) {
-        filaJ.innerHTML = jefsSub.map(function (cod) {
+        const sub = usuarioActual.subdireccion;   // SPAC / SGOI
+        // Celda de la SUBDIRECCIÓN (filtra a sus tareas de nivel subdirección),
+        // antes de las jefaturas, para poder filtrar también por SPAC/SGOI.
+        const celdaSub = '<div class="kpi kpi-sub' + (jefaturaActiva === sub ? ' kpi-activa' : '') + '" data-jef="' + sub + '" style="cursor:pointer" '
+          + 'onclick="filtrarPorJefatura(\'' + sub + '\')">'
+          + '<div class="kpi-valor">' + pendJef(sub) + '</div>'
+          + '<div class="kpi-clave">' + sub + '</div></div>';
+        filaJ.innerHTML = celdaSub + jefsSub.map(function (cod) {
           const acr = ACRONIMO_JEFATURA[cod] || cod;
           const act = (jefaturaActiva === cod) ? ' kpi-activa' : '';
           return '<div class="kpi kpi-sub' + act + '" data-jef="' + cod + '" style="cursor:pointer" '
