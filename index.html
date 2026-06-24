@@ -11790,14 +11790,18 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const autor = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   const stamp = valor ? ahoraStamp() : '';
   fijarMarcadoArea(items[idx], t, cod, !!valor, valor ? autor : '', stamp);
-  // El Director es la MÁXIMA AUTORIDAD: cuando palomea una acción en SU columna
-  // (DPAC/ENLACE), esa misma fila (acción) se da por palomeada automáticamente
-  // para TODOS los demás participantes/responsables. Solo al MARCAR (no al
-  // desmarcar). Así, si palomea 1 de 3 acciones, solo esa fila se valida para todos.
-  if (valor && usuarioActual.rol === 'Director' && (cod === 'DPAC' || cod === 'ENLACE')) {
+  // CASCADA DE VALIDACIÓN POR JERARQUÍA: al palomear una acción, las columnas de
+  // MENOR jerarquía (los ejecutores por debajo: jefaturas) se palomean solas en esa
+  // misma fila, porque la autoridad que valida implica que lo de abajo está hecho.
+  //   • Director (DPAC) → cascada a subdirección + jefaturas (todo lo de abajo).
+  //   • Subdirector (SGOI/SPAC/SA) → cascada a SUS jefaturas (JDGA/JDGOI, JDPC/JDIMA).
+  //   • Jefatura → no hay nada por debajo, no cascada.
+  // Solo al MARCAR (no al desmarcar).
+  if (valor) {
+    const nivelMarcado = nivelDeArea(cod);
     participantesDe(t).forEach(function (otroCod) {
       otroCod = String(otroCod || '').toUpperCase();
-      if (otroCod !== cod && !marcadoDeArea(items[idx], t, otroCod)) {
+      if (otroCod !== cod && nivelDeArea(otroCod) > nivelMarcado && !marcadoDeArea(items[idx], t, otroCod)) {
         fijarMarcadoArea(items[idx], t, otroCod, true, autor, stamp);
       }
     });
