@@ -7733,7 +7733,7 @@ function crearTarjeta(t) {
 
   // Estado derivado del checklist.
   const _itemsT = obtenerChecklist(t);
-  const _partsT = participantesDe(t);
+  const _partsT = columnasChecklist(t);
   const _algunCheck = _itemsT.some(it => _partsT.some(cod => marcadoDeArea(it, t, cod)));
   const _todoPalomeado = checklistTodoMarcado(t);   // todo (incl. validador)
   // "Concluida": los responsables ya palomearon, solo falta validar.
@@ -10801,7 +10801,7 @@ function enviarRecordatorio(idTarea, canal) {
     // TODAS las acciones del checklist (no solo el campo viejo "Acción a tomar").
     const _itemsWA = obtenerChecklist(t);
     if (_itemsWA.length) {
-      const _colsWA = participantesDe(t);
+      const _colsWA = columnasChecklist(t);
       lineas.push('', sep, '✅ *Acciones (' + _itemsWA.length + ')*');
       _itemsWA.forEach(function (it, i) {
         const hecho = _colsWA.length > 0 && _colsWA.every(function (cod) { return marcadoDeArea(it, t, cod); });
@@ -11015,7 +11015,7 @@ function checklistATexto(t) {
 function checklistTodoMarcado(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return false;
-  const cols = participantesDe(t);
+  const cols = columnasChecklist(t);
   if (!cols.length) return false;
   return items.every(it => cols.every(cod => marcadoDeArea(it, t, cod)));
 }
@@ -11026,7 +11026,7 @@ function checklistTodoMarcado(t) {
 function responsablesListos(t) {
   const items = obtenerChecklist(t);
   if (!items.length) return false;
-  const cols = participantesDe(t);
+  const cols = columnasChecklist(t);
   if (cols.length <= 1) return false;
   if (checklistTodoMarcado(t)) return false;
   const ejecutores = cols.slice(0, cols.length - 1);   // todos menos el validador (último = top)
@@ -11043,7 +11043,7 @@ function tareaEsLista(t) {
 function checklistAvance(t) {
   const items = obtenerChecklist(t);
   if (items.length === 0) return 0;
-  const cols = participantesDe(t);
+  const cols = columnasChecklist(t);
   if (!cols.length) return 0;
   let marcadas = 0;
   items.forEach(it => cols.forEach(cod => { if (marcadoDeArea(it, t, cod)) marcadas++; }));
@@ -11086,6 +11086,7 @@ const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMB
 // =====================================================================
 function nivelDeArea(cod) {
   cod = String(cod || '').toUpperCase();
+  if (cod.indexOf('ENL:') === 0) return 3;   // columna propia de un enlace (ejecutor)
   if (cod === 'DPAC' || cod === 'ENLACE') return 0;
   if (PREFIJO_JEFATURA[cod]) return 2;
   return 1;   // SPAC / SGOI / SA
@@ -11182,6 +11183,28 @@ function participantesDe(t) {
   return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
 }
 
+// Código de la columna PROPIA de un enlace en el checklist (sus iniciales).
+function colEnlaceCode(nombre) { return 'ENL:' + acronimoPersona(nombre); }
+// Enlaces RESTRINGIDOS responsables de la tarea (César, Nora, Daniel…). Los de
+// acceso completo (Andrea) NO llevan columna propia: actúan como subdirección.
+function enlacesDeTarea(t) {
+  if (!t) return [];
+  return (RESPONSABLES || []).filter(function (r) {
+    return r && r.es_enlace && !r.acceso_completo
+      && esResponsableDe(t, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
+  });
+}
+// Columnas del CHECKLIST = las áreas (participantesDe) + la columna propia de cada
+// enlace responsable (sus iniciales), como EJECUTOR (primero, antes de la jefatura).
+function columnasChecklist(t) {
+  const base = participantesDe(t);
+  const enls = enlacesDeTarea(t).map(function (r) { return colEnlaceCode(r.nombreCompleto); });
+  const vistos = {};
+  return enls.concat(base)
+    .filter(function (c) { return c && !vistos[c] && (vistos[c] = true); })
+    .sort(function (a, b) { return nivelDeArea(b) - nivelDeArea(a); });
+}
+
 // ¿La tarea pertenece al área `cod` (es uno de sus participantes)? Sirve para
 // que la tarea aparezca en el tablero de CADA participante. 'STAFF' = DPAC+ENLACE.
 function tareaEnArea(t, cod) {
@@ -11261,7 +11284,11 @@ function puedeMarcarArea(t, cod) {
   if (!usuarioActual || !t) return false;
   if (SOLO_LECTURA) return false;   // vista de Dirección = solo lectura
   cod = String(cod || '').toUpperCase();
-  if (!participantesDe(t).includes(cod)) return false;
+  if (!columnasChecklist(t).includes(cod)) return false;
+  // Columna PROPIA de un enlace: SOLO ese enlace la palomea.
+  if (cod.indexOf('ENL:') === 0) {
+    return esEnlaceUser() && colEnlaceCode(usuarioActual.nombre).toUpperCase() === cod;
+  }
   if (usuarioActual.rol === 'Director') return cod === 'DPAC' || cod === 'ENLACE';
   if (areaDelUsuario(usuarioActual) !== cod) return false;
   // La columna de la SUBDIRECCIÓN (SPAC/SGOI/SA) la palomea SOLO el subdirector
@@ -11275,7 +11302,7 @@ function puedeMarcarArea(t, cod) {
 // columna, agregar/quitar acciones, adjuntar)?
 function puedeChecklist(t) {
   if (!usuarioActual || !t) return false;
-  return participantesDe(t).some(cod => puedeMarcarArea(t, cod));
+  return columnasChecklist(t).some(cod => puedeMarcarArea(t, cod));
 }
 
 // Wrappers de compatibilidad para el resto del código (guards de agregar/quitar
@@ -11302,7 +11329,7 @@ function asegurarCamposChecklist(t) {
 // ===== Render del checklist y observaciones para el modal de detalle =====
 function renderChecklistHTML(t) {
   const items = obtenerChecklist(t);
-  const cols = participantesDe(t);                 // áreas participantes = columnas
+  const cols = columnasChecklist(t);               // áreas + columna propia de cada enlace
   const puedeAlgo = puedeChecklist(t);             // participa: agregar/palomear/adjuntar
   const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   // Grid dinámico: Acción | (una casilla por participante) | Adjunto. Solo se
@@ -11775,6 +11802,7 @@ function borrarComentario(idTarea, cid) {
 // Etiqueta visible de la columna de un área en el checklist.
 function etiquetaColumnaArea(cod) {
   cod = String(cod || '').toUpperCase();
+  if (cod.indexOf('ENL:') === 0) return cod.slice(4);   // columna de enlace → sus iniciales (CJC, NOR…)
   if (cod === 'DPAC')   return 'Director';
   if (cod === 'ENLACE') return 'Staff';
   return cod;   // SPAC, SGOI, SA, JDPC, JDIMA, JDGA, JDGOI
@@ -11816,7 +11844,7 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   // Solo al MARCAR (no al desmarcar).
   if (valor) {
     const nivelMarcado = nivelDeArea(cod);
-    participantesDe(t).forEach(function (otroCod) {
+    columnasChecklist(t).forEach(function (otroCod) {
       otroCod = String(otroCod || '').toUpperCase();
       if (otroCod !== cod && nivelDeArea(otroCod) > nivelMarcado && !marcadoDeArea(items[idx], t, otroCod)) {
         fijarMarcadoArea(items[idx], t, otroCod, true, autor, stamp);
@@ -11832,7 +11860,7 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   const yaTodaCompleta = totalCol > 0 && marcadosCol === totalCol;
   const etqCol = etiquetaColumnaArea(cod);
   if (valor && yaTodaCompleta && !eraTodaCompletaAntes && !yaSeRegistroCompletadaColumna(idTarea, cod)) {
-    const colsT = participantesDe(t);
+    const colsT = columnasChecklist(t);
     const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
     const esValidador = esTop && nivelDeArea(cod) <= 1;
     registrarEnBitacora({
@@ -11849,7 +11877,7 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
   } else if (!valor && eraTodaCompletaAntes) {
     // Se DESPALOMEÓ una columna que estaba completa → queda constancia de que se
     // retiró la validación/completada (el "Validada/Completada" previo se conserva).
-    const colsT = participantesDe(t);
+    const colsT = columnasChecklist(t);
     const esTop = colsT.length > 0 && cod === colsT[colsT.length - 1];
     const esValidador = esTop && nivelDeArea(cod) <= 1;
     registrarEnBitacora({
