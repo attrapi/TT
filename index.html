@@ -6648,8 +6648,17 @@ function obtenerTareasFiltradas() {
   // una subdirección. No aplica en la vista Enlaces (ahí manda el filtro de enlace).
   if (jefaturaActiva && usuarioActual.rol === 'Capturista'
       && !esEnlaceRestringido() && !jefaturaCodigo(usuarioActual.jefatura) && vistaActiva !== 'enlaces') {
-    const acr = ACRONIMO_JEFATURA[jefaturaActiva] || jefaturaActiva;
-    lista = lista.filter(t => tareaEnArea(t, acr));
+    const sub = usuarioActual.subdireccion;
+    if (jefaturaActiva === sub) {
+      // Filtro por la SUBDIRECCIÓN (clic en SPAC/SGOI): solo las tareas que caen
+      // en la columna de la subdirección, es decir las de nivel subdirección, NO
+      // las que pertenecen a una de sus jefaturas.
+      const jefAcrs = jefaturasDeSub(sub).map(jc => ACRONIMO_JEFATURA[jc] || jc);
+      lista = lista.filter(t => tareaEnArea(t, sub) && !jefAcrs.some(a => tareaEnArea(t, a)));
+    } else {
+      const acr = ACRONIMO_JEFATURA[jefaturaActiva] || jefaturaActiva;
+      lista = lista.filter(t => tareaEnArea(t, acr));
+    }
   }
   // ENLACE seleccionado (vista Enlaces): acota a las tareas de ese enlace.
   if (enlaceActivo && vistaActiva === 'enlaces') {
@@ -13579,8 +13588,8 @@ function exportarPDF(sub, jefatura) {
     // Cuando vence, mostramos sólo "Vencida" (rojo) en lugar de
     // "En Proceso (vencida)" — más corto, no se encima con la fecha.
     const estatusTexto = vencida ? 'Vencida'
-      : (t.estatus === 'Archivada' ? etiquetaEstatus('Archivada')
-        : (esLst ? etiquetaEstatus('Atendida') : etiquetaEstatus('En Proceso')));
+      : (t.estatus === 'Archivada' ? 'Validada'
+        : (esLst ? 'Para validar' : 'En Proceso'));
     return `
       <tr>
         <td class="col-id">${t.id}</td>
@@ -13718,10 +13727,10 @@ function exportarPDF(sub, jefatura) {
   </div>
 
   <div class="rep-resumen">
-    <div class="rep-kpi proceso"><div class="rep-kpi-valor">${enProceso}</div><div class="rep-kpi-label">${etiquetaEstatus('En Proceso')}</div></div>
-    <div class="rep-kpi atendida"><div class="rep-kpi-valor">${atendidas}</div><div class="rep-kpi-label">${etiquetaEstatus('Atendida')}</div></div>
-    <div class="rep-kpi validada"><div class="rep-kpi-valor">${validadas}</div><div class="rep-kpi-label">Validadas</div></div>
+    <div class="rep-kpi proceso"><div class="rep-kpi-valor">${enProceso - vencidas}</div><div class="rep-kpi-label">En Proceso</div></div>
+    <div class="rep-kpi atendida"><div class="rep-kpi-valor">${atendidas}</div><div class="rep-kpi-label">Para validar</div></div>
     <div class="rep-kpi vencida"><div class="rep-kpi-valor">${vencidas}</div><div class="rep-kpi-label">Vencidas</div></div>
+    <div class="rep-kpi validada"><div class="rep-kpi-valor">${validadas}</div><div class="rep-kpi-label">Validadas</div></div>
     <div class="rep-kpi"><div class="rep-kpi-valor">${total}</div><div class="rep-kpi-label">Total</div></div>
   </div>
 
