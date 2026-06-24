@@ -6049,6 +6049,7 @@ function aplicarUsuarioServidor(res) {
     iniciales: inicialesDe(u.nombre)
   };
   aplicarSesion();
+  iniciarAutoRefresh();   // refresco periódico (además del tiempo real)
   // RENDER INSTANTÁNEO: si hay tareas cacheadas de la sesión anterior, las
   // dibujamos primero para que el tablero aparezca en milisegundos. En paralelo
   // se piden las frescas y al llegar se reemplazan + re-renderizan.
@@ -6506,6 +6507,20 @@ function persistirEliminada(t) {
 
 // Trae las tareas desde el servidor (hojas privadas). Si preservar=true,
 // conserva el avance hecho en la app (validar/archivar/finalizar) por id.
+// Auto-actualización: cada 60 s recarga las tareas del servidor (además del
+// tiempo real de Supabase), para que tablero/reportes/KPIs no se queden viejos.
+// No recarga si la pestaña está en segundo plano o hay un modal/formulario
+// abierto (para no interrumpir lo que se captura).
+let _autoRefreshTimer = null;
+function iniciarAutoRefresh() {
+  if (_autoRefreshTimer || !enAppScript()) return;
+  _autoRefreshTimer = setInterval(function () {
+    if (usuarioActual && SESION_TOKEN && !document.hidden && !formTareaAbierto && !tareaAbierta) {
+      try { cargarTareasAppScript(true); } catch (e) {}
+    }
+  }, 60000);
+}
+
 function cargarTareasAppScript(preservar, onListo) {
   if (!SESION_TOKEN) { if (typeof onListo === 'function') onListo(); return; }
   google.script.run
@@ -10789,7 +10804,12 @@ function enviarRecordatorio(idTarea, canal) {
     // directamente con ese contacto (https://wa.me/<numero>). Si no, queda
     // como antes (el usuario elige a quién mandárselo).
     const telefono = telefonoPara(t);
-    const url = 'https://wa.me/' + (telefono || '') + '?text=' + encodeURIComponent(lineas.join('\n'));
+    const texto = encodeURIComponent(lineas.join('\n'));
+    // En computadora abre WhatsApp WEB directo; en celular abre la app (wa.me).
+    const esMovil = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    const url = esMovil
+      ? 'https://wa.me/' + (telefono || '') + '?text=' + texto
+      : 'https://web.whatsapp.com/send?' + (telefono ? 'phone=' + telefono + '&' : '') + 'text=' + texto;
     window.open(url, '_blank');
     toast(telefono ? 'Abriendo WhatsApp con el responsable…' : 'Abriendo WhatsApp (elige el contacto)', 'ok');
     return;
