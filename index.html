@@ -11122,6 +11122,16 @@ function areaDeCreador(t) {
 // Lista de participantes de una tarea (códigos de área), ordenada por nivel
 // (jefatura primero). Si la tarea no trae `participantes` (datos viejos), la
 // deriva del área responsable + el área del creador si es de mayor jerarquía.
+// Subdirección madre de una jefatura (por su acrónimo): JDPC/JDIMA → SPAC,
+// JDGA/JDGOI → SGOI. Sirve para añadir la columna de validación del subdirector.
+function subdireccionDeJefatura(jefAcr) {
+  jefAcr = String(jefAcr || '').toUpperCase();
+  const subs = Object.keys(JEFATURAS_POR_SUB);
+  for (let i = 0; i < subs.length; i++) {
+    if (jefaturasDeSub(subs[i]).some(function (jc) { return (ACRONIMO_JEFATURA[jc] || jc) === jefAcr; })) return subs[i];
+  }
+  return '';
+}
 function participantesDe(t) {
   if (!t) return [];
   let parts = (Array.isArray(t.participantes) ? t.participantes : [])
@@ -11160,6 +11170,13 @@ function participantesDe(t) {
     // Si por el ID es una jefatura y no quedó su área (dato viejo con solo DPAC),
     // la añadimos para que el checklist muestre la columna correcta (la del jefe).
     if (jefPorId && limpio.indexOf(jefPorId) < 0) limpio.push(jefPorId);
+    // Columna de VALIDACIÓN: una tarea de jefatura la valida su SUBDIRECCIÓN madre.
+    // Si no está entre los participantes, la añadimos para que aparezca quién valida.
+    const jefAcr = jefPorId || limpio.filter(p => PREFIJO_JEFATURA[p])[0] || '';
+    if (jefAcr) {
+      const subMadre = subdireccionDeJefatura(jefAcr);
+      if (subMadre && limpio.indexOf(subMadre) < 0) limpio.push(subMadre);
+    }
     if (limpio.length) parts = limpio;
   }
   return parts.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));   // jefatura(2) antes que dirección(0)
