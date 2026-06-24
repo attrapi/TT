@@ -11467,7 +11467,7 @@ function mostrarArroba(el) {
   const menu = arrobaMenu();
   if (!m) { menu.style.display = 'none'; _arrobaCtx = null; return; }
   const q = sinAcentos(m[1]);
-  const opts = personasArroba().filter(function (n) { return q === '' || sinAcentos(n).indexOf(q) >= 0; }).slice(0, 6);
+  const opts = personasArroba().filter(function (n) { return q === '' || sinAcentos(n).indexOf(q) >= 0; });
   if (!opts.length) { menu.style.display = 'none'; _arrobaCtx = null; return; }
   _arrobaCtx = { el: el, start: pos - m[0].length, end: pos };
   menu.innerHTML = opts.map(function (n) {
@@ -11477,12 +11477,20 @@ function mostrarArroba(el) {
   menu.style.minWidth = Math.min(r.width, 260) + 'px';
   menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 270)) + 'px';
   menu.style.display = 'block';
-  // El campo del comentario suele estar abajo: si el menú no cabe debajo, se
-  // muestra ARRIBA del campo (si no, quedaría fuera de la pantalla = "se esconde").
-  const mh = menu.offsetHeight;
-  let top = r.bottom + 4;
-  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
-  menu.style.top = top + 'px';
+  // Ajusta el menú al espacio disponible (arriba o abajo del campo) y deja el
+  // resto con SCROLL, para que nunca se salga de la pantalla ni se tapen nombres.
+  const espacioAbajo = window.innerHeight - r.bottom - 12;
+  const espacioArriba = r.top - 12;
+  let maxH, top;
+  if (espacioAbajo >= 180 || espacioAbajo >= espacioArriba) {
+    maxH = Math.min(280, espacioAbajo);
+    top = r.bottom + 4;
+  } else {
+    maxH = Math.min(280, espacioArriba);
+    top = r.top - maxH - 4;
+  }
+  menu.style.maxHeight = Math.max(120, maxH) + 'px';
+  menu.style.top = Math.max(8, top) + 'px';
 }
 // Inserta "@Nombre " en lugar del token que se estaba escribiendo.
 function insertarArroba(nombre) {
