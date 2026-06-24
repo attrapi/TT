@@ -3198,6 +3198,8 @@
     background: #fff;
     cursor: pointer;
   }
+  .modal-fecha-input::-webkit-datetime-edit { cursor: pointer; }
+  .modal-fecha-input::-webkit-calendar-picker-indicator { cursor: pointer; }
   .modal-fecha-input:hover { border-color: var(--guinda); }
   .modal-fecha-input:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
   .modal-campo-fecha-vencida .modal-fecha-input { color: var(--rojo); border-color: var(--rojo); }
@@ -8760,7 +8762,7 @@ function abrirDetalle(t) {
           ${t.permanente
             ? '<span class="tarjeta-permanente">♾️ Permanente</span>'
             : (puedeFechaDet
-                ? `<input type="date" class="modal-fecha-input" value="${fechaAt || ''}" onchange="cambiarFechaDetalle('${t.id}', this.value)" title="Cambiar la fecha de atención (se guarda al instante)">`
+                ? `<input type="date" class="modal-fecha-input" value="${fechaAt || ''}" onchange="cambiarFechaDetalle('${t.id}', this.value)" onclick="try{this.showPicker()}catch(e){}" title="Cambiar la fecha de atención (clic para abrir el calendario; se guarda al instante)">`
                 : `${formatearFechaLarga(fechaAt)}`)}
         </dd>
         <dt>Áreas involucradas</dt>
