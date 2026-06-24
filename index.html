@@ -4148,17 +4148,24 @@
     min-width: 0; flex: 1;
   }
   .checklist-texto-valor { flex: 1; word-break: break-word; }
-  /* Celda de adjunto por acción: zona de drop + click para elegir archivo. */
+  /* Celda de adjunto por acción: zona de drop + click para elegir archivo.
+     Borde PUNTEADO en guinda para que se vea claramente la zona de "Arrastra". */
   .checklist-adj-cell {
-    border: 1px dashed #cbd5e1; border-radius: 5px;
+    border: 1.5px dashed var(--guinda); border-radius: 5px;
     padding: 4px 6px; font-size: 10.5px; text-align: center;
     cursor: pointer; min-height: 30px; max-width: 105px;
     display: flex; align-items: center; justify-content: center; gap: 4px;
-    color: var(--tinta-suave); background: #fff;
+    color: var(--guinda); background: #fff;
     transition: all .15s;
   }
-  .checklist-adj-cell:hover { border-color: var(--guinda); color: var(--guinda); }
+  .checklist-adj-cell:hover { background: var(--guinda-tenue); }
   .checklist-adj-cell.dz-activo-item { background: var(--guinda-tenue); border-color: var(--guinda); border-style: solid; }
+  /* Si YA hay archivo cargado: borde SÓLIDO marcado en guinda + fondo tenue,
+     para que se note que ahí hay información (un adjunto). */
+  .checklist-adj-cell:has(.checklist-adj-link) {
+    border: 2px solid var(--guinda); border-style: solid;
+    background: var(--guinda-tenue);
+  }
   .checklist-adj-link {
     color: var(--guinda); text-decoration: none; font-weight: 600;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -4186,8 +4193,9 @@
   }
   .checklist-chk:disabled { cursor: default; opacity: 0.55; }
   /* Celda de casilla (label que envuelve la casilla + su etiqueta de área). En
-     escritorio la etiqueta se oculta y la casilla queda centrada en su columna. */
-  .checklist-chk-cell { display: flex; align-items: center; justify-content: center; }
+     escritorio la etiqueta se oculta y la casilla queda centrada en su columna.
+     Con borde para que cada cuadro del checklist se vea bien definido. */
+  .checklist-chk-cell { display: flex; align-items: center; justify-content: center; border: 1px solid rgba(105,28,50,0.30); border-radius: 6px; min-height: 28px; background: #fff; }
   .checklist-chk-tag { display: none; }
   .checklist-texto { color: var(--tinta); line-height: 1.4; }
   .checklist-fila.completa .checklist-texto { text-decoration: line-through; color: var(--tinta-suave); }
