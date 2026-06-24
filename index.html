@@ -11474,10 +11474,15 @@ function mostrarArroba(el) {
     return '<div class="arroba-item" onmousedown="event.preventDefault(); insertarArroba(this.getAttribute(\'data-n\'))" data-n="' + escapeHtml(n) + '">@' + escapeHtml(n) + '</div>';
   }).join('');
   const r = el.getBoundingClientRect();
-  menu.style.left = r.left + 'px';
-  menu.style.top = (r.bottom + 4) + 'px';
   menu.style.minWidth = Math.min(r.width, 260) + 'px';
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 270)) + 'px';
   menu.style.display = 'block';
+  // El campo del comentario suele estar abajo: si el menú no cabe debajo, se
+  // muestra ARRIBA del campo (si no, quedaría fuera de la pantalla = "se esconde").
+  const mh = menu.offsetHeight;
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  menu.style.top = top + 'px';
 }
 // Inserta "@Nombre " en lugar del token que se estaba escribiendo.
 function insertarArroba(nombre) {
