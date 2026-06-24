@@ -11241,7 +11241,12 @@ function puedeMarcarArea(t, cod) {
   cod = String(cod || '').toUpperCase();
   if (!participantesDe(t).includes(cod)) return false;
   if (usuarioActual.rol === 'Director') return cod === 'DPAC' || cod === 'ENLACE';
-  return areaDelUsuario(usuarioActual) === cod;
+  if (areaDelUsuario(usuarioActual) !== cod) return false;
+  // La columna de la SUBDIRECCIÓN (SPAC/SGOI/SA) la palomea SOLO el subdirector
+  // (o un enlace con acceso completo). Un enlace RESTRINGIDO (p. ej. César en SPAC)
+  // comparte el área pero NO valida la columna de la subdirección.
+  if (['SPAC', 'SGOI', 'SA'].indexOf(cod) >= 0 && esEnlaceRestringido()) return false;
+  return true;
 }
 
 // ¿El usuario participa en el checklist de la tarea (puede palomear alguna
