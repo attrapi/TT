@@ -6450,6 +6450,11 @@ function cargarBitacora() {
       if (res && res.ok && res.bitacora) {
         BITACORA.length = 0;
         res.bitacora.forEach(function (b) { BITACORA.push(b); });
+        // Repinta el hilo de la tarea abierta para ver comentarios nuevos de otra
+        // persona en vivo — salvo que justo estés escribiendo (no mover el cursor).
+        const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
+        const _escribiendo = document.activeElement && /^conv_input_/.test(document.activeElement.id || '');
+        if (_tAb && !_escribiendo && typeof repintarHilo === 'function') repintarHilo(_tAb);
         if (vistaActiva === 'bitacora') renderizarBitacora();
         // Las tarjetas muestran "Visto por" desde la bitácora. Como esta llega
         // async DESPUÉS del primer render, hay que repintar el tablero para que
@@ -6516,7 +6521,7 @@ function iniciarAutoRefresh() {
   if (_autoRefreshTimer || !enAppScript()) return;
   _autoRefreshTimer = setInterval(function () {
     if (usuarioActual && SESION_TOKEN && !document.hidden && !formTareaAbierto && !tareaAbierta) {
-      try { cargarTareasAppScript(true); } catch (e) {}
+      try { cargarTareasAppScript(true); cargarBitacora(); } catch (e) {}
     }
   }, 60000);
 }
@@ -13850,9 +13855,22 @@ function cerrarSidebar() { document.body.classList.remove('menu-abierto'); }
 // ===== Tiempo real: el puente llama esto cuando cambian las tareas en la base =====
 window.ttRefrescar = function () {
   try {
-    if (typeof cargarTareasAppScript === 'function') cargarTareasAppScript(true);
-    if (vistaActiva === 'bitacora' && typeof cargarBitacora === 'function') cargarBitacora();
+    if (typeof cargarTareasAppScript === 'function') cargarTareasAppScript(true, function () {
+      // Si hay un DETALLE abierto (no el formulario) y no estás escribiendo, lo
+      // repintamos para ver acciones/adjuntos nuevos de otra persona en vivo.
+      const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
+      const _esc = document.activeElement && /(conv_input_|^nt_|detEnlaceInput|chk-nuevo-)/.test(document.activeElement.id || '');
+      if (_tAb && !formTareaAbierto && !_esc && typeof abrirDetalle === 'function') {
+        const fresca = TAREAS.find(x => x.id === _tAb.id);
+        if (fresca) abrirDetalle(fresca);
+      }
+    });
+    if (typeof cargarBitacora === 'function') cargarBitacora();
   } catch (e) {}
+};
+// Cambió la bitácora (comentarios del hilo / vistos): recarga y repinta el hilo.
+window.ttRefrescarBitacora = function () {
+  try { if (typeof cargarBitacora === 'function') cargarBitacora(); } catch (e) {}
 };
 
 // Al elegir cualquier opción del menú, el cajón se cierra solo.

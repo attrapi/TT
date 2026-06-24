@@ -32,9 +32,15 @@
   function suscribirRealtime() {
     if (canalRT) return;   // ya suscrito
     try {
-      canalRT = sb.channel('tt-tareas')
+      canalRT = sb.channel('tt-cambios')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tareas' }, function () {
           if (typeof window.ttRefrescar === 'function') window.ttRefrescar();
+        })
+        // Hilo de comentarios / vistos viven en `bitacora`: suscribir también para
+        // que un comentario nuevo aparezca en vivo (requiere que la tabla esté en
+        // la publicación supabase_realtime).
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bitacora' }, function () {
+          if (typeof window.ttRefrescarBitacora === 'function') window.ttRefrescarBitacora();
         })
         .subscribe();
     } catch (e) { /* si realtime no está habilitado, la app sigue normal */ }
