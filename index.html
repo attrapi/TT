@@ -4891,7 +4891,7 @@
         <span id="navTitulo">Tablero de Tareas</span>
       </div>
       <div class="nav-right">
-        <div class="nav-usuario">
+        <div class="nav-usuario" onclick="abrirCambioContrasena()" title="Cambiar mi contraseña">
           <div class="nav-usuario-avatar" id="userAvatar">AT</div>
           <div class="nav-usuario-info">
             <span class="nav-usuario-nombre" id="userNombre">Ing. Adrián Tavares</span>
@@ -13115,6 +13115,91 @@ function guardarAjustesCorreo() {
       if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
     })
     .guardarPlantillaCorreo({ asunto: asunto, cuerpo: cuerpo, activo: activo });
+}
+
+// ============== CAMBIAR MI CONTRASEÑA ==============
+// Cualquier usuario cambia SU PROPIA contraseña (Supabase Auth, sb.auth.updateUser
+// vía el shim). Pide la nueva dos veces; al guardar, olvida la contraseña vieja
+// recordada en este equipo para que no se vuelva a autollenar la anterior.
+function abrirCambioContrasena() {
+  if (SOLO_LECTURA) return;                       // en vista "como Dirección" no aplica
+  if (!usuarioActual) return;
+  if (!enAppScript()) { toast('Cambiar la contraseña no está disponible en este modo', 'error'); return; }
+  if (typeof cerrarSidebar === 'function') cerrarSidebar();
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id">CUENTA</div>
+        <div class="modal-titulo">Cambiar mi contraseña</div>
+      </div>
+      <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-hint" style="margin-bottom:14px; line-height:1.6">
+        Escribe tu <strong>nueva contraseña</strong> (mínimo 6 caracteres). Reemplaza a la anterior
+        de inmediato; la próxima vez entrarás con la nueva.
+      </p>
+      <div class="form-campo full" style="margin-bottom:14px">
+        <label for="cp_nueva">Nueva contraseña</label>
+        <div class="login-pass-wrap">
+          <input type="password" id="cp_nueva" autocomplete="new-password" placeholder="••••••••" style="width:100%"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('cp_confirma').focus();}">
+          <button type="button" class="login-ojo" onclick="cpVerContrasena()" title="Mostrar/ocultar" aria-label="Mostrar contraseña">👁</button>
+        </div>
+      </div>
+      <div class="form-campo full">
+        <label for="cp_confirma">Repite la nueva contraseña</label>
+        <input type="password" id="cp_confirma" autocomplete="new-password" placeholder="••••••••" style="width:100%"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();guardarCambioContrasena();}">
+      </div>
+      <div id="cp_error" style="color:#b91c1c; font-weight:600; margin-top:12px; min-height:1.2em"></div>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal btn-modal-primario" type="button" id="cp_btnGuardar" onclick="guardarCambioContrasena()">Cambiar contraseña</button>
+    </div>
+  `;
+  document.getElementById('modalFondo').classList.add('activo');
+  setTimeout(function () { const i = document.getElementById('cp_nueva'); if (i) i.focus(); }, 50);
+}
+
+// Muestra/oculta ambos campos de contraseña del modal a la vez.
+function cpVerContrasena() {
+  const a = document.getElementById('cp_nueva');
+  const b = document.getElementById('cp_confirma');
+  const mostrar = a && a.type === 'password';
+  if (a) a.type = mostrar ? 'text' : 'password';
+  if (b) b.type = mostrar ? 'text' : 'password';
+}
+
+function guardarCambioContrasena() {
+  const a = document.getElementById('cp_nueva');
+  const b = document.getElementById('cp_confirma');
+  const err = document.getElementById('cp_error');
+  const btn = document.getElementById('cp_btnGuardar');
+  const nueva = (a && a.value) || '';
+  const confirma = (b && b.value) || '';
+  if (err) err.textContent = '';
+  if (nueva.length < 6) { if (err) err.textContent = 'La contraseña debe tener al menos 6 caracteres.'; return; }
+  if (nueva !== confirma) { if (err) err.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Cambiando…'; }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok) {
+        // Olvida la contraseña vieja recordada en ESTE equipo (login y, por si acaso, correo).
+        try { recordarPassword(usuarioActual.email, '', false); } catch (e) {}
+        toast('Contraseña actualizada', 'ok');
+        cerrarModal();
+      } else {
+        if (err) err.textContent = (res && res.error) || 'No se pudo cambiar la contraseña.';
+        if (btn) { btn.disabled = false; btn.textContent = 'Cambiar contraseña'; }
+      }
+    })
+    .withFailureHandler(function (e) {
+      if (err) err.textContent = 'No se pudo cambiar: ' + (e && e.message ? e.message : e);
+      if (btn) { btn.disabled = false; btn.textContent = 'Cambiar contraseña'; }
+    })
+    .cambiarContrasena(SESION_TOKEN, nueva);
 }
 
 // Muestra/oculta el bloque de correo y, al abrirlo, prellena asunto/cuerpo con
