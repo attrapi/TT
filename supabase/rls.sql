@@ -1,11 +1,13 @@
 -- =====================================================================
---  TT · Seguridad por área (RLS afinada)
---  Reemplaza las políticas "todo a authenticated" por reglas por rol/área:
---    • Director (Adrián): TODO.
---    • Staff/Enlace (subdireccion ENLACE): tareas de ENLACE + DPAC.
---    • Jefe (tiene jefatura): SOLO las tareas de su jefatura (en su subdirección).
---    • Subdirector (sin jefatura): TODA su subdirección (incluye sus jefaturas).
---  La base solo entrega/acepta lo que corresponde a cada usuario.
+--  TT · RLS — acceso colaborativo (equipo de confianza, ~9 personas)
+--  Las tareas pueden ser EN COMÚN / asignadas entre áreas, y el TABLERO de cada
+--  quien lo arma el FRONT (por área, responsable y asignación/participantes).
+--  Por eso la base entrega TODO a cualquier usuario AUTENTICADO y deja que el
+--  front filtre; `anon` (sin login) sin acceso.
+--
+--  Los helpers de abajo (mi_rol, mi_sub, puede_tarea, …) se conservan por si en
+--  el futuro se quiere CERRAR por área; hoy NO los usa la política de tareas.
+--  perfiles_admin sí usa mi_rol() (solo el Director edita perfiles).
 --  Pegar en: Supabase → SQL Editor → New query → Run.
 -- =====================================================================
 
@@ -45,20 +47,20 @@ $$
   );
 $$;
 
--- ---------- TAREAS: por área ----------
+-- ---------- TAREAS: cualquier autenticado (el front arma cada tablero) ----------
+-- No se filtra por área: una tarea EN COMÚN / asignada a otra área debe llegarle
+-- a esa persona para que le aparezca en su tablero y pueda comentar su hilo. El
+-- filtrado por área/responsable/asignación lo hace el front.
 drop policy if exists tareas_all on public.tareas;
 drop policy if exists tareas_area on public.tareas;
-create policy tareas_area on public.tareas for all to authenticated
-  using      (public.puede_tarea(subdireccion, nivel, jefatura))
-  with check (public.puede_tarea(subdireccion, nivel, jefatura));
+create policy tareas_all on public.tareas for all to authenticated
+  using (true) with check (true);
 
--- ---------- BITÁCORA: lectura/escritura para cualquier autenticado ----------
--- La bitácora (hilos de comentarios, vistos, movimientos) la pueden ESCRIBIR
--- todos (with check true). La LECTURA debe ir pareja: si un usuario que ve una
--- tarea de otra área (p. ej. Mario, subdirector SPAC, ve TODAS las tareas) deja
--- un comentario, debe poder volver a leer el hilo. Si la lectura se limita por
--- área (puede_ver_cod), esos comentarios "desaparecen" al recargar. Equipo de
--- ~9 personas de confianza → toda la bitácora es legible para autenticados.
+-- ---------- BITÁCORA: hilos/vistos/movimientos para cualquier autenticado ----------
+-- Va pareja con tareas: quien ve una tarea (propia, en común o asignada) puede
+-- leer y escribir su hilo. Antes la lectura se limitaba por área (puede_ver_cod)
+-- mientras la escritura estaba abierta → los comentarios en tareas de otra área
+-- "desaparecían" al recargar (le pasaba a Mario, que ve todas las tareas).
 drop policy if exists bitacora_all on public.bitacora;
 drop policy if exists bitacora_sel on public.bitacora;
 drop policy if exists bitacora_ins on public.bitacora;
