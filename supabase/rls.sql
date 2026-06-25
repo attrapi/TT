@@ -52,20 +52,26 @@ create policy tareas_area on public.tareas for all to authenticated
   using      (public.puede_tarea(subdireccion, nivel, jefatura))
   with check (public.puede_tarea(subdireccion, nivel, jefatura));
 
--- ---------- BITÁCORA: solo de tareas que el usuario puede ver ----------
+-- ---------- BITÁCORA: lectura/escritura para cualquier autenticado ----------
+-- La bitácora (hilos de comentarios, vistos, movimientos) la pueden ESCRIBIR
+-- todos (with check true). La LECTURA debe ir pareja: si un usuario que ve una
+-- tarea de otra área (p. ej. Mario, subdirector SPAC, ve TODAS las tareas) deja
+-- un comentario, debe poder volver a leer el hilo. Si la lectura se limita por
+-- área (puede_ver_cod), esos comentarios "desaparecen" al recargar. Equipo de
+-- ~9 personas de confianza → toda la bitácora es legible para autenticados.
 drop policy if exists bitacora_all on public.bitacora;
 drop policy if exists bitacora_sel on public.bitacora;
 drop policy if exists bitacora_ins on public.bitacora;
 create policy bitacora_sel on public.bitacora for select to authenticated
-  using (public.puede_ver_cod(tarea_codigo));
+  using (true);
 create policy bitacora_ins on public.bitacora for insert to authenticated
   with check (true);   -- cualquiera autenticado puede registrar un movimiento
--- Permite BORRAR la bitácora de una tarea que el usuario puede ver. Lo usa el
--- borrado definitivo: la app elimina la bitácora ANTES que la tarea, así no se
--- queda registrada si el ID se reutiliza.
+-- Borrado: lo usa el borrado definitivo de una tarea (la app elimina la bitácora
+-- ANTES que la tarea, para que no quede historial si el ID se reutiliza). Va
+-- pareja con la lectura para no dejar bitácora huérfana al purgar una tarea.
 drop policy if exists bitacora_del on public.bitacora;
 create policy bitacora_del on public.bitacora for delete to authenticated
-  using (public.puede_ver_cod(tarea_codigo));
+  using (true);
 
 -- ---------- PERFILES: todos leen (para listas de responsables); solo Director edita ----------
 drop policy if exists perfiles_sel on public.perfiles;
