@@ -13638,10 +13638,14 @@ function renderizarCarga() {
     // Mismos conteos que el KPI/Reportes: una tarea "lista" cuenta como "Para
     // validar", no como "En Proceso".
     const activasF = f.tareas.filter(t => t.estatus !== 'Archivada');
-    const total = f.tareas.length;
     const enProcesos = activasF.filter(t => !tareaEsLista(t)).length;
     const atendidas  = activasF.filter(t => tareaEsLista(t)).length;
     const vencidas   = activasF.filter(t => !tareaEsLista(t) && esVencida(t.fecha_limite)).length;
+    // Validadas = ya archivadas (cerradas). Se muestran en su propia fila para que
+    // el Total cuadre: Total = En Proceso + Para validar + Validadas. (Vencidas es
+    // un SUBCONJUNTO de "En Proceso", por eso NO se suma aparte.)
+    const validadas  = f.tareas.filter(t => t.estatus === 'Archivada').length;
+    const total = enProcesos + atendidas + validadas;
 
     const iniciales = f.responsable.split(' ').filter(p => p.length > 0).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
@@ -13658,11 +13662,13 @@ function renderizarCarga() {
         <div class="carga-bar">
           ${enProcesos > 0 ? `<div class="carga-bar-seg carga-bar-revision" style="flex:${enProcesos}"></div>` : ''}
           ${atendidas  > 0 ? `<div class="carga-bar-seg carga-bar-validada" style="flex:${atendidas}"></div>` : ''}
+          ${validadas  > 0 ? `<div class="carga-bar-seg carga-bar-liberada" style="flex:${validadas}"></div>` : ''}
         </div>
         <div class="carga-detalle">
-          <div class="carga-detalle-row"><span>${etiquetaEstatus('En Proceso')}</span><span class="carga-detalle-val">${enProcesos}</span></div>
-          <div class="carga-detalle-row"><span>${etiquetaEstatus('Atendida')}</span><span class="carga-detalle-val">${atendidas}</span></div>
+          <div class="carga-detalle-row"><span>En Proceso</span><span class="carga-detalle-val">${enProcesos}</span></div>
+          <div class="carga-detalle-row"><span>Para validar</span><span class="carga-detalle-val">${atendidas}</span></div>
           <div class="carga-detalle-row carga-detalle-vencidas"><span>Vencidas</span><span class="carga-detalle-val">${vencidas}</span></div>
+          <div class="carga-detalle-row"><span>Validadas</span><span class="carga-detalle-val">${validadas}</span></div>
           <div class="carga-detalle-row"><span>Total</span><span class="carga-detalle-val">${total}</span></div>
         </div>
       </div>
