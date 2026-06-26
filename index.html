@@ -13605,14 +13605,26 @@ function renderizarCarga() {
     ? TAREAS.filter(t => !t.eliminada && t.subdireccion === usuarioActual.subdireccion)
     : TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura');
 
-  // Agrupar por responsable
+  // Agrupar por responsable. Una tarea COLABORATIVA guarda varios nombres en
+  // `responsable` separados por coma ("Daniel de la Garza, Mario Franca"). NO se
+  // crea una tarjeta combinada: la tarea se cuenta para CADA persona por
+  // separado, igual que los responsables individuales que ya existen.
   const porResponsable = {};
   universo.forEach(t => {
-    const key = t.responsable + '||' + t.subdireccion;
-    if (!porResponsable[key]) {
-      porResponsable[key] = { responsable: t.responsable, sub: t.subdireccion, tareas: [] };
-    }
-    porResponsable[key].tareas.push(t);
+    const nombres = String(t.responsable || '').split(',').map(s => s.trim()).filter(Boolean);
+    const unicos = nombres.filter((n, i) => nombres.indexOf(n) === i);
+    if (!unicos.length) return;   // sin responsable → no se atribuye a nadie
+    unicos.forEach(nom => {
+      // Nombre canónico (corto/bonito) para que una variante truncada de un dato
+      // viejo no abra una segunda tarjeta de la misma persona.
+      const r = (RESPONSABLES || []).find(x => respCoincide(nom.toLowerCase(), x));
+      const nombre = r ? nombreCortoResp(r) : nom;
+      const key = nombre + '||' + t.subdireccion;
+      if (!porResponsable[key]) {
+        porResponsable[key] = { responsable: nombre, sub: t.subdireccion, tareas: [] };
+      }
+      porResponsable[key].tareas.push(t);
+    });
   });
 
   const filas = Object.values(porResponsable).sort((a, b) => b.tareas.length - a.tareas.length);
