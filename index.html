@@ -918,6 +918,7 @@
   .carga-bar-seg { transition: flex 0.3s; min-width: 0; }
   .carga-bar-reportada { background: var(--azul); }
   .carga-bar-revision  { background: var(--ambar); }
+  .carga-bar-vencida   { background: var(--rojo); }
   .carga-bar-validada  { background: var(--verde); }
   .carga-bar-liberada  { background: var(--grafito); }
   .carga-detalle {
@@ -13638,14 +13639,15 @@ function renderizarCarga() {
     // Mismos conteos que el KPI/Reportes: una tarea "lista" cuenta como "Para
     // validar", no como "En Proceso".
     const activasF = f.tareas.filter(t => t.estatus !== 'Archivada');
-    const enProcesos = activasF.filter(t => !tareaEsLista(t)).length;
+    const enProcesoTodas = activasF.filter(t => !tareaEsLista(t));
+    const vencidas   = enProcesoTodas.filter(t => esVencida(t.fecha_limite)).length;
+    // Las cuatro categorías son EXCLUYENTES para que la suma cuadre:
+    //   Total = En Proceso (al corriente) + Vencidas + Para validar + Validadas.
+    // "En Proceso" NO incluye las vencidas: esas van en su propia categoría.
+    const enProcesos = enProcesoTodas.length - vencidas;
     const atendidas  = activasF.filter(t => tareaEsLista(t)).length;
-    const vencidas   = activasF.filter(t => !tareaEsLista(t) && esVencida(t.fecha_limite)).length;
-    // Validadas = ya archivadas (cerradas). Se muestran en su propia fila para que
-    // el Total cuadre: Total = En Proceso + Para validar + Validadas. (Vencidas es
-    // un SUBCONJUNTO de "En Proceso", por eso NO se suma aparte.)
     const validadas  = f.tareas.filter(t => t.estatus === 'Archivada').length;
-    const total = enProcesos + atendidas + validadas;
+    const total = enProcesos + vencidas + atendidas + validadas;
 
     const iniciales = f.responsable.split(' ').filter(p => p.length > 0).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
@@ -13661,6 +13663,7 @@ function renderizarCarga() {
         </div>
         <div class="carga-bar">
           ${enProcesos > 0 ? `<div class="carga-bar-seg carga-bar-revision" style="flex:${enProcesos}"></div>` : ''}
+          ${vencidas   > 0 ? `<div class="carga-bar-seg carga-bar-vencida" style="flex:${vencidas}"></div>` : ''}
           ${atendidas  > 0 ? `<div class="carga-bar-seg carga-bar-validada" style="flex:${atendidas}"></div>` : ''}
           ${validadas  > 0 ? `<div class="carga-bar-seg carga-bar-liberada" style="flex:${validadas}"></div>` : ''}
         </div>
