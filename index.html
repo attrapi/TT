@@ -6436,6 +6436,55 @@ function nombreNiceResp(stored) {
   }).filter(Boolean).join(', ');
 }
 
+// Agrupa tareas POR PERSONA a partir del campo `responsable` (puede traer varios
+// nombres separados por coma). Unifica TODAS las variantes del mismo nombre
+// (título "Ing.", acentos, mayúsculas, truncados viejos tipo "Daniel de la",
+// nombre corto vs completo) para que NADIE salga repetido en las vistas que
+// agrupan por persona (Carga, Indicadores).
+// Devuelve [{ responsable, sub, subs, tareas }] — `sub` es la subdirección
+// dominante de sus tareas (la llave ya NO incluye subdirección: una persona con
+// tareas en dos subdirecciones antes salía con DOS tarjetas).
+function agruparTareasPorPersona(lista) {
+  const grupos = {};
+  (lista || []).forEach(function (t) {
+    const nombres = String(t.responsable || '').split(',').map(s => s.trim()).filter(Boolean);
+    nombres.forEach(function (nom) {
+      // nombreNiceResp ya resuelve variantes contra el catálogo (incluye el
+      // fallback de prefijo para datos viejos truncados).
+      const nombre = nombreNiceResp(nom) || quitarTitulo(nom);
+      if (!nombre) return;
+      const key = sinAcentos(nombre);
+      if (!grupos[key]) grupos[key] = { responsable: nombre, subs: {}, tareas: [] };
+      const g = grupos[key];
+      if (g.tareas.indexOf(t) >= 0) return;   // misma tarea con 2 variantes del nombre
+      g.tareas.push(t);
+      const sb = t.subdireccion || '';
+      g.subs[sb] = (g.subs[sb] || 0) + 1;
+    });
+  });
+  // Red de seguridad: si el catálogo aún no carga y quedaron DOS llaves donde
+  // una es PREFIJO (con borde de palabra) de la otra, son la MISMA persona con
+  // un dato truncado ("daniel de la" ⊂ "daniel de la garza") → se funden en la
+  // más completa.
+  Object.keys(grupos).sort((a, b) => a.length - b.length).forEach(function (k) {
+    if (!grupos[k] || k.length < 4) return;
+    const larga = Object.keys(grupos).find(o => o !== k && o.indexOf(k + ' ') === 0);
+    if (!larga) return;
+    const corto = grupos[k], largo = grupos[larga];
+    corto.tareas.forEach(function (t) {
+      if (largo.tareas.indexOf(t) >= 0) return;
+      largo.tareas.push(t);
+      const sb = t.subdireccion || '';
+      largo.subs[sb] = (largo.subs[sb] || 0) + 1;
+    });
+    delete grupos[k];
+  });
+  return Object.values(grupos).map(function (g) {
+    g.sub = Object.keys(g.subs).sort((a, b) => g.subs[b] - g.subs[a])[0] || '';
+    return g;
+  });
+}
+
 // Devuelve el teléfono (en E.164 sin '+') del responsable de la tarea, o ''.
 //   - Jefaturas: busca por subdirección + jefatura.
 //   - Subdirección sin jefatura: busca por subdirección.
@@ -10365,13 +10414,11 @@ function renderizarDashboard() {
   ];
   document.getElementById('dashDonut').innerHTML = dashDonutHTML(segs);
 
-  // Barras por responsable (de mayor a menor).
-  const porResp = {};
-  lista.forEach(t => {
-    const r = (t.responsable || '').trim() || 'Sin responsable';
-    porResp[r] = (porResp[r] || 0) + 1;
-  });
-  const items = Object.keys(porResp).map(k => ({ label: k, valor: porResp[k] }))
+  // Barras por responsable (de mayor a menor). Misma agrupación por PERSONA que
+  // la vista Carga: variantes de un nombre no duplican barra y una tarea
+  // colaborativa cuenta para cada participante.
+  const items = agruparTareasPorPersona(lista)
+    .map(g => ({ label: g.responsable, valor: g.tareas.length }))
     .sort((a, b) => b.valor - a.valor);
   document.getElementById('dashBarras').innerHTML = dashBarrasHTML(items);
 }
@@ -13675,29 +13722,12 @@ function renderizarCarga() {
     ? TAREAS.filter(t => !t.eliminada && t.subdireccion === usuarioActual.subdireccion)
     : TAREAS.filter(t => !t.eliminada && t.nivel !== 'jefatura');
 
-  // Agrupar por responsable. Una tarea COLABORATIVA guarda varios nombres en
-  // `responsable` separados por coma ("Daniel de la Garza, Mario Franca"). NO se
-  // crea una tarjeta combinada: la tarea se cuenta para CADA persona por
-  // separado, igual que los responsables individuales que ya existen.
-  const porResponsable = {};
-  universo.forEach(t => {
-    const nombres = String(t.responsable || '').split(',').map(s => s.trim()).filter(Boolean);
-    const unicos = nombres.filter((n, i) => nombres.indexOf(n) === i);
-    if (!unicos.length) return;   // sin responsable → no se atribuye a nadie
-    unicos.forEach(nom => {
-      // Nombre canónico (corto/bonito) para que una variante truncada de un dato
-      // viejo no abra una segunda tarjeta de la misma persona.
-      const r = (RESPONSABLES || []).find(x => respCoincide(nom.toLowerCase(), x));
-      const nombre = r ? nombreCortoResp(r) : nom;
-      const key = nombre + '||' + t.subdireccion;
-      if (!porResponsable[key]) {
-        porResponsable[key] = { responsable: nombre, sub: t.subdireccion, tareas: [] };
-      }
-      porResponsable[key].tareas.push(t);
-    });
-  });
-
-  const filas = Object.values(porResponsable).sort((a, b) => b.tareas.length - a.tareas.length);
+  // Agrupar por PERSONA con agruparTareasPorPersona: una tarea COLABORATIVA
+  // (varios nombres separados por coma) se cuenta para CADA persona, y todas
+  // las variantes de un mismo nombre (título, acentos, truncados viejos, corto
+  // vs completo, subdirecciones distintas en datos históricos) caen en UNA sola
+  // tarjeta — nadie sale repetido.
+  const filas = agruparTareasPorPersona(universo).sort((a, b) => b.tareas.length - a.tareas.length);
 
   if (filas.length === 0) {
     grid.innerHTML = '<div class="bitacora-vacio">Sin tareas para mostrar.</div>';
