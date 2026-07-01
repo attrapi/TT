@@ -4786,6 +4786,43 @@
     .juego-titulo { font-size: 25px; }
     .juego-pregunta { font-size: 17px; }
   }
+
+  /* ===== Botón "Exportar a Excel" (fila de filtros) ===== */
+  .btn-exportar {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 14px; border: 1px solid var(--linea-fuerte);
+    background: #fff; color: var(--verde); font-weight: 600; font-size: 14px;
+    border-radius: 10px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s, transform .05s;
+  }
+  .btn-exportar svg { width: 17px; height: 17px; }
+  .btn-exportar:hover { background: var(--verde-tenue); border-color: var(--verde); }
+  .btn-exportar:active { transform: translateY(1px); }
+  body.solo-lectura .btn-exportar { } /* visible también en solo lectura: exportar no crea nada */
+
+  /* ===== Barra inferior de navegación (solo móvil) ===== */
+  .bottom-nav { display: none; }
+  @media (max-width: 760px) {
+    .bottom-nav {
+      display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 900;
+      background: #fff; border-top: 1px solid var(--linea);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -6px 18px rgba(26,26,26,.08);
+    }
+    .bottom-nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: 0; cursor: pointer; padding: 4px 2px;
+      color: var(--tinta-suave); font-size: 11px; font-weight: 600;
+      font-family: inherit; border-radius: 10px; min-width: 0;
+    }
+    .bottom-nav-item svg { width: 23px; height: 23px; }
+    .bottom-nav-item:active { background: var(--guinda-tenue); }
+    .bottom-nav-item.destacado { color: var(--guinda); }
+    /* La app deja hueco abajo para que la barra no tape la última tarjeta. */
+    .app.activa { padding-bottom: 64px; }
+    /* El botón flotante "ir arriba" sube por encima de la barra. */
+    .btn-arriba { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  }
 </style>
 </head>
 <body>
@@ -5120,6 +5157,10 @@
     <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" onmouseenter="actualizarTituloNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 Seguimiento</button>
     <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
+    <button class="btn-exportar" id="btnExportar" onclick="exportarTareasCSV()" title="Descargar las tareas visibles (con los filtros actuales) en un archivo para Excel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Exportar a Excel</span>
+    </button>
   </div>
 
   <div class="tablero" id="tablero"></div>
@@ -5240,6 +5281,26 @@
   <button class="btn-arriba" id="btnArriba" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Ir arriba" aria-label="Ir arriba">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
   </button>
+
+  <!-- ===== Barra inferior de navegación (solo se ve en celular) ===== -->
+  <nav class="bottom-nav" aria-label="Navegación rápida">
+    <button class="bottom-nav-item" onclick="irInicio()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 L12 3 L21 12"/><path d="M5 10 V21 H10 V14 H14 V21 H19 V10"/></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="bottom-nav-item destacado" id="bnavNueva" onclick="abrirNuevaTarea()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>Nueva</span>
+    </button>
+    <button class="bottom-nav-item" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span>Menú</span>
+    </button>
+    <button class="bottom-nav-item" onclick="actualizarDatos()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+      <span>Actualizar</span>
+    </button>
+  </nav>
 </div>
 
 <!-- ========== MODAL ========== -->
@@ -14035,6 +14096,119 @@ window.ttRefrescarBitacora = function () {
     if (e.target.closest('.sidebar-item')) cerrarSidebar();
   });
 })();
+
+// ===== PWA: registra el Service Worker (offline + carga instantánea) =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+
+// ===== Barra inferior (móvil): el botón "Nueva" refleja la visibilidad del
+// botón de escritorio (#btnNuevo se oculta en modo solo lectura). =====
+(function () {
+  var origen = document.getElementById('btnNuevo');
+  var espejo = document.getElementById('bnavNueva');
+  if (!origen || !espejo) return;
+  function sincronizar() { espejo.style.display = (origen.style.display === 'none') ? 'none' : ''; }
+  sincronizar();
+  try {
+    new MutationObserver(sincronizar).observe(origen, { attributes: true, attributeFilter: ['style'] });
+  } catch (e) {}
+})();
+
+// ===== Exportar a Excel/CSV =====
+// Descarga las tareas ACTUALMENTE VISIBLES (respeta rol, subdirección activa,
+// prioridad y buscador vía obtenerTareasFiltradas). Formato CSV con BOM UTF-8
+// para que Excel muestre bien los acentos.
+function exportarTareasCSV() {
+  try {
+    var lista = (typeof obtenerTareasFiltradas === 'function')
+      ? obtenerTareasFiltradas()
+      : (typeof TAREAS !== 'undefined' ? TAREAS.filter(function (t) { return !t.eliminada; }) : []);
+    if (!lista || !lista.length) {
+      if (typeof toast === 'function') toast('No hay tareas para exportar con los filtros actuales.', 'error');
+      return;
+    }
+
+    function responsablesDe(t) {
+      try {
+        if (typeof participantesDe === 'function') {
+          var p = participantesDe(t);
+          if (p && p.length) return p.join(' · ');
+        }
+      } catch (e) {}
+      return t.responsable || '';
+    }
+    function areasDe(t) {
+      var a = t.areas_involucradas;
+      return Array.isArray(a) ? a.join(' · ') : (a || '');
+    }
+    function estadoDe(t) {
+      try { if (typeof etiquetaEstatus === 'function') return etiquetaEstatus(t.estatus); } catch (e) {}
+      return t.estatus || '';
+    }
+    function fechaDe(f) {
+      try { if (f && typeof formatearFechaCorta === 'function') return formatearFechaCorta(f); } catch (e) {}
+      return f || '';
+    }
+    function prioDe(t) {
+      try { if (typeof prioridadDe === 'function') return prioridadDe(t) || ''; } catch (e) {}
+      return '';
+    }
+
+    var columnas = [
+      ['Folio',              function (t) { return t.id || ''; }],
+      ['Título',             function (t) { return t.titulo || t.tema || ''; }],
+      ['Tema',               function (t) { return t.tema || ''; }],
+      ['Descripción',        function (t) { return t.descripcion || t.accion_a_tomar || ''; }],
+      ['Subdirección',       function (t) { return t.subdireccion || ''; }],
+      ['Jefatura',           function (t) { return t.jefatura || ''; }],
+      ['Responsable(s)',     responsablesDe],
+      ['Áreas involucradas', areasDe],
+      ['Estado',             estadoDe],
+      ['Prioridad',          prioDe],
+      ['Nivel',              function (t) { return t.nivel || ''; }],
+      ['Validada',           function (t) { return t.validada ? 'Sí' : 'No'; }],
+      ['Fecha creación',     function (t) { return fechaDe(t.fecha_creacion); }],
+      ['Fecha límite',       function (t) { return fechaDe(t.fecha_limite); }],
+      ['Fecha atención',     function (t) { return fechaDe(t.fecha_atencion); }],
+      ['Fecha finalización', function (t) { return fechaDe(t.fecha_finalizacion); }],
+      ['Fecha validación',   function (t) { return fechaDe(t.fecha_validacion); }],
+      ['Creado por',         function (t) { return t.creado_por || ''; }],
+      ['Finalizado por',     function (t) { return t.finalizado_por || ''; }],
+      ['Validado por',       function (t) { return t.validado_por || ''; }]
+    ];
+
+    function celda(v) {
+      var s = (v == null) ? '' : String(v);
+      s = s.replace(/\r?\n/g, ' ').trim();
+      if (/[",;]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+
+    var filas = [columnas.map(function (c) { return celda(c[0]); }).join(',')];
+    lista.forEach(function (t) {
+      filas.push(columnas.map(function (c) { return celda(c[1](t)); }).join(','));
+    });
+
+    var csv = '﻿' + filas.join('\r\n');   // BOM UTF-8 → acentos correctos en Excel
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var d = new Date();
+    var stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'TT-tareas-' + stamp + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    if (typeof toast === 'function') toast('Exportadas ' + lista.length + ' tareas a Excel.', 'ok');
+  } catch (e) {
+    if (typeof toast === 'function') toast('No se pudo exportar. Intenta de nuevo.', 'error');
+  }
+}
 </script>
 
 </body>
