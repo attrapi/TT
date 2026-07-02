@@ -10468,10 +10468,18 @@ function dashBarrasHTML(items) {
 
 // ============== VISTA TABLERO / CALENDARIO ==============
 
-// Botón Inicio: regresa a Tablero + Vista Consolidada en un solo click.
+// Botón Inicio: restablece la app a su punto de partida en un solo click.
+// Director → Tablero + Vista Consolidada; los demás roles no tienen la pestaña
+// TODAS, así que regresan al tablero de su propia subdirección. Además cierra
+// el cajón del menú (móvil) y sube el scroll hasta arriba.
 function irInicio() {
-  cambiarTab('TODAS');
+  const tabInicio = (usuarioActual && usuarioActual.rol === 'Director')
+    ? 'TODAS'
+    : ((usuarioActual && usuarioActual.subdireccion) || 'TODAS');
+  cambiarTab(tabInicio);
   cambiarVista('tablero');
+  cerrarSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function cambiarVista(v) {
