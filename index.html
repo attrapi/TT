@@ -5004,16 +5004,9 @@
           <span class="sidebar-label">Bitácora</span>
           <span class="sidebar-conteo" id="sidebarConteoBitacora">0</span>
         </button>
-        <button class="sidebar-item" data-vista="carga" onclick="cambiarVista('carga')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span class="sidebar-label">Carga</span>
-        </button>
-        <!-- Indicadores (Dashboard): dona por estado + vencidas, con selector de
-             alcance. Solo Director y subdirectores (se oculta a jefes junto a Carga/Reportes). -->
-        <button class="sidebar-item" data-vista="dashboard" onclick="cambiarVista('dashboard')" title="Indicadores — estado de las tareas y vencidas, con gráficas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-          <span class="sidebar-label">Indicadores</span>
-        </button>
+        <!-- Carga e Indicadores (Dashboard) se retiraron del menú en TODOS los
+             perfiles; las vistas (#cargaWrap / #dashboardWrap) siguen en el
+             código por si se reactivan. -->
         <button class="sidebar-item" data-vista="reportes" onclick="cambiarVista('reportes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8"  y2="13"/><line x1="16" y1="17" x2="8"  y2="17"/><line x1="10" y1="9"  x2="8"  y2="9"/></svg>
           <span class="sidebar-label">Reportes</span>
@@ -5859,14 +5852,10 @@ function aplicarSesion() {
   }
 
   // Las JEFATURAS (jefes/jefas de departamento) solo manejan Bitácora dentro de
-  // "Gestión": no tienen Carga ni Reportes (eso es del Subdirector/Director).
+  // "Gestión": no tienen Reportes (eso es del Subdirector/Director).
   const esJefe = !!jefaturaCodigo(usuarioActual.jefatura);
-  const btnCarga    = document.querySelector('.sidebar-item[data-vista="carga"]');
   const btnReportes = document.querySelector('.sidebar-item[data-vista="reportes"]');
-  const btnDash     = document.querySelector('.sidebar-item[data-vista="dashboard"]');
-  if (btnCarga)    btnCarga.style.display    = esJefe ? 'none' : '';
   if (btnReportes) btnReportes.style.display = esJefe ? 'none' : '';
-  if (btnDash)     btnDash.style.display     = esJefe ? 'none' : '';
 
   // "Enlaces" en el menú: para el subdirector (sin jefatura) o un enlace con
   // acceso completo, de CUALQUIER subdirección que tenga enlaces dados de alta.
@@ -7034,10 +7023,16 @@ function usuarioPuedeFinalizar(t) {
 //   • Director: SOLO sus propias tareas (DPAC) y las del Enlace. NO las de las
 //     subdirecciones (SA/SGOI/SPAC) ni jefaturas.
 //   • Subdirector: cualquier tarea de SU subdirección (incluidas las de jefatura).
+//   • Enlace restringido: SOLO las tareas que él mismo creó.
 function usuarioPuedeEliminar(t) {
   if (!usuarioActual || !t) return false;
   if (SOLO_LECTURA) return false;     // vista de Dirección = solo lectura
-  if (esEnlaceRestringido()) return false;   // el enlace restringido no borra/edita la tarea
+  if (esEnlaceRestringido()) {
+    // El enlace restringido (César, Nora, Daniel…) SÍ puede borrar las tareas
+    // que ÉL MISMO creó (van al Historial, como siempre); las demás no.
+    const yo = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+    return !!(t.creado_por && formatearNombre(t.creado_por) === yo);
+  }
   // El Director ahora ve TODAS las tarjetas en su tablero (incluidas jefaturas).
   // Puede enviar cualquiera al Historial.
   if (usuarioActual.rol === 'Director') return true;
