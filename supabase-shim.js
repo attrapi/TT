@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260623a';
+  window.TT_SHIM_VERSION = '20260707a';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -301,6 +301,45 @@
       }
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
+    },
+    // Guarda UNA acción del checklist de forma ATÓMICA (RPC tt_checklist_item):
+    // la base mezcla el ítem con lo que ya haya, así una copia local vieja no
+    // borra acciones agregadas por otra persona (pasaba en SPAC-006).
+    // uid identifica al ítem; textoRef es su texto ANTES del cambio (respaldo
+    // para ítems viejos sin uid). baseJson = checklist local completo, usado
+    // SOLO si la fila aún no tiene checklist (tareas recién creadas/viejas).
+    guardarItemChecklist: async function (token, id, uid, textoRef, item, borrar, baseJson) {
+      var base = null;
+      try { base = baseJson ? JSON.parse(baseJson) : null; } catch (e) { base = null; }
+      var r = await sb.rpc('tt_checklist_item', {
+        p_codigo: id, p_uid: uid || '', p_texto: textoRef || '',
+        p_item: item || null, p_borrar: !!borrar, p_base: base
+      });
+      // Si la función aún no existe en la base (falta correr
+      // supabase/checklist-item-rpc.sql), respaldo lee-mezcla-escribe: no es
+      // atómico, pero mezcla contra lo RECIÉN leído (ventana de riesgo de ms,
+      // no de minutos como antes).
+      if (r.error && (r.error.code === 'PGRST202' || /find the function|schema cache/i.test(r.error.message || ''))) {
+        try {
+          var cur = await sb.from('tareas').select('checklist').eq('codigo', id).single();
+          if (cur.error) return { ok: false, error: cur.error.message };
+          var v = Array.isArray(cur.data && cur.data.checklist) ? cur.data.checklist : [];
+          if (!v.length && Array.isArray(base)) v = base;
+          var idx = -1;
+          for (var i = 0; i < v.length; i++) {
+            var e2 = v[i] || {};
+            if ((uid && e2.uid === uid) || (textoRef && e2.texto === textoRef)) { idx = i; break; }
+          }
+          if (borrar) { if (idx >= 0) v.splice(idx, 1); }
+          else if (item) { if (idx >= 0) v[idx] = item; else v.push(item); }
+          var w = await sb.from('tareas').update({ checklist: v }).eq('codigo', id);
+          if (w.error) return { ok: false, error: w.error.message };
+          return { ok: true, checklist: v };
+        } catch (e3) { return { ok: false, error: String(e3) }; }
+      }
+      if (r.error) return { ok: false, error: r.error.message };
+      if (r.data === null) return { ok: false, error: 'La tarea ya no existe.' };
+      return { ok: true, checklist: Array.isArray(r.data) ? r.data : null };
     },
 
     // ---- BITÁCORA ----

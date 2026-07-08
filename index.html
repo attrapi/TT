@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260623b"></script>
+<script src="supabase-shim.js?v=20260707a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -5719,6 +5719,7 @@ let busquedaValidadas = '';  // texto del buscador de la vista Validadas
 let dashAreaSel = 'TODAS';   // Dashboard · área elegida (solo Director)
 let dashDetalleSel = 'todo'; // Dashboard · detalle: todo|sub|jef|PROCEDIMIENTOS|MANUALES
 let tareaEditando = null;    // tarea en edición en el formulario (null = nueva)
+let _prefillAccionesEdit = new Set();   // acciones prellenadas al abrir Editar (ver guardarNuevaTarea)
 let formTareaAbierto = false; // true mientras el formulario Crear/Editar está abierto (bloquea cierre accidental)
 let comentariosNuevaTarea = []; // comentarios escritos en el hilo ANTES de crear la tarea (se guardan al crearla)
 let BORRADOR_HILO = {};         // texto del comentario AÚN sin enviar, por tarea (sobrevive a re-dibujos del modal)
@@ -6573,14 +6574,9 @@ function cargarBitacora() {
     .obtenerBitacora(SESION_TOKEN);
 }
 
-function persistirEstado(t) {
-  if (!enAppScript() || !SESION_TOKEN || !t) return;
-  // El checklist se manda como JSON-string para que entre en una sola celda.
-  var checklistJson = '';
-  try { checklistJson = JSON.stringify(obtenerChecklist(t) || []); } catch (e) { checklistJson = ''; }
-  google.script.run
-    .withFailureHandler(function (e) { toast('No se pudo guardar el avance: ' + (e && e.message ? e.message : e), 'error'); })
-    .guardarEstado(SESION_TOKEN, t.id, {
+function persistirEstado(t, onFin) {
+  if (!enAppScript() || !SESION_TOKEN || !t) { if (typeof onFin === 'function') onFin(true); return; }
+  var datosEstado = {
       estatus: t.estatus,
       validada: !!t.validada,
       en_validadas: !!t.en_validadas,
@@ -6598,11 +6594,31 @@ function persistirEstado(t) {
       // SOLO desde eliminarTarea/restaurarTarea (persistirEliminada).
       creado_por: t.creado_por || '',
       fecha_creacion: t.fecha_creacion || '',
-      checklist_json: checklistJson,
       observaciones_resp: t.observaciones_resp || '',
       observaciones_dir:  t.observaciones_dir || '',
       observaciones_areas: (t.observaciones_areas && typeof t.observaciones_areas === 'object') ? t.observaciones_areas : {}
-    });
+    };
+  // OJO: el CHECKLIST ya NO viaja en los guardados rutinarios. Cada acción se
+  // guarda sola y de forma atómica con persistirItemChecklist (la base mezcla).
+  // Mandarlo completo desde una copia local vieja BORRABA acciones agregadas
+  // por otra persona (p. ej. SPAC-006). Solo el backend viejo de Apps Script
+  // (sin el guardado por ítem) lo sigue recibiendo completo, como antes.
+  if (!hayGuardadoPorItem()) {
+    try { datosEstado.checklist_json = JSON.stringify(obtenerChecklist(t) || []); } catch (e) {}
+  }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      // El puente de Supabase reporta los errores por AQUÍ ({ok:false});
+      // antes se ignoraban y el guardado fallaba en silencio.
+      var ok = !!(res && res.ok);
+      if (!ok) toast('No se pudo guardar el avance: ' + ((res && res.error) || 'revisa tu conexión'), 'error');
+      if (typeof onFin === 'function') onFin(ok, res && res.error);
+    })
+    .withFailureHandler(function (e) {
+      toast('No se pudo guardar el avance: ' + (e && e.message ? e.message : e), 'error');
+      if (typeof onFin === 'function') onFin(false, e && e.message ? e.message : String(e));
+    })
+    .guardarEstado(SESION_TOKEN, t.id, datosEstado);
 }
 
 // Persiste SOLO los campos del Historial (enviar/restaurar). Separado de
@@ -7815,7 +7831,10 @@ function asignarPorArrastre(idTarea, col) {
         participantes: t.participantes,
         areas: t.areas_involucradas
       });
-    if (quitados.length) persistirEstado(t);   // guarda el checklist/observaciones limpios
+    if (quitados.length) {
+      persistirEstado(t);   // guarda las observaciones limpias (el checklist va por ítem)
+      obtenerChecklist(t).forEach(function (it) { persistirItemChecklist(t, it); });
+    }
   }
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
@@ -8793,13 +8812,20 @@ function quitarEnlaceDetalle(idTarea, idx) {
 }
 
 // "Guardar cambios" del modal de detalle: los cambios inline (fecha, acciones,
-// palomeos) ya se guardan al instante; este botón re-guarda por seguridad, avisa
-// y cierra el modal. Da una confirmación clara de que quedó guardado.
+// palomeos) ya se guardan al instante; este botón re-guarda estatus y
+// observaciones, CONFIRMA contra la base y cierra el modal. OJO: ya NO re-manda
+// el checklist — eso borraba acciones cuando la copia local estaba vieja (le
+// pasó a SPAC-006); las acciones se guardan solas, por ítem, al momento.
 function guardarCambiosDetalle(idTarea) {
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) { cerrarModal(); return; }
-  try { persistirEstado(t); } catch (e) {}
-  if (typeof toast === 'function') toast('Cambios guardados', 'ok');
+  try {
+    persistirEstado(t, function (ok) {
+      // Solo confirma cuando la base respondió que sí; si falló,
+      // persistirEstado ya mostró el error.
+      if (ok && typeof toast === 'function') toast('Cambios guardados', 'ok');
+    });
+  } catch (e) {}
   cerrarModal();
 }
 
@@ -11114,6 +11140,7 @@ function checklistDesdeTexto(texto) {
     if (cortes.length > 1) lineas = cortes;
   }
   return lineas.map(linea => ({
+    uid: nuevoUidChecklist(),   // identidad estable para el guardado por ítem
     texto: linea,
     check_resp: false,
     check_dir: false,
@@ -11605,7 +11632,8 @@ function hacerEditableChecklist(idTarea, idx) {
       estatus_anterior: '', estatus_nuevo: '',
       comentario: '✎ "' + limpio + '"'
     });
-    persistirEstado(t);
+    // Guarda SOLO este ítem; textoViejo = identidad previa (por si no tiene uid).
+    persistirItemChecklist(t, item, { textoViejo: original });
     abrirDetalle(t);
     renderizar();
   }
@@ -12006,7 +12034,9 @@ function toggleCheckArea(idTarea, idx, cod, valor) {
       comentario: 'Columna ' + etqCol + (esValidador ? ' validación retirada' : ' completada retirada')
     });
   }
-  persistirEstado(t);  // guarda el checklist (sobrevive al F5)
+  // Guarda SOLO este ítem (atómico): dos personas palomeando a la vez no se
+  // pisan, y una copia local vieja no borra acciones agregadas por otros.
+  persistirItemChecklist(t, items[idx]);
   abrirDetalle(t);     // repinta el modal (puede aparecer el botón Completada)
   renderizar();        // actualiza KPIs/tarjetas
 }
@@ -12106,12 +12136,54 @@ function mergearChecklist(viejo, textoNuevo) {
   return lineas.map(linea => {
     const previo = v.find(i => i && i.texto === linea);
     return previo || {
+      uid: nuevoUidChecklist(),
       texto: linea, check_resp: false, check_dir: false,
       fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: '',
       creado_por_nombre: aut.nombre, creado_por_rol: aut.rol,
       creado_en: ahoraStamp()
     };
   });
+}
+
+// ===== Guardado ATÓMICO por acción =====
+// Cada alta/edición/palomeo/adjunto de UNA acción se guarda sola (la base la
+// mezcla con lo que ya haya, vía RPC), en vez de re-escribir el checklist
+// completo desde la copia local. Así una copia vieja (otra persona con el
+// modal abierto, u otra pestaña) ya NO puede borrar acciones agregadas por
+// alguien más (pasaba en SPAC-006 y podía pasar en cualquier tarea).
+function nuevoUidChecklist() {
+  return 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function hayGuardadoPorItem() {
+  try { return typeof google.script.run.guardarItemChecklist === 'function'; } catch (e) { return false; }
+}
+function persistirItemChecklist(t, item, opts) {
+  opts = opts || {};
+  if (!t || !item) return;
+  // Identidad del ítem ANTES del cambio: su uid si tiene; si no, su texto.
+  const uidViejo   = (opts.uidViejo   != null) ? opts.uidViejo   : (item.uid   || '');
+  const textoViejo = (opts.textoViejo != null) ? opts.textoViejo : (item.texto || '');
+  if (!opts.borrar && !item.uid) item.uid = nuevoUidChecklist();
+  if (!enAppScript() || !SESION_TOKEN) return;                 // demo: solo en pantalla
+  if (!hayGuardadoPorItem()) { persistirEstado(t); return; }   // backend viejo (Apps Script): como antes
+  let base = '';
+  try { base = JSON.stringify(obtenerChecklist(t) || []); } catch (e) { base = ''; }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) {
+        toast('No se pudo guardar la acción: ' + ((res && res.error) || 'revisa tu conexión') + '. Vuelve a intentarlo.', 'error');
+        return;
+      }
+      // La base regresa la lista oficial ya mezclada: se adopta tal cual (puede
+      // traer acciones que otra persona agregó hace un momento).
+      if (Array.isArray(res.checklist)) {
+        const fresca = TAREAS.find(x => x.id === t.id);
+        if (fresca) fresca.checklist = res.checklist;
+        t.checklist = res.checklist;
+      }
+    })
+    .withFailureHandler(function (e) { toast('No se pudo guardar la acción: ' + (e && e.message ? e.message : e), 'error'); })
+    .guardarItemChecklist(SESION_TOKEN, t.id, uidViejo, textoViejo, opts.borrar ? null : item, !!opts.borrar, base);
 }
 
 // Agrega un nuevo ítem al checklist (desde el modal de detalle).
@@ -12128,14 +12200,16 @@ function agregarItemChecklist(idTarea, texto) {
     return;
   }
   const aut = autorChecklistActual();
-  obtenerChecklist(t).push({
+  const nuevoItem = {
+    uid: nuevoUidChecklist(),
     texto: textoLimpio, check_resp: false, check_dir: false,
     fecha_resp: '', fecha_dir: '', autor_resp: '', autor_dir: '',
     creado_por_nombre: aut.nombre, creado_por_rol: aut.rol,
     creado_en: ahoraStamp()
-  });
+  };
+  obtenerChecklist(t).push(nuevoItem);
   registrarEnBitacora({ accion: 'accion_add', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '+ "' + textoLimpio + '"' });
-  persistirEstado(t);
+  persistirItemChecklist(t, nuevoItem);   // guarda SOLO este ítem (atómico)
   abrirDetalle(t);
   renderizar();
 }
@@ -12156,7 +12230,7 @@ function eliminarItemChecklist(idTarea, idx) {
   if (!confirm('¿Borrar la acción "' + item.texto + '"?')) return;
   items.splice(idx, 1);
   registrarEnBitacora({ accion: 'accion_del', id_tarea: idTarea, estatus_anterior: '', estatus_nuevo: '', comentario: '− "' + item.texto + '"' });
-  persistirEstado(t);
+  persistirItemChecklist(t, item, { borrar: true });   // borra SOLO este ítem (atómico)
   abrirDetalle(t);
   renderizar();
 }
@@ -12194,7 +12268,7 @@ function adjuntarItemChecklist(idTarea, idx, file) {
         if (!res || !res.ok) { toast((res && res.error) || 'No se pudo subir el archivo', 'error'); return; }
         items[idx].adjunto = res.url;
         items[idx].adjunto_nombre = file.name;
-        persistirEstado(t);
+        persistirItemChecklist(t, items[idx]);   // guarda SOLO este ítem (atómico)
         abrirDetalle(t);
         toast('Archivo adjuntado.', 'ok');
       })
@@ -12214,7 +12288,7 @@ function quitarAdjuntoItem(idTarea, idx) {
   const urlAdj = items[idx].adjunto || '';
   items[idx].adjunto = '';
   items[idx].adjunto_nombre = '';
-  persistirEstado(t);
+  persistirItemChecklist(t, items[idx]);   // guarda SOLO este ítem (atómico)
   // Manda el archivo a la papelera de Drive (best-effort: si falla, al menos
   // quedó desligado de la acción).
   if (enAppScript() && SESION_TOKEN && urlAdj) {
@@ -12303,6 +12377,10 @@ function abrirNuevaTarea(tEdit) {
   const valAccion = ed
     ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.accion_a_tomar || ''))
     : '';
+  // Fotografía del prellenado de Acciones: al guardar sirve para distinguir
+  // "acción que el editor quitó a propósito" de "acción que OTRA persona
+  // agregó mientras el formulario estaba abierto" (esa se conserva).
+  _prefillAccionesEdit = new Set(String(valAccion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean));
   const valFecha = ed ? (ed.fecha_atencion || ed.fecha_limite || hoyStr) : hoyStr;
   // Quién puede cambiar la FECHA DE ATENCIÓN al editar:
   //   • El CREADOR de la tarea (la puso él).
@@ -12966,7 +13044,20 @@ function guardarNuevaTarea() {
   // combinado: conserva las palomitas de las acciones que ya existían (match por
   // texto) y agrega las nuevas en blanco.
   if (editando) {
-    datos.checklist_json = JSON.stringify(mergearChecklist(tareaEditando.checklist || [], accion));
+    // Mezcla contra la copia MÁS FRESCA de la tarea (el tiempo real pudo
+    // actualizarla mientras el formulario estaba abierto), no contra la copia
+    // de cuando se abrió.
+    const _idEd = tareaEditando ? tareaEditando.id : '';
+    const _fresca = TAREAS.find(x => x.id === _idEd) || tareaEditando;
+    const _baseChk = (_fresca && _fresca.checklist) || [];
+    const _listaChk = mergearChecklist(_baseChk, accion);
+    // Conserva las acciones que OTRA persona agregó mientras editabas: no
+    // estaban en el prellenado (no las quitaste tú) ni las escribiste tú.
+    const _enForm = new Set(String(accion || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean));
+    _baseChk.forEach(function (it) {
+      if (it && it.texto && !_enForm.has(it.texto) && !_prefillAccionesEdit.has(it.texto)) _listaChk.push(it);
+    });
+    datos.checklist_json = JSON.stringify(_listaChk);
   }
   // ID por ENLACE: si el responsable es un enlace, el código usa SUS iniciales
   // (NPF-001, CJC-001, DGC-001) en vez del prefijo de área. Solo al crear.
@@ -13414,7 +13505,9 @@ function subirAdjuntosDeAcciones(idTarea, lista) {
   let i = 0;
   const siguiente = function () {
     if (i >= pendientes.length) {
-      persistirEstado(t);
+      // Guarda por ítem (atómico); en la primera llamada la base materializa el
+      // checklist completo de la tarea recién creada (viaja como respaldo).
+      pendientes.forEach(function (p2) { if (items[p2.idx]) persistirItemChecklist(t, items[p2.idx]); });
       renderizar();
       toast('Adjuntos de acciones listos.', 'ok');
       return;
