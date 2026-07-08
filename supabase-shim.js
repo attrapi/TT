@@ -344,9 +344,21 @@
 
     // ---- BITÁCORA ----
     obtenerBitacora: async function () {
-      var r = await sb.from('bitacora').select('*').order('fecha', { ascending: false });
-      if (r.error) return { ok: true, bitacora: [] };
-      return { ok: true, bitacora: (r.data || []).map(function (b) {
+      // PostgREST regresa máx. 1000 filas por petición: se pagina para traer TODA
+      // la bitácora. Si no, al pasar de 1000 movimientos las entradas viejas
+      // ("crear", comentarios, vistos, reprogramaciones) desaparecen de la app
+      // — así se perdió el "Creada por" del historial de JDGA-001.
+      var PAG = 1000, filas = [], desde = 0;
+      while (true) {
+        var r = await sb.from('bitacora').select('*')
+          .order('fecha', { ascending: false })
+          .range(desde, desde + PAG - 1);
+        if (r.error) break;                        // lo ya traído se usa igual
+        filas = filas.concat(r.data || []);
+        if (!r.data || r.data.length < PAG) break; // página incompleta = no hay más
+        desde += PAG;
+      }
+      return { ok: true, bitacora: filas.map(function (b) {
         return { id: b.id, fecha: fmtFecha(b.fecha), usuario: b.usuario || '', accion: b.accion || '',
           id_tarea: b.tarea_codigo || '', estatus_anterior: b.estatus_anterior || '',
           estatus_nuevo: b.estatus_nuevo || '', comentario: b.comentario || '' };
