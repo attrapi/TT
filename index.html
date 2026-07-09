@@ -3323,6 +3323,13 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    /* Pegada ABAJO del modal (como el encabezado arriba): Guardar cambios,
+       Completada, Cerrar y WhatsApp quedan siempre a la vista al hacer
+       scroll. Aplica a todos los modales que usan esta botonera. */
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.06);   /* sutil separación del contenido */
   }
 
   .modal-comentar {
