@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260707a';
+  window.TT_SHIM_VERSION = '20260708b';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -335,6 +335,42 @@
           var w = await sb.from('tareas').update({ checklist: v }).eq('codigo', id);
           if (w.error) return { ok: false, error: w.error.message };
           return { ok: true, checklist: v };
+        } catch (e3) { return { ok: false, error: String(e3) }; }
+      }
+      if (r.error) return { ok: false, error: r.error.message };
+      if (r.data === null) return { ok: false, error: 'La tarea ya no existe.' };
+      return { ok: true, checklist: Array.isArray(r.data) ? r.data : null };
+    },
+    // Guarda el ORDEN de las acciones (RPC tt_checklist_orden): la base
+    // reacomoda sus ítems según la lista [{uid, texto}] recibida, con candado
+    // de fila. Lo que no venga en la lista (una acción agregada por otra
+    // persona al mismo tiempo) se conserva al final, no se pierde.
+    reordenarChecklist: async function (token, id, orden, baseJson) {
+      if (!Array.isArray(orden)) return { ok: false, error: 'Orden inválido.' };
+      var base = null;
+      try { base = baseJson ? JSON.parse(baseJson) : null; } catch (e) { base = null; }
+      var r = await sb.rpc('tt_checklist_orden', { p_codigo: id, p_orden: orden, p_base: base });
+      // Si la función aún no existe en la base (falta correr
+      // supabase/checklist-orden-rpc.sql), respaldo lee-reordena-escribe con el
+      // MISMO criterio (uid → texto; lo no listado queda al final).
+      if (r.error && (r.error.code === 'PGRST202' || /find the function|schema cache/i.test(r.error.message || ''))) {
+        try {
+          var cur = await sb.from('tareas').select('checklist').eq('codigo', id).single();
+          if (cur.error) return { ok: false, error: cur.error.message };
+          var v = Array.isArray(cur.data && cur.data.checklist) ? cur.data.checklist : [];
+          if (!v.length && Array.isArray(base)) v = base;
+          var usado = v.map(function () { return false; });
+          var out = [];
+          orden.forEach(function (o) {
+            var uid = (o && o.uid) || '', txt = (o && o.texto) || '', idx = -1, i;
+            if (uid) { for (i = 0; i < v.length; i++) { if (!usado[i] && (v[i] || {}).uid === uid) { idx = i; break; } } }
+            if (idx < 0 && txt) { for (i = 0; i < v.length; i++) { if (!usado[i] && (v[i] || {}).texto === txt) { idx = i; break; } } }
+            if (idx >= 0) { out.push(v[idx]); usado[idx] = true; }
+          });
+          v.forEach(function (it, i2) { if (!usado[i2]) out.push(it); });
+          var w = await sb.from('tareas').update({ checklist: out }).eq('codigo', id);
+          if (w.error) return { ok: false, error: w.error.message };
+          return { ok: true, checklist: out };
         } catch (e3) { return { ok: false, error: String(e3) }; }
       }
       if (r.error) return { ok: false, error: r.error.message };

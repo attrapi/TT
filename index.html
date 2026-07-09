@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260708a"></script>
+<script src="supabase-shim.js?v=20260708b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -4228,6 +4228,26 @@
   .checklist-borrar { color: var(--rojo, #b91c1c); font-size: 16px; }
   .checklist-borrar:hover, .checklist-editar:hover { opacity: 1; }
   .checklist-borrar-vacio { display: inline-block; width: 14px; }
+  /* ===== Reordenar acciones: asa ⠿ + estados del arrastre ===== */
+  /* El asa arrastra con mouse o dedo; en el celular también funciona mantener
+     presionada la fila (~0.4 s) y luego moverla arriba/abajo. */
+  .chk-asa {
+    flex: 0 0 auto; cursor: grab; color: var(--tinta-tenue);
+    font-size: 12px; line-height: 1.3; padding: 1px 4px 1px 0;
+    user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .chk-asa:active { cursor: grabbing; color: var(--guinda); }
+  /* Sin menú/callout de iOS al mantener presionada la fila (interrumpiría el arrastre). */
+  .checklist-fila { -webkit-touch-callout: none; }
+  .checklist-fila.chk-arrastrando {
+    opacity: 0.95; background: var(--guinda-tenue);
+    box-shadow: 0 6px 18px rgba(105,28,50,0.28);
+    position: relative; z-index: 20; cursor: grabbing;
+  }
+  /* Mientras se reordena: sin selección de texto (el dedo/mouse va arrastrando). */
+  body.chk-reordenando, body.chk-reordenando * {
+    user-select: none !important; -webkit-user-select: none !important;
+  }
   /* Input para editar el texto de una acción inline (al darle ✎). */
   .checklist-edit-input {
     width: 100%; box-sizing: border-box;
@@ -11565,8 +11585,13 @@ function renderChecklistHTML(t) {
         '</label>';
     }).join('');
 
-    return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" style="' + gridStyle + '" title="' + escapeHtml(tooltipCreador) + '">' +
+    // Asa ⠿ para reordenar arrastrando (solo si participa y hay 2+ acciones).
+    const puedeOrdenar = puedeAlgo && items.length > 1;
+    return '<div class="checklist-fila ' + claseFila + (completa ? ' completa' : '') + '" style="' + gridStyle + '" data-idx="' + i + '"' +
+      (puedeOrdenar ? ' onpointerdown="chkDragDown(event, \'' + t.id + '\')"' : '') +
+      ' title="' + escapeHtml(tooltipCreador) + '">' +
       '<span class="checklist-texto">' +
+        (puedeOrdenar ? '<span class="chk-asa" title="Arrastra para reordenar">⠿</span>' : '') +
         '<span class="checklist-texto-valor">' + escapeHtml(item.texto) + '</span>' +
         acciones +
       '</span>' +
@@ -12212,6 +12237,170 @@ function agregarItemChecklist(idTarea, texto) {
   persistirItemChecklist(t, nuevoItem);   // guarda SOLO este ítem (atómico)
   abrirDetalle(t);
   renderizar();
+}
+
+// ===== Reordenar acciones arrastrándolas =====
+// Mouse: se arrastra desde el asa ⠿ (así no pelea con seleccionar el texto).
+// Celular: dedo en el asa arrastra directo, o mantener presionada la fila
+// ~0.4 s (si el dedo se mueve antes, es scroll y no pasa nada). El nuevo orden
+// se guarda con el RPC tt_checklist_orden: la base reacomoda con candado, y
+// una acción agregada por otra persona al mismo tiempo se conserva (al final).
+let _chkDrag = null;   // estado del arrastre en curso (null = no hay)
+
+function chkDragDown(e, idTarea) {
+  if (SOLO_LECTURA || _chkDrag) return;
+  const t = TAREAS.find(x => x.id === idTarea);
+  if (!t || !puedeChecklist(t)) return;
+  // No iniciar sobre controles: casillas, botones ✎/×, links, adjunto, input de edición.
+  if (e.target.closest('input, button, a, .checklist-adj-cell, .checklist-chk-cell')) return;
+  const fila = e.target.closest('.checklist-fila');
+  const tabla = fila && fila.parentElement;
+  if (!fila || !tabla) return;
+  const esAsa = !!e.target.closest('.chk-asa');
+  if (e.pointerType === 'mouse' && !esAsa) return;   // con mouse, solo desde el asa
+  const idx = parseInt(fila.dataset.idx, 10) || 0;
+  const st = {
+    t: t, fila: fila, tabla: tabla, activo: false, timer: null,
+    x0: e.clientX, y0: e.clientY, idxViejo: idx,
+    item: obtenerChecklist(t)[idx] || null,
+    onMove: null, onUp: null, bloqueaScroll: null, bloqueaMenu: null
+  };
+  _chkDrag = st;
+  st.onMove = function (ev) { chkDragMove(ev); };
+  st.onUp = function (ev) { chkDragUp(ev); };
+  document.addEventListener('pointermove', st.onMove);
+  document.addEventListener('pointerup', st.onUp);
+  document.addEventListener('pointercancel', st.onUp);
+  // El menú contextual del "mantener presionado" (móvil) cortaría el arrastre.
+  st.bloqueaMenu = function (ev) { ev.preventDefault(); };
+  fila.addEventListener('contextmenu', st.bloqueaMenu);
+  if (e.pointerType !== 'mouse') {
+    if (esAsa) chkDragActivar();   // dedo en el asa: arrastre inmediato (touch-action: none)
+    else st.timer = setTimeout(function () { if (_chkDrag === st) chkDragActivar(); }, 400);
+  }
+  // Mouse desde el asa: se activa al primer movimiento (ver chkDragMove).
+}
+
+function chkDragActivar() {
+  const st = _chkDrag;
+  if (!st || st.activo) return;
+  st.activo = true;
+  if (st.timer) { clearTimeout(st.timer); st.timer = null; }
+  st.fila.classList.add('chk-arrastrando');
+  document.body.classList.add('chk-reordenando');
+  // Bloquea el scroll del dedo mientras dura el arrastre.
+  st.bloqueaScroll = function (ev) { ev.preventDefault(); };
+  document.addEventListener('touchmove', st.bloqueaScroll, { passive: false });
+  try { if (navigator.vibrate) navigator.vibrate(20); } catch (err) {}
+}
+
+function chkDragMove(e) {
+  const st = _chkDrag;
+  if (!st) return;
+  // Si un refresco en vivo repintó el modal a media arrastrada, se cancela limpio.
+  if (!document.contains(st.fila)) { chkDragFin(); return; }
+  if (!st.activo) {
+    const dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (e.pointerType === 'mouse') { if (dist > 4) chkDragActivar(); }
+    else if (st.timer && dist > 8) { chkDragFin(); }   // el dedo empezó a hacer scroll
+    if (!_chkDrag || !st.activo) return;
+  }
+  e.preventDefault();
+  // La fila arrastrada se recoloca según el punto medio de las demás filas.
+  const filas = Array.prototype.slice.call(st.tabla.querySelectorAll('.checklist-fila'));
+  let antesDe = null;
+  for (let i = 0; i < filas.length; i++) {
+    if (filas[i] === st.fila) continue;
+    const r = filas[i].getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { antesDe = filas[i]; break; }
+  }
+  if (antesDe) { if (st.fila.nextElementSibling !== antesDe) st.tabla.insertBefore(st.fila, antesDe); }
+  else if (st.tabla.lastElementChild !== st.fila) { st.tabla.appendChild(st.fila); }
+  // Auto-scroll del modal cuando el puntero se acerca a los bordes.
+  const modal = st.tabla.closest('.modal');
+  if (modal) {
+    const rm = modal.getBoundingClientRect();
+    if (e.clientY < rm.top + 56) modal.scrollTop -= 10;
+    else if (e.clientY > rm.bottom - 56) modal.scrollTop += 10;
+  }
+}
+
+function chkDragUp() {
+  const st = _chkDrag;
+  if (!st) return;
+  const fueArrastre = st.activo;
+  const t = st.t;
+  // Nuevo orden = el orden actual de las filas en el DOM (por su data-idx).
+  const items = obtenerChecklist(t);
+  const filas = Array.prototype.slice.call(st.tabla.querySelectorAll('.checklist-fila'));
+  const orden = filas.map(function (f) { return parseInt(f.dataset.idx, 10); })
+    .filter(function (n) { return !isNaN(n) && n >= 0 && n < items.length; });
+  const idxNuevo = filas.indexOf(st.fila);
+  chkDragFin();
+  if (!fueArrastre) return;   // fue un tap/click sin arrastre: no hay nada que hacer
+  const cambio = orden.length === items.length && orden.some(function (n, i) { return n !== i; });
+  if (!cambio) { abrirDetalle(t); return; }   // quedó igual: solo repinta (índices sanos)
+  t.checklist = orden.map(function (n) { return items[n]; });
+  registrarEnBitacora({
+    accion: 'accion_orden', id_tarea: t.id, estatus_anterior: '', estatus_nuevo: '',
+    comentario: '↕ "' + String((st.item && st.item.texto) || '').slice(0, 60) + '" (' + (st.idxViejo + 1) + 'ª → ' + (idxNuevo + 1) + 'ª)'
+  });
+  persistirOrdenChecklist(t);
+  // Repinta el modal (los índices de las filas cambiaron) conservando el scroll.
+  const modal = document.querySelector('.modal');
+  const scrollPrevio = modal ? modal.scrollTop : 0;
+  abrirDetalle(t);
+  const m2 = document.querySelector('.modal');
+  if (m2) m2.scrollTop = scrollPrevio;
+}
+
+function chkDragFin() {
+  const st = _chkDrag;
+  if (!st) return;
+  _chkDrag = null;
+  if (st.timer) clearTimeout(st.timer);
+  document.removeEventListener('pointermove', st.onMove);
+  document.removeEventListener('pointerup', st.onUp);
+  document.removeEventListener('pointercancel', st.onUp);
+  if (st.bloqueaScroll) document.removeEventListener('touchmove', st.bloqueaScroll);
+  if (st.bloqueaMenu) st.fila.removeEventListener('contextmenu', st.bloqueaMenu);
+  st.fila.classList.remove('chk-arrastrando');
+  document.body.classList.remove('chk-reordenando');
+}
+
+// Persiste el nuevo orden. Con shim viejo en caché (sin reordenarChecklist),
+// respaldo: manda el checklist completo (último gana; caso raro de una carga).
+function persistirOrdenChecklist(t) {
+  if (!t || !enAppScript() || !SESION_TOKEN) return;
+  const items = obtenerChecklist(t);
+  items.forEach(function (it) { if (it && !it.uid) it.uid = nuevoUidChecklist(); });
+  const orden = items.map(function (it) { return { uid: it.uid || '', texto: it.texto || '' }; });
+  let base = '';
+  try { base = JSON.stringify(items); } catch (e) { base = ''; }
+  let hayRPC = false;
+  try { hayRPC = typeof google.script.run.reordenarChecklist === 'function'; } catch (e) { hayRPC = false; }
+  if (!hayRPC) {
+    google.script.run
+      .withFailureHandler(function (e) { toast('No se pudo guardar el orden: ' + (e && e.message ? e.message : e), 'error'); })
+      .guardarEstado(SESION_TOKEN, t.id, { checklist_json: base });
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) {
+        toast('No se pudo guardar el orden: ' + ((res && res.error) || 'revisa tu conexión') + '. Vuelve a intentarlo.', 'error');
+        return;
+      }
+      // La base regresa la lista oficial ya reordenada/mezclada: se adopta.
+      if (Array.isArray(res.checklist)) {
+        const fresca = TAREAS.find(x => x.id === t.id);
+        if (fresca) fresca.checklist = res.checklist;
+        t.checklist = res.checklist;
+      }
+    })
+    .withFailureHandler(function (e) { toast('No se pudo guardar el orden: ' + (e && e.message ? e.message : e), 'error'); })
+    .reordenarChecklist(SESION_TOKEN, t.id, orden, base);
 }
 
 // Borra un ítem del checklist, SOLO si lo creó el usuario actual.
@@ -13636,6 +13825,7 @@ const ACCION_LABEL = {
   accion_add:  'Acción agregada',
   accion_del:  'Acción quitada',
   accion_edit: 'Acción editada',
+  accion_orden:'Acciones reordenadas',
   seguimiento: 'Seguimiento',
   completar_col:'Completada',
   desvalidar:  'Validación retirada',
@@ -14210,7 +14400,9 @@ window.ttRefrescar = function () {
       // repintamos para ver acciones/adjuntos nuevos de otra persona en vivo.
       const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
       const _esc = document.activeElement && /(conv_input_|^nt_|detEnlaceInput|chk-nuevo-)/.test(document.activeElement.id || '');
-      if (_tAb && !formTareaAbierto && !_esc && typeof abrirDetalle === 'function') {
+      // Tampoco repintar si se está ARRASTRANDO una acción (destruiría la fila).
+      const _arrastrando = (typeof _chkDrag !== 'undefined' && _chkDrag);
+      if (_tAb && !formTareaAbierto && !_esc && !_arrastrando && typeof abrirDetalle === 'function') {
         const fresca = TAREAS.find(x => x.id === _tAb.id);
         if (fresca) abrirDetalle(fresca);
       }
