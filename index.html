@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260708b"></script>
+<script src="supabase-shim.js?v=20260709b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -580,6 +580,51 @@
   .app-main[data-vista="asistencia"] #validadasWrap,
   .app-main[data-vista="asistencia"] #enlacesWrap { display: none; }
   .app-main[data-vista="asistencia"] #asistenciaWrap { display: block; }
+
+  /* === Volantes (equipo SGOI + Dirección): registro de volantes === */
+  #volantesWrap { display: none; }
+  .app-main[data-vista="volantes"] .kpis,
+  .app-main[data-vista="volantes"] .tabs-wrap,
+  .app-main[data-vista="volantes"] .filtros,
+  .app-main[data-vista="volantes"] .filtros-acciones,
+  .app-main[data-vista="volantes"] #tablero,
+  .app-main[data-vista="volantes"] #calendarioWrap,
+  .app-main[data-vista="volantes"] #bitacoraWrap,
+  .app-main[data-vista="volantes"] #cargaWrap,
+  .app-main[data-vista="volantes"] #reportesWrap { display: none; }
+  .app-main[data-vista="volantes"] #volantesWrap { display: block; }
+  .volantes-wrap { padding: 16px 24px 26px; }
+  .volantes-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+  .volantes-toolbar .filtros-buscar { flex: 1; min-width: 220px; }
+  .volantes-lista { display: flex; flex-direction: column; gap: 10px; }
+  .vol-card { background: #fff; border: 1px solid var(--linea); border-radius: 12px; padding: 12px 16px; box-shadow: 0 2px 10px rgba(105,28,50,0.06); cursor: pointer; }
+  .vol-card:hover { border-color: var(--guinda); }
+  .vol-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .vol-num { background: var(--guinda); color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .04em; padding: 3px 10px; border-radius: 8px; }
+  .vol-tipo { background: rgba(29,78,216,0.12); color: #1e3a8a; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
+  .vol-cab-spacer { flex: 1; }
+  .vol-btn { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--tinta); }
+  .vol-btn:hover { border-color: var(--guinda); color: var(--guinda); }
+  .vol-btn.borrar:hover { border-color: var(--rojo); color: var(--rojo); }
+  .vol-asunto { font-size: 14px; font-weight: 600; color: var(--tinta); margin: 0 0 10px; white-space: pre-wrap; }
+  .vol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 18px; }
+  .vol-campo { font-size: 12.5px; color: var(--tinta); }
+  .vol-campo .vol-etq { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-suave); font-weight: 700; }
+  .vol-pie { margin-top: 10px; font-size: 11.5px; color: var(--tinta-suave); }
+  .vol-vacio { text-align: center; color: var(--tinta-suave); padding: 40px 10px; border: 1px dashed var(--linea); border-radius: 12px; background: #fff; }
+  .vol-est { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: .03em; }
+  .vol-est.proceso  { background: #fef3c7; color: #92400e; }
+  .vol-est.atendido { background: #dcfce7; color: #166534; }
+  /* Checklist de acciones del volante (en su detalle) */
+  .volchk { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .volchk-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--linea); border-radius: 10px; padding: 8px 10px; background: #fff; }
+  .volchk-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--guinda); cursor: pointer; flex: none; margin: 0; }
+  .volchk-item.hecha .volchk-texto { text-decoration: line-through; color: var(--tinta-suave); }
+  .volchk-texto { flex: 1; font-size: 13.5px; }
+  .volchk-x { border: none; background: none; color: var(--tinta-suave); font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .volchk-x:hover { color: var(--rojo); }
+  .vol-conv-fecha { margin-left: auto; font-size: 11px; color: var(--tinta-suave); }
+
   .asistencia-wrap { padding: 16px 24px 26px; text-align: center; }
   .asis-titulo { font-size: 24px; font-weight: 800; color: var(--guinda); margin: 0 0 2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
   .asis-titulo .asis-emoji { font-size: 26px; }
@@ -4358,7 +4403,7 @@
     #app, .app-body, .app-main { max-width: 100%; overflow-x: hidden; }
     /* Padding lateral consistente en TODAS las vistas (las que no lo traían). */
     #bitacoraWrap, #cargaWrap, #reportesWrap, #dashboardWrap,
-    #papeleraWrap, #validadasWrap { padding-left: 16px; padding-right: 16px; }
+    #papeleraWrap, #validadasWrap, #volantesWrap { padding-left: 16px; padding-right: 16px; }
     /* Enlaces: una sola columna en celular, con aire a los lados. */
     #enlacesWrap { grid-template-columns: 1fr !important; padding-left: 16px; padding-right: 16px; }
 
@@ -5052,6 +5097,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span class="sidebar-label">Biblioteca</span>
         </button>
+        <!-- Volantes: registro de volantes de SGOI (equipo SGOI + Dirección). -->
+        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes de SGOI">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span class="sidebar-label">Volantes</span>
+        </button>
         <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace), en prueba. -->
         <button class="sidebar-item" id="sidebarJuegoLopsrm" style="display:none" onclick="abrirJuegoLopsrm()" title="Reta a la Ley — quiz para aprender la LOPSRM">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>
@@ -5226,6 +5276,19 @@
 
   <!-- Vista: Asistencia (tardanzas de la semana) — solo Mario. Se llena en JS. -->
   <div class="asistencia-wrap" id="asistenciaWrap"></div>
+
+  <!-- Vista: Volantes (registro de SGOI). La lista se llena en JS. -->
+  <div class="volantes-wrap" id="volantesWrap">
+    <div class="bitacora-titulo-fila">
+      <h2>Volantes</h2>
+      <span class="bitacora-meta" id="volantesMeta">0 volantes</span>
+    </div>
+    <div class="volantes-toolbar">
+      <button class="btn-nuevo" onclick="abrirNuevoVolante()">+ Nuevo Volante</button>
+      <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
+    </div>
+    <div class="volantes-lista" id="volantesLista"></div>
+  </div>
 
   <!-- Vista: Carga por responsable -->
   <div class="carga-wrap" id="cargaWrap">
@@ -5953,6 +6016,9 @@ function aplicarSesion() {
   if (acusesBtn) acusesBtn.style.display = esSgoi ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
   if (bibliotecaBtn) bibliotecaBtn.style.display = esSgoi ? '' : 'none';
+  // Volantes: todo el equipo de SGOI (incluidos enlaces) y la Dirección.
+  const volantesBtn = document.getElementById('sidebarVolantes');
+  if (volantesBtn) volantesBtn.style.display = (esSgoi || usuarioActual.rol === 'Director') ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -9131,6 +9197,8 @@ function cerrarModal() {
   formTareaAbierto = false;
   comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
   BORRADOR_HILO = {};           // descarta borradores de comentario sin enviar
+  volanteAbierto = null;        // detalle de volante: se limpia también
+  VOL_BITACORA = [];
   // Con el filtro "No vistas" activo: al cerrar/guardar, la tarea recién abierta
   // (ya marcada como vista) desaparece de la lista en ese momento.
   if (verNoVistas) {
@@ -10550,7 +10618,8 @@ function cambiarVista(v) {
     validadas:  'Tareas Validadas',
     enlaces:    'Enlaces',
     papelera:   'Historial',
-    asistencia: 'Asistencia'
+    asistencia: 'Asistencia',
+    volantes:   'Volantes'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -10564,6 +10633,447 @@ function cambiarVista(v) {
   if (v === 'enlaces')    renderizar();   // KPIs (modo enlaces) + columnas
   if (v === 'papelera')   renderizarPapelera();
   if (v === 'asistencia') renderizarAsistencia();
+  if (v === 'volantes')   renderizarVolantes();
+}
+
+// ===================== VOLANTES (equipo SGOI + Dirección) =====================
+// Registro de volantes de SGOI: el No. de volante se captura A MANO (lleva su
+// propia estructura, ej. VOL-001-2026-001) y se convierte solo a MAYÚSCULAS.
+// Sin KPIs: solo la lista de volantes con sus datos. Viven en la tabla
+// `volantes` de Supabase (correr supabase/volantes.sql).
+let VOLANTES = [];             // filas tal cual vienen de la base
+let volBuscarTxt = '';
+let volCargados = false;       // ya se pidieron a la base al menos una vez
+let volanteEditando = null;    // fila en edición (null = captura nueva)
+
+// Lo llama el realtime del shim cuando alguien registra/edita un volante.
+window.ttRefrescarVolantes = function () {
+  if (vistaActiva === 'volantes') cargarVolantes();
+  else volCargados = false;    // al entrar a la vista se vuelven a pedir
+};
+
+function cargarVolantes() {
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudieron cargar los volantes', 'error'); return; }
+    VOLANTES = res.volantes || [];
+    volCargados = true;
+    pintarVolantes();
+  }).obtenerVolantes();
+}
+
+function renderizarVolantes() {
+  if (!volCargados) cargarVolantes();
+  pintarVolantes();
+}
+
+function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVolantes(); }
+
+function pintarVolantes() {
+  const lista = document.getElementById('volantesLista');
+  if (!lista) return;
+  let vs = VOLANTES.slice();
+  if (volBuscarTxt) {
+    const q = sinAcentos(volBuscarTxt).toLowerCase();
+    vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.referencia, v.tipo_atencion, v.creado_por]
+      .join(' ')).toLowerCase().indexOf(q) >= 0);
+  }
+  const meta = document.getElementById('volantesMeta');
+  if (meta) meta.textContent = vs.length + (vs.length === 1 ? ' volante' : ' volantes');
+  if (!vs.length) {
+    lista.innerHTML = '<div class="vol-vacio">' + (volCargados
+      ? (VOLANTES.length ? 'Ningún volante coincide con la búsqueda.' : 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.')
+      : 'Cargando volantes…') + '</div>';
+    return;
+  }
+  lista.innerHTML = vs.map(v => {
+    const campos = [
+      ['Fecha de recepción', v.fecha_recepcion ? formatearFechaCorta(v.fecha_recepcion) : '—'],
+      ['Fecha del documento', v.fecha_documento ? formatearFechaCorta(v.fecha_documento) : '—'],
+      ['Remitente', v.remitente || '—'],
+      ['Turnado a', v.turnado_a || '—'],
+      ['Referencia', v.referencia || '—']
+    ].map(c => '<div class="vol-campo"><span class="vol-etq">' + c[0] + '</span>' + escapeHtml(c[1]) + '</div>').join('');
+    const atendido = (v.estatus || '') === 'Atendido';
+    return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante (acciones, hilo y bitácora)">' +
+      '<div class="vol-cab">' +
+        '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
+        '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
+        (v.tipo_atencion ? '<span class="vol-tipo">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
+        '<span class="vol-cab-spacer"></span>' +
+        '<button class="vol-btn" onclick="event.stopPropagation(); abrirEditarVolante(\'' + v.id + '\')" title="Editar el volante">✏️ Editar</button>' +
+        '<button class="vol-btn borrar" onclick="event.stopPropagation(); borrarVolante(\'' + v.id + '\')" title="Eliminar el volante">🗑</button>' +
+      '</div>' +
+      (v.asunto ? '<div class="vol-asunto">' + escapeHtml(v.asunto) + '</div>' : '') +
+      '<div class="vol-grid">' + campos + '</div>' +
+      (v.creado_por ? '<div class="vol-pie">Registrado por ' + escapeHtml(v.creado_por) + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+// ---- Detalle del volante: campos + acciones (checklist) + hilo + bitácora ----
+let volanteAbierto = null;    // id del volante abierto en el detalle
+let VOL_BITACORA = [];        // hilo + movimientos del volante abierto (tabla bitacora, 'VOL:<id>')
+
+function volUid() { return 'v' + Math.random().toString(36).slice(2, 10); }
+
+// Escribe un movimiento/comentario del volante en la tabla `bitacora` con la
+// clave 'VOL:<id>' (el shim los separa de la bitácora de tareas).
+function volRegistrarBita(id, accion, comentario, cb) {
+  const e = {
+    id_tarea: 'VOL:' + id,
+    usuario: usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '',
+    accion: accion, estatus_anterior: '', estatus_nuevo: '', comentario: comentario || ''
+  };
+  google.script.run
+    .withSuccessHandler(function () { if (cb) cb(); })
+    .withFailureHandler(function () { if (cb) cb(); })
+    .registrarBitacora(SESION_TOKEN, e);
+}
+
+function abrirDetalleVolante(id) {
+  const v = VOLANTES.find(x => String(x.id) === String(id));
+  if (!v) return;
+  volanteAbierto = String(id);
+  VOL_BITACORA = [];
+  pintarDetalleVolante();
+  cargarBitacoraVolante(id);
+  document.getElementById('modalFondo').classList.add('activo');
+}
+
+function cargarBitacoraVolante(id) {
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok || String(volanteAbierto) !== String(id)) return;
+    VOL_BITACORA = res.bitacora || [];
+    const hilo = document.getElementById('volHiloBox');
+    if (hilo) hilo.innerHTML = volHiloHTML();
+    const bita = document.getElementById('volBitaBox');
+    if (bita) bita.innerHTML = volBitacoraHTML();
+  }).obtenerBitacoraVolante(id);
+}
+
+function pintarDetalleVolante() {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v) { cerrarModal(); return; }
+  const atendido = (v.estatus || '') === 'Atendido';
+  const campos = [
+    ['Fecha de recepción', v.fecha_recepcion ? formatearFechaLarga(v.fecha_recepcion) : '—'],
+    ['Fecha del documento', v.fecha_documento ? formatearFechaLarga(v.fecha_documento) : '—'],
+    ['Remitente', v.remitente || '—'],
+    ['Turnado a', v.turnado_a || '—'],
+    ['Referencia', v.referencia || '—'],
+    ['Tipo de atención', v.tipo_atencion || '—'],
+    ['Registrado por', v.creado_por || '—']
+  ];
+  if (atendido && v.atendido_por) campos.push(['Atendido por', v.atendido_por]);
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id" data-sub="SGOI">${escapeHtml(v.numero || 'VOLANTE')}</div>
+        <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
+        <div class="modal-meta">
+          <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
+        </div>
+      </div>
+      <div class="modal-header-acciones">
+        <button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>
+        <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <dl class="modal-campos">
+        ${campos.map(c => '<dt>' + c[0] + '</dt><dd>' + escapeHtml(c[1]) + '</dd>').join('')}
+      </dl>
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Acciones</div>
+        <div id="volChkBox">${volChkHTML(v)}</div>
+      </div>
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Hilo</div>
+        <div id="volHiloBox">${volHiloHTML()}</div>
+      </div>
+      <div class="modal-seccion modal-seccion-ancha">
+        <div class="modal-seccion-titulo">Bitácora</div>
+        <div id="volBitaBox">${volBitacoraHTML()}</div>
+      </div>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn-modal ${atendido ? '' : 'btn-modal-primario'}" onclick="volCambiarEstatus()">${atendido ? '↺ Reabrir' : '✓ Marcar atendido'}</button>
+      <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
+    </div>`;
+}
+
+function volChkHTML(v) {
+  const items = Array.isArray(v.checklist) ? v.checklist : [];
+  const filas = items.length ? items.map(it =>
+    '<div class="volchk-item' + (it.hecho ? ' hecha' : '') + '">' +
+      '<input type="checkbox"' + (it.hecho ? ' checked' : '') + ' onchange="volToggleAccion(\'' + it.uid + '\', this.checked)" title="Marcar la acción como hecha">' +
+      '<span class="volchk-texto">' + escapeHtml(it.texto || '') + '</span>' +
+      '<button type="button" class="volchk-x" title="Quitar la acción" onclick="volQuitarAccion(\'' + it.uid + '\')">×</button>' +
+    '</div>').join('') : '<div class="conv-vacio">— sin acciones todavía —</div>';
+  return '<div class="volchk">' + filas + '</div>' +
+    '<div class="acciones-agregar">' +
+      '<input type="text" id="volchk_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key===\'Enter\'){event.preventDefault();volAgregarAccion();}">' +
+      '<button type="button" class="acciones-agregar-btn" onclick="volAgregarAccion()">+ Agregar</button>' +
+    '</div>';
+}
+
+// Aplica el resultado de un cambio de checklist: refresca la fila local y repinta.
+function volAplicarChecklist(v, checklist) {
+  v.checklist = Array.isArray(checklist) ? checklist : v.checklist;
+  const box = document.getElementById('volChkBox');
+  if (box) box.innerHTML = volChkHTML(v);
+}
+
+function volAgregarAccion() {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  const inp = document.getElementById('volchk_input');
+  if (!v || !inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  inp.value = '';
+  const item = { uid: volUid(), texto: txt, hecho: false };
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo agregar la acción', 'error'); return; }
+    volAplicarChecklist(v, res.checklist);
+    volRegistrarBita(v.id, 'accion_add', txt, function () { cargarBitacoraVolante(v.id); });
+  }).volanteChecklistItem(SESION_TOKEN, v.id, item.uid, item, false);
+}
+
+function volToggleAccion(uid, hecho) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v) return;
+  const it = (v.checklist || []).find(x => x.uid === uid);
+  if (!it) return;
+  const item = { uid: it.uid, texto: it.texto, hecho: !!hecho };
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar la acción', 'error'); return; }
+    volAplicarChecklist(v, res.checklist);
+    volRegistrarBita(v.id, hecho ? 'accion_ok' : 'accion_undo', it.texto, function () { cargarBitacoraVolante(v.id); });
+  }).volanteChecklistItem(SESION_TOKEN, v.id, uid, item, false);
+}
+
+function volQuitarAccion(uid) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v) return;
+  const it = (v.checklist || []).find(x => x.uid === uid);
+  if (!it) return;
+  if (!confirm('¿Quitar la acción "' + it.texto + '"?')) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo quitar la acción', 'error'); return; }
+    volAplicarChecklist(v, res.checklist);
+    volRegistrarBita(v.id, 'accion_del', it.texto, function () { cargarBitacoraVolante(v.id); });
+  }).volanteChecklistItem(SESION_TOKEN, v.id, uid, null, true);
+}
+
+function volHiloHTML() {
+  // Comentarios del más viejo al más nuevo (VOL_BITACORA llega del más nuevo al más viejo).
+  const coms = VOL_BITACORA.filter(b => (b.accion || '').toLowerCase() === 'comentario').slice().reverse();
+  const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '';
+  let html = '<div class="conv-hilo">';
+  if (!coms.length) html += '<div class="conv-vacio">— sin comentarios todavía —</div>';
+  else coms.forEach(c => {
+    const autor = c.usuario || '';
+    html += '<div class="conv-msg">' +
+      '<div class="conv-msg-cab">' +
+        '<span class="conv-acron">' + escapeHtml(acronimoPersona(autor)) + '</span>' +
+        '<span class="conv-nombre">' + escapeHtml(autor) + '</span>' +
+        '<span class="vol-conv-fecha">' + escapeHtml(c.fecha || '') + '</span>' +
+      '</div>' +
+      '<div class="conv-texto">' + escapeHtml(c.comentario || '') + '</div>' +
+      (autor && autor === yo
+        ? '<div class="conv-acciones"><button type="button" class="conv-btn conv-btn-del" onclick="volBorrarComentario(\'' + c.id + '\')">Borrar</button></div>'
+        : '') +
+    '</div>';
+  });
+  html += '</div>' +
+    '<div class="conv-input">' +
+      '<textarea id="vol_conv_input" class="conv-textarea" maxlength="800" placeholder="Escribe un comentario… (Ctrl+Enter para enviar)" onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();volEnviarComentario();}"></textarea>' +
+      '<button type="button" class="conv-enviar" onclick="volEnviarComentario()">Enviar</button>' +
+    '</div>';
+  return html;
+}
+
+function volEnviarComentario() {
+  const inp = document.getElementById('vol_conv_input');
+  if (!inp || !volanteAbierto) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  inp.value = '';
+  const id = volanteAbierto;
+  volRegistrarBita(id, 'comentario', txt, function () { cargarBitacoraVolante(id); });
+}
+
+function volBorrarComentario(bitaId) {
+  if (!confirm('¿Borrar tu comentario?')) return;
+  const id = volanteAbierto;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo borrar el comentario', 'error'); return; }
+    if (id) cargarBitacoraVolante(id);
+  }).borrarEntradaBitacora(SESION_TOKEN, bitaId);
+}
+
+function volEtiquetaAccion(b) {
+  const k = (b && b.accion || '').toLowerCase();
+  return ({
+    crear: 'Registrado', editar: 'Editado', atendido: 'Atendido', reabierto: 'Reabierto',
+    accion_add: 'Acción agregada', accion_del: 'Acción quitada',
+    accion_ok: 'Acción completada', accion_undo: 'Acción desmarcada'
+  })[k] || (b && b.accion) || '';
+}
+
+function volBitacoraHTML() {
+  const movs = VOL_BITACORA.filter(b => (b.accion || '').toLowerCase() !== 'comentario');
+  if (!movs.length) return '<div class="conv-vacio">— sin movimientos —</div>';
+  return '<div class="modal-bitacora">' + movs.map(b => {
+    const k = (b.accion || '').toLowerCase();
+    return '<div class="bitacora-item">' +
+      '<div class="bitacora-item-top">' +
+        '<span class="bitacora-accion ' + k + '">' + volEtiquetaAccion(b) + '</span>' +
+        '<span class="bitacora-fecha">' + escapeHtml(b.fecha || '') + '</span>' +
+      '</div>' +
+      '<div class="bitacora-item-quien">por <strong>' + escapeHtml(b.usuario || '') + '</strong></div>' +
+      (b.comentario ? '<div class="bitacora-comentario">“' + escapeHtml(b.comentario) + '”</div>' : '') +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function volCambiarEstatus() {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v) return;
+  const nuevo = (v.estatus || '') === 'Atendido' ? 'En proceso' : 'Atendido';
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo cambiar el estatus', 'error'); return; }
+    v.estatus = nuevo;
+    v.atendido_por = (nuevo === 'Atendido' && usuarioActual) ? usuarioActual.nombre : '';
+    toast(nuevo === 'Atendido' ? 'Volante marcado como atendido' : 'Volante reabierto', 'ok');
+    pintarDetalleVolante();
+    pintarVolantes();
+    volRegistrarBita(v.id, nuevo === 'Atendido' ? 'atendido' : 'reabierto', '', function () { cargarBitacoraVolante(v.id); });
+  }).estatusVolante(SESION_TOKEN, v.id, nuevo);
+}
+
+function abrirNuevoVolante() { abrirFormVolante(null); }
+function abrirEditarVolante(id) {
+  const v = VOLANTES.find(x => String(x.id) === String(id));
+  if (v) abrirFormVolante(v);
+}
+
+function abrirFormVolante(v) {
+  volanteEditando = v || null;
+  const val = k => escapeHtml((v && v[k]) || '');
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id" data-sub="SGOI">${v ? (escapeHtml(v.numero) || 'VOLANTE') : 'NUEVO VOLANTE'}</div>
+        <div class="modal-titulo">${v ? 'Editar volante' : 'Captura de volante'}</div>
+      </div>
+      <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="formVolante" onsubmit="event.preventDefault(); guardarVolante();">
+        <div class="form-grid">
+          <div class="form-campo">
+            <label>No. de volante <span class="req">*</span></label>
+            <input type="text" id="vol_numero" required maxlength="60" value="${val('numero')}" placeholder="Ej. VOL-001-2026-001" style="text-transform:uppercase" oninput="this.value = this.value.toUpperCase()">
+            <div class="form-hint">Se captura con su estructura; se convierte solo a MAYÚSCULAS.</div>
+          </div>
+          <div class="form-campo">
+            <label>Tipo de atención</label>
+            <input type="text" id="vol_tipo" maxlength="120" value="${val('tipo_atencion')}" placeholder="Ej. Urgente, Informativo, Para trámite…">
+          </div>
+          <div class="form-campo">
+            <label>Fecha de recepción</label>
+            <input type="date" id="vol_fecha_recepcion" value="${(v && v.fecha_recepcion) || ''}" onclick="try{this.showPicker()}catch(e){}">
+          </div>
+          <div class="form-campo">
+            <label>Fecha del documento</label>
+            <input type="date" id="vol_fecha_documento" value="${(v && v.fecha_documento) || ''}" onclick="try{this.showPicker()}catch(e){}">
+          </div>
+          <div class="form-campo">
+            <label>Remitente</label>
+            <input type="text" id="vol_remitente" maxlength="200" value="${val('remitente')}" placeholder="Quién envía el documento">
+          </div>
+          <div class="form-campo">
+            <label>Turnado a</label>
+            <input type="text" id="vol_turnado" maxlength="200" value="${val('turnado_a')}" placeholder="A quién se turna">
+          </div>
+          <div class="form-campo full">
+            <label>Referencia</label>
+            <input type="text" id="vol_referencia" maxlength="300" value="${val('referencia')}" placeholder="No. de oficio o referencia del documento">
+          </div>
+          <div class="form-campo full">
+            <label>Asunto <span class="req">*</span></label>
+            <textarea id="vol_asunto" required maxlength="800" placeholder="¿De qué trata el volante?">${val('asunto')}</textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-acciones">
+      <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal btn-modal-primario" type="button" id="vol_btnGuardar" onclick="guardarVolante()">${v ? 'Guardar cambios' : 'Registrar volante'}</button>
+    </div>`;
+  formTareaAbierto = true;   // que un clic afuera no cierre la captura a medias
+  document.getElementById('modalFondo').classList.add('activo');
+}
+
+function guardarVolante() {
+  const datos = {
+    numero: (document.getElementById('vol_numero').value || '').trim().toUpperCase(),
+    fecha_recepcion: document.getElementById('vol_fecha_recepcion').value || '',
+    fecha_documento: document.getElementById('vol_fecha_documento').value || '',
+    remitente: (document.getElementById('vol_remitente').value || '').trim(),
+    turnado_a: (document.getElementById('vol_turnado').value || '').trim(),
+    referencia: (document.getElementById('vol_referencia').value || '').trim(),
+    tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
+    asunto: (document.getElementById('vol_asunto').value || '').trim()
+  };
+  if (!datos.numero) { toast('Escribe el No. de volante', 'error'); return; }
+  if (!datos.asunto) { toast('Escribe el asunto del volante', 'error'); return; }
+  const editando = volanteEditando;
+  const btn = document.getElementById('vol_btnGuardar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  // Si se está editando desde el detalle abierto, al guardar se vuelve al detalle.
+  const volverA = (editando && String(volanteAbierto) === String(editando.id)) ? editando.id : null;
+  const listo = function (res) {
+    if (!res || !res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = editando ? 'Guardar cambios' : 'Registrar volante'; }
+      toast((res && res.error) || 'No se pudo guardar el volante', 'error');
+      return;
+    }
+    // Refresca la fila local de inmediato (por si se reabre el detalle) y en paralelo
+    // se vuelve a pedir la lista completa a la base.
+    if (editando) {
+      const fila = VOLANTES.find(x => String(x.id) === String(editando.id));
+      if (fila) Object.assign(fila, {
+        numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
+        fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
+        turnado_a: datos.turnado_a, referencia: datos.referencia,
+        tipo_atencion: datos.tipo_atencion, asunto: datos.asunto
+      });
+    }
+    cerrarModal();
+    volanteEditando = null;
+    toast(editando ? 'Volante actualizado' : 'Volante ' + datos.numero + ' registrado', 'ok');
+    cargarVolantes();
+    // Bitácora del volante: quién lo registró / quién editó sus datos.
+    const volId = editando ? editando.id : (res.id || '');
+    if (volId) volRegistrarBita(volId, editando ? 'editar' : 'crear',
+      editando ? 'Se actualizaron los datos del volante' : 'Volante ' + datos.numero + ' registrado');
+    if (volverA) abrirDetalleVolante(volverA);
+  };
+  if (editando) google.script.run.withSuccessHandler(listo).actualizarVolante(SESION_TOKEN, editando.id, datos);
+  else google.script.run.withSuccessHandler(listo).crearVolante(SESION_TOKEN, datos);
+}
+
+function borrarVolante(id) {
+  const v = VOLANTES.find(x => String(x.id) === String(id));
+  if (!v) return;
+  if (!confirm('¿Eliminar el volante ' + (v.numero || '') + '? Esta acción no se puede deshacer.')) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar el volante', 'error'); return; }
+    toast('Volante eliminado', 'ok');
+    cargarVolantes();
+  }).eliminarVolante(SESION_TOKEN, id);
 }
 
 // ===================== ASISTENCIA (solo Mario) =====================

@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260708b';
+  window.TT_SHIM_VERSION = '20260709b';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -41,6 +41,11 @@
         // la publicación supabase_realtime).
         .on('postgres_changes', { event: '*', schema: 'public', table: 'bitacora' }, function () {
           if (typeof window.ttRefrescarBitacora === 'function') window.ttRefrescarBitacora();
+        })
+        // Volantes (registro de SGOI): si alguien registra/edita uno, a los
+        // demás les aparece sin recargar (requiere supabase/volantes.sql).
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'volantes' }, function () {
+          if (typeof window.ttRefrescarVolantes === 'function') window.ttRefrescarVolantes();
         })
         .subscribe();
     } catch (e) { /* si realtime no está habilitado, la app sigue normal */ }
@@ -378,6 +383,101 @@
       return { ok: true, checklist: Array.isArray(r.data) ? r.data : null };
     },
 
+    // ---- VOLANTES (registro de SGOI; tabla `volantes`, ver supabase/volantes.sql) ----
+    obtenerVolantes: async function () {
+      var r = await sb.from('volantes').select('*')
+        .order('created_at', { ascending: false });
+      if (r.error) return { ok: false, error: r.error.message, volantes: [] };
+      return { ok: true, volantes: r.data || [] };
+    },
+    crearVolante: async function (token, d) {
+      d = d || {};
+      var fila = {
+        numero: String(d.numero || '').toUpperCase().trim(),
+        fecha_recepcion: fechaSql(d.fecha_recepcion),
+        fecha_documento: fechaSql(d.fecha_documento),
+        turnado_a: d.turnado_a || '', remitente: d.remitente || '',
+        referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
+        asunto: d.asunto || '',
+        creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
+      };
+      var r = await sb.from('volantes').insert(fila).select('id').single();
+      if (r.error) {
+        var dup = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
+        return { ok: false, error: dup ? 'Ya existe un volante con el número ' + fila.numero + '.' : r.error.message };
+      }
+      return { ok: true, id: r.data.id };
+    },
+    actualizarVolante: async function (token, id, d) {
+      d = d || {};
+      var upd = {
+        numero: String(d.numero || '').toUpperCase().trim(),
+        fecha_recepcion: fechaSql(d.fecha_recepcion),
+        fecha_documento: fechaSql(d.fecha_documento),
+        turnado_a: d.turnado_a || '', remitente: d.remitente || '',
+        referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
+        asunto: d.asunto || ''
+      };
+      var r = await sb.from('volantes').update(upd).eq('id', id);
+      if (r.error) {
+        var dup2 = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
+        return { ok: false, error: dup2 ? 'Ya existe otro volante con el número ' + upd.numero + '.' : r.error.message };
+      }
+      return { ok: true };
+    },
+    eliminarVolante: async function (token, id) {
+      // Purga primero su hilo/bitácora (viven en `bitacora` como 'VOL:<id>').
+      try { await sb.from('bitacora').delete().eq('tarea_codigo', 'VOL:' + id); } catch (e) {}
+      var r = await sb.from('volantes').delete().eq('id', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    // Marca el volante como Atendido / lo reabre (En proceso).
+    estatusVolante: async function (token, id, estatus) {
+      var atendido = String(estatus || '') === 'Atendido';
+      var upd = {
+        estatus: atendido ? 'Atendido' : 'En proceso',
+        atendido_por: atendido ? (USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : '') : '',
+        fecha_atendido: atendido ? new Date().toISOString() : null
+      };
+      var r = await sb.from('volantes').update(upd).eq('id', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    // Guarda UNA acción del checklist del volante (agregar/editar/palomear/quitar).
+    // Lee-mezcla-escribe contra lo RECIÉN leído: una copia local vieja no pisa
+    // acciones agregadas por otra persona (misma lección que SPAC-006; aquí sin
+    // RPC porque el volumen es bajo y la ventana de riesgo es de milisegundos).
+    volanteChecklistItem: async function (token, id, uid, item, borrar) {
+      var cur = await sb.from('volantes').select('checklist').eq('id', id).single();
+      if (cur.error) return { ok: false, error: cur.error.message };
+      var v = Array.isArray(cur.data && cur.data.checklist) ? cur.data.checklist : [];
+      var idx = -1;
+      for (var i = 0; i < v.length; i++) { if ((v[i] || {}).uid === uid) { idx = i; break; } }
+      if (borrar) { if (idx >= 0) v.splice(idx, 1); }
+      else if (item) { if (idx >= 0) v[idx] = item; else v.push(item); }
+      var w = await sb.from('volantes').update({ checklist: v }).eq('id', id);
+      if (w.error) return { ok: false, error: w.error.message };
+      return { ok: true, checklist: v };
+    },
+    // Hilo + bitácora de UN volante (filas 'VOL:<id>' de la tabla bitacora).
+    obtenerBitacoraVolante: async function (id) {
+      var r = await sb.from('bitacora').select('*')
+        .eq('tarea_codigo', 'VOL:' + id)
+        .order('fecha', { ascending: false });
+      if (r.error) return { ok: false, error: r.error.message, bitacora: [] };
+      return { ok: true, bitacora: (r.data || []).map(function (b) {
+        return { id: b.id, fecha: fmtFecha(b.fecha), usuario: b.usuario || '', accion: b.accion || '',
+          estatus_anterior: b.estatus_anterior || '', estatus_nuevo: b.estatus_nuevo || '', comentario: b.comentario || '' };
+      }) };
+    },
+    // Borra UNA entrada de bitácora por id (el front lo limita a comentarios propios).
+    borrarEntradaBitacora: async function (token, id) {
+      var r = await sb.from('bitacora').delete().eq('id', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+
     // ---- BITÁCORA ----
     obtenerBitacora: async function () {
       // PostgREST regresa máx. 1000 filas por petición: se pagina para traer TODA
@@ -387,6 +487,7 @@
       var PAG = 1000, filas = [], desde = 0;
       while (true) {
         var r = await sb.from('bitacora').select('*')
+          .not('tarea_codigo', 'like', 'VOL:%')   // el hilo/bitácora de VOLANTES no va en la bitácora de tareas
           .order('fecha', { ascending: false })
           .range(desde, desde + PAG - 1);
         if (r.error) break;                        // lo ya traído se usa igual
