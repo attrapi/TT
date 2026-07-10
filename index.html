@@ -8097,7 +8097,7 @@ function cambiarTab(sub) {
   // subdirección, lo regresamos al Tablero (inicio) ANTES de renderizar. Así
   // los KPIs ("Pendientes por…") se pintan en el modo correcto y NO se quedan
   // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
-  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia'];
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
@@ -10645,6 +10645,7 @@ let VOLANTES = [];             // filas tal cual vienen de la base
 let volBuscarTxt = '';
 let volCargados = false;       // ya se pidieron a la base al menos una vez
 let volanteEditando = null;    // fila en edición (null = captura nueva)
+let volAbrirTrasCargar = null; // id a abrir en detalle cuando llegue la lista (volante recién creado)
 
 // Lo llama el realtime del shim cuando alguien registra/edita un volante.
 window.ttRefrescarVolantes = function () {
@@ -10658,6 +10659,9 @@ function cargarVolantes() {
     VOLANTES = res.volantes || [];
     volCargados = true;
     pintarVolantes();
+    // Un volante recién registrado se abre en detalle de una vez, para que se
+    // vean sus Acciones, Hilo y Bitácora desde el primer momento.
+    if (volAbrirTrasCargar) { const _id = volAbrirTrasCargar; volAbrirTrasCargar = null; abrirDetalleVolante(_id); }
   }).obtenerVolantes();
 }
 
@@ -11054,6 +11058,7 @@ function guardarVolante() {
     cerrarModal();
     volanteEditando = null;
     toast(editando ? 'Volante actualizado' : 'Volante ' + datos.numero + ' registrado', 'ok');
+    if (!editando && res.id) volAbrirTrasCargar = res.id;   // abre el detalle del nuevo al cargar
     cargarVolantes();
     // Bitácora del volante: quién lo registró / quién editó sus datos.
     const volId = editando ? editando.id : (res.id || '');
