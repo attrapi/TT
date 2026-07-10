@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260710a';
+  window.TT_SHIM_VERSION = '20260710b';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -401,12 +401,13 @@
         asunto: d.asunto || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
-      // Acciones capturadas desde el formulario (checklist inicial del volante).
+      // Acciones y adjuntos capturados desde el formulario.
       if (Array.isArray(d.checklist)) fila.checklist = d.checklist;
+      if (Array.isArray(d.adjuntos)) fila.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').insert(fila).select('id').single();
-      // Si la base aún no tiene la columna (falta re-correr volantes.sql), crea sin ella.
-      if (r.error && /checklist/i.test(r.error.message || '')) {
-        delete fila.checklist;
+      // Si la base aún no tiene esas columnas (falta re-correr volantes.sql), crea sin ellas.
+      if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
+        delete fila.checklist; delete fila.adjuntos;
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       if (r.error) {
@@ -425,12 +426,13 @@
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
         asunto: d.asunto || ''
       };
-      // Solo se manda el checklist si el formulario lo MODIFICÓ (evita pisar
-      // acciones palomeadas por otra persona con una copia local vieja).
+      // Checklist/adjuntos solo se mandan si el formulario los MODIFICÓ (evita
+      // pisar cambios de otra persona con una copia local vieja).
       if (Array.isArray(d.checklist)) upd.checklist = d.checklist;
+      if (Array.isArray(d.adjuntos)) upd.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').update(upd).eq('id', id);
-      if (r.error && /checklist/i.test(r.error.message || '')) {
-        delete upd.checklist;
+      if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
+        delete upd.checklist; delete upd.adjuntos;
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error) {
@@ -443,6 +445,12 @@
       // Purga primero su hilo/bitácora (viven en `bitacora` como 'VOL:<id>').
       try { await sb.from('bitacora').delete().eq('tarea_codigo', 'VOL:' + id); } catch (e) {}
       var r = await sb.from('volantes').delete().eq('id', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    // Guarda SOLO la lista de adjuntos del volante (documento PDF, etc.).
+    adjuntosVolante: async function (token, id, adjuntos) {
+      var r = await sb.from('volantes').update({ adjuntos: Array.isArray(adjuntos) ? adjuntos : [] }).eq('id', id);
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },

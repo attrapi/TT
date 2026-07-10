@@ -81,6 +81,8 @@ function guardarConfiguracion() {
     DRIVE_CARPETA_JDGOI: '177G1h-8HEuQJYRecOKFGKSxfHAFLe836',
     DRIVE_CARPETA_SA:    '1QmUDp_bCYSOA0Cg73ghe7DbXWV2N1xQ3',
     DRIVE_CARPETA_STAFF: '1PCGU3TxYFPzkT2aiTCl9Hde4zByb1XhD',
+    // Volantes (SGOI): los documentos adjuntos de los volantes van aquí.
+    DRIVE_CARPETA_VOLANTES: '1ZyB40NrlKLVuKGlcX7cJ3iBRgVTpv5Av',
     HORAS_SESION:        '8'
   };
   // Solo guarda lo que SÍ llenaste: ignora los 'PEGA_AQUI...' para no borrar
@@ -154,6 +156,7 @@ const CONFIG = (function () {
     DRIVE_CARPETA_JDGOI: g('DRIVE_CARPETA_JDGOI'),
     DRIVE_CARPETA_SA:    g('DRIVE_CARPETA_SA'),
     DRIVE_CARPETA_STAFF: g('DRIVE_CARPETA_STAFF'),
+    DRIVE_CARPETA_VOLANTES: g('DRIVE_CARPETA_VOLANTES'),
     HORAS_SESION:        Number(g('HORAS_SESION', '8'))
   };
 })();
@@ -1021,7 +1024,8 @@ function carpetaDeArea_(cod) {
     JDGOI: CONFIG.DRIVE_CARPETA_JDGOI,
     SA:    CONFIG.DRIVE_CARPETA_SA,
     STAFF: CONFIG.DRIVE_CARPETA_STAFF,
-    ENLACE:CONFIG.DRIVE_CARPETA_STAFF
+    ENLACE:CONFIG.DRIVE_CARPETA_STAFF,
+    VOLANTES: CONFIG.DRIVE_CARPETA_VOLANTES
   };
   var id = m[String(cod || '').toUpperCase()];
   return (id && String(id).trim()) ? id : '';

@@ -23,6 +23,7 @@ create table if not exists public.volantes (
   atendido_por    text not null default '',
   fecha_atendido  timestamptz,
   checklist       jsonb not null default '[]',  -- acciones: [{uid, texto, hecho}]
+  adjuntos        jsonb not null default '[]',  -- documentos en Drive: [{url, nombre}]
   creado_por      text not null default '',   -- nombre del usuario que lo registró
   created_at      timestamptz not null default now()
 );
@@ -31,6 +32,7 @@ alter table public.volantes add column if not exists estatus        text not nul
 alter table public.volantes add column if not exists atendido_por   text not null default '';
 alter table public.volantes add column if not exists fecha_atendido timestamptz;
 alter table public.volantes add column if not exists checklist      jsonb not null default '[]';
+alter table public.volantes add column if not exists adjuntos       jsonb not null default '[]';
 
 -- El HILO de comentarios y la BITÁCORA de cada volante viven en la tabla
 -- `bitacora` ya existente, con tarea_codigo = 'VOL:<uuid del volante>'.

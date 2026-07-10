@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260710a"></script>
+<script src="supabase-shim.js?v=20260710b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -624,6 +624,16 @@
   .volchk-x { border: none; background: none; color: var(--tinta-suave); font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; }
   .volchk-x:hover { color: var(--rojo); }
   .vol-conv-fecha { margin-left: auto; font-size: 11px; color: var(--tinta-suave); }
+  /* Adjuntos: clip por acción y panel "Documento (PDF)" del detalle */
+  .volchk-adj { font-size: 12px; color: var(--guinda); text-decoration: none; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; flex: none; }
+  .volchk-adj:hover { text-decoration: underline; }
+  .volchk-clip { border: none; background: none; cursor: pointer; font-size: 14px; padding: 0 4px; opacity: .55; flex: none; }
+  .volchk-clip:hover { opacity: 1; }
+  .vol-det-cols { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+  .vol-det-adj { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; background: #fbf7f8; }
+  .vol-det-adj .modal-seccion-titulo { margin-bottom: 8px; }
+  .vol-det-adj .volchk-item { background: #fff; }
+  @media (max-width: 700px) { .vol-det-cols { grid-template-columns: 1fr; } }
 
   .asistencia-wrap { padding: 16px 24px 26px; text-align: center; }
   .asis-titulo { font-size: 24px; font-weight: 800; color: var(--guinda); margin: 0 0 2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -10649,6 +10659,11 @@ let volAbrirTrasCargar = null; // id a abrir en detalle cuando llegue la lista (
 let volFormAcciones = [];      // acciones capturadas en el formulario (nuevo/editar)
 let volFormAccionesDirty = false;  // el usuario modificó las acciones en el formulario
 let volFormComentarios = [];   // comentarios del hilo pendientes (volante nuevo)
+let volFormAdjuntos = [];      // adjuntos ya subidos que se conservan [{url, nombre}]
+let volFormAdjuntosNuevos = [];// archivos elegidos, pendientes de subir (File)
+let volFormAdjuntosQuitar = [];// urls a borrar de Drive al guardar (edición)
+let volFormAdjuntosDirty = false;
+let volChkAdjuntarUid = null;  // uid de la acción a la que se le está adjuntando archivo
 
 // Lo llama el realtime del shim cuando alguien registra/edita un volante.
 window.ttRefrescarVolantes = function () {
@@ -10788,9 +10803,18 @@ function pintarDetalleVolante() {
       </div>
     </div>
     <div class="modal-body">
-      <dl class="modal-campos">
-        ${campos.map(c => '<dt>' + c[0] + '</dt><dd>' + escapeHtml(c[1]) + '</dd>').join('')}
-      </dl>
+      <div class="vol-det-cols">
+        <dl class="modal-campos">
+          ${campos.map(c => '<dt>' + c[0] + '</dt><dd>' + escapeHtml(c[1]) + '</dd>').join('')}
+        </dl>
+        <div class="vol-det-adj">
+          <div class="modal-seccion-titulo">Documento (PDF)</div>
+          <div id="volDetAdjBox">${volDetAdjHTML(v)}</div>
+          <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar()">📎 Adjuntar PDF</button>
+          <input type="file" id="volDet_file" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files)">
+          <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.</div>
+        </div>
+      </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Acciones</div>
         <div id="volChkBox">${volChkHTML(v)}</div>
@@ -10816,13 +10840,70 @@ function volChkHTML(v) {
     '<div class="volchk-item' + (it.hecho ? ' hecha' : '') + '">' +
       '<input type="checkbox"' + (it.hecho ? ' checked' : '') + ' onchange="volToggleAccion(\'' + it.uid + '\', this.checked)" title="Marcar la acción como hecha">' +
       '<span class="volchk-texto">' + escapeHtml(it.texto || '') + '</span>' +
+      (it.adjunto
+        ? '<a class="volchk-adj" href="' + escapeHtml(it.adjunto) + '" target="_blank" rel="noopener" title="' + escapeHtml(it.adjunto_nombre || 'Ver adjunto') + '">📎 ' + escapeHtml(it.adjunto_nombre || 'Adjunto') + '</a>' +
+          '<button type="button" class="volchk-x" title="Quitar el adjunto de esta acción" onclick="volChkQuitarAdjunto(\'' + it.uid + '\')">✕📎</button>'
+        : '<button type="button" class="volchk-clip" title="Adjuntar archivo a esta acción" onclick="volChkAdjuntar(\'' + it.uid + '\')">📎</button>') +
       '<button type="button" class="volchk-x" title="Quitar la acción" onclick="volQuitarAccion(\'' + it.uid + '\')">×</button>' +
     '</div>').join('') : '<div class="conv-vacio">— sin acciones todavía —</div>';
   return '<div class="volchk">' + filas + '</div>' +
     '<div class="acciones-agregar">' +
       '<input type="text" id="volchk_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key===\'Enter\'){event.preventDefault();volAgregarAccion();}">' +
       '<button type="button" class="acciones-agregar-btn" onclick="volAgregarAccion()">+ Agregar</button>' +
-    '</div>';
+    '</div>' +
+    '<input type="file" id="volchk_file" style="display:none" onchange="volChkArchivoElegido(this.files)">';
+}
+
+// ---- Adjunto POR ACCIÓN (evidencia de cada acción, como en las tareas) ----
+function volChkAdjuntar(uid) {
+  volChkAdjuntarUid = uid;
+  const inp = document.getElementById('volchk_file');
+  if (inp) inp.click();
+}
+function volChkArchivoElegido(files) {
+  const f = files && files[0];
+  const inp = document.getElementById('volchk_file');
+  if (inp) inp.value = '';
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  const uid = volChkAdjuntarUid;
+  volChkAdjuntarUid = null;
+  if (!f || !v || !uid) return;
+  const it = (v.checklist || []).find(x => x.uid === uid);
+  if (!it) return;
+  toast('Subiendo ' + f.name + '…', 'ok');
+  const reader = new FileReader();
+  reader.onload = function () {
+    const base64 = String(reader.result).split(',')[1] || '';
+    google.script.run.withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast('No se pudo subir ' + f.name + ': ' + ((res && res.error) || ''), 'error'); return; }
+      const item = Object.assign({}, it, { adjunto: res.url, adjunto_nombre: res.nombre || f.name });
+      google.script.run.withSuccessHandler(function (r2) {
+        if (!r2 || !r2.ok) { toast((r2 && r2.error) || 'No se pudo guardar el adjunto', 'error'); return; }
+        volAplicarChecklist(v, r2.checklist);
+        toast('Adjunto agregado a la acción', 'ok');
+        volRegistrarBita(v.id, 'accion_adjunto', it.texto + ' — ' + (res.nombre || f.name), function () { cargarBitacoraVolante(v.id); });
+      }).volanteChecklistItem(SESION_TOKEN, v.id, uid, item, false);
+    }).withFailureHandler(function (e) {
+      toast('Error al subir ' + f.name + ': ' + (e && e.message ? e.message : e), 'error');
+    }).subirArchivo(SESION_TOKEN, f.name, f.type, base64, 'VOLANTES');
+  };
+  reader.onerror = function () { toast('No se pudo leer ' + f.name, 'error'); };
+  reader.readAsDataURL(f);
+}
+function volChkQuitarAdjunto(uid) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v) return;
+  const it = (v.checklist || []).find(x => x.uid === uid);
+  if (!it || !it.adjunto) return;
+  if (!confirm('¿Quitar el adjunto de la acción "' + it.texto + '"? El archivo se borrará de Drive.')) return;
+  const url = it.adjunto;
+  const item = Object.assign({}, it, { adjunto: '', adjunto_nombre: '' });
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo quitar el adjunto', 'error'); return; }
+    google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, url);
+    volAplicarChecklist(v, res.checklist);
+    volRegistrarBita(v.id, 'accion_adjunto_del', it.texto, function () { cargarBitacoraVolante(v.id); });
+  }).volanteChecklistItem(SESION_TOKEN, v.id, uid, item, false);
 }
 
 // Aplica el resultado de un cambio de checklist: refresca la fila local y repinta.
@@ -10852,7 +10933,8 @@ function volToggleAccion(uid, hecho) {
   if (!v) return;
   const it = (v.checklist || []).find(x => x.uid === uid);
   if (!it) return;
-  const item = { uid: it.uid, texto: it.texto, hecho: !!hecho };
+  // Se preservan los demás campos del ítem (adjunto, etc.), solo cambia `hecho`.
+  const item = Object.assign({}, it, { hecho: !!hecho });
   google.script.run.withSuccessHandler(function (res) {
     if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar la acción', 'error'); return; }
     volAplicarChecklist(v, res.checklist);
@@ -10871,6 +10953,73 @@ function volQuitarAccion(uid) {
     volAplicarChecklist(v, res.checklist);
     volRegistrarBita(v.id, 'accion_del', it.texto, function () { cargarBitacoraVolante(v.id); });
   }).volanteChecklistItem(SESION_TOKEN, v.id, uid, null, true);
+}
+
+// ---- Documento del volante (PDF) en el DETALLE: panel a la derecha de los datos ----
+function volDetAdjHTML(v) {
+  const adjs = Array.isArray(v.adjuntos) ? v.adjuntos : [];
+  if (!adjs.length) return '<div class="conv-vacio">— sin documento todavía —</div>';
+  return '<div class="volchk">' + adjs.map((a, i) =>
+    '<div class="volchk-item">' +
+      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener" title="Abrir ' + escapeHtml(a.nombre || 'documento') + '">📎 ' + escapeHtml(a.nombre || 'Documento') + '</a>' +
+      '<span class="volchk-texto"></span>' +
+      '<button type="button" class="volchk-x" title="Quitar el documento (se borra de Drive)" onclick="volDetQuitarAdjunto(' + i + ')">×</button>' +
+    '</div>').join('') + '</div>';
+}
+function volDetRepintarAdj(v) {
+  const box = document.getElementById('volDetAdjBox');
+  if (box) box.innerHTML = volDetAdjHTML(v);
+}
+function volDetAdjuntar() {
+  const inp = document.getElementById('volDet_file');
+  if (inp) inp.click();
+}
+function volDetArchivoElegido(files) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  const lista = Array.from(files || []);
+  const inp = document.getElementById('volDet_file');
+  if (inp) inp.value = '';
+  if (!v || !lista.length) return;
+  const siguiente = function () {
+    const f = lista.shift();
+    if (!f) return;
+    toast('Subiendo ' + f.name + '…', 'ok');
+    const reader = new FileReader();
+    reader.onload = function () {
+      const base64 = String(reader.result).split(',')[1] || '';
+      google.script.run.withSuccessHandler(function (res) {
+        if (!res || !res.ok) { toast('No se pudo subir ' + f.name + ': ' + ((res && res.error) || ''), 'error'); return; }
+        const nuevos = (Array.isArray(v.adjuntos) ? v.adjuntos : []).concat([{ url: res.url, nombre: res.nombre || f.name }]);
+        google.script.run.withSuccessHandler(function (r2) {
+          if (!r2 || !r2.ok) { toast((r2 && r2.error) || 'No se pudo guardar el adjunto', 'error'); return; }
+          v.adjuntos = nuevos;
+          volDetRepintarAdj(v);
+          toast('Documento adjuntado', 'ok');
+          volRegistrarBita(v.id, 'adjunto_add', res.nombre || f.name, function () { cargarBitacoraVolante(v.id); });
+          siguiente();
+        }).adjuntosVolante(SESION_TOKEN, v.id, nuevos);
+      }).withFailureHandler(function (e) {
+        toast('Error al subir ' + f.name + ': ' + (e && e.message ? e.message : e), 'error');
+      }).subirArchivo(SESION_TOKEN, f.name, f.type, base64, 'VOLANTES');
+    };
+    reader.onerror = function () { toast('No se pudo leer ' + f.name, 'error'); };
+    reader.readAsDataURL(f);
+  };
+  siguiente();
+}
+function volDetQuitarAdjunto(i) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v || !Array.isArray(v.adjuntos) || !v.adjuntos[i]) return;
+  const a = v.adjuntos[i];
+  if (!confirm('¿Quitar el documento "' + (a.nombre || '') + '"? El archivo se borrará de Drive.')) return;
+  const nuevos = v.adjuntos.slice(); nuevos.splice(i, 1);
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo quitar el documento', 'error'); return; }
+    google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, a.url);
+    v.adjuntos = nuevos;
+    volDetRepintarAdj(v);
+    volRegistrarBita(v.id, 'adjunto_del', a.nombre || '', function () { cargarBitacoraVolante(v.id); });
+  }).adjuntosVolante(SESION_TOKEN, v.id, nuevos);
 }
 
 function volHiloHTML() {
@@ -10925,7 +11074,9 @@ function volEtiquetaAccion(b) {
   return ({
     crear: 'Registrado', editar: 'Editado', atendido: 'Atendido', reabierto: 'Reabierto',
     accion_add: 'Acción agregada', accion_del: 'Acción quitada',
-    accion_ok: 'Acción completada', accion_undo: 'Acción desmarcada'
+    accion_ok: 'Acción completada', accion_undo: 'Acción desmarcada',
+    adjunto_add: 'Documento adjuntado', adjunto_del: 'Documento quitado',
+    accion_adjunto: 'Adjunto en acción', accion_adjunto_del: 'Adjunto quitado de acción'
   })[k] || (b && b.accion) || '';
 }
 
@@ -11042,15 +11193,89 @@ function volFormQuitarComentario(i) {
   volFormRepintarHilo();
 }
 
+// ---- Adjuntos del volante en el FORMULARIO (se suben a Drive al guardar) ----
+function volFormAdjuntosHTML() {
+  const filas = [];
+  volFormAdjuntos.forEach((a, i) => {
+    filas.push('<div class="volchk-item">' +
+      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">📎 ' + escapeHtml(a.nombre || 'Adjunto') + '</a>' +
+      '<span class="volchk-texto"></span>' +
+      '<button type="button" class="volchk-x" title="Quitar el adjunto (se borra de Drive al guardar)" onclick="volFormQuitarAdjunto(' + i + ')">×</button>' +
+    '</div>');
+  });
+  volFormAdjuntosNuevos.forEach((f, i) => {
+    filas.push('<div class="volchk-item">' +
+      '<span class="volchk-texto">📎 ' + escapeHtml(f.name) + ' <em style="color:var(--tinta-suave)">(se sube al guardar)</em></span>' +
+      '<button type="button" class="volchk-x" title="Quitar" onclick="volFormQuitarAdjuntoNuevo(' + i + ')">×</button>' +
+    '</div>');
+  });
+  return filas.length ? '<div class="volchk">' + filas.join('') + '</div>' : '<div class="conv-vacio">— sin adjuntos todavía —</div>';
+}
+function volFormRepintarAdjuntos() {
+  const box = document.getElementById('volf_adjuntos');
+  if (box) box.innerHTML = volFormAdjuntosHTML();
+}
+function volFormArchivos(files) {
+  Array.from(files || []).forEach(f => volFormAdjuntosNuevos.push(f));
+  const inp = document.getElementById('volf_file');
+  if (inp) inp.value = '';
+  volFormAdjuntosDirty = true;
+  volFormRepintarAdjuntos();
+}
+function volFormQuitarAdjunto(i) {
+  const a = volFormAdjuntos[i];
+  if (!a) return;
+  if (!confirm('¿Quitar el adjunto "' + (a.nombre || '') + '"? Se borrará de Drive al guardar.')) return;
+  volFormAdjuntosQuitar.push(a.url);
+  volFormAdjuntos.splice(i, 1);
+  volFormAdjuntosDirty = true;
+  volFormRepintarAdjuntos();
+}
+function volFormQuitarAdjuntoNuevo(i) {
+  volFormAdjuntosNuevos.splice(i, 1);
+  volFormAdjuntosDirty = true;
+  volFormRepintarAdjuntos();
+}
+// Sube los archivos pendientes UNO POR UNO a la carpeta de Volantes en Drive;
+// al final llama cb(subidos) con [{url, nombre}]. Si algo falla, cb(null).
+function volSubirAdjuntosPendientes(cb) {
+  const cola = volFormAdjuntosNuevos.slice();
+  const subidos = [];
+  const siguiente = function () {
+    const f = cola.shift();
+    if (!f) { cb(subidos); return; }
+    const reader = new FileReader();
+    reader.onload = function () {
+      const base64 = String(reader.result).split(',')[1] || '';
+      google.script.run.withSuccessHandler(function (res) {
+        if (!res || !res.ok) { toast('No se pudo subir ' + f.name + ': ' + ((res && res.error) || ''), 'error'); cb(null); return; }
+        subidos.push({ url: res.url, nombre: res.nombre || f.name });
+        siguiente();
+      }).withFailureHandler(function (e) {
+        toast('Error al subir ' + f.name + ': ' + (e && e.message ? e.message : e), 'error'); cb(null);
+      }).subirArchivo(SESION_TOKEN, f.name, f.type, base64, 'VOLANTES');
+    };
+    reader.onerror = function () { toast('No se pudo leer ' + f.name, 'error'); cb(null); };
+    reader.readAsDataURL(f);
+  };
+  siguiente();
+}
+
 function abrirFormVolante(v) {
   volanteEditando = v || null;
   // Acciones editables en el formulario (copia local; al editar solo se manda
   // si el usuario las MODIFICÓ, para no pisar palomas puestas por otros).
+  // Se conservan TODOS los campos del ítem (p. ej. adjunto/adjunto_nombre):
+  // solo se normalizan uid/texto/hecho.
   volFormAcciones = v && Array.isArray(v.checklist)
-    ? v.checklist.map(it => ({ uid: it.uid || volUid(), texto: it.texto || '', hecho: !!it.hecho }))
+    ? v.checklist.map(it => Object.assign({}, it, { uid: it.uid || volUid(), texto: it.texto || '', hecho: !!it.hecho }))
     : [];
   volFormAccionesDirty = false;
   volFormComentarios = [];   // hilo pendiente (volante NUEVO): se envía al crear
+  volFormAdjuntos = v && Array.isArray(v.adjuntos) ? v.adjuntos.slice() : [];
+  volFormAdjuntosNuevos = [];
+  volFormAdjuntosQuitar = [];
+  volFormAdjuntosDirty = false;
   // Al editar, el hilo es EN VIVO (el volante ya existe): se usa el mismo
   // visor del detalle, cargando su bitácora si no venimos de él.
   if (v) {
@@ -11109,7 +11334,14 @@ function abrirFormVolante(v) {
               <input type="text" id="volf_accion_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key==='Enter'){event.preventDefault();volFormAgregarAccion();}">
               <button type="button" class="acciones-agregar-btn" onclick="volFormAgregarAccion()">+ Agregar</button>
             </div>
-            <div class="form-hint">Cada acción tendrá su casilla para palomearse cuando se atienda.</div>
+            <div class="form-hint">Cada acción tendrá su casilla para palomearse cuando se atienda (y en el detalle se le puede adjuntar su evidencia).</div>
+          </div>
+          <div class="form-campo full">
+            <label>Adjuntos (Drive)</label>
+            <div id="volf_adjuntos">${volFormAdjuntosHTML()}</div>
+            <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file').click()">📎 Elegir archivos…</button>
+            <input type="file" id="volf_file" multiple style="display:none" onchange="volFormArchivos(this.files)">
+            <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.</div>
           </div>
         </div>
       </form>
@@ -11164,12 +11396,16 @@ function guardarVolante() {
     // se vuelve a pedir la lista completa a la base.
     if (editando) {
       const fila = VOLANTES.find(x => String(x.id) === String(editando.id));
-      if (fila) Object.assign(fila, {
-        numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
-        fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
-        turnado_a: datos.turnado_a, referencia: datos.referencia,
-        tipo_atencion: datos.tipo_atencion, asunto: datos.asunto
-      });
+      if (fila) {
+        Object.assign(fila, {
+          numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
+          fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
+          turnado_a: datos.turnado_a, referencia: datos.referencia,
+          tipo_atencion: datos.tipo_atencion, asunto: datos.asunto
+        });
+        if (datos.checklist) fila.checklist = datos.checklist;
+        if (datos.adjuntos) fila.adjuntos = datos.adjuntos;
+      }
     }
     cerrarModal();
     volanteEditando = null;
@@ -11194,8 +11430,23 @@ function guardarVolante() {
     }
     if (volverA) abrirDetalleVolante(volverA);
   };
-  if (editando) google.script.run.withSuccessHandler(listo).actualizarVolante(SESION_TOKEN, editando.id, datos);
-  else google.script.run.withSuccessHandler(listo).crearVolante(SESION_TOKEN, datos);
+  // 1) Sube los adjuntos pendientes a Drive (carpeta Volantes); 2) borra de
+  // Drive los que se quitaron (edición); 3) guarda el volante con la lista final.
+  volSubirAdjuntosPendientes(function (subidos) {
+    if (subidos === null) {   // falló una subida: no se guarda a medias
+      if (btn) { btn.disabled = false; btn.textContent = editando ? 'Guardar cambios' : 'Registrar volante'; }
+      return;
+    }
+    volFormAdjuntosNuevos = [];
+    (volFormAdjuntosQuitar || []).forEach(function (url) {
+      google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, url);
+    });
+    volFormAdjuntosQuitar = [];
+    const adjFinales = volFormAdjuntos.concat(subidos);
+    if (!editando || volFormAdjuntosDirty || subidos.length) datos.adjuntos = adjFinales;
+    if (editando) google.script.run.withSuccessHandler(listo).actualizarVolante(SESION_TOKEN, editando.id, datos);
+    else google.script.run.withSuccessHandler(listo).crearVolante(SESION_TOKEN, datos);
+  });
 }
 
 function borrarVolante(id) {
