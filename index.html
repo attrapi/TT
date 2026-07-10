@@ -10704,6 +10704,7 @@ function pintarVolantes() {
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
         (v.tipo_atencion ? '<span class="vol-tipo">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
         '<span class="vol-cab-spacer"></span>' +
+        '<button class="vol-btn" onclick="event.stopPropagation(); abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle: acciones, hilo y bitácora">👁 Detalle</button>' +
         '<button class="vol-btn" onclick="event.stopPropagation(); abrirEditarVolante(\'' + v.id + '\')" title="Editar el volante">✏️ Editar</button>' +
         '<button class="vol-btn borrar" onclick="event.stopPropagation(); borrarVolante(\'' + v.id + '\')" title="Eliminar el volante">🗑</button>' +
       '</div>' +
