@@ -607,7 +607,7 @@
   .vol-btn:hover { border-color: var(--guinda); color: var(--guinda); }
   .vol-btn.borrar:hover { border-color: var(--rojo); color: var(--rojo); }
   .vol-asunto { font-size: 14px; font-weight: 600; color: var(--tinta); margin: 0 0 10px; white-space: pre-wrap; }
-  .vol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px 18px; }
+  .vol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 18px; }
   .vol-campo { font-size: 12.5px; color: var(--tinta); }
   .vol-campo .vol-etq { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-suave); font-weight: 700; }
   .vol-pie { margin-top: 10px; font-size: 11.5px; color: var(--tinta-suave); }
@@ -630,6 +630,11 @@
   .volchk-clip { border: none; background: none; cursor: pointer; font-size: 14px; padding: 0 4px; opacity: .55; flex: none; }
   .volchk-clip:hover { opacity: 1; }
   .vol-det-cols { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+  /* Detalle del volante: cada dato con su etiqueta ARRIBA y el valor en el
+     renglón de abajo (nombres largos y fechas ya no se cortan a la derecha). */
+  .modal-campos.vol-campos { grid-template-columns: 1fr; gap: 2px 0; }
+  .modal-campos.vol-campos dt { margin-top: 10px; }
+  .modal-campos.vol-campos dt:first-child { margin-top: 0; }
   .vol-det-adj { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; background: #fbf7f8; }
   .vol-det-adj .modal-seccion-titulo { margin-bottom: 8px; }
   .vol-det-adj .volchk-item { background: #fff; }
@@ -10696,7 +10701,7 @@ function pintarVolantes() {
   let vs = VOLANTES.slice();
   if (volBuscarTxt) {
     const q = sinAcentos(volBuscarTxt).toLowerCase();
-    vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.referencia, v.tipo_atencion, v.creado_por]
+    vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.asignado_a, v.referencia, v.tipo_atencion, v.creado_por]
       .join(' ')).toLowerCase().indexOf(q) >= 0);
   }
   const meta = document.getElementById('volantesMeta');
@@ -10713,6 +10718,7 @@ function pintarVolantes() {
       ['Fecha del documento', v.fecha_documento ? formatearFechaCorta(v.fecha_documento) : '—'],
       ['Remitente', v.remitente || '—'],
       ['Turnado a', v.turnado_a || '—'],
+      ['Asignado a', v.asignado_a || '—'],
       ['Referencia', v.referencia || '—']
     ].map(c => '<div class="vol-campo"><span class="vol-etq">' + c[0] + '</span>' + escapeHtml(c[1]) + '</div>').join('');
     const atendido = (v.estatus || '') === 'Atendido';
@@ -10783,6 +10789,7 @@ function pintarDetalleVolante() {
     ['Fecha del documento', v.fecha_documento ? formatearFechaLarga(v.fecha_documento) : '—'],
     ['Remitente', v.remitente || '—'],
     ['Turnado a', v.turnado_a || '—'],
+    ['Asignado a', v.asignado_a || '—'],
     ['Referencia', v.referencia || '—'],
     ['Tipo de atención', v.tipo_atencion || '—'],
     ['Registrado por', v.creado_por || '—']
@@ -10804,7 +10811,7 @@ function pintarDetalleVolante() {
     </div>
     <div class="modal-body">
       <div class="vol-det-cols">
-        <dl class="modal-campos">
+        <dl class="modal-campos vol-campos">
           ${campos.map(c => '<dt>' + c[0] + '</dt><dd>' + escapeHtml(c[1]) + '</dd>').join('')}
         </dl>
         <div class="vol-det-adj">
@@ -11332,6 +11339,10 @@ function abrirFormVolante(v) {
             <label>Turnado a</label>
             <input type="text" id="vol_turnado" list="volf_gente_sgoi" maxlength="200" value="${val('turnado_a')}" placeholder="Elige de la lista o escribe otro nombre">
           </div>
+          <div class="form-campo">
+            <label>Asignado a</label>
+            <input type="text" id="vol_asignado" list="volf_gente_sgoi" maxlength="200" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre">
+          </div>
           <datalist id="volf_gente_sgoi">${volGenteSgoi().map(n => '<option value="' + escapeHtml(n) + '">').join('')}</datalist>
           <div class="form-campo full">
             <label>Referencia</label>
@@ -11380,6 +11391,7 @@ function guardarVolante() {
     fecha_documento: document.getElementById('vol_fecha_documento').value || '',
     remitente: (document.getElementById('vol_remitente').value || '').trim(),
     turnado_a: (document.getElementById('vol_turnado').value || '').trim(),
+    asignado_a: (document.getElementById('vol_asignado').value || '').trim(),
     referencia: (document.getElementById('vol_referencia').value || '').trim(),
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
     asunto: (document.getElementById('vol_asunto').value || '').trim()
@@ -11414,7 +11426,7 @@ function guardarVolante() {
         Object.assign(fila, {
           numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
           fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
-          turnado_a: datos.turnado_a, referencia: datos.referencia,
+          turnado_a: datos.turnado_a, asignado_a: datos.asignado_a, referencia: datos.referencia,
           tipo_atencion: datos.tipo_atencion, asunto: datos.asunto
         });
         if (datos.checklist) fila.checklist = datos.checklist;

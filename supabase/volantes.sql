@@ -15,6 +15,7 @@ create table if not exists public.volantes (
   fecha_recepcion date,
   fecha_documento date,
   turnado_a       text not null default '',
+  asignado_a      text not null default '',
   remitente       text not null default '',
   referencia      text not null default '',
   tipo_atencion   text not null default '',
@@ -33,6 +34,7 @@ alter table public.volantes add column if not exists atendido_por   text not nul
 alter table public.volantes add column if not exists fecha_atendido timestamptz;
 alter table public.volantes add column if not exists checklist      jsonb not null default '[]';
 alter table public.volantes add column if not exists adjuntos       jsonb not null default '[]';
+alter table public.volantes add column if not exists asignado_a     text not null default '';
 
 -- El HILO de comentarios y la BITÁCORA de cada volante viven en la tabla
 -- `bitacora` ya existente, con tarea_codigo = 'VOL:<uuid del volante>'.

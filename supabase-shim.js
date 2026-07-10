@@ -396,7 +396,8 @@
         numero: String(d.numero || '').toUpperCase().trim(),
         fecha_recepcion: fechaSql(d.fecha_recepcion),
         fecha_documento: fechaSql(d.fecha_documento),
-        turnado_a: d.turnado_a || '', remitente: d.remitente || '',
+        turnado_a: d.turnado_a || '', asignado_a: d.asignado_a || '',
+        remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
         asunto: d.asunto || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
@@ -405,6 +406,11 @@
       if (Array.isArray(d.checklist)) fila.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) fila.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').insert(fila).select('id').single();
+      // Si la base aún no tiene la columna asignado_a (falta re-correr volantes.sql), crea sin ella.
+      if (r.error && /asignado_a/i.test(r.error.message || '')) {
+        delete fila.asignado_a;
+        r = await sb.from('volantes').insert(fila).select('id').single();
+      }
       // Si la base aún no tiene esas columnas (falta re-correr volantes.sql), crea sin ellas.
       if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
         delete fila.checklist; delete fila.adjuntos;
@@ -422,7 +428,8 @@
         numero: String(d.numero || '').toUpperCase().trim(),
         fecha_recepcion: fechaSql(d.fecha_recepcion),
         fecha_documento: fechaSql(d.fecha_documento),
-        turnado_a: d.turnado_a || '', remitente: d.remitente || '',
+        turnado_a: d.turnado_a || '', asignado_a: d.asignado_a || '',
+        remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
         asunto: d.asunto || ''
       };
@@ -431,6 +438,10 @@
       if (Array.isArray(d.checklist)) upd.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) upd.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').update(upd).eq('id', id);
+      if (r.error && /asignado_a/i.test(r.error.message || '')) {
+        delete upd.asignado_a;
+        r = await sb.from('volantes').update(upd).eq('id', id);
+      }
       if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
         delete upd.checklist; delete upd.adjuntos;
         r = await sb.from('volantes').update(upd).eq('id', id);
