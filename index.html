@@ -629,6 +629,12 @@
   .volchk-adj:hover { text-decoration: underline; }
   .volchk-clip { border: none; background: none; cursor: pointer; font-size: 14px; padding: 0 4px; opacity: .55; flex: none; }
   .volchk-clip:hover { opacity: 1; }
+  /* Tipo de atención en el formulario del volante: dos opciones visibles como
+     botones (Atención / Conocimiento), sin desplegable flotante del navegador. */
+  .vol-tipo-opciones { display: flex; gap: 8px; }
+  .vol-tipo-op { flex: 1; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--tinta-suave); }
+  .vol-tipo-op:hover { border-color: var(--guinda); }
+  .vol-tipo-op.activa { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); font-weight: 700; }
   /* Encabezado del detalle del volante: número + Editar + × en su propio
      renglón; el asunto va abajo y se extiende a TODO el ancho del modal. */
   .modal-header.vol-header { display: block; }
@@ -11125,16 +11131,38 @@ function volCambiarEstatus() {
   }).estatusVolante(SESION_TOKEN, v.id, nuevo);
 }
 
-// Nombres del equipo de SGOI (subdirectora, jefas y enlaces) para las listas
-// de Remitente / Turnado a. Sale de RESPONSABLES (perfiles activos).
+// Nombres para las listas de Remitente / Turnado a / Asignado a: el equipo de
+// SGOI (de RESPONSABLES, perfiles activos) MÁS el historial de nombres que ya
+// se escribieron en volantes anteriores (remitentes externos, generales, etc.),
+// para volver a elegirlos sin tener que teclearlos otra vez. Como sale de la
+// base (VOLANTES), el historial le aparece a todo el equipo, no solo a quien
+// lo escribió.
 function volGenteSgoi() {
-  const set = new Set();
+  const vistos = new Set();   // clave sin acentos/minúsculas → sin duplicados
+  const lista = [];
+  const agregar = n => {
+    n = String(n || '').trim();
+    if (!n) return;
+    const k = sinAcentos(n).toLowerCase();
+    if (vistos.has(k)) return;
+    vistos.add(k); lista.push(n);
+  };
   (RESPONSABLES || []).forEach(r => {
     if (String((r && r.subdireccion) || '').toUpperCase() !== 'SGOI') return;
-    const n = ((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || '');
-    if (n) set.add(n);
+    agregar(((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || ''));
   });
-  return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); agregar(v.asignado_a); });
+  return lista.sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+// Tipo de atención: dos opciones como botones. Clic marca; otro clic en la
+// misma la desmarca (queda vacío). El valor vive en el input oculto vol_tipo.
+function volElegirTipo(btn, valor) {
+  const inp = document.getElementById('vol_tipo');
+  const yaEstaba = inp && inp.value === valor;
+  if (inp) inp.value = yaEstaba ? '' : valor;
+  document.querySelectorAll('.vol-tipo-op').forEach(b => b.classList.remove('activa'));
+  if (!yaEstaba) btn.classList.add('activa');
 }
 
 function abrirNuevoVolante() { abrirFormVolante(null); }
@@ -11327,7 +11355,11 @@ function abrirFormVolante(v) {
           </div>
           <div class="form-campo">
             <label>Tipo de atención</label>
-            <input type="text" id="vol_tipo" maxlength="120" value="${val('tipo_atencion')}" placeholder="Ej. Urgente, Informativo, Para trámite…">
+            <div class="vol-tipo-opciones">
+              <button type="button" class="vol-tipo-op ${(v && v.tipo_atencion) === 'Atención' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Atención')">Atención</button>
+              <button type="button" class="vol-tipo-op ${(v && v.tipo_atencion) === 'Conocimiento' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Conocimiento')">Conocimiento</button>
+            </div>
+            <input type="hidden" id="vol_tipo" value="${val('tipo_atencion')}">
           </div>
           <div class="form-campo">
             <label>Fecha de recepción</label>
