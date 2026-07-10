@@ -11111,6 +11111,18 @@ function volCambiarEstatus() {
   }).estatusVolante(SESION_TOKEN, v.id, nuevo);
 }
 
+// Nombres del equipo de SGOI (subdirectora, jefas y enlaces) para las listas
+// de Remitente / Turnado a. Sale de RESPONSABLES (perfiles activos).
+function volGenteSgoi() {
+  const set = new Set();
+  (RESPONSABLES || []).forEach(r => {
+    if (String((r && r.subdireccion) || '').toUpperCase() !== 'SGOI') return;
+    const n = ((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || '');
+    if (n) set.add(n);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+}
+
 function abrirNuevoVolante() { abrirFormVolante(null); }
 function abrirEditarVolante(id) {
   const v = VOLANTES.find(x => String(x.id) === String(id));
@@ -11313,12 +11325,14 @@ function abrirFormVolante(v) {
           </div>
           <div class="form-campo">
             <label>Remitente</label>
-            <input type="text" id="vol_remitente" maxlength="200" value="${val('remitente')}" placeholder="Quién envía el documento">
+            <input type="text" id="vol_remitente" list="volf_gente_sgoi" maxlength="200" value="${val('remitente')}" placeholder="Elige de la lista o escribe otro nombre">
+            <div class="form-hint">Haz clic para ver a los de SGOI, o escribe un remitente externo.</div>
           </div>
           <div class="form-campo">
             <label>Turnado a</label>
-            <input type="text" id="vol_turnado" maxlength="200" value="${val('turnado_a')}" placeholder="A quién se turna">
+            <input type="text" id="vol_turnado" list="volf_gente_sgoi" maxlength="200" value="${val('turnado_a')}" placeholder="Elige de la lista o escribe otro nombre">
           </div>
+          <datalist id="volf_gente_sgoi">${volGenteSgoi().map(n => '<option value="' + escapeHtml(n) + '">').join('')}</datalist>
           <div class="form-campo full">
             <label>Referencia</label>
             <input type="text" id="vol_referencia" maxlength="300" value="${val('referencia')}" placeholder="No. de oficio o referencia del documento">
