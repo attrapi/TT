@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260709b';
+  window.TT_SHIM_VERSION = '20260710a';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -401,7 +401,14 @@
         asunto: d.asunto || '',
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
+      // Acciones capturadas desde el formulario (checklist inicial del volante).
+      if (Array.isArray(d.checklist)) fila.checklist = d.checklist;
       var r = await sb.from('volantes').insert(fila).select('id').single();
+      // Si la base aún no tiene la columna (falta re-correr volantes.sql), crea sin ella.
+      if (r.error && /checklist/i.test(r.error.message || '')) {
+        delete fila.checklist;
+        r = await sb.from('volantes').insert(fila).select('id').single();
+      }
       if (r.error) {
         var dup = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
         return { ok: false, error: dup ? 'Ya existe un volante con el número ' + fila.numero + '.' : r.error.message };
@@ -418,7 +425,14 @@
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
         asunto: d.asunto || ''
       };
+      // Solo se manda el checklist si el formulario lo MODIFICÓ (evita pisar
+      // acciones palomeadas por otra persona con una copia local vieja).
+      if (Array.isArray(d.checklist)) upd.checklist = d.checklist;
       var r = await sb.from('volantes').update(upd).eq('id', id);
+      if (r.error && /checklist/i.test(r.error.message || '')) {
+        delete upd.checklist;
+        r = await sb.from('volantes').update(upd).eq('id', id);
+      }
       if (r.error) {
         var dup2 = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
         return { ok: false, error: dup2 ? 'Ya existe otro volante con el número ' + upd.numero + '.' : r.error.message };

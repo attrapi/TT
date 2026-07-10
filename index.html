@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260709b"></script>
+<script src="supabase-shim.js?v=20260710a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -10646,6 +10646,9 @@ let volBuscarTxt = '';
 let volCargados = false;       // ya se pidieron a la base al menos una vez
 let volanteEditando = null;    // fila en edición (null = captura nueva)
 let volAbrirTrasCargar = null; // id a abrir en detalle cuando llegue la lista (volante recién creado)
+let volFormAcciones = [];      // acciones capturadas en el formulario (nuevo/editar)
+let volFormAccionesDirty = false;  // el usuario modificó las acciones en el formulario
+let volFormComentarios = [];   // comentarios del hilo pendientes (volante nuevo)
 
 // Lo llama el realtime del shim cuando alguien registra/edita un volante.
 window.ttRefrescarVolantes = function () {
@@ -10963,8 +10966,97 @@ function abrirEditarVolante(id) {
   if (v) abrirFormVolante(v);
 }
 
+// ---- Acciones e Hilo dentro del FORMULARIO de volante (como en Nueva Tarea) ----
+function volFormAccionesHTML() {
+  if (!volFormAcciones.length) return '<div class="conv-vacio">— sin acciones todavía —</div>';
+  return '<div class="volchk">' + volFormAcciones.map((it, i) =>
+    '<div class="volchk-item' + (it.hecho ? ' hecha' : '') + '">' +
+      '<input type="checkbox"' + (it.hecho ? ' checked' : '') + ' onchange="volFormToggleAccion(' + i + ', this.checked)" title="Marcar la acción como hecha">' +
+      '<span class="volchk-texto">' + escapeHtml(it.texto) + '</span>' +
+      '<button type="button" class="volchk-x" title="Quitar la acción" onclick="volFormQuitarAccion(' + i + ')">×</button>' +
+    '</div>').join('') + '</div>';
+}
+function volFormRepintarAcciones() {
+  const box = document.getElementById('volf_acciones');
+  if (box) box.innerHTML = volFormAccionesHTML();
+}
+function volFormAgregarAccion() {
+  const inp = document.getElementById('volf_accion_input');
+  if (!inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  inp.value = '';
+  volFormAcciones.push({ uid: volUid(), texto: txt, hecho: false });
+  volFormAccionesDirty = true;
+  volFormRepintarAcciones();
+}
+function volFormToggleAccion(i, hecho) {
+  if (!volFormAcciones[i]) return;
+  volFormAcciones[i].hecho = !!hecho;
+  volFormAccionesDirty = true;
+  volFormRepintarAcciones();
+}
+function volFormQuitarAccion(i) {
+  if (!volFormAcciones[i]) return;
+  volFormAcciones.splice(i, 1);
+  volFormAccionesDirty = true;
+  volFormRepintarAcciones();
+}
+
+// Hilo del volante NUEVO: los comentarios se guardan al registrar el volante.
+function volFormHiloHTML() {
+  const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || '') : '';
+  let html = '<div class="conv-hilo">';
+  if (!volFormComentarios.length) html += '<div class="conv-vacio">— sin comentarios todavía —</div>';
+  else volFormComentarios.forEach((c, i) => {
+    html += '<div class="conv-msg">' +
+      '<div class="conv-msg-cab">' +
+        '<span class="conv-acron">' + escapeHtml(acronimoPersona(yo)) + '</span>' +
+        '<span class="conv-nombre">' + escapeHtml(yo) + '</span>' +
+      '</div>' +
+      '<div class="conv-texto">' + escapeHtml(c) + '</div>' +
+      '<div class="conv-acciones"><button type="button" class="conv-btn conv-btn-del" onclick="volFormQuitarComentario(' + i + ')">Quitar</button></div>' +
+    '</div>';
+  });
+  html += '</div>' +
+    '<div class="conv-input">' +
+      '<textarea id="volf_conv_input" class="conv-textarea" maxlength="800" placeholder="Escribe un comentario… (se guardará al registrar el volante)" onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey)){event.preventDefault();volFormAgregarComentario();}"></textarea>' +
+      '<button type="button" class="conv-enviar" onclick="volFormAgregarComentario()">Agregar</button>' +
+    '</div>';
+  return html;
+}
+function volFormRepintarHilo() {
+  const box = document.getElementById('volf_hilo');
+  if (box) box.innerHTML = volFormHiloHTML();
+}
+function volFormAgregarComentario() {
+  const inp = document.getElementById('volf_conv_input');
+  if (!inp) return;
+  const txt = (inp.value || '').trim();
+  if (!txt) return;
+  volFormComentarios.push(txt);
+  volFormRepintarHilo();
+}
+function volFormQuitarComentario(i) {
+  volFormComentarios.splice(i, 1);
+  volFormRepintarHilo();
+}
+
 function abrirFormVolante(v) {
   volanteEditando = v || null;
+  // Acciones editables en el formulario (copia local; al editar solo se manda
+  // si el usuario las MODIFICÓ, para no pisar palomas puestas por otros).
+  volFormAcciones = v && Array.isArray(v.checklist)
+    ? v.checklist.map(it => ({ uid: it.uid || volUid(), texto: it.texto || '', hecho: !!it.hecho }))
+    : [];
+  volFormAccionesDirty = false;
+  volFormComentarios = [];   // hilo pendiente (volante NUEVO): se envía al crear
+  // Al editar, el hilo es EN VIVO (el volante ya existe): se usa el mismo
+  // visor del detalle, cargando su bitácora si no venimos de él.
+  if (v) {
+    if (String(volanteAbierto) !== String(v.id)) { volanteAbierto = String(v.id); VOL_BITACORA = []; }
+    cargarBitacoraVolante(v.id);
+  }
   const val = k => escapeHtml((v && v[k]) || '');
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
@@ -11010,8 +11102,22 @@ function abrirFormVolante(v) {
             <label>Asunto <span class="req">*</span></label>
             <textarea id="vol_asunto" required maxlength="800" placeholder="¿De qué trata el volante?">${val('asunto')}</textarea>
           </div>
+          <div class="form-campo full">
+            <label>Acciones</label>
+            <div id="volf_acciones">${volFormAccionesHTML()}</div>
+            <div class="acciones-agregar">
+              <input type="text" id="volf_accion_input" maxlength="200" placeholder="Escribe una acción y presiona Enter o el botón +" onkeydown="if(event.key==='Enter'){event.preventDefault();volFormAgregarAccion();}">
+              <button type="button" class="acciones-agregar-btn" onclick="volFormAgregarAccion()">+ Agregar</button>
+            </div>
+            <div class="form-hint">Cada acción tendrá su casilla para palomearse cuando se atienda.</div>
+          </div>
         </div>
       </form>
+      <div class="modal-seccion modal-seccion-ancha" style="margin-top:18px;">
+        <div class="modal-seccion-titulo">Hilo</div>
+        ${v ? '<div id="volHiloBox">' + volHiloHTML() + '</div>'
+            : '<div id="volf_hilo">' + volFormHiloHTML() + '</div>'}
+      </div>
     </div>
     <div class="modal-acciones">
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
@@ -11032,6 +11138,15 @@ function guardarVolante() {
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
     asunto: (document.getElementById('vol_asunto').value || '').trim()
   };
+  // Acción a medio escribir en el input: se suma sola (como en Nueva Tarea no
+  // se pierde lo que quedó en el renglón sin presionar +).
+  const accInp = document.getElementById('volf_accion_input');
+  if (accInp && (accInp.value || '').trim()) volFormAgregarAccion();
+  const comInp = document.getElementById('volf_conv_input');
+  if (comInp && (comInp.value || '').trim()) volFormAgregarComentario();
+  // Checklist: al CREAR siempre va; al EDITAR solo si se modificó en el formulario.
+  if (!volanteEditando) datos.checklist = volFormAcciones;
+  else if (volFormAccionesDirty) datos.checklist = volFormAcciones;
   if (!datos.numero) { toast('Escribe el No. de volante', 'error'); return; }
   if (!datos.asunto) { toast('Escribe el asunto del volante', 'error'); return; }
   const editando = volanteEditando;
@@ -11065,6 +11180,18 @@ function guardarVolante() {
     const volId = editando ? editando.id : (res.id || '');
     if (volId) volRegistrarBita(volId, editando ? 'editar' : 'crear',
       editando ? 'Se actualizaron los datos del volante' : 'Volante ' + datos.numero + ' registrado');
+    // Comentarios del hilo capturados en el formulario (volante nuevo): se
+    // envían UNO POR UNO en orden y al final se refresca el hilo del detalle.
+    if (!editando && volId && volFormComentarios.length) {
+      const cola = volFormComentarios.slice();
+      volFormComentarios = [];
+      const enviarSig = function () {
+        const txt = cola.shift();
+        if (txt === undefined) { if (String(volanteAbierto) === String(volId)) cargarBitacoraVolante(volId); return; }
+        volRegistrarBita(volId, 'comentario', txt, enviarSig);
+      };
+      enviarSig();
+    }
     if (volverA) abrirDetalleVolante(volverA);
   };
   if (editando) google.script.run.withSuccessHandler(listo).actualizarVolante(SESION_TOKEN, editando.id, datos);
