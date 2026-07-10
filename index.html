@@ -629,6 +629,12 @@
   .volchk-adj:hover { text-decoration: underline; }
   .volchk-clip { border: none; background: none; cursor: pointer; font-size: 14px; padding: 0 4px; opacity: .55; flex: none; }
   .volchk-clip:hover { opacity: 1; }
+  /* Encabezado del detalle del volante: número + Editar + × en su propio
+     renglón; el asunto va abajo y se extiende a TODO el ancho del modal. */
+  .modal-header.vol-header { display: block; }
+  .vol-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .vol-header-top .modal-id { margin-bottom: 0; }
+  .vol-header-sep { flex: 1; }
   .vol-det-cols { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
   /* Detalle del volante: cada dato con su etiqueta ARRIBA y el valor en el
      renglón de abajo (nombres largos y fechas ya no se cortan a la derecha). */
@@ -10796,17 +10802,18 @@ function pintarDetalleVolante() {
   ];
   if (atendido && v.atendido_por) campos.push(['Atendido por', v.atendido_por]);
   document.getElementById('modal').innerHTML = `
-    <div class="modal-header">
-      <div class="modal-header-info">
+    <div class="modal-header vol-header">
+      <div class="vol-header-top">
         <div class="modal-id" data-sub="SGOI">${escapeHtml(v.numero || 'VOLANTE')}</div>
-        <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
-        <div class="modal-meta">
-          <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
+        <span class="vol-header-sep"></span>
+        <div class="modal-header-acciones">
+          <button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>
+          <button class="modal-cerrar" onclick="cerrarModal()">×</button>
         </div>
       </div>
-      <div class="modal-header-acciones">
-        <button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>
-        <button class="modal-cerrar" onclick="cerrarModal()">×</button>
+      <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
+      <div class="modal-meta">
+        <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
       </div>
     </div>
     <div class="modal-body">
@@ -13512,9 +13519,6 @@ function abrirNuevaTarea(tEdit) {
   const puedeCambiarFecha = !ed || esCreadorTarea
     || usuarioActual.rol === 'Director' || esSubdirDeTarea;
   const valUrl = ed ? (ed.url || '') : '';
-  // "Otra área involucrada" ahora es un campo de texto libre que vive debajo de
-  // "Responsable directo". Al editar se precarga con lo que la tarea ya tenía.
-  const valAreasTexto = ed ? (ed.areas_involucradas || '') : '';
 
   // Opciones del campo "Área responsable":
   //   • El Director ve TODO (3 subdirs + 4 jefaturas + DPAC + Staff).
@@ -13630,8 +13634,6 @@ function abrirNuevaTarea(tEdit) {
             <label>Responsable directo <span class="req">*</span></label>
             <div id="nt_responsables_lista"></div>
             ${esEnlaceCreando ? '' : '<button type="button" class="acciones-agregar-btn" onclick="agregarResponsableRow()" style="margin-top:8px;">+ Agregar otro responsable</button>'}
-            <input type="text" id="nt_areaOtra" maxlength="200" value="${escapeHtml(valAreasTexto)}" placeholder="Otra área involucrada (escríbela y se sumará a la tarea)" style="margin-top:8px;">
-            <div class="form-hint">Si participa otra área además de la responsable, escríbela aquí (sepáralas con comas).</div>
           </div>
 
           <div class="form-campo">
@@ -14088,10 +14090,10 @@ function guardarNuevaTarea() {
   const _resps = leerResponsablesDOM().map(s => String(s || '').trim()).filter(Boolean);
   const responsable = _resps.filter((r, i) => _resps.indexOf(r) === i).join(', ');
   const tema = document.getElementById('nt_tema').value.trim();
-  // "Áreas involucradas" ahora es un solo campo de texto libre (debajo de
-  // Responsable directo). Lo que se escriba se guarda tal cual.
-  const otraAreaEl = document.getElementById('nt_areaOtra');
-  const areas = otraAreaEl ? otraAreaEl.value.trim() : '';
+  // El campo "Otra área involucrada" se quitó del formulario (confundía: ahí
+  // anotaban personas que en realidad van en Responsable directo). Al editar
+  // se conserva lo que la tarea ya tenía guardado; al crear queda vacío.
+  const areas = tareaEditando ? (tareaEditando.areas_involucradas || '') : '';
   const acuerdos = document.getElementById('nt_acuerdos').value.trim();
   // Enlaces de reunión (Meet/Zoom/Teams) + descripción de la junta.
   const enlaces = leerEnlacesForm();
