@@ -6874,11 +6874,10 @@ function obtenerTareasFiltradas() {
   }
   // Director con tab 'TODAS': ve todo (menos jefaturas, ya excluidas)
 
-  // El Director NO ve las tareas PURAMENTE de enlace (seguimiento interno de SPAC
-  // entre el subdirector y sus enlaces). Las MIXTAS (con algún responsable que no
-  // es enlace) sí las ve.
+  // El Director NO ve el seguimiento interno de SPAC (tareas con ID de prefijo
+  // de enlace: NPF/CJC/DGC), SALVO las que él mismo creó (se las encargó él).
   if (usuarioActual.rol === 'Director') {
-    lista = lista.filter(t => !esTareaSoloEnlaces(t));
+    lista = lista.filter(t => !tareaOcultaParaDirector(t));
   }
 
   if (prioridadActiva !== 'TODAS') {
@@ -7019,20 +7018,22 @@ function esTareaDeEnlace(t) {
     return r && r.es_enlace && esResponsableDe(t, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
   });
 }
-// ¿TODOS los responsables de la tarea son enlaces? El Director solo OCULTA las
-// tareas puramente de enlace; si hay al menos un responsable que NO es enlace
-// (p. ej. un subdirector), la tarea es "mixta" y el Director SÍ la ve.
-function esTareaSoloEnlaces(t) {
+// ¿Esta tarea se le OCULTA al Director? SOLO el seguimiento interno de SPAC:
+// tareas cuyo ID nació con el prefijo de un ENLACE de SPAC (NPF/CJC/DGC), es
+// decir, que se crearon asignadas a un enlace. Excepción: si el propio Director
+// la creó (él se la encargó al enlace), SÍ la ve. Los enlaces de otras
+// subdirecciones (p. ej. SGOI) no se ocultan.
+function tareaOcultaParaDirector(t) {
   if (!t) return false;
-  const nombres = String(t.responsable || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (!nombres.length) return false;
-  // Cada nombre de responsable debe corresponder a una persona marcada es_enlace.
-  return nombres.every(function (nom) {
-    return (RESPONSABLES || []).some(function (r) {
-      return r && r.es_enlace
-        && esResponsableDe({ responsable: nom }, { nombre: r.nombreCompleto, nombre_corto: r.nombre_corto });
-    });
+  const pref = String(t.id || '').split('-')[0].trim().toUpperCase();
+  if (!pref) return false;
+  const esPrefijoEnlaceSpac = (RESPONSABLES || []).some(function (r) {
+    return r && r.es_enlace && String(r.subdireccion || '').toUpperCase() === 'SPAC'
+      && inicialesEnlace(r.nombreCompleto) === pref;
   });
+  if (!esPrefijoEnlaceSpac) return false;
+  const yo = usuarioActual ? formatearNombre(usuarioActual.nombre || usuarioActual.email || '') : '';
+  return !(yo && t.creado_por && formatearNombre(t.creado_por) === yo);
 }
 
 // ===== "Visto por" — quién ha abierto la tarea =====
@@ -7275,7 +7276,7 @@ function actualizarKPIs() {
     if (!(t.eliminada || t.estatus === 'Archivada')) return false;
     if (modoEnlaces) return esTareaDeEnlace(t) && t.subdireccion === usuarioActual.subdireccion;
     if (usuarioActual.rol === 'Director') {
-      if (esTareaSoloEnlaces(t)) return false;   // el Director no ve tareas PURAMENTE de enlace
+      if (tareaOcultaParaDirector(t)) return false;   // seguimiento interno de SPAC (prefijo de enlace)
       return tabActiva === 'TODAS' || t.subdireccion === tabActiva
           || (tabActiva === 'ENLACE' && (t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE'));
     }
@@ -8605,8 +8606,9 @@ function tareasPapelera() {
   // Historial incluye DOS cosas: las tareas COMPLETADAS (estatus=Archivada)
   // y las ELIMINADAS (eliminada=true).
   let lista = TAREAS.filter(t => t.eliminada || t.estatus === 'Archivada');
-  // El Director NO ve las tareas PURAMENTE de enlace (seguimiento interno de SPAC).
-  if (usuarioActual.rol === 'Director') return lista.filter(t => !esTareaSoloEnlaces(t));
+  // El Director NO ve el seguimiento interno de SPAC (ID con prefijo de enlace),
+  // salvo las tareas que él mismo creó.
+  if (usuarioActual.rol === 'Director') return lista.filter(t => !tareaOcultaParaDirector(t));
   // Enlace restringido: solo SU historial (donde fue responsable directo).
   if (esEnlaceRestringido()) {
     return lista.filter(t => t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual));
