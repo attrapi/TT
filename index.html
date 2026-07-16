@@ -635,6 +635,22 @@
   .vol-tipo-op { flex: 1; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--tinta-suave); }
   .vol-tipo-op:hover { border-color: var(--guinda); }
   .vol-tipo-op.activa { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); font-weight: 700; }
+  /* Menú de sugerencias propio para Remitente / Turnado a / Asignado a: sustituye
+     al desplegable nativo del navegador (el "menú negro" del sistema) por una
+     tarjeta blanca con el estilo de la app. */
+  .vol-sugiere-box { position: relative; }
+  .vol-sugiere {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: #fff; border: 1px solid var(--linea); border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(26,26,26,0.16); z-index: 30;
+    max-height: 220px; overflow-y: auto; padding: 4px;
+  }
+  .vol-sugiere.abierta { display: block; }
+  .vol-sugiere-op {
+    padding: 8px 12px; border-radius: 7px; font-size: 13.5px;
+    cursor: pointer; color: var(--tinta);
+  }
+  .vol-sugiere-op:hover, .vol-sugiere-op.activa { background: var(--guinda-tenue); color: var(--guinda); }
   /* Encabezado del detalle del volante: número + Editar + × en su propio
      renglón; el asunto va abajo y se extiende a TODO el ancho del modal. */
   .modal-header.vol-header { display: block; }
@@ -11157,6 +11173,55 @@ function volGenteSgoi() {
   return lista.sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+// ---- Menú de sugerencias propio (Remitente / Turnado a / Asignado a) ----
+// Sustituye al datalist nativo del navegador (que sale como menú negro del
+// sistema en teléfonos/modo oscuro) por una tarjeta con el estilo de la app.
+let volSugIdx = -1;   // opción resaltada con las flechas (solo hay un menú abierto a la vez)
+
+function volSugFiltrar(inp) {
+  const box = document.getElementById(inp.id + '_sug');
+  if (!box) return;
+  const q = sinAcentos(inp.value || '').toLowerCase().trim();
+  const nombres = volGenteSgoi().filter(n => !q || sinAcentos(n).toLowerCase().indexOf(q) >= 0);
+  volSugIdx = -1;
+  if (!nombres.length) { volSugCerrar(inp.id); return; }
+  // mousedown (no click): se elige ANTES de que el blur del input cierre el menú.
+  box.innerHTML = nombres.map(n =>
+    '<div class="vol-sugiere-op" onmousedown="event.preventDefault(); volSugElegir(\'' + inp.id + '\', this)">' + escapeHtml(n) + '</div>'
+  ).join('');
+  box.classList.add('abierta');
+}
+
+function volSugElegir(id, op) {
+  const inp = document.getElementById(id);
+  if (inp) inp.value = op.textContent;
+  volSugCerrar(id);
+}
+
+function volSugCerrar(id) {
+  const box = document.getElementById(id + '_sug');
+  if (box) { box.classList.remove('abierta'); box.innerHTML = ''; }
+}
+
+function volSugTeclas(inp, ev) {
+  const box = document.getElementById(inp.id + '_sug');
+  if (!box || !box.classList.contains('abierta')) return;
+  const ops = box.querySelectorAll('.vol-sugiere-op');
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    volSugIdx = ev.key === 'ArrowDown' ? Math.min(volSugIdx + 1, ops.length - 1) : Math.max(volSugIdx - 1, 0);
+    ops.forEach((o, i) => o.classList.toggle('activa', i === volSugIdx));
+    if (ops[volSugIdx]) ops[volSugIdx].scrollIntoView({ block: 'nearest' });
+  } else if (ev.key === 'Enter') {
+    // Con el menú abierto, Enter elige (o solo lo cierra): NO manda el formulario.
+    ev.preventDefault();
+    if (volSugIdx >= 0 && ops[volSugIdx]) volSugElegir(inp.id, ops[volSugIdx]);
+    else volSugCerrar(inp.id);
+  } else if (ev.key === 'Escape') {
+    volSugCerrar(inp.id);
+  }
+}
+
 // Tipo de atención: dos opciones como botones. Clic marca; otro clic en la
 // misma la desmarca (queda vacío). El valor vive en el input oculto vol_tipo.
 function volElegirTipo(btn, valor) {
@@ -11373,18 +11438,26 @@ function abrirFormVolante(v) {
           </div>
           <div class="form-campo">
             <label>Remitente</label>
-            <input type="text" id="vol_remitente" list="volf_gente_sgoi" maxlength="200" value="${val('remitente')}" placeholder="Elige de la lista o escribe otro nombre">
+            <div class="vol-sugiere-box">
+              <input type="text" id="vol_remitente" maxlength="200" autocomplete="off" value="${val('remitente')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
+              <div class="vol-sugiere" id="vol_remitente_sug"></div>
+            </div>
             <div class="form-hint">Haz clic para ver a los de SGOI, o escribe un remitente externo.</div>
           </div>
           <div class="form-campo">
             <label>Turnado a</label>
-            <input type="text" id="vol_turnado" list="volf_gente_sgoi" maxlength="200" value="${val('turnado_a')}" placeholder="Elige de la lista o escribe otro nombre">
+            <div class="vol-sugiere-box">
+              <input type="text" id="vol_turnado" maxlength="200" autocomplete="off" value="${val('turnado_a')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
+              <div class="vol-sugiere" id="vol_turnado_sug"></div>
+            </div>
           </div>
           <div class="form-campo">
             <label>Asignado a</label>
-            <input type="text" id="vol_asignado" list="volf_gente_sgoi" maxlength="200" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre">
+            <div class="vol-sugiere-box">
+              <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
+              <div class="vol-sugiere" id="vol_asignado_sug"></div>
+            </div>
           </div>
-          <datalist id="volf_gente_sgoi">${volGenteSgoi().map(n => '<option value="' + escapeHtml(n) + '">').join('')}</datalist>
           <div class="form-campo full">
             <label>Referencia</label>
             <input type="text" id="vol_referencia" maxlength="300" value="${val('referencia')}" placeholder="No. de oficio o referencia del documento">
@@ -11476,7 +11549,11 @@ function guardarVolante() {
     }
     cerrarModal();
     volanteEditando = null;
-    toast(editando ? 'Volante actualizado' : 'Volante ' + datos.numero + ' registrado', 'ok');
+    // Si la base no pudo guardar algún campo (p. ej. falta la columna asignado_a),
+    // el puente lo reporta en `aviso`: se muestra en lugar del mensaje de éxito
+    // para que NUNCA parezca guardado algo que no se guardó.
+    if (res.aviso) toast(res.aviso, 'error');
+    else toast(editando ? 'Volante actualizado' : 'Volante ' + datos.numero + ' registrado', 'ok');
     if (!editando && res.id) volAbrirTrasCargar = res.id;   // abre el detalle del nuevo al cargar
     cargarVolantes();
     // Bitácora del volante: quién lo registró / quién editó sus datos.

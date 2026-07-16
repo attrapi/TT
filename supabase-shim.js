@@ -406,21 +406,25 @@
       if (Array.isArray(d.checklist)) fila.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) fila.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').insert(fila).select('id').single();
-      // Si la base aún no tiene la columna asignado_a (falta re-correr volantes.sql), crea sin ella.
+      // Si la base aún no tiene la columna asignado_a (falta re-correr volantes.sql),
+      // crea sin ella PERO SE AVISA — nunca perder el dato en silencio.
+      var aviso = '';
       if (r.error && /asignado_a/i.test(r.error.message || '')) {
         delete fila.asignado_a;
+        aviso = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       // Si la base aún no tiene esas columnas (falta re-correr volantes.sql), crea sin ellas.
       if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
         delete fila.checklist; delete fila.adjuntos;
+        aviso = (aviso ? aviso + ' ' : '') + 'Tampoco se guardaron acciones/adjuntos (faltan columnas en la base).';
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       if (r.error) {
         var dup = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
         return { ok: false, error: dup ? 'Ya existe un volante con el número ' + fila.numero + '.' : r.error.message };
       }
-      return { ok: true, id: r.data.id };
+      return { ok: true, id: r.data.id, aviso: aviso || undefined };
     },
     actualizarVolante: async function (token, id, d) {
       d = d || {};
@@ -438,19 +442,24 @@
       if (Array.isArray(d.checklist)) upd.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) upd.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').update(upd).eq('id', id);
+      // Columna asignado_a ausente: se guarda el resto PERO SE AVISA — nunca
+      // perder el dato en silencio (así se detectó que faltaba correr el SQL).
+      var aviso2 = '';
       if (r.error && /asignado_a/i.test(r.error.message || '')) {
         delete upd.asignado_a;
+        aviso2 = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
         delete upd.checklist; delete upd.adjuntos;
+        aviso2 = (aviso2 ? aviso2 + ' ' : '') + 'Tampoco se guardaron acciones/adjuntos (faltan columnas en la base).';
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error) {
         var dup2 = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
         return { ok: false, error: dup2 ? 'Ya existe otro volante con el número ' + upd.numero + '.' : r.error.message };
       }
-      return { ok: true };
+      return { ok: true, aviso: aviso2 || undefined };
     },
     eliminarVolante: async function (token, id) {
       // Purga primero su hilo/bitácora (viven en `bitacora` como 'VOL:<id>').
