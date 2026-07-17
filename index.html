@@ -6409,6 +6409,10 @@ function responsableVisibleEnCaptura(r) {
   if (usuarioActual.es_enlace && usuarioActual.acceso_completo) return true;
   const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
   if (['SA', 'SGOI', 'SPAC'].indexOf(miSub) < 0) return true;   // Staff/Enlace: sin filtro
+  // SGOI puede asignarle tareas al Staff de la Dirección (Tiffany): su gente
+  // aparece en el selector de responsable para todo el equipo de SGOI.
+  const rSubStaff = String((r && r.subdireccion) || '').toUpperCase();
+  if (miSub === 'SGOI' && (rSubStaff === 'ENLACE' || rSubStaff === 'STAFF')) return true;
   const esMismaPersona = r && r.nombreCompleto && usuarioActual.nombre &&
       nombresSinApellidos(r.nombreCompleto) === nombresSinApellidos(usuarioActual.nombre);
   const miJef = jefaturaCodigo(usuarioActual.jefatura);
@@ -11576,7 +11580,8 @@ function abrirFormVolante(v) {
   const subUsuario = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
   const areaForm = v ? volAreaDe(v) : (subUsuario === 'SA' || subUsuario === 'SPAC' ? subUsuario : 'SGOI');
   const eligeArea = !!(usuarioActual && (usuarioActual.rol === 'Director' ||
-    (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI')));
+    (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI') ||
+    usuarioActual.subdireccion === 'ENLACE'));   // Staff de la Dirección (Tiffany): privilegios completos en volantes
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
@@ -13908,6 +13913,11 @@ function abrirNuevaTarea(tEdit) {
   let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC())
     ? ['DPAC','SGOI','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
+  // SGOI también puede asignarle tareas al Staff de la Dirección (Tiffany):
+  // se le suma el chip STAFF a su lista de áreas.
+  if (usuarioActual.subdireccion === 'SGOI' && codigosAsignables.indexOf('ENLACE') < 0) {
+    codigosAsignables.push('ENLACE');
+  }
   // Al editar, asegura mostrar también las áreas que la tarea YA tiene.
   participantesEd.forEach(c => { if (codigosAsignables.indexOf(c) < 0) codigosAsignables.push(c); });
   // Un ENLACE creando una tarea solo se asigna a SU propia área (para que caiga en
