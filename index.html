@@ -6404,6 +6404,9 @@ let RESPONSABLES = [];
 function responsableVisibleEnCaptura(r) {
   if (!usuarioActual || usuarioActual.rol === 'Director') return true;
   if (esSubdirectorSPAC()) return true;   // Mario (subdirector SPAC): ve a todos, como el Director
+  // Enlaces con ACCESO COMPLETO (Leslie en SPAC, Andrea, Yanderi…): pueden
+  // asignar tareas a cualquier persona de cualquier subdirección.
+  if (usuarioActual.es_enlace && usuarioActual.acceso_completo) return true;
   const miSub = String(usuarioActual.subdireccion || '').toUpperCase();
   if (['SA', 'SGOI', 'SPAC'].indexOf(miSub) < 0) return true;   // Staff/Enlace: sin filtro
   const esMismaPersona = r && r.nombreCompleto && usuarioActual.nombre &&
