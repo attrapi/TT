@@ -12757,7 +12757,12 @@ function puedeEditarObsDir(t)  { return puedeMarcarDir(t); }
 function asegurarCamposChecklist(t) {
   if (!t) return t;
   if (!Array.isArray(t.checklist)) t.checklist = [];
-  if (t.checklist.length === 0 && t.accion_a_tomar) {
+  // Derivar el checklist del texto "Acciones a tomar" es SOLO para tareas viejas
+  // que nunca lo tuvieron. Si el checklist ya se gestionó alguna vez
+  // (checklist_iniciado), un checklist vacío significa que se borraron a
+  // propósito: NO se regenera (si no, las acciones borradas reaparecían al
+  // recargar — pasaba en cualquier tarea de cualquier área).
+  if (t.checklist.length === 0 && t.accion_a_tomar && !t.checklist_iniciado) {
     t.checklist = checklistDesdeTexto(t.accion_a_tomar);
   }
   if (typeof t.observaciones_resp !== 'string') t.observaciones_resp = '';
@@ -13835,8 +13840,12 @@ function abrirNuevaTarea(tEdit) {
   // Acciones a tomar: editor de CHECKLIST. Al editar una tarea que ya tiene
   // checklist, prellenamos con sus renglones (uno por línea) para no perder
   // las palomas ya marcadas (mergearChecklist se encarga al guardar).
+  // Al editar: si ya hay checklist, se muestra ese; si está vacío pero la tarea
+  // NUNCA gestionó acciones, se cae al texto viejo "Acciones a tomar"; si ya se
+  // gestionó (checklist_iniciado) y quedó vacío, se respeta vacío (no revive lo
+  // borrado).
   const valAccion = ed
-    ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.accion_a_tomar || ''))
+    ? (obtenerChecklist(ed).length ? checklistATexto(ed) : (ed.checklist_iniciado ? '' : (ed.accion_a_tomar || '')))
     : '';
   // Fotografía del prellenado de Acciones: al guardar sirve para distinguir
   // "acción que el editor quitó a propósito" de "acción que OTRA persona

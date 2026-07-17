@@ -123,6 +123,7 @@
       eliminada: !!r.eliminada, eliminado_por: r.eliminado_por || '', fecha_eliminacion: r.fecha_eliminacion || '',
       creado_por: r.creado_por || '', fecha_creacion: '',
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
+      checklist_iniciado: !!r.checklist_iniciado,   // ya se gestionó el checklist → no re-derivar del texto
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
       enlaces: (r.enlaces && typeof r.enlaces === 'object' && !Array.isArray(r.enlaces))
@@ -337,8 +338,15 @@
           }
           if (borrar) { if (idx >= 0) v.splice(idx, 1); }
           else if (item) { if (idx >= 0) v[idx] = item; else v.push(item); }
-          var w = await sb.from('tareas').update({ checklist: v }).eq('codigo', id);
-          if (w.error) return { ok: false, error: w.error.message };
+          // Marca el checklist como gestionado: un vacío ya NO se re-deriva del texto.
+          var w = await sb.from('tareas').update({ checklist: v, checklist_iniciado: true }).eq('codigo', id);
+          if (w.error) {
+            // Si la columna aún no existe (falta correr el SQL), guarda al menos el checklist.
+            if (/checklist_iniciado/i.test(w.error.message || '')) {
+              w = await sb.from('tareas').update({ checklist: v }).eq('codigo', id);
+            }
+            if (w.error) return { ok: false, error: w.error.message };
+          }
           return { ok: true, checklist: v };
         } catch (e3) { return { ok: false, error: String(e3) }; }
       }

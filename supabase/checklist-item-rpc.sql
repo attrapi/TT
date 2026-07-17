@@ -23,6 +23,12 @@
 --  Pegar en: Supabase → SQL Editor → New query → Run.
 -- =====================================================================
 
+-- Marca de "el checklist ya se gestionó al menos una vez". Sirve para que un
+-- checklist VACÍO se respete como vacío (acciones borradas a propósito) y NO se
+-- vuelva a derivar del texto "Acciones a tomar" (bug: al recargar reaparecían
+-- las acciones borradas, en cualquier tarea de cualquier área).
+alter table public.tareas add column if not exists checklist_iniciado boolean not null default false;
+
 create or replace function public.tt_checklist_item(
   p_codigo text,
   p_uid    text    default '',
@@ -89,7 +95,8 @@ begin
 
   select coalesce(jsonb_agg(x.e order by x.ord), '[]'::jsonb) into v_lista
     from unnest(v_arr) with ordinality as x(e, ord);
-  update tareas set checklist = v_lista where codigo = p_codigo;
+  -- checklist_iniciado = true: a partir de aquí un vacío se respeta como vacío.
+  update tareas set checklist = v_lista, checklist_iniciado = true where codigo = p_codigo;
   return v_lista;   -- lista oficial ya mezclada (el front la adopta)
 end;
 $$;
