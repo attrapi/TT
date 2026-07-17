@@ -617,12 +617,14 @@
   .vol-farea-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 700; }
   .vol-farea-btn.activa[data-sub="SGOI"] { background: var(--sub-sgoi); border-color: var(--sub-sgoi); }
   .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
+  .vol-farea-btn.activa[data-sub="SPAC"] { background: var(--sub-spac); border-color: var(--sub-spac); }
   .vol-area {
     font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
     color: #fff; letter-spacing: .04em;
   }
   .vol-area[data-sub="SGOI"] { background: var(--sub-sgoi); }
   .vol-area[data-sub="SA"]   { background: var(--sub-sa); }
+  .vol-area[data-sub="SPAC"] { background: var(--sub-spac); }
   /* Píldora URGENTE: roja y palpitando (en tarjeta y detalle). */
   .vol-urg {
     background: #dc2626; color: #fff; font-size: 11px; font-weight: 800;
@@ -5226,8 +5228,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span class="sidebar-label">Biblioteca</span>
         </button>
-        <!-- Volantes: registro de volantes (equipos SGOI y SA + Dirección). -->
-        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes de SGOI y SA">
+        <!-- Volantes: registro de volantes (todo el equipo). -->
+        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes por área">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           <span class="sidebar-label">Volantes</span>
         </button>
@@ -5418,6 +5420,7 @@
         <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
         <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
         <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
+        <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
       </div>
       <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
     </div>
@@ -6150,10 +6153,9 @@ function aplicarSesion() {
   if (acusesBtn) acusesBtn.style.display = esSgoi ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
   if (bibliotecaBtn) bibliotecaBtn.style.display = esSgoi ? '' : 'none';
-  // Volantes: equipos de SGOI y SA (incluidos enlaces) y la Dirección.
+  // Volantes: lo ve TODO el equipo (SGOI, SA, SPAC… y la Dirección).
   const volantesBtn = document.getElementById('sidebarVolantes');
-  const esSaUser = usuarioActual.subdireccion === 'SA';
-  if (volantesBtn) volantesBtn.style.display = (esSgoi || esSaUser || usuarioActual.rol === 'Director') ? '' : 'none';
+  if (volantesBtn) volantesBtn.style.display = '';
 
   cambiarTab(tabActiva);
 }
@@ -10839,8 +10841,8 @@ function pintarVolantes() {
   if (!lista) return;
   // Primera vez: el filtro arranca en el área del usuario (Director ve Todas).
   if (!volFiltroArea) {
-    const subU = usuarioActual ? usuarioActual.subdireccion : '';
-    volFiltroArea = subU === 'SA' ? 'SA' : (subU === 'SGOI' ? 'SGOI' : 'TODAS');
+    const subU = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
+    volFiltroArea = (subU === 'SA' || subU === 'SGOI' || subU === 'SPAC') ? subU : 'TODAS';
     volPintarFiltroArea();
   }
   let vs = VOLANTES.slice();
@@ -11308,7 +11310,7 @@ function volGenteSgoi() {
   };
   (RESPONSABLES || []).forEach(r => {
     const sub = String((r && r.subdireccion) || '').toUpperCase();
-    if (sub !== 'SGOI' && sub !== 'SA') return;
+    if (sub !== 'SGOI' && sub !== 'SA' && sub !== 'SPAC') return;
     agregar(((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || ''));
   });
   (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); agregar(v.asignado_a); });
@@ -11566,9 +11568,10 @@ function abrirFormVolante(v) {
   }
   const val = k => escapeHtml((v && v[k]) || '');
   // Área del volante: al editar se conserva; al crear es la del usuario (SA→SA,
-  // resto→SGOI). Los botones SGOI/SA para elegirla los ven el Director y los
-  // enlaces de SGOI (Jacobo y Andrea), que capturan volantes de ambas áreas.
-  const areaForm = v ? volAreaDe(v) : (usuarioActual && usuarioActual.subdireccion === 'SA' ? 'SA' : 'SGOI');
+  // SPAC→SPAC, resto→SGOI). Los botones para elegirla los ven el Director y los
+  // enlaces de SGOI (Jacobo y Andrea), que son quienes asignan a las áreas.
+  const subUsuario = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
+  const areaForm = v ? volAreaDe(v) : (subUsuario === 'SA' || subUsuario === 'SPAC' ? subUsuario : 'SGOI');
   const eligeArea = !!(usuarioActual && (usuarioActual.rol === 'Director' ||
     (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI')));
   document.getElementById('modal').innerHTML = `
@@ -11609,6 +11612,7 @@ function abrirFormVolante(v) {
             <div class="vol-tipo-opciones">
               <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOI</button>
               <button type="button" class="vol-tipo-op ${areaForm === 'SA' ? 'activa' : ''}" onclick="volElegirArea(this, 'SA')">SA</button>
+              <button type="button" class="vol-tipo-op ${areaForm === 'SPAC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SPAC')">SPAC</button>
             </div>
           </div>` : ''}
           <input type="hidden" id="vol_area" value="${areaForm}">
@@ -11626,7 +11630,7 @@ function abrirFormVolante(v) {
               <input type="text" id="vol_remitente" maxlength="200" autocomplete="off" value="${val('remitente')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
               <div class="vol-sugiere" id="vol_remitente_sug"></div>
             </div>
-            <div class="form-hint">Haz clic para ver al equipo (SGOI y SA), o escribe un remitente externo.</div>
+            <div class="form-hint">Haz clic para ver al equipo (SGOI, SA y SPAC), o escribe un remitente externo.</div>
           </div>
           <div class="form-campo">
             <label>Turnado a</label>
