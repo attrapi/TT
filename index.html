@@ -605,6 +605,24 @@
   /* Píldora del tipo con color propio: Atención (verde olivo) / Conocimiento (azul). */
   .vol-tipo.atencion     { background: rgba(107,142,35,0.16); color: #4f611f; }
   .vol-tipo.conocimiento { background: rgba(29,78,216,0.12); color: #1e3a8a; }
+  /* Filtro por área de la lista de volantes (Todas / SGOI / SA) y píldora
+     del área en cada tarjeta — con los colores de cada subdirección. */
+  .vol-farea { display: flex; gap: 6px; align-items: center; }
+  .vol-farea-btn {
+    padding: 6px 14px; border: 1px solid var(--linea); border-radius: 999px;
+    background: #fff; cursor: pointer; font-size: 12.5px; font-weight: 600;
+    font-family: var(--sans); color: var(--tinta-suave);
+  }
+  .vol-farea-btn:hover { border-color: var(--guinda); }
+  .vol-farea-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 700; }
+  .vol-farea-btn.activa[data-sub="SGOI"] { background: var(--sub-sgoi); border-color: var(--sub-sgoi); }
+  .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
+  .vol-area {
+    font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    color: #fff; letter-spacing: .04em;
+  }
+  .vol-area[data-sub="SGOI"] { background: var(--sub-sgoi); }
+  .vol-area[data-sub="SA"]   { background: var(--sub-sa); }
   /* Píldora URGENTE: roja y palpitando (en tarjeta y detalle). */
   .vol-urg {
     background: #dc2626; color: #fff; font-size: 11px; font-weight: 800;
@@ -5208,8 +5226,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span class="sidebar-label">Biblioteca</span>
         </button>
-        <!-- Volantes: registro de volantes de SGOI (equipo SGOI + Dirección). -->
-        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes de SGOI">
+        <!-- Volantes: registro de volantes (equipos SGOI y SA + Dirección). -->
+        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes de SGOI y SA">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           <span class="sidebar-label">Volantes</span>
         </button>
@@ -5396,6 +5414,11 @@
     </div>
     <div class="volantes-toolbar">
       <button class="btn-nuevo" onclick="abrirNuevoVolante()">+ Nuevo Volante</button>
+      <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
+        <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
+        <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
+        <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
+      </div>
       <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
     </div>
     <div class="volantes-lista" id="volantesLista"></div>
@@ -6127,9 +6150,10 @@ function aplicarSesion() {
   if (acusesBtn) acusesBtn.style.display = esSgoi ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
   if (bibliotecaBtn) bibliotecaBtn.style.display = esSgoi ? '' : 'none';
-  // Volantes: todo el equipo de SGOI (incluidos enlaces) y la Dirección.
+  // Volantes: equipos de SGOI y SA (incluidos enlaces) y la Dirección.
   const volantesBtn = document.getElementById('sidebarVolantes');
-  if (volantesBtn) volantesBtn.style.display = (esSgoi || usuarioActual.rol === 'Director') ? '' : 'none';
+  const esSaUser = usuarioActual.subdireccion === 'SA';
+  if (volantesBtn) volantesBtn.style.display = (esSgoi || esSaUser || usuarioActual.rol === 'Director') ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -10793,6 +10817,16 @@ function renderizarVolantes() {
 
 function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVolantes(); }
 
+// ---- Filtro por ÁREA (SGOI / SA) de la lista de volantes ----
+// Los volantes viejos (sin columna area) cuentan como SGOI.
+let volFiltroArea = null;   // null = aún sin decidir; se toma del área del usuario al pintar
+function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
+function volSetArea(a) { volFiltroArea = a; volPintarFiltroArea(); pintarVolantes(); }
+function volPintarFiltroArea() {
+  document.querySelectorAll('#volFiltroAreaBox .vol-farea-btn').forEach(b =>
+    b.classList.toggle('activa', b.getAttribute('data-sub') === volFiltroArea));
+}
+
 // Clase de color de la píldora del tipo: Atención → rojo, Conocimiento → azul.
 function volTipoClase(tipo) {
   tipo = sinAcentos(String(tipo || '')).toLowerCase();
@@ -10803,7 +10837,14 @@ function volTipoClase(tipo) {
 function pintarVolantes() {
   const lista = document.getElementById('volantesLista');
   if (!lista) return;
+  // Primera vez: el filtro arranca en el área del usuario (Director ve Todas).
+  if (!volFiltroArea) {
+    const subU = usuarioActual ? usuarioActual.subdireccion : '';
+    volFiltroArea = subU === 'SA' ? 'SA' : (subU === 'SGOI' ? 'SGOI' : 'TODAS');
+    volPintarFiltroArea();
+  }
   let vs = VOLANTES.slice();
+  if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volAreaDe(v) === volFiltroArea);
   if (volBuscarTxt) {
     const q = sinAcentos(volBuscarTxt).toLowerCase();
     vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.asignado_a, v.referencia, v.tipo_atencion, v.creado_por]
@@ -10830,6 +10871,7 @@ function pintarVolantes() {
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante (acciones, hilo y bitácora)">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
+        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + volAreaDe(v) + '</span>' +
         (v.urgente ? '<span class="vol-urg">Urgente</span>' : '') +
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
         (v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
@@ -10903,7 +10945,7 @@ function pintarDetalleVolante() {
   document.getElementById('modal').innerHTML = `
     <div class="modal-header vol-header">
       <div class="vol-header-top">
-        <div class="modal-id" data-sub="SGOI">${escapeHtml(v.numero || 'VOLANTE')}</div>
+        <div class="modal-id" data-sub="${volAreaDe(v)}">${escapeHtml(v.numero || 'VOLANTE')}</div>
         <span class="vol-header-sep"></span>
         <div class="modal-header-acciones">
           <button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>
@@ -11248,12 +11290,12 @@ function volCambiarEstatus() {
   }).estatusVolante(SESION_TOKEN, v.id, nuevo);
 }
 
-// Nombres para las listas de Remitente / Turnado a / Asignado a: el equipo de
-// SGOI (de RESPONSABLES, perfiles activos) MÁS el historial de nombres que ya
-// se escribieron en volantes anteriores (remitentes externos, generales, etc.),
-// para volver a elegirlos sin tener que teclearlos otra vez. Como sale de la
-// base (VOLANTES), el historial le aparece a todo el equipo, no solo a quien
-// lo escribió.
+// Nombres para las listas de Remitente / Turnado a / Asignado a: los equipos
+// de SGOI y SA (de RESPONSABLES, perfiles activos) MÁS el historial de nombres
+// que ya se escribieron en volantes anteriores (remitentes externos, generales,
+// etc.), para volver a elegirlos sin tener que teclearlos otra vez. Como sale
+// de la base (VOLANTES), el historial le aparece a todo el equipo, no solo a
+// quien lo escribió.
 function volGenteSgoi() {
   const vistos = new Set();   // clave sin acentos/minúsculas → sin duplicados
   const lista = [];
@@ -11265,7 +11307,8 @@ function volGenteSgoi() {
     vistos.add(k); lista.push(n);
   };
   (RESPONSABLES || []).forEach(r => {
-    if (String((r && r.subdireccion) || '').toUpperCase() !== 'SGOI') return;
+    const sub = String((r && r.subdireccion) || '').toUpperCase();
+    if (sub !== 'SGOI' && sub !== 'SA') return;
     agregar(((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || ''));
   });
   (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); agregar(v.asignado_a); });
@@ -11329,6 +11372,14 @@ function volElegirTipo(btn, valor) {
   if (inp) inp.value = yaEstaba ? '' : valor;
   document.querySelectorAll('.vol-tipo-op').forEach(b => b.classList.remove('activa'));
   if (!yaEstaba) btn.classList.add('activa');
+}
+
+// Área del volante en el formulario (solo el Director ve los botones).
+function volElegirArea(btn, valor) {
+  const inp = document.getElementById('vol_area');
+  if (inp) inp.value = valor;
+  btn.parentElement.querySelectorAll('.vol-tipo-op').forEach(b => b.classList.remove('activa'));
+  btn.classList.add('activa');
 }
 
 function abrirNuevoVolante() { abrirFormVolante(null); }
@@ -11514,10 +11565,14 @@ function abrirFormVolante(v) {
     cargarBitacoraVolante(v.id);
   }
   const val = k => escapeHtml((v && v[k]) || '');
+  // Área del volante: al editar se conserva; al crear es la del usuario (SA→SA,
+  // resto→SGOI). El Director puede elegirla con los botones SGOI/SA.
+  const areaForm = v ? volAreaDe(v) : (usuarioActual && usuarioActual.subdireccion === 'SA' ? 'SA' : 'SGOI');
+  const eligeArea = !!(usuarioActual && usuarioActual.rol === 'Director');
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
-        <div class="modal-id" data-sub="SGOI">${v ? (escapeHtml(v.numero) || 'VOLANTE') : 'NUEVO VOLANTE'}</div>
+        <div class="modal-id" data-sub="${areaForm}">${v ? (escapeHtml(v.numero) || 'VOLANTE') : 'NUEVO VOLANTE'}</div>
         <div class="modal-titulo">${v ? 'Editar volante' : 'Captura de volante'}</div>
       </div>
       <button class="modal-cerrar" onclick="cerrarModal()">×</button>
@@ -11546,6 +11601,15 @@ function abrirFormVolante(v) {
             </div>
             <input type="hidden" id="vol_tipo" value="${val('tipo_atencion')}">
           </div>
+          ${eligeArea ? `
+          <div class="form-campo">
+            <label>Área</label>
+            <div class="vol-tipo-opciones">
+              <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOI</button>
+              <button type="button" class="vol-tipo-op ${areaForm === 'SA' ? 'activa' : ''}" onclick="volElegirArea(this, 'SA')">SA</button>
+            </div>
+          </div>` : ''}
+          <input type="hidden" id="vol_area" value="${areaForm}">
           <div class="form-campo">
             <label>Fecha de recepción</label>
             <input type="date" id="vol_fecha_recepcion" value="${(v && v.fecha_recepcion) || ''}" onclick="try{this.showPicker()}catch(e){}">
@@ -11560,7 +11624,7 @@ function abrirFormVolante(v) {
               <input type="text" id="vol_remitente" maxlength="200" autocomplete="off" value="${val('remitente')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
               <div class="vol-sugiere" id="vol_remitente_sug"></div>
             </div>
-            <div class="form-hint">Haz clic para ver a los de SGOI, o escribe un remitente externo.</div>
+            <div class="form-hint">Haz clic para ver al equipo (SGOI y SA), o escribe un remitente externo.</div>
           </div>
           <div class="form-campo">
             <label>Turnado a</label>
@@ -11651,7 +11715,8 @@ function guardarVolante() {
     referencia: (document.getElementById('vol_referencia').value || '').trim(),
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
     asunto: (document.getElementById('vol_asunto').value || '').trim(),
-    urgente: !!(document.getElementById('vol_urgente') && document.getElementById('vol_urgente').checked)
+    urgente: !!(document.getElementById('vol_urgente') && document.getElementById('vol_urgente').checked),
+    area: ((document.getElementById('vol_area') || {}).value || 'SGOI').toUpperCase()
   };
   // Acción a medio escribir en el input: se suma sola (como en Nueva Tarea no
   // se pierde lo que quedó en el renglón sin presionar +).
@@ -11684,7 +11749,8 @@ function guardarVolante() {
           numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
           fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
           turnado_a: datos.turnado_a, asignado_a: datos.asignado_a, referencia: datos.referencia,
-          tipo_atencion: datos.tipo_atencion, asunto: datos.asunto, urgente: datos.urgente
+          tipo_atencion: datos.tipo_atencion, asunto: datos.asunto, urgente: datos.urgente,
+          area: datos.area
         });
         if (datos.checklist) fila.checklist = datos.checklist;
         if (datos.adjuntos) fila.adjuntos = datos.adjuntos;

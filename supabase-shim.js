@@ -400,29 +400,27 @@
         remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
         asunto: d.asunto || '', urgente: !!d.urgente,
+        area: String(d.area || 'SGOI').toUpperCase(),
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
       // Acciones y adjuntos capturados desde el formulario.
       if (Array.isArray(d.checklist)) fila.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) fila.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').insert(fila).select('id').single();
-      // Si la base aún no tiene la columna asignado_a (falta re-correr volantes.sql),
-      // crea sin ella PERO SE AVISA — nunca perder el dato en silencio.
+      // Si a la base le falta alguna columna (no se ha re-corrido volantes.sql),
+      // se quita SOLO esa, se AVISA (nunca pérdida silenciosa) y se reintenta,
+      // las veces que haga falta si faltan varias.
       var aviso = '';
-      if (r.error && /asignado_a/i.test(r.error.message || '')) {
-        delete fila.asignado_a;
-        aviso = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
-        r = await sb.from('volantes').insert(fila).select('id').single();
-      }
-      if (r.error && /urgente/i.test(r.error.message || '')) {
-        delete fila.urgente;
-        aviso = (aviso ? aviso + ' ' : '') + 'El volante se guardó, pero "Urgente" NO: falta la columna urgente en la base (correr supabase/volantes.sql).';
-        r = await sb.from('volantes').insert(fila).select('id').single();
-      }
-      // Si la base aún no tiene esas columnas (falta re-correr volantes.sql), crea sin ellas.
-      if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
-        delete fila.checklist; delete fila.adjuntos;
-        aviso = (aviso ? aviso + ' ' : '') + 'Tampoco se guardaron acciones/adjuntos (faltan columnas en la base).';
+      var columnasOpc = ['asignado_a', 'urgente', 'area', 'checklist', 'adjuntos'];
+      var intentos = 0;
+      while (r.error && intentos++ < columnasOpc.length) {
+        var msg = r.error.message || '';
+        var col = columnasOpc.filter(function (c) {
+          return (c in fila) && new RegExp('\\b' + c + '\\b', 'i').test(msg);
+        })[0];
+        if (!col) break;
+        delete fila[col];
+        aviso = (aviso ? aviso + ' ' : '') + 'El volante se guardó, pero "' + col + '" NO: falta esa columna en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       if (r.error) {
@@ -440,29 +438,27 @@
         turnado_a: d.turnado_a || '', asignado_a: d.asignado_a || '',
         remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
-        asunto: d.asunto || '', urgente: !!d.urgente
+        asunto: d.asunto || '', urgente: !!d.urgente,
+        area: String(d.area || 'SGOI').toUpperCase()
       };
       // Checklist/adjuntos solo se mandan si el formulario los MODIFICÓ (evita
       // pisar cambios de otra persona con una copia local vieja).
       if (Array.isArray(d.checklist)) upd.checklist = d.checklist;
       if (Array.isArray(d.adjuntos)) upd.adjuntos = d.adjuntos;
       var r = await sb.from('volantes').update(upd).eq('id', id);
-      // Columna asignado_a ausente: se guarda el resto PERO SE AVISA — nunca
-      // perder el dato en silencio (así se detectó que faltaba correr el SQL).
+      // Columna ausente en la base: se quita SOLO esa, se AVISA (nunca pérdida
+      // silenciosa) y se reintenta, las veces que haga falta si faltan varias.
       var aviso2 = '';
-      if (r.error && /asignado_a/i.test(r.error.message || '')) {
-        delete upd.asignado_a;
-        aviso2 = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
-        r = await sb.from('volantes').update(upd).eq('id', id);
-      }
-      if (r.error && /urgente/i.test(r.error.message || '')) {
-        delete upd.urgente;
-        aviso2 = (aviso2 ? aviso2 + ' ' : '') + 'El volante se guardó, pero "Urgente" NO: falta la columna urgente en la base (correr supabase/volantes.sql).';
-        r = await sb.from('volantes').update(upd).eq('id', id);
-      }
-      if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
-        delete upd.checklist; delete upd.adjuntos;
-        aviso2 = (aviso2 ? aviso2 + ' ' : '') + 'Tampoco se guardaron acciones/adjuntos (faltan columnas en la base).';
+      var columnasOpc2 = ['asignado_a', 'urgente', 'area', 'checklist', 'adjuntos'];
+      var intentos2 = 0;
+      while (r.error && intentos2++ < columnasOpc2.length) {
+        var msg2 = r.error.message || '';
+        var col2 = columnasOpc2.filter(function (c) {
+          return (c in upd) && new RegExp('\\b' + c + '\\b', 'i').test(msg2);
+        })[0];
+        if (!col2) break;
+        delete upd[col2];
+        aviso2 = (aviso2 ? aviso2 + ' ' : '') + 'El volante se guardó, pero "' + col2 + '" NO: falta esa columna en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error) {
