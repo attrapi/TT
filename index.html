@@ -6086,8 +6086,9 @@ function aplicarSesion() {
   // Las JEFATURAS (jefes/jefas de departamento) solo manejan Bitácora dentro de
   // "Gestión": no tienen Reportes (eso es del Subdirector/Director).
   const esJefe = !!jefaturaCodigo(usuarioActual.jefatura);
+  // Reportes: no para jefes ni para el Staff de la Dirección (Tiffany).
   const btnReportes = document.querySelector('.sidebar-item[data-vista="reportes"]');
-  if (btnReportes) btnReportes.style.display = esJefe ? 'none' : '';
+  if (btnReportes) btnReportes.style.display = (esJefe || esEnlace()) ? 'none' : '';
 
   // "Enlaces" en el menú: para el subdirector (sin jefatura) o un enlace con
   // acceso completo, de CUALQUIER subdirección que tenga enlaces dados de alta.
