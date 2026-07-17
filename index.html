@@ -6086,9 +6086,12 @@ function aplicarSesion() {
   // Las JEFATURAS (jefes/jefas de departamento) solo manejan Bitácora dentro de
   // "Gestión": no tienen Reportes (eso es del Subdirector/Director).
   const esJefe = !!jefaturaCodigo(usuarioActual.jefatura);
-  // Reportes: no para jefes ni para el Staff de la Dirección (Tiffany).
+  // Reportes: OCULTO para todos por ahora (no se usa). La vista y la función
+  // siguen ahí: para reactivarlo, pon MOSTRAR_REPORTES = true y volverá a
+  // aparecer para todos salvo jefes y el Staff de la Dirección.
+  const MOSTRAR_REPORTES = false;
   const btnReportes = document.querySelector('.sidebar-item[data-vista="reportes"]');
-  if (btnReportes) btnReportes.style.display = (esJefe || esEnlace()) ? 'none' : '';
+  if (btnReportes) btnReportes.style.display = (MOSTRAR_REPORTES && !esJefe && !esEnlace()) ? '' : 'none';
 
   // "Enlaces" en el menú: para el subdirector (sin jefatura) o un enlace con
   // acceso completo, de CUALQUIER subdirección que tenga enlaces dados de alta.
