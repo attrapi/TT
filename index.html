@@ -11566,9 +11566,11 @@ function abrirFormVolante(v) {
   }
   const val = k => escapeHtml((v && v[k]) || '');
   // Área del volante: al editar se conserva; al crear es la del usuario (SA→SA,
-  // resto→SGOI). El Director puede elegirla con los botones SGOI/SA.
+  // resto→SGOI). Los botones SGOI/SA para elegirla los ven el Director y los
+  // enlaces de SGOI (Jacobo y Andrea), que capturan volantes de ambas áreas.
   const areaForm = v ? volAreaDe(v) : (usuarioActual && usuarioActual.subdireccion === 'SA' ? 'SA' : 'SGOI');
-  const eligeArea = !!(usuarioActual && usuarioActual.rol === 'Director');
+  const eligeArea = !!(usuarioActual && (usuarioActual.rol === 'Director' ||
+    (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI')));
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
