@@ -593,6 +593,58 @@
   .app-main[data-vista="volantes"] #cargaWrap,
   .app-main[data-vista="volantes"] #reportesWrap { display: none; }
   .app-main[data-vista="volantes"] #volantesWrap { display: block; }
+
+  /* === Sesión de Seguimiento (repaso en junta: Director + 3 subdirectores) === */
+  #seguimientoWrap { display: none; }
+  .app-main[data-vista="seguimiento"] .kpis,
+  .app-main[data-vista="seguimiento"] .tabs-wrap,
+  .app-main[data-vista="seguimiento"] .filtros,
+  .app-main[data-vista="seguimiento"] .filtros-acciones,
+  .app-main[data-vista="seguimiento"] #tablero,
+  .app-main[data-vista="seguimiento"] #calendarioWrap,
+  .app-main[data-vista="seguimiento"] #bitacoraWrap,
+  .app-main[data-vista="seguimiento"] #cargaWrap,
+  .app-main[data-vista="seguimiento"] #reportesWrap { display: none; }
+  .app-main[data-vista="seguimiento"] #seguimientoWrap { display: block; }
+  .seg-wrap { padding: 16px 24px 26px; }
+  .seg-cab { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 14px; }
+  .seg-cab h2 { margin: 0; }
+  .seg-fecha { color: var(--tinta-suave); font-size: 13px; }
+  .seg-cab-spacer { flex: 1; }
+  .seg-btn { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--tinta-suave); }
+  .seg-btn:hover { border-color: var(--guinda); color: var(--guinda); }
+  .seg-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; }
+  .seg-progreso { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; }
+  .seg-barra { flex: 1; height: 12px; border-radius: 999px; background: #eee; overflow: hidden; min-width: 120px; }
+  .seg-barra-fill { height: 100%; background: linear-gradient(90deg, #6b8e23, #4f611f); border-radius: 999px; transition: width .35s; }
+  .seg-progreso-txt { font-weight: 800; font-size: 15px; color: var(--tinta); white-space: nowrap; }
+  .seg-area { margin: 0 0 22px; }
+  .seg-area-titulo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 10px; }
+  .seg-area-pill { color: #fff; padding: 2px 9px; border-radius: 999px; font-size: 11px; }
+  .seg-area-pill[data-sub="SGOI"] { background: var(--sub-sgoi); }
+  .seg-area-pill[data-sub="SPAC"] { background: var(--sub-spac); }
+  .seg-area-pill[data-sub="SA"]   { background: var(--sub-sa); }
+  .seg-area-pill[data-sub="STAFF"], .seg-area-pill[data-sub="DPAC"], .seg-area-pill[data-sub="ENLACE"] { background: var(--guinda); }
+  .seg-area-conteo { color: var(--tinta-suave); font-weight: 600; font-size: 12px; }
+  .seg-card { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; background: #fff; margin: 0 0 10px; }
+  .seg-card.hecha { background: #f4f7ec; border-color: #cfe0a8; }
+  .seg-card-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .seg-card-id { font-family: 'SF Mono','Consolas',monospace; font-size: 11px; font-weight: 700; color: var(--tinta-suave); }
+  .seg-card-tema { font-weight: 700; font-size: 14.5px; color: var(--tinta); }
+  .seg-card-meta { color: var(--tinta-suave); font-size: 12.5px; margin-top: 3px; }
+  .seg-card-acuerdo { margin-top: 8px; }
+  .seg-card-acuerdo textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: var(--sans); resize: vertical; min-height: 38px; }
+  .seg-card-acuerdo textarea:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  .seg-card-acciones { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .seg-marcar { background: var(--verde, #166534); color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .seg-marcar:hover { filter: brightness(1.08); }
+  .seg-hecha-info { color: #4f611f; font-size: 12.5px; font-weight: 600; }
+  .seg-hecha-acuerdo { color: var(--tinta-suave); font-size: 12.5px; font-style: italic; margin-top: 4px; white-space: pre-wrap; }
+  .seg-deshacer { background: transparent; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--tinta-suave); }
+  .seg-deshacer:hover { border-color: var(--rojo, #b91c1c); color: var(--rojo, #b91c1c); }
+  .seg-abrir { background: transparent; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--tinta-suave); }
+  .seg-abrir:hover { border-color: var(--guinda); color: var(--guinda); }
+  .seg-vacio { color: var(--tinta-suave); text-align: center; padding: 40px 12px; }
   .volantes-wrap { padding: 16px 24px 26px; }
   .volantes-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
   .volantes-toolbar .filtros-buscar { flex: 1; min-width: 220px; }
@@ -5233,6 +5285,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           <span class="sidebar-label">Volantes</span>
         </button>
+        <!-- Seguimiento: repaso de tareas en junta (Director + 3 subdirectores). -->
+        <button class="sidebar-item" id="sidebarSeguimiento" style="display:none" data-vista="seguimiento" onclick="cambiarVista('seguimiento')" title="Sesión de seguimiento — repaso de tareas en la junta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span class="sidebar-label">Seguimiento</span>
+        </button>
         <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace), en prueba. -->
         <button class="sidebar-item" id="sidebarJuegoLopsrm" style="display:none" onclick="abrirJuegoLopsrm()" title="Reta a la Ley — quiz para aprender la LOPSRM">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>
@@ -5361,7 +5418,7 @@
       <option value="mes">Este mes</option>
       <option value="permanente">Permanentes</option>
     </select>
-    <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" onmouseenter="actualizarTituloNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 Seguimiento</button>
+    <button class="filtros-novistas" id="filtroNoVistas" onclick="cambiarVista('seguimiento')" title="Abrir la sesión de seguimiento: repasar las tareas una por una en la junta">👁 Seguimiento</button>
     <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
   </div>
@@ -5421,6 +5478,22 @@
       <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
     </div>
     <div class="volantes-lista" id="volantesLista"></div>
+  </div>
+
+  <!-- Vista: Sesión de Seguimiento (repaso en junta) -->
+  <div class="seg-wrap" id="seguimientoWrap">
+    <div class="seg-cab">
+      <h2>Sesión de seguimiento</h2>
+      <span class="seg-fecha" id="segFecha"></span>
+      <span class="seg-cab-spacer"></span>
+      <button class="seg-btn" id="segToggleHechas" onclick="segToggleVerHechas()" title="Mostrar u ocultar las tareas ya revisadas">Ocultar revisadas</button>
+      <button class="seg-btn" onclick="segReiniciar()" title="Empezar una sesión nueva: quita el ✓ de todas para volver a repasarlas">↺ Reiniciar sesión</button>
+    </div>
+    <div class="seg-progreso">
+      <div class="seg-barra"><div class="seg-barra-fill" id="segBarra" style="width:0%"></div></div>
+      <span class="seg-progreso-txt" id="segProgresoTxt">0 de 0 revisadas</span>
+    </div>
+    <div id="segLista"></div>
   </div>
 
   <!-- Vista: Carga por responsable -->
@@ -6165,6 +6238,12 @@ function aplicarSesion() {
   // Volantes: lo ve TODO el equipo (SGOI, SA, SPAC… y la Dirección).
   const volantesBtn = document.getElementById('sidebarVolantes');
   if (volantesBtn) volantesBtn.style.display = '';
+  // Seguimiento (repaso en junta): SOLO Director + los 3 subdirectores.
+  const segBtn = document.getElementById('sidebarSeguimiento');
+  if (segBtn) segBtn.style.display = esSeguimientoUser() ? '' : 'none';
+  // El botón "👁 Seguimiento" de la barra de filtros: mismo público que la vista.
+  const segToolbarBtn = document.getElementById('filtroNoVistas');
+  if (segToolbarBtn) segToolbarBtn.style.display = esSeguimientoUser() ? '' : 'none';
 
   cambiarTab(tabActiva);
 }
@@ -8255,7 +8334,7 @@ function cambiarTab(sub) {
   // subdirección, lo regresamos al Tablero (inicio) ANTES de renderizar. Así
   // los KPIs ("Pendientes por…") se pintan en el modo correcto y NO se quedan
   // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
-  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes'];
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes', 'seguimiento'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVista('tablero');
   }
@@ -10778,7 +10857,8 @@ function cambiarVista(v) {
     enlaces:    'Enlaces',
     papelera:   'Historial',
     asistencia: 'Asistencia',
-    volantes:   'Volantes'
+    volantes:   'Volantes',
+    seguimiento:'Sesión de seguimiento'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
 
@@ -10793,6 +10873,193 @@ function cambiarVista(v) {
   if (v === 'papelera')   renderizarPapelera();
   if (v === 'asistencia') renderizarAsistencia();
   if (v === 'volantes')   renderizarVolantes();
+  if (v === 'seguimiento') renderizarSeguimiento();
+}
+
+// ===================== SESIÓN DE SEGUIMIENTO (repaso en junta) =====================
+// Solo el Director y los 3 subdirectores. Repasan las tareas activas una por una
+// y marcan cada una con ✓ "Con seguimiento" + el acuerdo de la junta (queda en la
+// bitácora). El avance vive en la base (columnas seguimiento_* de `tareas`), así
+// que sobrevive recargas y todos ven lo mismo. Ver supabase/seguimiento.sql.
+let segVerHechas = true;   // mostrar también las ya revisadas
+
+// ¿El usuario puede usar Seguimiento? Director + subdirectores (SGOI/SPAC/SA),
+// sin jefatura y sin ser enlace. (= Adrián, Fabiola, Mario/Franca, Amanda.)
+function esSeguimientoUser() {
+  const u = usuarioActual;
+  if (!u) return false;
+  if (u.rol === 'Director') return true;
+  const sub = String(u.subdireccion || '').toUpperCase();
+  return u.rol === 'Capturista' && ['SGOI', 'SPAC', 'SA'].indexOf(sub) >= 0
+    && !jefaturaCodigo(u.jefatura) && !u.es_enlace;
+}
+
+function seguimientoHecho(t) { return !!(t && t.seguimiento_en); }
+
+// Columnas (áreas) de la sesión según el rol: el Director ve las 4; un
+// subdirector, solo su área.
+function segColumnas() {
+  const u = usuarioActual;
+  if (u && u.rol === 'Director') {
+    return [
+      { id: 'SGOI',  titulo: 'SGOI',  sub: 'SGOI',  filtro: t => t.subdireccion === 'SGOI' || tareaEnArea(t, 'SGOI') },
+      { id: 'SPAC',  titulo: 'SPAC',  sub: 'SPAC',  filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
+      { id: 'SA',    titulo: 'SA',    sub: 'SA',    filtro: t => t.subdireccion === 'SA'   || tareaEnArea(t, 'SA') },
+      { id: 'STAFF', titulo: 'Staff', sub: 'STAFF', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }
+    ];
+  }
+  const sub = String((u && u.subdireccion) || '').toUpperCase();
+  return [{ id: sub, titulo: sub, sub: sub, filtro: t => t.subdireccion === sub || tareaEnArea(t, sub) }];
+}
+
+// Tareas activas dentro del alcance del usuario (sin las archivadas/eliminadas).
+function segTareasBase() {
+  let base = (TAREAS || []).filter(t => t.estatus !== 'Archivada' && !t.eliminada);
+  if (usuarioActual && usuarioActual.rol === 'Director') {
+    base = base.filter(t => !tareaOcultaParaDirector(t));
+  }
+  return base;
+}
+
+function segToggleVerHechas() {
+  segVerHechas = !segVerHechas;
+  const b = document.getElementById('segToggleHechas');
+  if (b) b.textContent = segVerHechas ? 'Ocultar revisadas' : 'Mostrar revisadas';
+  renderizarSeguimiento();
+}
+
+function renderizarSeguimiento() {
+  const cont = document.getElementById('segLista');
+  if (!cont) return;
+  const fechaEl = document.getElementById('segFecha');
+  if (fechaEl) fechaEl.textContent = formatearFechaLarga(hoyStr);
+
+  const cols = segColumnas();
+  const base = segTareasBase();
+  const enAlcance = base.filter(t => cols.some(c => c.filtro(t)));
+  const total = enAlcance.length;
+  const hechas = enAlcance.filter(seguimientoHecho).length;
+
+  // Barra + texto de avance.
+  const barra = document.getElementById('segBarra');
+  if (barra) barra.style.width = (total ? Math.round(hechas / total * 100) : 0) + '%';
+  const txt = document.getElementById('segProgresoTxt');
+  if (txt) txt.textContent = hechas + ' de ' + total + ' revisadas';
+
+  const btnTog = document.getElementById('segToggleHechas');
+  if (btnTog) btnTog.textContent = segVerHechas ? 'Ocultar revisadas' : 'Mostrar revisadas';
+
+  if (!total) {
+    cont.innerHTML = '<div class="seg-vacio">No hay tareas activas para repasar.</div>';
+    return;
+  }
+
+  let html = '';
+  cols.forEach(col => {
+    let tareasCol = enAlcance.filter(col.filtro);
+    // Ya asignadas a una columna anterior no se repiten (una tarea, una vez).
+    tareasCol = tareasCol.filter(t => cols.find(c => c.filtro(t)) === col);
+    if (!tareasCol.length) return;
+    // Pendientes primero; luego las revisadas (si se muestran).
+    const pend = tareasCol.filter(t => !seguimientoHecho(t));
+    const done = segVerHechas ? tareasCol.filter(seguimientoHecho) : [];
+    const orden = pend.concat(done);
+    if (!orden.length) return;
+    const hCol = tareasCol.filter(seguimientoHecho).length;
+    html += '<div class="seg-area">' +
+      '<div class="seg-area-titulo">' +
+        '<span class="seg-area-pill" data-sub="' + col.sub + '">' + escapeHtml(col.titulo) + '</span>' +
+        '<span class="seg-area-conteo">' + hCol + ' de ' + tareasCol.length + ' revisadas</span>' +
+      '</div>' +
+      orden.map(segCardHTML).join('') +
+    '</div>';
+  });
+  cont.innerHTML = html || '<div class="seg-vacio">— sin tareas —</div>';
+}
+
+function segCardHTML(t) {
+  const hecho = seguimientoHecho(t);
+  const resp = t.responsable ? escapeHtml(nombreNiceResp(t.responsable)) : '—';
+  const fecha = (t.fecha_atencion || t.fecha_limite) ? formatearFechaCorta(t.fecha_atencion || t.fecha_limite) : (t.permanente ? 'Permanente' : '—');
+  const meta = 'Responsable: ' + resp + ' · Fecha: ' + fecha;
+  let cuerpo;
+  if (hecho) {
+    cuerpo =
+      '<div class="seg-hecha-info">✓ Con seguimiento — ' + escapeHtml(formatearNombre(t.seguimiento_por || '')) + '</div>' +
+      (t.seguimiento_acuerdo ? '<div class="seg-hecha-acuerdo">“' + escapeHtml(t.seguimiento_acuerdo) + '”</div>' : '') +
+      '<div class="seg-card-acciones">' +
+        '<button class="seg-deshacer" onclick="segQuitar(\'' + t.id + '\')" title="Quitar el ✓ para volver a repasarla">Deshacer</button>' +
+        '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
+      '</div>';
+  } else {
+    cuerpo =
+      '<div class="seg-card-acuerdo">' +
+        '<textarea id="seg-acuerdo-' + t.id + '" placeholder="Acuerdo de la junta (opcional): qué se dijo, qué sigue…"></textarea>' +
+      '</div>' +
+      '<div class="seg-card-acciones">' +
+        '<button class="seg-marcar" onclick="segMarcar(\'' + t.id + '\')">✓ Con seguimiento</button>' +
+        '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
+      '</div>';
+  }
+  return '<div class="seg-card' + (hecho ? ' hecha' : '') + '">' +
+    '<div class="seg-card-top">' +
+      '<span class="seg-card-id">' + escapeHtml(t.id) + '</span>' +
+      '<span class="seg-card-tema">' + escapeHtml(t.tema || t.titulo || '') + '</span>' +
+    '</div>' +
+    '<div class="seg-card-meta">' + meta + '</div>' +
+    cuerpo +
+  '</div>';
+}
+
+function segAbrirTarea(id) {
+  const t = (TAREAS || []).find(x => x.id === id);
+  if (t) abrirDetalle(t);
+}
+
+// Marca la tarea con ✓ + acuerdo. Optimista: pinta ya, guarda en la base y
+// registra el acuerdo en la bitácora de la tarea.
+function segMarcar(id) {
+  const t = (TAREAS || []).find(x => x.id === id);
+  if (!t) return;
+  const ta = document.getElementById('seg-acuerdo-' + id);
+  const acuerdo = ta ? (ta.value || '').trim() : '';
+  const miNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
+  t.seguimiento_en = new Date().toISOString();
+  t.seguimiento_por = miNombre;
+  t.seguimiento_acuerdo = acuerdo;
+  renderizarSeguimiento();
+  registrarEnBitacora({ accion: 'seguimiento', id_tarea: id, estatus_anterior: '', estatus_nuevo: '',
+    comentario: acuerdo ? ('Seguimiento (junta): ' + acuerdo) : 'Con seguimiento en la junta' });
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar el seguimiento', 'error'); }
+    })
+    .withFailureHandler(function (e) { toast('No se pudo guardar el seguimiento: ' + (e && e.message ? e.message : e), 'error'); })
+    .marcarSeguimiento(SESION_TOKEN, id, acuerdo);
+}
+
+function segQuitar(id) {
+  const t = (TAREAS || []).find(x => x.id === id);
+  if (!t) return;
+  t.seguimiento_en = ''; t.seguimiento_por = ''; t.seguimiento_acuerdo = '';
+  renderizarSeguimiento();
+  google.script.run
+    .withSuccessHandler(function () {})
+    .withFailureHandler(function () {})
+    .quitarSeguimiento(SESION_TOKEN, id);
+}
+
+function segReiniciar() {
+  const cols = segColumnas();
+  const ids = segTareasBase().filter(t => cols.some(c => c.filtro(t)) && seguimientoHecho(t)).map(t => t.id);
+  if (!ids.length) { toast('No hay tareas con seguimiento para reiniciar.', 'ok'); return; }
+  if (!confirm('¿Reiniciar la sesión? Se quitará el ✓ de las ' + ids.length + ' tareas ya revisadas para volver a repasarlas. (El acuerdo ya guardado en la bitácora NO se borra.)')) return;
+  ids.forEach(id => { const t = TAREAS.find(x => x.id === id); if (t) { t.seguimiento_en = ''; t.seguimiento_por = ''; t.seguimiento_acuerdo = ''; } });
+  renderizarSeguimiento();
+  google.script.run
+    .withSuccessHandler(function (res) { if (!res || !res.ok) toast((res && res.error) || 'No se pudo reiniciar', 'error'); })
+    .withFailureHandler(function (e) { toast('No se pudo reiniciar: ' + (e && e.message ? e.message : e), 'error'); })
+    .reiniciarSeguimiento(SESION_TOKEN, ids);
 }
 
 // ===================== VOLANTES (equipo SGOI + Dirección) =====================
@@ -15698,6 +15965,10 @@ window.ttRefrescar = function () {
         const fresca = TAREAS.find(x => x.id === _tAb.id);
         if (fresca) abrirDetalle(fresca);
       }
+      // Sesión de seguimiento abierta: repinta el avance en vivo (otro subdirector
+      // marcó una tarea). No repinta si estás escribiendo un acuerdo.
+      const _escSeg = document.activeElement && /^seg-acuerdo-/.test(document.activeElement.id || '');
+      if (vistaActiva === 'seguimiento' && !_escSeg && typeof renderizarSeguimiento === 'function') renderizarSeguimiento();
     });
     if (typeof cargarBitacora === 'function') cargarBitacora();
   } catch (e) {}

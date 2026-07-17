@@ -64,6 +64,9 @@ create table if not exists public.tareas (
   url                text not null default '',     -- adjunto principal (link de Google Drive)
   checklist          jsonb not null default '[]',  -- [{texto, check_resp, check_dir, adjunto, adjunto_nombre}]
   checklist_iniciado boolean not null default false, -- true = ya se gestionó; un checklist vacío ya NO se re-deriva del texto (ver checklist-item-rpc.sql)
+  seguimiento_en      timestamptz,               -- Sesión de seguimiento (repaso en junta); null = pendiente (ver seguimiento.sql)
+  seguimiento_por     text not null default '',
+  seguimiento_acuerdo text not null default '',
   observaciones_resp text not null default '',
   observaciones_dir  text not null default '',
   validada           boolean not null default false,

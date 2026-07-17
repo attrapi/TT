@@ -124,6 +124,7 @@
       creado_por: r.creado_por || '', fecha_creacion: '',
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       checklist_iniciado: !!r.checklist_iniciado,   // ya se gestionó el checklist → no re-derivar del texto
+      seguimiento_en: r.seguimiento_en || '', seguimiento_por: r.seguimiento_por || '', seguimiento_acuerdo: r.seguimiento_acuerdo || '',
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
       enlaces: (r.enlaces && typeof r.enlaces === 'object' && !Array.isArray(r.enlaces))
@@ -282,6 +283,37 @@
     },
     fijarEstatusHoja: async function (token, id, valor) {
       var r = await sb.from('tareas').update({ estatus: valor }).eq('codigo', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    // ---- SESIÓN DE SEGUIMIENTO (repaso en junta; ver supabase/seguimiento.sql) ----
+    // Marca la tarea con seguimiento (✓) + el acuerdo de la junta. Compartido en
+    // la base: sobrevive recargas y todos ven lo mismo.
+    marcarSeguimiento: async function (token, id, acuerdo) {
+      var upd = {
+        seguimiento_en: new Date().toISOString(),
+        seguimiento_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : '',
+        seguimiento_acuerdo: String(acuerdo || '')
+      };
+      var r = await sb.from('tareas').update(upd).eq('codigo', id);
+      if (r.error && /seguimiento_(en|por|acuerdo)/i.test(r.error.message || '')) {
+        return { ok: false, error: 'Falta correr supabase/seguimiento.sql en la base (columnas de seguimiento).' };
+      }
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    quitarSeguimiento: async function (token, id) {
+      var r = await sb.from('tareas').update({ seguimiento_en: null, seguimiento_por: '', seguimiento_acuerdo: '' }).eq('codigo', id);
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true };
+    },
+    // Reinicia la sesión: limpia el seguimiento de las tareas indicadas (o de todas
+    // si no se pasa lista). Se usa al empezar una junta nueva.
+    reiniciarSeguimiento: async function (token, ids) {
+      var q = sb.from('tareas').update({ seguimiento_en: null, seguimiento_por: '', seguimiento_acuerdo: '' });
+      if (Array.isArray(ids) && ids.length) q = q.in('codigo', ids);
+      else q = q.not('seguimiento_en', 'is', null);
+      var r = await q;
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },
