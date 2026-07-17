@@ -5364,10 +5364,6 @@
     <button class="filtros-novistas" id="filtroNoVistas" onclick="toggleNoVistas()" onmouseenter="actualizarTituloNoVistas()" title="Mostrar solo las tareas que NO has abierto en las últimas 24 h (se reinicia solo cada día)">👁 Seguimiento</button>
     <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
-    <button class="btn-exportar" id="btnExportar" onclick="exportarTareasCSV()" title="Descargar las tareas visibles (con los filtros actuales) en un archivo para Excel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <span>Exportar a Excel</span>
-    </button>
   </div>
 
   <div class="tablero" id="tablero"></div>
@@ -6070,9 +6066,15 @@ function aplicarSesion() {
   // Historial visible para TODOS los perfiles (cada quien ve solo lo suyo).
   if (btnHistorial) btnHistorial.style.display = '';
   if (enlaceUser) {
-    grupoDir.style.display = 'none';
-    // Staff de la Dirección (Tiffany): su item y su grupo se llaman "Staff"
-    // (no "Enlace"), pues es personal de la Dirección, no enlace de subdirección.
+    // Staff de la Dirección (Tiffany): dentro de "Gestión" ve SOLO "Organigrama"
+    // (Acuses, Biblioteca y Volantes se muestran aparte, más abajo). Su item y su
+    // grupo se llaman "Staff" (no "Enlace"): es personal de la Dirección.
+    if (grupoDir) {
+      grupoDir.style.display = '';
+      grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) {
+        b.style.display = (b.id === 'sidebarOrganigrama') ? '' : 'none';
+      });
+    }
     tituloSubs.textContent = 'Dirección';
     if (lblEnlace) lblEnlace.textContent = 'Staff';
   } else {
@@ -6149,12 +6151,13 @@ function aplicarSesion() {
   // Asistencia (tardanzas): SOLO Mario.
   const asisBtn = document.getElementById('sidebarAsistencia');
   if (asisBtn) asisBtn.style.display = esMarioFranco() ? '' : 'none';
-  // Acuses y Biblioteca: SOLO el equipo de SGOI (subdirectora, enlace y jefas).
+  // Acuses y Biblioteca: el equipo de SGOI y el Staff de la Dirección (Tiffany).
   const esSgoi = usuarioActual.subdireccion === 'SGOI';
+  const veAcusesBiblio = esSgoi || esEnlace();
   const acusesBtn = document.getElementById('sidebarAcusesSgoi');
-  if (acusesBtn) acusesBtn.style.display = esSgoi ? '' : 'none';
+  if (acusesBtn) acusesBtn.style.display = veAcusesBiblio ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
-  if (bibliotecaBtn) bibliotecaBtn.style.display = esSgoi ? '' : 'none';
+  if (bibliotecaBtn) bibliotecaBtn.style.display = veAcusesBiblio ? '' : 'none';
   // Volantes: lo ve TODO el equipo (SGOI, SA, SPAC… y la Dirección).
   const volantesBtn = document.getElementById('sidebarVolantes');
   if (volantesBtn) volantesBtn.style.display = '';
@@ -7694,9 +7697,13 @@ function columnasPorRol() {
     ];
   }
   if (esEnlace()) {
-    return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Enlace de Dirección',
+    // Staff de la Dirección: su única columna agrupa TODA la Dirección
+    // (DPAC + Enlace), igual que el conteo (tareasPapelera) y que la columna
+    // Staff del Director. Sin el DPAC, las validadas de la Dirección se contaban
+    // pero no se mostraban en el Historial.
+    return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección',
               color: 'morado',
-              filtro: t => t.subdireccion === 'ENLACE' || tareaEnArea(t, 'ENLACE') }];
+              filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }];
   }
   const sub = usuarioActual.subdireccion;
   const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
