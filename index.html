@@ -602,9 +602,20 @@
   .vol-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .vol-num { background: var(--guinda); color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .04em; padding: 3px 10px; border-radius: 8px; }
   .vol-tipo { background: rgba(29,78,216,0.12); color: #1e3a8a; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
-  /* Píldora del tipo con color propio: Atención (rojo) / Conocimiento (azul). */
-  .vol-tipo.atencion     { background: #fee2e2; color: #b91c1c; }
+  /* Píldora del tipo con color propio: Atención (verde olivo) / Conocimiento (azul). */
+  .vol-tipo.atencion     { background: rgba(107,142,35,0.16); color: #4f611f; }
   .vol-tipo.conocimiento { background: rgba(29,78,216,0.12); color: #1e3a8a; }
+  /* Píldora URGENTE: roja y palpitando (en tarjeta y detalle). */
+  .vol-urg {
+    background: #dc2626; color: #fff; font-size: 11px; font-weight: 800;
+    padding: 3px 8px; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase;
+    animation: vol-palpita 1.4s ease-in-out infinite;
+  }
+  @keyframes vol-palpita {
+    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(220,38,38,0.45); }
+    50%      { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .vol-urg { animation: none; } }
   .vol-cab-spacer { flex: 1; }
   .vol-btn { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--tinta); }
   .vol-btn:hover { border-color: var(--guinda); color: var(--guinda); }
@@ -639,8 +650,42 @@
   .vol-tipo-op:hover { border-color: var(--guinda); }
   .vol-tipo-op.activa { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); font-weight: 700; }
   /* Los botones del formulario toman el mismo color que la píldora de cada tipo. */
-  .vol-tipo-op.op-atencion.activa     { border-color: #b91c1c; background: #fee2e2; color: #b91c1c; }
+  .vol-tipo-op.op-atencion.activa     { border-color: #4f611f; background: rgba(107,142,35,0.14); color: #4f611f; }
   .vol-tipo-op.op-conocimiento.activa { border-color: #1e3a8a; background: rgba(29,78,216,0.10); color: #1e3a8a; }
+  /* Switch "Urgente" del pie del formulario: píldora-interruptor; al activarlo
+     una OLA roja recorre la píldora y el track queda rojo. */
+  .vol-urgente {
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none; margin-right: auto;   /* pegado a la izquierda */
+  }
+  .vol-urgente input { display: none; }
+  .vol-sw {
+    position: relative; width: 46px; height: 24px; flex: none;
+    border-radius: 999px; background: #d6d3d1; overflow: hidden;
+    transition: background .3s;
+  }
+  .vol-sw::before {   /* la perilla */
+    content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: left .25s; z-index: 2;
+  }
+  .vol-sw::after {    /* la ola roja al encender */
+    content: ''; position: absolute; inset: 0; border-radius: 999px;
+    background: radial-gradient(circle at 15% 50%, rgba(220,38,38,0.9), rgba(220,38,38,0) 65%);
+    transform: scale(0); transform-origin: left center; opacity: 0;
+  }
+  .vol-urgente input:checked + .vol-sw { background: #dc2626; }
+  .vol-urgente input:checked + .vol-sw::before { left: 25px; }
+  .vol-urgente input:checked + .vol-sw::after { animation: vol-ola .55s ease-out; }
+  @keyframes vol-ola {
+    0%   { transform: scale(0);   opacity: 1; }
+    100% { transform: scale(3); opacity: 0; }
+  }
+  .vol-urgente-txt {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--tinta-suave); transition: color .25s;
+  }
+  .vol-urgente input:checked ~ .vol-urgente-txt { color: #dc2626; }
   /* Menú de sugerencias propio para Remitente / Turnado a / Asignado a: sustituye
      al desplegable nativo del navegador (el "menú negro" del sistema) por una
      tarjeta blanca con el estilo de la app. */
@@ -10785,6 +10830,7 @@ function pintarVolantes() {
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante (acciones, hilo y bitácora)">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
+        (v.urgente ? '<span class="vol-urg">Urgente</span>' : '') +
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
         (v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
         '<span class="vol-cab-spacer"></span>' +
@@ -10866,6 +10912,7 @@ function pintarDetalleVolante() {
       </div>
       <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
       <div class="modal-meta">
+        ${v.urgente ? '<span class="vol-urg">Urgente</span>' : ''}
         <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
         ${v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : ''}
       </div>
@@ -11581,6 +11628,11 @@ function abrirFormVolante(v) {
       </div>
     </div>
     <div class="modal-acciones">
+      <label class="vol-urgente" title="Márcalo si el volante es urgente: se verá con una píldora roja">
+        <input type="checkbox" id="vol_urgente" ${v && v.urgente ? 'checked' : ''}>
+        <span class="vol-sw"></span>
+        <span class="vol-urgente-txt">Urgente</span>
+      </label>
       <button class="btn-modal" type="button" onclick="cerrarModal()">Cancelar</button>
       <button class="btn-modal btn-modal-primario" type="button" id="vol_btnGuardar" onclick="guardarVolante()">${v ? 'Guardar cambios' : 'Registrar volante'}</button>
     </div>`;
@@ -11598,7 +11650,8 @@ function guardarVolante() {
     asignado_a: (document.getElementById('vol_asignado').value || '').trim(),
     referencia: (document.getElementById('vol_referencia').value || '').trim(),
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
-    asunto: (document.getElementById('vol_asunto').value || '').trim()
+    asunto: (document.getElementById('vol_asunto').value || '').trim(),
+    urgente: !!(document.getElementById('vol_urgente') && document.getElementById('vol_urgente').checked)
   };
   // Acción a medio escribir en el input: se suma sola (como en Nueva Tarea no
   // se pierde lo que quedó en el renglón sin presionar +).
@@ -11631,7 +11684,7 @@ function guardarVolante() {
           numero: datos.numero, fecha_recepcion: datos.fecha_recepcion || null,
           fecha_documento: datos.fecha_documento || null, remitente: datos.remitente,
           turnado_a: datos.turnado_a, asignado_a: datos.asignado_a, referencia: datos.referencia,
-          tipo_atencion: datos.tipo_atencion, asunto: datos.asunto
+          tipo_atencion: datos.tipo_atencion, asunto: datos.asunto, urgente: datos.urgente
         });
         if (datos.checklist) fila.checklist = datos.checklist;
         if (datos.adjuntos) fila.adjuntos = datos.adjuntos;

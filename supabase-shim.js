@@ -399,7 +399,7 @@
         turnado_a: d.turnado_a || '', asignado_a: d.asignado_a || '',
         remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
-        asunto: d.asunto || '',
+        asunto: d.asunto || '', urgente: !!d.urgente,
         creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
       };
       // Acciones y adjuntos capturados desde el formulario.
@@ -412,6 +412,11 @@
       if (r.error && /asignado_a/i.test(r.error.message || '')) {
         delete fila.asignado_a;
         aviso = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
+        r = await sb.from('volantes').insert(fila).select('id').single();
+      }
+      if (r.error && /urgente/i.test(r.error.message || '')) {
+        delete fila.urgente;
+        aviso = (aviso ? aviso + ' ' : '') + 'El volante se guardó, pero "Urgente" NO: falta la columna urgente en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       // Si la base aún no tiene esas columnas (falta re-correr volantes.sql), crea sin ellas.
@@ -435,7 +440,7 @@
         turnado_a: d.turnado_a || '', asignado_a: d.asignado_a || '',
         remitente: d.remitente || '',
         referencia: d.referencia || '', tipo_atencion: d.tipo_atencion || '',
-        asunto: d.asunto || ''
+        asunto: d.asunto || '', urgente: !!d.urgente
       };
       // Checklist/adjuntos solo se mandan si el formulario los MODIFICÓ (evita
       // pisar cambios de otra persona con una copia local vieja).
@@ -448,6 +453,11 @@
       if (r.error && /asignado_a/i.test(r.error.message || '')) {
         delete upd.asignado_a;
         aviso2 = 'El volante se guardó, pero "Asignado a" NO: falta la columna asignado_a en la base (correr supabase/volantes.sql).';
+        r = await sb.from('volantes').update(upd).eq('id', id);
+      }
+      if (r.error && /urgente/i.test(r.error.message || '')) {
+        delete upd.urgente;
+        aviso2 = (aviso2 ? aviso2 + ' ' : '') + 'El volante se guardó, pero "Urgente" NO: falta la columna urgente en la base (correr supabase/volantes.sql).';
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error && /checklist|adjuntos/i.test(r.error.message || '')) {
