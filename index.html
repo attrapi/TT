@@ -602,6 +602,9 @@
   .vol-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .vol-num { background: var(--guinda); color: #fff; font-weight: 800; font-size: 13px; letter-spacing: .04em; padding: 3px 10px; border-radius: 8px; }
   .vol-tipo { background: rgba(29,78,216,0.12); color: #1e3a8a; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
+  /* Píldora del tipo con color propio: Atención (rojo) / Conocimiento (azul). */
+  .vol-tipo.atencion     { background: #fee2e2; color: #b91c1c; }
+  .vol-tipo.conocimiento { background: rgba(29,78,216,0.12); color: #1e3a8a; }
   .vol-cab-spacer { flex: 1; }
   .vol-btn { border: 1px solid var(--linea); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--tinta); }
   .vol-btn:hover { border-color: var(--guinda); color: var(--guinda); }
@@ -635,6 +638,9 @@
   .vol-tipo-op { flex: 1; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--tinta-suave); }
   .vol-tipo-op:hover { border-color: var(--guinda); }
   .vol-tipo-op.activa { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); font-weight: 700; }
+  /* Los botones del formulario toman el mismo color que la píldora de cada tipo. */
+  .vol-tipo-op.op-atencion.activa     { border-color: #b91c1c; background: #fee2e2; color: #b91c1c; }
+  .vol-tipo-op.op-conocimiento.activa { border-color: #1e3a8a; background: rgba(29,78,216,0.10); color: #1e3a8a; }
   /* Menú de sugerencias propio para Remitente / Turnado a / Asignado a: sustituye
      al desplegable nativo del navegador (el "menú negro" del sistema) por una
      tarjeta blanca con el estilo de la app. */
@@ -10742,6 +10748,13 @@ function renderizarVolantes() {
 
 function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVolantes(); }
 
+// Clase de color de la píldora del tipo: Atención → rojo, Conocimiento → azul.
+function volTipoClase(tipo) {
+  tipo = sinAcentos(String(tipo || '')).toLowerCase();
+  if (!tipo) return '';
+  return tipo.indexOf('aten') === 0 ? 'atencion' : 'conocimiento';
+}
+
 function pintarVolantes() {
   const lista = document.getElementById('volantesLista');
   if (!lista) return;
@@ -10773,7 +10786,7 @@ function pintarVolantes() {
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
-        (v.tipo_atencion ? '<span class="vol-tipo">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
+        (v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
         '<span class="vol-cab-spacer"></span>' +
         '<button class="vol-btn" onclick="event.stopPropagation(); abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle: acciones, hilo y bitácora">👁 Detalle</button>' +
         '<button class="vol-btn" onclick="event.stopPropagation(); abrirEditarVolante(\'' + v.id + '\')" title="Editar el volante">✏️ Editar</button>' +
@@ -10854,6 +10867,7 @@ function pintarDetalleVolante() {
       <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
       <div class="modal-meta">
         <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
+        ${v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : ''}
       </div>
     </div>
     <div class="modal-body">
@@ -11480,8 +11494,8 @@ function abrirFormVolante(v) {
           <div class="form-campo">
             <label>Tipo de atención</label>
             <div class="vol-tipo-opciones">
-              <button type="button" class="vol-tipo-op ${(v && v.tipo_atencion) === 'Atención' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Atención')">Atención</button>
-              <button type="button" class="vol-tipo-op ${(v && v.tipo_atencion) === 'Conocimiento' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Conocimiento')">Conocimiento</button>
+              <button type="button" class="vol-tipo-op op-atencion ${(v && v.tipo_atencion) === 'Atención' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Atención')">Atención</button>
+              <button type="button" class="vol-tipo-op op-conocimiento ${(v && v.tipo_atencion) === 'Conocimiento' ? 'activa' : ''}" onclick="volElegirTipo(this, 'Conocimiento')">Conocimiento</button>
             </div>
             <input type="hidden" id="vol_tipo" value="${val('tipo_atencion')}">
           </div>
