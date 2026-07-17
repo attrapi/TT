@@ -651,6 +651,23 @@
     cursor: pointer; color: var(--tinta);
   }
   .vol-sugiere-op:hover, .vol-sugiere-op.activa { background: var(--guinda-tenue); color: var(--guinda); }
+  /* Formulario del volante en DOS PARTES bien delimitadas: cada una en su
+     tarjeta con número, título y descripción. 1 = datos del volante (lo que
+     trae el documento); 2 = seguimiento (cómo se va a atender). */
+  .vol-parte { border: 1px solid var(--linea); border-radius: 12px; padding: 16px; background: #fff; }
+  .vol-parte + .vol-parte { margin-top: 18px; }
+  .vol-parte-cab {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed var(--linea);
+  }
+  .vol-parte-num {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--guinda); color: #fff; font-weight: 700; font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .vol-parte-titulo { font-weight: 700; font-size: 13.5px; color: var(--tinta); text-transform: uppercase; letter-spacing: 0.05em; }
+  .vol-parte-desc { font-size: 12.5px; color: var(--tinta-suave); margin-top: 2px; line-height: 1.45; }
+  .vol-parte .modal-seccion { margin-top: 14px; }
   /* Encabezado del detalle del volante: número + Editar + × en su propio
      renglón; el asunto va abajo y se extiende a TODO el ancho del modal. */
   .modal-header.vol-header { display: block; }
@@ -10819,7 +10836,6 @@ function pintarDetalleVolante() {
     ['Fecha del documento', v.fecha_documento ? formatearFechaLarga(v.fecha_documento) : '—'],
     ['Remitente', v.remitente || '—'],
     ['Turnado a', v.turnado_a || '—'],
-    ['Asignado a', v.asignado_a || '—'],
     ['Referencia', v.referencia || '—'],
     ['Tipo de atención', v.tipo_atencion || '—'],
     ['Registrado por', v.creado_por || '—']
@@ -10846,12 +10862,22 @@ function pintarDetalleVolante() {
           ${campos.map(c => '<dt>' + c[0] + '</dt><dd>' + escapeHtml(c[1]) + '</dd>').join('')}
         </dl>
         <div class="vol-det-adj">
-          <div class="modal-seccion-titulo">Documento (PDF)</div>
-          <div id="volDetAdjBox">${volDetAdjHTML(v)}</div>
-          <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar()">📎 Adjuntar PDF</button>
-          <input type="file" id="volDet_file" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files)">
+          <div class="modal-seccion-titulo">Volante</div>
+          <div id="volDetAdjBox">${volDetAdjHTML(v, false)}</div>
+          <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(false)">📎 Adjuntar PDF</button>
+          <input type="file" id="volDet_file" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, false)">
           <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.</div>
         </div>
+      </div>
+      <div class="modal-seccion modal-seccion-ancha vol-det-adj" style="margin-top:16px;">
+        <div class="modal-seccion-titulo">Asignación y respuesta</div>
+        <dl class="modal-campos vol-campos" style="margin-bottom:10px;">
+          <dt>Asignado a</dt><dd>${escapeHtml(v.asignado_a || '—')}</dd>
+        </dl>
+        <div id="volDetAdjBoxResp">${volDetAdjHTML(v, true)}</div>
+        <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(true)">📎 Adjuntar respuesta (PDF)</button>
+        <input type="file" id="volDet_file_resp" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, true)">
+        <div class="form-hint">El PDF de la respuesta que se dio al volante.</div>
       </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Acciones</div>
@@ -10994,28 +11020,38 @@ function volQuitarAccion(uid) {
 }
 
 // ---- Documento del volante (PDF) en el DETALLE: panel a la derecha de los datos ----
-function volDetAdjHTML(v) {
+// esResp=false: el PDF del VOLANTE (panel "Volante"); esResp=true: el PDF de
+// la RESPUESTA (sección "Asignación y respuesta"). Misma lista `adjuntos`,
+// la respuesta lleva la marca respuesta:true.
+function volDetAdjHTML(v, esResp) {
+  esResp = !!esResp;
   const adjs = Array.isArray(v.adjuntos) ? v.adjuntos : [];
-  if (!adjs.length) return '<div class="conv-vacio">— sin documento todavía —</div>';
-  return '<div class="volchk">' + adjs.map((a, i) =>
-    '<div class="volchk-item">' +
+  const filas = [];
+  adjs.forEach((a, i) => {
+    if (!!a.respuesta !== esResp) return;   // i = índice REAL en la lista completa
+    filas.push('<div class="volchk-item">' +
       '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener" title="Abrir ' + escapeHtml(a.nombre || 'documento') + '">📎 ' + escapeHtml(a.nombre || 'Documento') + '</a>' +
       '<span class="volchk-texto"></span>' +
       '<button type="button" class="volchk-x" title="Quitar el documento (se borra de Drive)" onclick="volDetQuitarAdjunto(' + i + ')">×</button>' +
-    '</div>').join('') + '</div>';
+    '</div>');
+  });
+  if (!filas.length) return '<div class="conv-vacio">— sin ' + (esResp ? 'respuesta' : 'documento') + ' todavía —</div>';
+  return '<div class="volchk">' + filas.join('') + '</div>';
 }
 function volDetRepintarAdj(v) {
   const box = document.getElementById('volDetAdjBox');
-  if (box) box.innerHTML = volDetAdjHTML(v);
+  if (box) box.innerHTML = volDetAdjHTML(v, false);
+  const boxR = document.getElementById('volDetAdjBoxResp');
+  if (boxR) boxR.innerHTML = volDetAdjHTML(v, true);
 }
-function volDetAdjuntar() {
-  const inp = document.getElementById('volDet_file');
+function volDetAdjuntar(esResp) {
+  const inp = document.getElementById(esResp ? 'volDet_file_resp' : 'volDet_file');
   if (inp) inp.click();
 }
-function volDetArchivoElegido(files) {
+function volDetArchivoElegido(files, esResp) {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
   const lista = Array.from(files || []);
-  const inp = document.getElementById('volDet_file');
+  const inp = document.getElementById(esResp ? 'volDet_file_resp' : 'volDet_file');
   if (inp) inp.value = '';
   if (!v || !lista.length) return;
   const siguiente = function () {
@@ -11027,13 +11063,15 @@ function volDetArchivoElegido(files) {
       const base64 = String(reader.result).split(',')[1] || '';
       google.script.run.withSuccessHandler(function (res) {
         if (!res || !res.ok) { toast('No se pudo subir ' + f.name + ': ' + ((res && res.error) || ''), 'error'); return; }
-        const nuevos = (Array.isArray(v.adjuntos) ? v.adjuntos : []).concat([{ url: res.url, nombre: res.nombre || f.name }]);
+        const nuevo = { url: res.url, nombre: res.nombre || f.name };
+        if (esResp) nuevo.respuesta = true;
+        const nuevos = (Array.isArray(v.adjuntos) ? v.adjuntos : []).concat([nuevo]);
         google.script.run.withSuccessHandler(function (r2) {
           if (!r2 || !r2.ok) { toast((r2 && r2.error) || 'No se pudo guardar el adjunto', 'error'); return; }
           v.adjuntos = nuevos;
           volDetRepintarAdj(v);
-          toast('Documento adjuntado', 'ok');
-          volRegistrarBita(v.id, 'adjunto_add', res.nombre || f.name, function () { cargarBitacoraVolante(v.id); });
+          toast(esResp ? 'Respuesta adjuntada' : 'Documento adjuntado', 'ok');
+          volRegistrarBita(v.id, 'adjunto_add', (esResp ? 'Respuesta — ' : '') + (res.nombre || f.name), function () { cargarBitacoraVolante(v.id); });
           siguiente();
         }).adjuntosVolante(SESION_TOKEN, v.id, nuevos);
       }).withFailureHandler(function (e) {
@@ -11315,9 +11353,14 @@ function volFormQuitarComentario(i) {
 }
 
 // ---- Adjuntos del volante en el FORMULARIO (se suben a Drive al guardar) ----
-function volFormAdjuntosHTML() {
+// Hay DOS espacios: el PDF del volante (bloque 1) y el PDF de la RESPUESTA
+// (bloque 2). Viven en la misma lista `adjuntos`; la respuesta se distingue
+// con la marca respuesta:true (y en archivos pendientes, f._esRespuesta).
+function volFormAdjuntosHTML(esResp) {
+  esResp = !!esResp;
   const filas = [];
   volFormAdjuntos.forEach((a, i) => {
+    if (!!a.respuesta !== esResp) return;   // i = índice REAL en la lista completa
     filas.push('<div class="volchk-item">' +
       '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">📎 ' + escapeHtml(a.nombre || 'Adjunto') + '</a>' +
       '<span class="volchk-texto"></span>' +
@@ -11325,20 +11368,24 @@ function volFormAdjuntosHTML() {
     '</div>');
   });
   volFormAdjuntosNuevos.forEach((f, i) => {
+    if (!!f._esRespuesta !== esResp) return;
     filas.push('<div class="volchk-item">' +
       '<span class="volchk-texto">📎 ' + escapeHtml(f.name) + ' <em style="color:var(--tinta-suave)">(se sube al guardar)</em></span>' +
       '<button type="button" class="volchk-x" title="Quitar" onclick="volFormQuitarAdjuntoNuevo(' + i + ')">×</button>' +
     '</div>');
   });
-  return filas.length ? '<div class="volchk">' + filas.join('') + '</div>' : '<div class="conv-vacio">— sin adjuntos todavía —</div>';
+  return filas.length ? '<div class="volchk">' + filas.join('') + '</div>'
+    : '<div class="conv-vacio">— sin ' + (esResp ? 'respuesta' : 'documento') + ' todavía —</div>';
 }
 function volFormRepintarAdjuntos() {
   const box = document.getElementById('volf_adjuntos');
-  if (box) box.innerHTML = volFormAdjuntosHTML();
+  if (box) box.innerHTML = volFormAdjuntosHTML(false);
+  const boxR = document.getElementById('volf_adjuntos_resp');
+  if (boxR) boxR.innerHTML = volFormAdjuntosHTML(true);
 }
-function volFormArchivos(files) {
-  Array.from(files || []).forEach(f => volFormAdjuntosNuevos.push(f));
-  const inp = document.getElementById('volf_file');
+function volFormArchivos(files, esResp) {
+  Array.from(files || []).forEach(f => { if (esResp) f._esRespuesta = true; volFormAdjuntosNuevos.push(f); });
+  const inp = document.getElementById(esResp ? 'volf_file_resp' : 'volf_file');
   if (inp) inp.value = '';
   volFormAdjuntosDirty = true;
   volFormRepintarAdjuntos();
@@ -11370,7 +11417,9 @@ function volSubirAdjuntosPendientes(cb) {
       const base64 = String(reader.result).split(',')[1] || '';
       google.script.run.withSuccessHandler(function (res) {
         if (!res || !res.ok) { toast('No se pudo subir ' + f.name + ': ' + ((res && res.error) || ''), 'error'); cb(null); return; }
-        subidos.push({ url: res.url, nombre: res.nombre || f.name });
+        const item = { url: res.url, nombre: res.nombre || f.name };
+        if (f._esRespuesta) item.respuesta = true;   // PDF de la RESPUESTA (bloque 2)
+        subidos.push(item);
         siguiente();
       }).withFailureHandler(function (e) {
         toast('Error al subir ' + f.name + ': ' + (e && e.message ? e.message : e), 'error'); cb(null);
@@ -11414,6 +11463,14 @@ function abrirFormVolante(v) {
     </div>
     <div class="modal-body">
       <form id="formVolante" onsubmit="event.preventDefault(); guardarVolante();">
+        <div class="vol-parte">
+          <div class="vol-parte-cab">
+            <span class="vol-parte-num">1</span>
+            <div>
+              <div class="vol-parte-titulo">Datos del volante</div>
+              <div class="vol-parte-desc">Lo que trae el documento: número, fechas, remitente, a quién se turna, asunto, acciones y su PDF.</div>
+            </div>
+          </div>
         <div class="form-grid">
           <div class="form-campo">
             <label>No. de volante <span class="req">*</span></label>
@@ -11451,13 +11508,6 @@ function abrirFormVolante(v) {
               <div class="vol-sugiere" id="vol_turnado_sug"></div>
             </div>
           </div>
-          <div class="form-campo">
-            <label>Asignado a</label>
-            <div class="vol-sugiere-box">
-              <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
-              <div class="vol-sugiere" id="vol_asignado_sug"></div>
-            </div>
-          </div>
           <div class="form-campo full">
             <label>Referencia</label>
             <input type="text" id="vol_referencia" maxlength="300" value="${val('referencia')}" placeholder="No. de oficio o referencia del documento">
@@ -11476,11 +11526,37 @@ function abrirFormVolante(v) {
             <div class="form-hint">Cada acción tendrá su casilla para palomearse cuando se atienda (y en el detalle se le puede adjuntar su evidencia).</div>
           </div>
           <div class="form-campo full">
-            <label>Adjuntos (Drive)</label>
-            <div id="volf_adjuntos">${volFormAdjuntosHTML()}</div>
+            <label>Volante (PDF)</label>
+            <div id="volf_adjuntos">${volFormAdjuntosHTML(false)}</div>
             <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file').click()">📎 Elegir archivos…</button>
             <input type="file" id="volf_file" multiple style="display:none" onchange="volFormArchivos(this.files)">
             <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.</div>
+          </div>
+        </div>
+        </div>
+        <div class="vol-parte">
+          <div class="vol-parte-cab">
+            <span class="vol-parte-num">2</span>
+            <div>
+              <div class="vol-parte-titulo">Asignación y respuesta</div>
+              <div class="vol-parte-desc">A quién se le asigna el volante y el PDF de la respuesta que se dé.</div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-campo full">
+              <label>Asignado a</label>
+              <div class="vol-sugiere-box">
+                <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
+                <div class="vol-sugiere" id="vol_asignado_sug"></div>
+              </div>
+            </div>
+            <div class="form-campo full">
+              <label>Respuesta (PDF)</label>
+              <div id="volf_adjuntos_resp">${volFormAdjuntosHTML(true)}</div>
+              <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file_resp').click()">📎 Elegir archivos…</button>
+              <input type="file" id="volf_file_resp" multiple style="display:none" onchange="volFormArchivos(this.files, true)">
+              <div class="form-hint">El PDF de la respuesta al volante. También se puede subir después, desde el detalle.</div>
+            </div>
           </div>
         </div>
       </form>
