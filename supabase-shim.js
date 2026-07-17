@@ -252,8 +252,17 @@
       if (datos.enlaces !== undefined) upd.enlaces = (datos.enlaces && typeof datos.enlaces === 'object') ? datos.enlaces : { links: [], desc: '' };
       // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
       // acciones agregadas/quitadas no se guardaban (solo cambiaba `accion`).
-      if (datos.checklist_json !== undefined) { try { upd.checklist = JSON.parse(datos.checklist_json || '[]'); } catch (e) {} }
+      // Al mandar el checklist se marca como GESTIONADO: lo que quede en Editar es
+      // exactamente lo que se ve en el modal, y un vacío ya NO se re-deriva del texto.
+      if (datos.checklist_json !== undefined) {
+        try { upd.checklist = JSON.parse(datos.checklist_json || '[]'); upd.checklist_iniciado = true; } catch (e) {}
+      }
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
+      // Columna nueva checklist_iniciado ausente (falta correr el SQL): reintenta sin ella.
+      if (r.error && /checklist_iniciado/i.test(r.error.message || '')) {
+        delete upd.checklist_iniciado;
+        r = await sb.from('tareas').update(upd).eq('codigo', id);
+      }
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
       if (r.error && /adjuntos|participantes|enlaces/i.test(r.error.message || '')) {
         delete upd.adjuntos; delete upd.participantes; delete upd.enlaces;
