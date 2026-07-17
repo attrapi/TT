@@ -6071,8 +6071,10 @@ function aplicarSesion() {
   if (btnHistorial) btnHistorial.style.display = '';
   if (enlaceUser) {
     grupoDir.style.display = 'none';
-    tituloSubs.textContent = 'Enlace de Subdirección';
-    if (lblEnlace) lblEnlace.textContent = 'Enlace';
+    // Staff de la Dirección (Tiffany): su item y su grupo se llaman "Staff"
+    // (no "Enlace"), pues es personal de la Dirección, no enlace de subdirección.
+    tituloSubs.textContent = 'Dirección';
+    if (lblEnlace) lblEnlace.textContent = 'Staff';
   } else {
     // Para el Director/otros perfiles el tab del Enlace se llama "Staff" (es la
     // misma columna que agrupa DPAC + Enlace en su tablero).
@@ -12075,7 +12077,9 @@ function tituloNavCompleto() {
     'SA': 'Subdirección de Archivo',
     'SGOI': 'Subdirección de Gestión de Obras Inducidas',
     'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-    'ENLACE': 'Staff'
+    // Staff de la Dirección: el título grande muestra el nombre de la Dirección
+    // (es personal de la Dirección). Su cargo/chip aparte ya dice "Staff".
+    'ENLACE': 'Dirección de Procesos Administrativos de Construcción'
   };
   const nombresJef = {
     'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
