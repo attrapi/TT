@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720e"></script>
+<script src="supabase-shim.js?v=20260720f"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -607,20 +607,55 @@
   .app-main[data-vista="seguimiento"] #reportesWrap { display: none; }
   .app-main[data-vista="seguimiento"] #seguimientoWrap { display: block; }
   .seg-wrap { padding: 16px 24px 26px; }
-  .seg-cab { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0 0 14px; }
-  .seg-cab h2 { margin: 0; }
-  .seg-fecha { color: var(--tinta-suave); font-size: 13px; }
-  .seg-cab-spacer { flex: 1; }
-  .seg-btn { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--tinta-suave); }
+
+  /* Panel de control de la sesión: título, fecha, acciones y los tres filtros
+     (área → proyecto → tema) viven juntos en una sola tarjeta, para que se lea
+     como un solo bloque y no como renglones sueltos. */
+  .seg-panel {
+    background: #fff; border: 1px solid var(--linea); border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
+    overflow: hidden; margin: 0 0 20px;
+  }
+  .seg-panel-top {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 16px 20px; background: linear-gradient(180deg, var(--crema), #fff);
+    border-bottom: 1px solid var(--linea);
+  }
+  .seg-panel-id { flex: 1; min-width: 200px; }
+  .seg-panel-id h2 {
+    margin: 0; font-size: 19px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px;
+  }
+  .seg-panel-id h2::before {
+    content: ''; width: 4px; height: 19px; border-radius: 999px; background: var(--guinda); flex: none;
+  }
+  .seg-fecha { display: block; color: var(--tinta-tenue); font-size: 12.5px; margin-top: 4px; padding-left: 13px; }
+  .seg-panel-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .seg-btn { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--tinta-suave); transition: border-color .12s, color .12s; }
   .seg-btn:hover { border-color: var(--guinda); color: var(--guinda); }
   .seg-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; }
   /* Filtros de la sesión: primero el área, luego (si es SGOI) el tema. */
-  .seg-filtro { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
-  .seg-filtro-etq { font-weight: 700; font-size: 13px; color: var(--tinta-suave); }
+  /* Cada filtro es un renglón con su etiqueta alineada a la izquierda, para que
+     Área / Proyecto / Tema se lean como una escalera y no como texto suelto. */
+  .seg-filtro {
+    display: grid; grid-template-columns: 92px 1fr; align-items: start; gap: 14px;
+    padding: 13px 20px;
+  }
+  /* Separador ARRIBA (no abajo): así la última fila visible nunca deja una
+     línea suelta pegada al borde del panel. */
+  .seg-filtro + .seg-filtro { border-top: 1px solid var(--linea); }
+  .seg-filtro-etq {
+    font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--tinta-tenue); padding-top: 7px;
+  }
   .seg-filtro-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 620px) {
+    .seg-filtro { grid-template-columns: 1fr; gap: 7px; padding: 12px 14px; }
+    .seg-filtro-etq { padding-top: 0; }
+    .seg-panel-top { padding: 14px; }
+  }
   .seg-pill-num { opacity: .65; font-weight: 600; font-size: 11px; }
-  .seg-progreso { display: flex; align-items: center; gap: 12px; margin: 6px 0 18px; }
-  .seg-barra { flex: 1; height: 12px; border-radius: 999px; background: #eee; overflow: hidden; min-width: 120px; }
+  .seg-progreso { display: flex; align-items: center; gap: 14px; padding: 14px 20px; background: var(--crema); border-top: 1px solid var(--linea); }
+  .seg-barra { flex: 1; height: 10px; border-radius: 999px; background: #e6e0d8; overflow: hidden; min-width: 120px; }
   .seg-barra-fill { height: 100%; background: linear-gradient(90deg, #6b8e23, #4f611f); border-radius: 999px; transition: width .35s; }
   .seg-progreso-txt { font-weight: 800; font-size: 15px; color: var(--tinta); white-space: nowrap; }
   .seg-area { margin: 0 0 22px; }
@@ -5536,32 +5571,39 @@
 
   <!-- Vista: Sesión de Seguimiento (repaso en junta) -->
   <div class="seg-wrap" id="seguimientoWrap">
-    <div class="seg-cab">
-      <h2>Sesión de seguimiento</h2>
-      <span class="seg-fecha" id="segFecha"></span>
-      <span class="seg-cab-spacer"></span>
-      <button class="seg-btn" id="segToggleHechas" onclick="segToggleVerHechas()" title="Mostrar u ocultar las tareas ya revisadas">Ocultar revisadas</button>
-      <button class="seg-btn" onclick="segReiniciar()" title="Empezar una sesión nueva: quita el ✓ de todas para volver a repasarlas">↺ Reiniciar sesión</button>
-    </div>
-    <!-- Paso 1: elegir el área que se va a repasar. Hasta que se elija una, no
-         se pinta ninguna tarjeta (así la junta repasa un área a la vez). -->
-    <div class="seg-filtro">
-      <span class="seg-filtro-etq">¿Qué área vamos a revisar?</span>
-      <div class="seg-filtro-pills" id="segAreaPills"></div>
-    </div>
-    <!-- Paso 2: acotar por proyecto (tramo ferroviario). Aplica a toda área. -->
-    <div class="seg-filtro" id="segProyFila" style="display:none">
-      <span class="seg-filtro-etq">Proyecto</span>
-      <div class="seg-filtro-pills" id="segProyPills"></div>
-    </div>
-    <!-- Paso 3 (solo SGOI): acotar por tema. Ej. SGOI → INAH - MMHH. -->
-    <div class="seg-filtro" id="segTemaFila" style="display:none">
-      <span class="seg-filtro-etq">Tema</span>
-      <div class="seg-filtro-pills" id="segTemaPills"></div>
-    </div>
-    <div class="seg-progreso" id="segProgreso" style="display:none">
-      <div class="seg-barra"><div class="seg-barra-fill" id="segBarra" style="width:0%"></div></div>
-      <span class="seg-progreso-txt" id="segProgresoTxt">0 de 0 revisadas</span>
+    <!-- Panel de control: título, fecha, acciones y los tres filtros encadenados
+         (área → proyecto → tema) en una sola tarjeta. -->
+    <div class="seg-panel">
+      <div class="seg-panel-top">
+        <div class="seg-panel-id">
+          <h2>Sesión de seguimiento</h2>
+          <span class="seg-fecha" id="segFecha"></span>
+        </div>
+        <div class="seg-panel-acciones">
+          <button class="seg-btn" id="segToggleHechas" onclick="segToggleVerHechas()" title="Mostrar u ocultar las tareas ya revisadas">Ocultar revisadas</button>
+          <button class="seg-btn" onclick="segReiniciar()" title="Empezar de nuevo: quita el ✓ del área que estás repasando">↺ Reiniciar</button>
+        </div>
+      </div>
+      <!-- Paso 1: elegir el área. Hasta que se elija una, no se pinta ninguna
+           tarjeta (así la junta repasa un área a la vez). -->
+      <div class="seg-filtro">
+        <span class="seg-filtro-etq">Área</span>
+        <div class="seg-filtro-pills" id="segAreaPills"></div>
+      </div>
+      <!-- Paso 2: acotar por proyecto (tramo ferroviario). Aplica a toda área. -->
+      <div class="seg-filtro" id="segProyFila" style="display:none">
+        <span class="seg-filtro-etq">Proyecto</span>
+        <div class="seg-filtro-pills" id="segProyPills"></div>
+      </div>
+      <!-- Paso 3 (solo SGOI): acotar por tema. Ej. SGOI → INAH - ARQ. -->
+      <div class="seg-filtro" id="segTemaFila" style="display:none">
+        <span class="seg-filtro-etq">Tema</span>
+        <div class="seg-filtro-pills" id="segTemaPills"></div>
+      </div>
+      <div class="seg-progreso" id="segProgreso" style="display:none">
+        <div class="seg-barra"><div class="seg-barra-fill" id="segBarra" style="width:0%"></div></div>
+        <span class="seg-progreso-txt" id="segProgresoTxt">0 de 0 revisadas</span>
+      </div>
     </div>
     <div id="segLista"></div>
   </div>
