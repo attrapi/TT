@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720a"></script>
+<script src="supabase-shim.js?v=20260720b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -9604,6 +9604,13 @@ function formatearFecha(f) {
   return d.getDate() + ' ' + MESES[d.getMonth()];
 }
 
+// La fecha de HOY como 'AAAA-MM-DD' (hora local, no UTC: si se usara
+// toISOString, después de las 18:00 en México ya marcaría el día siguiente).
+function hoyISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function formatearFechaLarga(f) {
   if (!f) return '—';
   const d = new Date(f + 'T00:00:00');
@@ -11139,7 +11146,7 @@ function renderizarSeguimiento() {
   const cont = document.getElementById('segLista');
   if (!cont) return;
   const fechaEl = document.getElementById('segFecha');
-  if (fechaEl) fechaEl.textContent = formatearFechaLarga(hoyStr);
+  if (fechaEl) fechaEl.textContent = formatearFechaLarga(hoyISO());
 
   // Acuerdos que alguien esté escribiendo: se guardan y se reponen después de
   // repintar, para que un refresco en vivo no borre lo tecleado en la junta.
