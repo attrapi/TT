@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260710b';
+  window.TT_SHIM_VERSION = '20260720a';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -124,6 +124,7 @@
       creado_por: r.creado_por || '', fecha_creacion: '',
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       checklist_iniciado: !!r.checklist_iniciado,   // ya se gestionó el checklist → no re-derivar del texto
+      temas: Array.isArray(r.temas) ? r.temas : [],   // píldoras de tema (SGOI); ver supabase/temas.sql
       seguimiento_en: r.seguimiento_en || '', seguimiento_por: r.seguimiento_por || '', seguimiento_acuerdo: r.seguimiento_acuerdo || '',
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
@@ -221,10 +222,11 @@
       if (Array.isArray(datos.participantes) && datos.participantes.length) fila.participantes = datos.participantes;
       if (Array.isArray(datos.adjuntos) && datos.adjuntos.length) fila.adjuntos = datos.adjuntos;
       if (datos.enlaces && ((Array.isArray(datos.enlaces.links) && datos.enlaces.links.length) || datos.enlaces.desc)) fila.enlaces = datos.enlaces;
+      if (Array.isArray(datos.temas) && datos.temas.length) fila.temas = datos.temas;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes|enlaces/i.test(r.error.message || '')) {
-        delete fila.adjuntos; delete fila.participantes; delete fila.enlaces;
+      if (r.error && /adjuntos|participantes|enlaces|temas/i.test(r.error.message || '')) {
+        delete fila.adjuntos; delete fila.participantes; delete fila.enlaces; delete fila.temas;
         r = await sb.from('tareas').insert(fila).select('codigo').single();
       }
       if (r.error) return { ok: false, error: r.error.message };
@@ -251,6 +253,7 @@
       if (datos.participantes !== undefined) upd.participantes = Array.isArray(datos.participantes) ? datos.participantes : [];
       if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
       if (datos.enlaces !== undefined) upd.enlaces = (datos.enlaces && typeof datos.enlaces === 'object') ? datos.enlaces : { links: [], desc: '' };
+      if (datos.temas !== undefined) upd.temas = Array.isArray(datos.temas) ? datos.temas : [];
       // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
       // acciones agregadas/quitadas no se guardaban (solo cambiaba `accion`).
       // Al mandar el checklist se marca como GESTIONADO: lo que quede en Editar es
@@ -265,8 +268,8 @@
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes|enlaces/i.test(r.error.message || '')) {
-        delete upd.adjuntos; delete upd.participantes; delete upd.enlaces;
+      if (r.error && /adjuntos|participantes|enlaces|temas/i.test(r.error.message || '')) {
+        delete upd.adjuntos; delete upd.participantes; delete upd.enlaces; delete upd.temas;
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       if (r.error) return { ok: false, error: r.error.message };
@@ -286,6 +289,30 @@
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },
+    // ---- CATÁLOGO DE TEMAS SGOI (píldoras; ver supabase/temas.sql) ----
+    // La lista es compartida: si alguien agrega una píldora, le aparece a todos.
+    listarTemasSgoi: async function (token) {
+      var r = await sb.from('temas_sgoi').select('nombre').order('nombre');
+      if (r.error) return { ok: false, error: r.error.message, temas: [] };
+      return { ok: true, temas: (r.data || []).map(function (x) { return x.nombre; }) };
+    },
+    // Agrega una píldora nueva al catálogo. Si ya existe (mismo nombre), no
+    // duplica: se devuelve ok igual y la app simplemente la selecciona.
+    agregarTemaSgoi: async function (token, nombre) {
+      var n = String(nombre || '').trim();
+      if (!n) return { ok: false, error: 'Escribe el nombre del tema.' };
+      var r = await sb.from('temas_sgoi')
+        .insert({ nombre: n, creado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : '' });
+      // 23505 = clave duplicada: la píldora ya estaba en el catálogo.
+      if (r.error && r.error.code !== '23505') {
+        if (/temas_sgoi/i.test(r.error.message || '')) {
+          return { ok: false, error: 'Falta correr supabase/temas.sql en la base (catálogo de temas).' };
+        }
+        return { ok: false, error: r.error.message };
+      }
+      return { ok: true, nombre: n };
+    },
+
     // ---- SESIÓN DE SEGUIMIENTO (repaso en junta; ver supabase/seguimiento.sql) ----
     // Marca la tarea con seguimiento (✓) + el acuerdo de la junta. Compartido en
     // la base: sobrevive recargas y todos ven lo mismo.

@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260710b"></script>
+<script src="supabase-shim.js?v=20260720a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -614,7 +614,12 @@
   .seg-btn { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--tinta-suave); }
   .seg-btn:hover { border-color: var(--guinda); color: var(--guinda); }
   .seg-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; }
-  .seg-progreso { display: flex; align-items: center; gap: 12px; margin: 0 0 18px; }
+  /* Filtros de la sesión: primero el área, luego (si es SGOI) el tema. */
+  .seg-filtro { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+  .seg-filtro-etq { font-weight: 700; font-size: 13px; color: var(--tinta-suave); }
+  .seg-filtro-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg-pill-num { opacity: .65; font-weight: 600; font-size: 11px; }
+  .seg-progreso { display: flex; align-items: center; gap: 12px; margin: 6px 0 18px; }
   .seg-barra { flex: 1; height: 12px; border-radius: 999px; background: #eee; overflow: hidden; min-width: 120px; }
   .seg-barra-fill { height: 100%; background: linear-gradient(90deg, #6b8e23, #4f611f); border-radius: 999px; transition: width .35s; }
   .seg-progreso-txt { font-weight: 800; font-size: 15px; color: var(--tinta); white-space: nowrap; }
@@ -3135,6 +3140,25 @@
   .area-chip input { margin: 0; accent-color: var(--guinda); }
   .area-chip:has(input:checked) { background: var(--guinda-tenue); border-color: var(--guinda); color: var(--guinda); font-weight: 600; }
 
+  /* Píldoras de tema de SGOI (Semarnat, CONAGUA, INAH…): en el formulario y en
+     el filtro de la Sesión de seguimiento. */
+  .temas-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tema-pill {
+    border: 1px solid var(--linea); background: #fff; color: var(--tinta);
+    border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-family: var(--sans);
+    cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+  }
+  .tema-pill:hover { border-color: var(--guinda); }
+  .tema-pill.on { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 600; }
+  .temas-nuevo { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .temas-nuevo input { flex: 1; min-width: 180px; }
+  /* Píldoras de tema mostradas (solo lectura) en una tarjeta de seguimiento. */
+  .seg-card-temas { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .seg-card-temas span {
+    background: var(--guinda-tenue); color: var(--guinda); border-radius: 999px;
+    padding: 2px 9px; font-size: 11px; font-weight: 600;
+  }
+
   .btn-liberar {
     width: 100%;
     background: var(--grafito);
@@ -5489,7 +5513,18 @@
       <button class="seg-btn" id="segToggleHechas" onclick="segToggleVerHechas()" title="Mostrar u ocultar las tareas ya revisadas">Ocultar revisadas</button>
       <button class="seg-btn" onclick="segReiniciar()" title="Empezar una sesión nueva: quita el ✓ de todas para volver a repasarlas">↺ Reiniciar sesión</button>
     </div>
-    <div class="seg-progreso">
+    <!-- Paso 1: elegir el área que se va a repasar. Hasta que se elija una, no
+         se pinta ninguna tarjeta (así la junta repasa un área a la vez). -->
+    <div class="seg-filtro">
+      <span class="seg-filtro-etq">¿Qué área vamos a revisar?</span>
+      <div class="seg-filtro-pills" id="segAreaPills"></div>
+    </div>
+    <!-- Paso 2 (solo SGOI): acotar por tema. Ej. SGOI → INAH - MMHH. -->
+    <div class="seg-filtro" id="segTemaFila" style="display:none">
+      <span class="seg-filtro-etq">Tema</span>
+      <div class="seg-filtro-pills" id="segTemaPills"></div>
+    </div>
+    <div class="seg-progreso" id="segProgreso" style="display:none">
       <div class="seg-barra"><div class="seg-barra-fill" id="segBarra" style="width:0%"></div></div>
       <span class="seg-progreso-txt" id="segProgresoTxt">0 de 0 revisadas</span>
     </div>
@@ -9293,6 +9328,8 @@ function abrirDetalle(t) {
       <dl class="modal-campos">
         <dt>Tema</dt>
         <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
+        ${temasDe(t).length ? `<dt>Tema de SGOI</dt>
+        <dd><div class="seg-card-temas" style="margin:0">${temasDe(t).map(n => '<span>' + escapeHtml(n) + '</span>').join('')}</div></dd>` : ''}
         <dt>Área responsable</dt>
         <dd>${escapeHtml(areaResponsable(t))}</dd>
         <dt>Responsable directo</dt>
@@ -10873,7 +10910,55 @@ function cambiarVista(v) {
   if (v === 'papelera')   renderizarPapelera();
   if (v === 'asistencia') renderizarAsistencia();
   if (v === 'volantes')   renderizarVolantes();
-  if (v === 'seguimiento') renderizarSeguimiento();
+  // Al ENTRAR a la sesión se toma una foto nueva del orden (pendientes primero).
+  // De ahí en adelante ya no se reordena hasta cambiar de área/tema.
+  if (v === 'seguimiento') { segRecalcularOrden(); renderizarSeguimiento(); }
+}
+
+// ===================== TEMAS DE SGOI (píldoras) =====================
+// Las tareas donde participa SGOI se etiquetan con uno o varios temas
+// (Semarnat - IA, CONAGUA, INAH - MMHH…). El catálogo es COMPARTIDO: vive en la
+// tabla `temas_sgoi` de Supabase (correr supabase/temas.sql), así que si alguien
+// agrega una píldora nueva, le aparece a todos. Sirven para filtrar la Sesión de
+// Seguimiento: eliges "SGOI → CONAGUA" y solo repasas ese bloque.
+const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'INAH - MMHH', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'PRIVADOS', 'OTROS'];
+let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
+
+// Los temas de una tarea, siempre como arreglo de textos.
+function temasDe(t) {
+  return (t && Array.isArray(t.temas)) ? t.temas.map(s => String(s || '').trim()).filter(Boolean) : [];
+}
+
+// Suma al catálogo los temas que ya traen las tareas cargadas. Red de seguridad:
+// si aún no se corre temas.sql, las píldoras usadas no desaparecen de la vista.
+function temasDesdeTAREAS() {
+  (TAREAS || []).forEach(t => temasDe(t).forEach(n => {
+    if (TEMAS_SGOI.indexOf(n) < 0) TEMAS_SGOI.push(n);
+  }));
+}
+
+// Carga el catálogo: primero del caché local (instantáneo), luego del servidor.
+// `cb` se llama cada vez que la lista cambia, para repintar quien la use.
+function cargarTemasSgoi(cb) {
+  try {
+    const c = JSON.parse(localStorage.getItem('tt_temas_sgoi_v1') || '[]');
+    if (Array.isArray(c) && c.length) TEMAS_SGOI = c.slice();
+  } catch (e) {}
+  TEMAS_SGOI_BASE.forEach(n => { if (TEMAS_SGOI.indexOf(n) < 0) TEMAS_SGOI.push(n); });
+  temasDesdeTAREAS();
+  if (typeof cb === 'function') cb();
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && res.ok && Array.isArray(res.temas) && res.temas.length) {
+        TEMAS_SGOI = res.temas.slice();
+        temasDesdeTAREAS();
+        try { localStorage.setItem('tt_temas_sgoi_v1', JSON.stringify(TEMAS_SGOI)); } catch (e) {}
+        if (typeof cb === 'function') cb();
+      }
+    })
+    .withFailureHandler(function () { /* se queda el caché/fallback ya armado */ })
+    .listarTemasSgoi(SESION_TOKEN);
 }
 
 // ===================== SESIÓN DE SEGUIMIENTO (repaso en junta) =====================
@@ -10881,7 +10966,14 @@ function cambiarVista(v) {
 // y marcan cada una con ✓ "Con seguimiento" + el acuerdo de la junta (queda en la
 // bitácora). El avance vive en la base (columnas seguimiento_* de `tareas`), así
 // que sobrevive recargas y todos ven lo mismo. Ver supabase/seguimiento.sql.
+// Flujo: (1) eliges el ÁREA a revisar, (2) si es SGOI puedes acotar por TEMA,
+// (3) se pinta la lista y la vas palomeando. El orden de las tarjetas se
+// congela al elegir los filtros: al marcar una NO se reordena la lista ni te
+// salta de lugar (solo se repinta esa tarjeta).
 let segVerHechas = true;   // mostrar también las ya revisadas
+let segArea = '';          // área elegida ('' = todavía ninguna → no se pinta nada)
+let segTemasFiltro = [];   // temas SGOI seleccionados ([] = todos)
+let segOrden = [];         // orden congelado: ids en el orden en que se pintaron
 
 // ¿El usuario puede usar Seguimiento? Director + subdirectores (SGOI/SPAC/SA),
 // sin jefatura y sin ser enlace. (= Adrián, Fabiola, Mario/Franca, Amanda.)
@@ -10896,9 +10988,9 @@ function esSeguimientoUser() {
 
 function seguimientoHecho(t) { return !!(t && t.seguimiento_en); }
 
-// Columnas (áreas) de la sesión según el rol: el Director ve las 4; un
-// subdirector, solo su área.
-function segColumnas() {
+// Áreas que el usuario puede repasar: el Director las 4; un subdirector, solo
+// la suya (y en ese caso se elige sola, sin dar clic).
+function segAreasDisponibles() {
   const u = usuarioActual;
   if (u && u.rol === 'Director') {
     return [
@@ -10909,7 +11001,13 @@ function segColumnas() {
     ];
   }
   const sub = String((u && u.subdireccion) || '').toUpperCase();
+  if (!sub) return [];
   return [{ id: sub, titulo: sub, sub: sub, filtro: t => t.subdireccion === sub || tareaEnArea(t, sub) }];
+}
+
+// El área elegida ahora mismo (objeto completo), o null si aún no se elige.
+function segAreaActual() {
+  return segAreasDisponibles().find(a => a.id === segArea) || null;
 }
 
 // Tareas activas dentro del alcance del usuario (sin las archivadas/eliminadas).
@@ -10923,9 +11021,118 @@ function segTareasBase() {
 
 function segToggleVerHechas() {
   segVerHechas = !segVerHechas;
-  const b = document.getElementById('segToggleHechas');
-  if (b) b.textContent = segVerHechas ? 'Ocultar revisadas' : 'Mostrar revisadas';
   renderizarSeguimiento();
+}
+
+// Las tareas del área elegida, ya acotadas por el filtro de tema (solo SGOI).
+function segTareasFiltradas() {
+  const area = segAreaActual();
+  if (!area) return [];
+  let lista = segTareasBase().filter(area.filtro);
+  if (segArea === 'SGOI' && segTemasFiltro.length) {
+    lista = lista.filter(function (t) {
+      const suyos = temasDe(t);
+      // La píldora "Sin tema" agrupa las que nadie ha etiquetado todavía.
+      if (segTemasFiltro.indexOf('__SIN__') >= 0 && !suyos.length) return true;
+      return suyos.some(n => segTemasFiltro.indexOf(n) >= 0);
+    });
+  }
+  return lista;
+}
+
+// Congela el orden de la lista: pendientes primero, luego las ya revisadas.
+// Se recalcula SOLO al cambiar de área o de tema. Así, al palomear una tarea
+// durante la junta, la tarjeta se queda exactamente donde está.
+function segRecalcularOrden() {
+  const lista = segTareasFiltradas();
+  segOrden = lista.filter(t => !seguimientoHecho(t))
+    .concat(lista.filter(seguimientoHecho))
+    .map(t => t.id);
+}
+
+function segSetArea(id) {
+  segArea = (segArea === id) ? '' : id;   // volver a dar clic la deselecciona
+  segTemasFiltro = [];                   // el filtro de tema es de SGOI: se limpia
+  segRecalcularOrden();
+  renderizarSeguimiento();
+}
+
+function segToggleTema(n) {
+  const i = segTemasFiltro.indexOf(n);
+  if (i >= 0) segTemasFiltro.splice(i, 1); else segTemasFiltro.push(n);
+  segRecalcularOrden();
+  renderizarSeguimiento();
+}
+
+function segLimpiarTemas() {
+  segTemasFiltro = [];
+  segRecalcularOrden();
+  renderizarSeguimiento();
+}
+
+// Píldoras de área (paso 1).
+function segRenderAreaPills(areas) {
+  const cont = document.getElementById('segAreaPills');
+  if (!cont) return;
+  cont.innerHTML = areas.map(function (a) {
+    const n = segTareasBase().filter(a.filtro).length;
+    return '<button type="button" class="tema-pill' + (segArea === a.id ? ' on' : '') +
+      '" data-area="' + escapeHtml(a.id) + '">' + escapeHtml(a.titulo) +
+      ' <span class="seg-pill-num">' + n + '</span></button>';
+  }).join('');
+  cont.onclick = function (ev) {
+    const b = ev.target.closest('[data-area]');
+    if (b) segSetArea(b.getAttribute('data-area'));
+  };
+}
+
+// Píldoras de tema (paso 2). Solo cuando el área elegida es SGOI.
+function segRenderTemaPills() {
+  const fila = document.getElementById('segTemaFila');
+  const cont = document.getElementById('segTemaPills');
+  if (!fila || !cont) return;
+  if (segArea !== 'SGOI') { fila.style.display = 'none'; return; }
+  fila.style.display = '';
+  const area = segAreaActual();
+  const delArea = area ? segTareasBase().filter(area.filtro) : [];
+  // Solo se ofrecen los temas que REALMENTE tiene alguna tarea del área: la
+  // fila de filtros no se llena de píldoras que no llevan a ningún lado.
+  const usados = [];
+  delArea.forEach(t => temasDe(t).forEach(n => { if (usados.indexOf(n) < 0) usados.push(n); }));
+  usados.sort();
+  const sinTema = delArea.filter(t => !temasDe(t).length).length;
+  let html = '<button type="button" class="tema-pill' + (segTemasFiltro.length ? '' : ' on') +
+    '" data-tema="__TODOS__">Todos <span class="seg-pill-num">' + delArea.length + '</span></button>';
+  html += usados.map(function (n) {
+    const c = delArea.filter(t => temasDe(t).indexOf(n) >= 0).length;
+    return '<button type="button" class="tema-pill' + (segTemasFiltro.indexOf(n) >= 0 ? ' on' : '') +
+      '" data-tema="' + escapeHtml(n) + '">' + escapeHtml(n) + ' <span class="seg-pill-num">' + c + '</span></button>';
+  }).join('');
+  if (sinTema) {
+    html += '<button type="button" class="tema-pill' + (segTemasFiltro.indexOf('__SIN__') >= 0 ? ' on' : '') +
+      '" data-tema="__SIN__" title="Tareas de SGOI a las que todavía no se les puso tema">Sin tema <span class="seg-pill-num">' + sinTema + '</span></button>';
+  }
+  if (!usados.length && !sinTema) {
+    html = '<span class="form-hint" style="margin:0">Todavía ninguna tarea de SGOI tiene tema. Se ponen al crear o editar la tarea.</span>';
+  }
+  cont.innerHTML = html;
+  cont.onclick = function (ev) {
+    const b = ev.target.closest('[data-tema]');
+    if (!b) return;
+    const n = b.getAttribute('data-tema');
+    if (n === '__TODOS__') segLimpiarTemas(); else segToggleTema(n);
+  };
+}
+
+// Barra de avance del área/tema que se está repasando.
+function segRepintarProgreso() {
+  const lista = segTareasFiltradas();
+  const total = lista.length;
+  const hechas = lista.filter(seguimientoHecho).length;
+  const barra = document.getElementById('segBarra');
+  if (barra) barra.style.width = (total ? Math.round(hechas / total * 100) : 0) + '%';
+  const txt = document.getElementById('segProgresoTxt');
+  if (txt) txt.textContent = hechas + ' de ' + total + ' revisadas';
 }
 
 function renderizarSeguimiento() {
@@ -10934,47 +11141,84 @@ function renderizarSeguimiento() {
   const fechaEl = document.getElementById('segFecha');
   if (fechaEl) fechaEl.textContent = formatearFechaLarga(hoyStr);
 
-  const cols = segColumnas();
-  const base = segTareasBase();
-  const enAlcance = base.filter(t => cols.some(c => c.filtro(t)));
-  const total = enAlcance.length;
-  const hechas = enAlcance.filter(seguimientoHecho).length;
+  // Acuerdos que alguien esté escribiendo: se guardan y se reponen después de
+  // repintar, para que un refresco en vivo no borre lo tecleado en la junta.
+  const escritos = {};
+  cont.querySelectorAll('textarea[id^="seg-acuerdo-"]').forEach(function (ta) {
+    if (ta.value) escritos[ta.id] = ta.value;
+  });
 
-  // Barra + texto de avance.
-  const barra = document.getElementById('segBarra');
-  if (barra) barra.style.width = (total ? Math.round(hechas / total * 100) : 0) + '%';
-  const txt = document.getElementById('segProgresoTxt');
-  if (txt) txt.textContent = hechas + ' de ' + total + ' revisadas';
+  const areas = segAreasDisponibles();
+  // Un subdirector solo tiene su área: se elige sola, sin dar clic.
+  if (!segArea && areas.length === 1) { segArea = areas[0].id; segRecalcularOrden(); }
+  segRenderAreaPills(areas);
+  segRenderTemaPills();
 
   const btnTog = document.getElementById('segToggleHechas');
   if (btnTog) btnTog.textContent = segVerHechas ? 'Ocultar revisadas' : 'Mostrar revisadas';
 
-  if (!total) {
-    cont.innerHTML = '<div class="seg-vacio">No hay tareas activas para repasar.</div>';
+  const prog = document.getElementById('segProgreso');
+  const area = segAreaActual();
+  if (!area) {
+    if (prog) prog.style.display = 'none';
+    cont.innerHTML = areas.length
+      ? '<div class="seg-vacio">Elige arriba el área que van a revisar en la junta.</div>'
+      : '<div class="seg-vacio">Tu usuario no tiene un área asignada para repasar.</div>';
+    return;
+  }
+  if (prog) prog.style.display = '';
+  segRepintarProgreso();
+
+  const lista = segTareasFiltradas();
+  if (!lista.length) {
+    // Estado vacío explicado: la causa se dice, no se deja la pantalla en blanco.
+    const totalArea = segTareasBase().filter(area.filtro).length;
+    let msg;
+    if (totalArea && segTemasFiltro.length) {
+      msg = 'No hay tareas de ' + area.titulo + ' con ese tema. Toca “Todos” para ver las ' + totalArea + ' del área.';
+    } else if (!totalArea) {
+      msg = 'No hay tareas activas en ' + area.titulo + '. Aquí solo se repasan las que siguen abiertas (las archivadas y las eliminadas no aparecen).';
+    } else {
+      msg = 'No hay nada que repasar en ' + area.titulo + '.';
+    }
+    cont.innerHTML = '<div class="seg-vacio">' + escapeHtml(msg) + '</div>';
     return;
   }
 
-  let html = '';
-  cols.forEach(col => {
-    let tareasCol = enAlcance.filter(col.filtro);
-    // Ya asignadas a una columna anterior no se repiten (una tarea, una vez).
-    tareasCol = tareasCol.filter(t => cols.find(c => c.filtro(t)) === col);
-    if (!tareasCol.length) return;
-    // Pendientes primero; luego las revisadas (si se muestran).
-    const pend = tareasCol.filter(t => !seguimientoHecho(t));
-    const done = segVerHechas ? tareasCol.filter(seguimientoHecho) : [];
-    const orden = pend.concat(done);
-    if (!orden.length) return;
-    const hCol = tareasCol.filter(seguimientoHecho).length;
-    html += '<div class="seg-area">' +
-      '<div class="seg-area-titulo">' +
-        '<span class="seg-area-pill" data-sub="' + col.sub + '">' + escapeHtml(col.titulo) + '</span>' +
-        '<span class="seg-area-conteo">' + hCol + ' de ' + tareasCol.length + ' revisadas</span>' +
-      '</div>' +
-      orden.map(segCardHTML).join('') +
-    '</div>';
+  // Orden CONGELADO (ver segRecalcularOrden). Las tareas que no estaban en la
+  // foto (recién creadas por alguien más) se van al final, sin mover el resto.
+  if (!segOrden.length) segRecalcularOrden();
+  const pos = {};
+  segOrden.forEach(function (id, i) { pos[id] = i; });
+  const ordenadas = lista.slice().sort(function (a, b) {
+    const pa = (pos[a.id] === undefined) ? 99999 : pos[a.id];
+    const pb = (pos[b.id] === undefined) ? 99999 : pos[b.id];
+    return pa - pb;
   });
-  cont.innerHTML = html || '<div class="seg-vacio">— sin tareas —</div>';
+  const visibles = segVerHechas ? ordenadas : ordenadas.filter(t => !seguimientoHecho(t));
+
+  cont.innerHTML = visibles.length
+    ? '<div class="seg-area">' + visibles.map(segCardHTML).join('') + '</div>'
+    : '<div class="seg-vacio">Ya revisaron todo en ' + escapeHtml(area.titulo) + '. Toca “Mostrar revisadas” para verlas.</div>';
+
+  // Repone los acuerdos a medio escribir.
+  Object.keys(escritos).forEach(function (id) {
+    const ta = document.getElementById(id);
+    if (ta) ta.value = escritos[id];
+  });
+}
+
+// Repinta UNA sola tarjeta (la que se acaba de palomear o deshacer), sin tocar
+// las demás. Es lo que evita que la lista se te mueva mientras revisas.
+function segRepintarCard(id) {
+  const nodo = document.getElementById('seg-card-' + id);
+  if (!nodo) return;
+  const t = (TAREAS || []).find(x => x.id === id);
+  // Si está oculto el bloque de revisadas y esta acaba de marcarse, desaparece.
+  if (!t || (!segVerHechas && seguimientoHecho(t))) { nodo.remove(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = segCardHTML(t);
+  if (tmp.firstElementChild) nodo.replaceWith(tmp.firstElementChild);
 }
 
 function segCardHTML(t) {
@@ -11001,12 +11245,19 @@ function segCardHTML(t) {
         '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
       '</div>';
   }
-  return '<div class="seg-card' + (hecho ? ' hecha' : '') + '">' +
+  // Píldoras de tema de la tarea (solo lectura): en la junta se ve de un vistazo
+  // si es de CONAGUA, INAH, etc.
+  const pills = temasDe(t);
+  const pillsHTML = pills.length
+    ? '<div class="seg-card-temas">' + pills.map(n => '<span>' + escapeHtml(n) + '</span>').join('') + '</div>'
+    : '';
+  return '<div class="seg-card' + (hecho ? ' hecha' : '') + '" id="seg-card-' + escapeHtml(t.id) + '">' +
     '<div class="seg-card-top">' +
       '<span class="seg-card-id">' + escapeHtml(t.id) + '</span>' +
       '<span class="seg-card-tema">' + escapeHtml(t.tema || t.titulo || '') + '</span>' +
     '</div>' +
     '<div class="seg-card-meta">' + meta + '</div>' +
+    pillsHTML +
     cuerpo +
   '</div>';
 }
@@ -11027,7 +11278,10 @@ function segMarcar(id) {
   t.seguimiento_en = new Date().toISOString();
   t.seguimiento_por = miNombre;
   t.seguimiento_acuerdo = acuerdo;
-  renderizarSeguimiento();
+  // Solo esta tarjeta + la barra. NO se repinta la lista: el orden está
+  // congelado y las demás tarjetas no se mueven de su lugar.
+  segRepintarCard(id);
+  segRepintarProgreso();
   registrarEnBitacora({ accion: 'seguimiento', id_tarea: id, estatus_anterior: '', estatus_nuevo: '',
     comentario: acuerdo ? ('Seguimiento (junta): ' + acuerdo) : 'Con seguimiento en la junta' });
   google.script.run
@@ -11042,19 +11296,24 @@ function segQuitar(id) {
   const t = (TAREAS || []).find(x => x.id === id);
   if (!t) return;
   t.seguimiento_en = ''; t.seguimiento_por = ''; t.seguimiento_acuerdo = '';
-  renderizarSeguimiento();
+  segRepintarCard(id);
+  segRepintarProgreso();
   google.script.run
     .withSuccessHandler(function () {})
     .withFailureHandler(function () {})
     .quitarSeguimiento(SESION_TOKEN, id);
 }
 
+// Reinicia SOLO lo que estás repasando (el área y el tema elegidos): así se
+// puede empezar de nuevo con SGOI sin borrar el avance de SPAC.
 function segReiniciar() {
-  const cols = segColumnas();
-  const ids = segTareasBase().filter(t => cols.some(c => c.filtro(t)) && seguimientoHecho(t)).map(t => t.id);
-  if (!ids.length) { toast('No hay tareas con seguimiento para reiniciar.', 'ok'); return; }
-  if (!confirm('¿Reiniciar la sesión? Se quitará el ✓ de las ' + ids.length + ' tareas ya revisadas para volver a repasarlas. (El acuerdo ya guardado en la bitácora NO se borra.)')) return;
+  const area = segAreaActual();
+  if (!area) { toast('Primero elige el área que quieres reiniciar.', 'error'); return; }
+  const ids = segTareasFiltradas().filter(seguimientoHecho).map(t => t.id);
+  if (!ids.length) { toast('No hay tareas con seguimiento para reiniciar en ' + area.titulo + '.', 'ok'); return; }
+  if (!confirm('¿Reiniciar el repaso de ' + area.titulo + '? Se quitará el ✓ de las ' + ids.length + ' tareas ya revisadas para volver a verlas. (El acuerdo ya guardado en la bitácora NO se borra.)')) return;
   ids.forEach(id => { const t = TAREAS.find(x => x.id === id); if (t) { t.seguimiento_en = ''; t.seguimiento_por = ''; t.seguimiento_acuerdo = ''; } });
+  segRecalcularOrden();
   renderizarSeguimiento();
   google.script.run
     .withSuccessHandler(function (res) { if (!res || !res.ok) toast((res && res.error) || 'No se pudo reiniciar', 'error'); })
@@ -14258,6 +14517,19 @@ function abrirNuevaTarea(tEdit) {
             <input type="text" id="nt_tema" required maxlength="200" value="${escapeHtml(valTema)}" placeholder="Ej. Matriz de licitaciones">
           </div>
 
+          <!-- Píldoras de tema de SGOI. Solo se muestran si SGOI (o una de sus
+               jefaturas) está marcada como área responsable — lo maneja
+               sincTemasVisibles(). Sirven para filtrar la Sesión de seguimiento. -->
+          <div class="form-campo full" id="nt_temas_wrap" style="display:none">
+            <label>Tema de SGOI</label>
+            <div class="temas-pills" id="nt_temas_pills"></div>
+            <div class="temas-nuevo">
+              <input type="text" id="nt_tema_nuevo" maxlength="60" placeholder="Nombre de un tema nuevo…" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarTemaPildora();}">
+              <button type="button" class="acciones-agregar-btn" onclick="agregarTemaPildora()">+ Agregar píldora</button>
+            </div>
+            <div class="form-hint">Marca los temas que le apliquen (puede ser más de uno). Con esto puedes filtrar en la Sesión de seguimiento, p. ej. “SGOI → CONAGUA”. La píldora que agregues queda disponible para todos.</div>
+          </div>
+
           ${campoSub}
 
           <div class="form-campo">
@@ -14345,6 +14617,72 @@ function abrirNuevaTarea(tEdit) {
   renderAdjuntosForm();        // pinta la lista de adjuntos (existentes/nuevos)
   renderResponsablesForm();    // pinta los selectores de responsable(s)
   renderEnlacesForm();         // pinta las filas de enlaces de reunión
+  // Píldoras de tema (SGOI): estado inicial + aparecen/desaparecen según se
+  // marque o desmarque SGOI en "Área responsable".
+  temasForm = ed ? temasDe(ed) : [];
+  const _asig = document.getElementById('nt_asignar');
+  if (_asig) _asig.addEventListener('change', sincTemasVisibles);
+  cargarTemasSgoi(sincTemasVisibles);
+}
+
+// === Píldoras de tema de SGOI en el formulario ===
+// Temas marcados en el formulario abierto (varios por tarea).
+let temasForm = [];
+
+// Muestra u oculta el bloque de píldoras según si SGOI participa en la tarea, y
+// lo repinta. Se llama al abrir el formulario y cada vez que cambian los chips
+// de "Área responsable".
+function sincTemasVisibles() {
+  const wrap = document.getElementById('nt_temas_wrap');
+  if (!wrap) return;
+  const marcados = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
+  const haySGOI = ['SGOI', 'JDGA', 'JDGOI'].some(c => marcados.indexOf(c) >= 0);
+  wrap.style.display = haySGOI ? '' : 'none';
+  if (haySGOI) renderTemasForm();
+}
+
+function renderTemasForm() {
+  const cont = document.getElementById('nt_temas_pills');
+  if (!cont) return;
+  // Los temas que la tarea ya trae pero que no estén en el catálogo se pintan
+  // igual (no se pierde una etiqueta vieja).
+  const lista = TEMAS_SGOI.slice();
+  temasForm.forEach(n => { if (lista.indexOf(n) < 0) lista.push(n); });
+  cont.innerHTML = lista.map(n =>
+    '<button type="button" class="tema-pill' + (temasForm.indexOf(n) >= 0 ? ' on' : '') +
+    '" data-tema="' + escapeHtml(n) + '">' + escapeHtml(n) + '</button>'
+  ).join('') || '<span class="form-hint" style="margin:0">Aún no hay temas. Agrega el primero abajo.</span>';
+  cont.onclick = function (ev) {
+    const b = ev.target.closest('.tema-pill');
+    if (!b) return;
+    const n = b.getAttribute('data-tema');
+    const i = temasForm.indexOf(n);
+    if (i >= 0) temasForm.splice(i, 1); else temasForm.push(n);
+    renderTemasForm();
+  };
+}
+
+// Agrega una píldora nueva al catálogo COMPARTIDO y la deja marcada en la tarea.
+// Si ya existía (aunque con otras mayúsculas), solo la marca: no se duplica.
+function agregarTemaPildora() {
+  const inp = document.getElementById('nt_tema_nuevo');
+  if (!inp) return;
+  const escrito = (inp.value || '').trim();
+  if (!escrito) return;
+  const yaExiste = TEMAS_SGOI.find(x => x.toLowerCase() === escrito.toLowerCase());
+  const nombre = yaExiste || escrito;
+  if (!yaExiste) TEMAS_SGOI.push(nombre);
+  if (temasForm.indexOf(nombre) < 0) temasForm.push(nombre);
+  inp.value = '';
+  renderTemasForm();
+  try { localStorage.setItem('tt_temas_sgoi_v1', JSON.stringify(TEMAS_SGOI)); } catch (e) {}
+  if (yaExiste || !enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) toast((res && res.error) || 'No se pudo guardar el tema nuevo', 'error');
+    })
+    .withFailureHandler(function (e) { toast('No se pudo guardar el tema: ' + (e && e.message ? e.message : e), 'error'); })
+    .agregarTemaSgoi(SESION_TOKEN, nombre);
 }
 
 // ¿El usuario puede EDITAR esta tarea? (mismo criterio que eliminar: el
@@ -14784,7 +15122,10 @@ function guardarNuevaTarea() {
     nivel: nivelElegido,
     jefatura: jefaturaElegida,
     participantes,
-    responsable, tema, areas, acuerdos, accion, fecha, enlaces
+    responsable, tema, areas, acuerdos, accion, fecha, enlaces,
+    // Píldoras de tema: solo tienen sentido si SGOI participa. Si se desmarcó
+    // SGOI, la tarea se guarda sin temas.
+    temas: participantes.some(c => ['SGOI', 'JDGA', 'JDGOI'].indexOf(c) >= 0) ? temasForm.slice() : []
   };
   // Al EDITAR, el editor de Acciones cambia el texto, pero lo que se MUESTRA es el
   // `checklist`. Si no lo enviamos, las acciones agregadas/quitadas/editadas no se
@@ -14839,7 +15180,8 @@ function guardarNuevaTarea() {
         subdireccion: sub, nivel: nivelElegido, jefatura: jefaturaElegida, participantes,
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
-        fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url, enlaces: enlaces
+        fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url, enlaces: enlaces,
+        temas: datos.temas
       });
       tareaEditando.checklist = mergearChecklist(tareaEditando.checklist || [], accion);
       const idEd = tareaEditando.id; tareaEditando = null;
@@ -14851,6 +15193,7 @@ function guardarNuevaTarea() {
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         descripcion: acuerdos, observaciones: accion, enlaces: enlaces,
+        temas: datos.temas,
         tipo: 'Otro', proyecto: 'Otro', prioridad: 'Media',
         fecha_atencion: fecha, fecha_limite: fecha,
         fecha_creacion: ahoraStamp(),   // habilita la píldora "Nueva" (48 h) en demo
