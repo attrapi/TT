@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260720b';
+  window.TT_SHIM_VERSION = '20260720c';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -125,6 +125,7 @@
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       checklist_iniciado: !!r.checklist_iniciado,   // ya se gestionó el checklist → no re-derivar del texto
       temas: Array.isArray(r.temas) ? r.temas : [],   // píldoras de tema (SGOI); ver supabase/temas.sql
+      proyecto: r.proyecto || '', tramo: r.tramo || '',   // tramo ferroviario; ver supabase/proyectos.sql
       seguimiento_en: r.seguimiento_en || '', seguimiento_por: r.seguimiento_por || '', seguimiento_acuerdo: r.seguimiento_acuerdo || '',
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
@@ -223,10 +224,13 @@
       if (Array.isArray(datos.adjuntos) && datos.adjuntos.length) fila.adjuntos = datos.adjuntos;
       if (datos.enlaces && ((Array.isArray(datos.enlaces.links) && datos.enlaces.links.length) || datos.enlaces.desc)) fila.enlaces = datos.enlaces;
       if (Array.isArray(datos.temas) && datos.temas.length) fila.temas = datos.temas;
+      if (datos.proyecto) fila.proyecto = datos.proyecto;
+      if (datos.tramo) fila.tramo = datos.tramo;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes|enlaces|temas/i.test(r.error.message || '')) {
+      if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete fila.adjuntos; delete fila.participantes; delete fila.enlaces; delete fila.temas;
+        delete fila.proyecto; delete fila.tramo;
         r = await sb.from('tareas').insert(fila).select('codigo').single();
       }
       if (r.error) return { ok: false, error: r.error.message };
@@ -254,6 +258,8 @@
       if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
       if (datos.enlaces !== undefined) upd.enlaces = (datos.enlaces && typeof datos.enlaces === 'object') ? datos.enlaces : { links: [], desc: '' };
       if (datos.temas !== undefined) upd.temas = Array.isArray(datos.temas) ? datos.temas : [];
+      if (datos.proyecto !== undefined) upd.proyecto = String(datos.proyecto || '');   // '' = quitar el proyecto
+      if (datos.tramo !== undefined) upd.tramo = String(datos.tramo || '');
       // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
       // acciones agregadas/quitadas no se guardaban (solo cambiaba `accion`).
       // Al mandar el checklist se marca como GESTIONADO: lo que quede en Editar es
@@ -268,8 +274,9 @@
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
-      if (r.error && /adjuntos|participantes|enlaces|temas/i.test(r.error.message || '')) {
+      if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete upd.adjuntos; delete upd.participantes; delete upd.enlaces; delete upd.temas;
+        delete upd.proyecto; delete upd.tramo;
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       if (r.error) return { ok: false, error: r.error.message };
