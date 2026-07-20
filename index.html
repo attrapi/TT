@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720d"></script>
+<script src="supabase-shim.js?v=20260720e"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -3152,7 +3152,9 @@
   .tema-pill.on { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 600; }
   /* Selector de proyecto: dos columnas (Fase I / Fase II), se elige UNA opción
      de cualquiera de las dos. */
-  .fases-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .fases-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  /* Cada columna puede llevar varios bloques apilados (der.: Fase II + DEFENSA). */
+  .fase-col-wrap { display: flex; flex-direction: column; gap: 14px; }
   .fase-col {
     border: 1px solid var(--linea); border-radius: 12px; padding: 12px;
     background: var(--crema); display: flex; flex-direction: column; gap: 7px;
@@ -9362,7 +9364,7 @@ function abrirDetalle(t) {
         <dt>Tema</dt>
         <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
         ${proyectoDe(t) ? `<dt>Proyecto</dt>
-        <dd><div class="seg-card-temas" style="margin:0"><span>${escapeHtml(proyectoDe(t))}</span>${faseDeProyecto(proyectoDe(t)) ? '<span class="pill-fase">' + escapeHtml(faseDeProyecto(proyectoDe(t))) + '</span>' : ''}</div></dd>` : ''}
+        <dd><div class="seg-card-temas" style="margin:0"><span>${escapeHtml(proyectoDe(t))}</span>${faseVisibleDe(proyectoDe(t)) ? '<span class="pill-fase">' + escapeHtml(faseVisibleDe(proyectoDe(t))) + '</span>' : ''}</div></dd>` : ''}
         ${temasDe(t).length ? `<dt>Tema de SGOI</dt>
         <dd><div class="seg-card-temas" style="margin:0">${temasDe(t).map(n => '<span>' + escapeHtml(n) + '</span>').join('')}</div></dd>` : ''}
         <dt>Área responsable</dt>
@@ -10962,9 +10964,12 @@ function cambiarVista(v) {
 // (institucional), por eso vive aquí y no en la base; en la base solo se guarda
 // cuál le tocó a cada tarea (columna `proyecto`, ver supabase/proyectos.sql).
 // Más adelante se sumará el TRAMO dentro de cada proyecto.
+// `col` = en cuál de las dos columnas se dibuja el bloque. Fase I llena la
+// izquierda; Fase II y DEFENSA comparten la derecha (Fase II tiene menos
+// tramos, así que DEFENSA aprovecha el hueco que sobraba abajo).
 const PROYECTOS_FASES = [
   {
-    fase: 'Fase I',
+    fase: 'Fase I', col: 0,
     proyectos: [
       'AIFA - Pachuca',
       'México - Querétaro',
@@ -10975,12 +10980,19 @@ const PROYECTOS_FASES = [
     ]
   },
   {
-    fase: 'Fase II',
+    fase: 'Fase II', col: 1,
     proyectos: [
       'Querétaro - San Luis Potosí',
       'San Luis Potosí - Saltillo',
       'Irapuato - Guadalajara'
     ]
+  },
+  {
+    // DEFENSA no pertenece a ninguna fase: es su propio bloque. Por ahora tiene
+    // una sola opción; si más adelante se abre en varios proyectos, se agregan
+    // aquí y el resto (formulario, filtros, chips) funciona igual.
+    fase: 'DEFENSA', col: 1,
+    proyectos: ['DEFENSA']
   }
 ];
 
@@ -10996,6 +11008,13 @@ function proyectoDe(t) { return (t && t.proyecto) ? String(t.proyecto) : ''; }
 function faseDeProyecto(nombre) {
   const g = PROYECTOS_FASES.find(x => x.proyectos.indexOf(nombre) >= 0);
   return g ? g.fase : '';
+}
+
+// La fase para MOSTRAR junto al nombre del proyecto. Vacía cuando el bloque se
+// llama igual que su única opción (DEFENSA), para no pintar "DEFENSA DEFENSA".
+function faseVisibleDe(nombre) {
+  const f = faseDeProyecto(nombre);
+  return (f && f !== nombre) ? f : '';
 }
 
 // ===================== TEMAS DE SGOI (píldoras) =====================
@@ -11191,7 +11210,7 @@ function segRenderProyPills() {
     '" data-proy="__TODOS__">Todos <span class="seg-pill-num">' + delArea.length + '</span></button>';
   html += usados.map(function (p) {
     const c = delArea.filter(t => proyectoDe(t) === p).length;
-    const fase = faseDeProyecto(p);
+    const fase = faseVisibleDe(p);
     return '<button type="button" class="tema-pill' + (segProyFiltro.indexOf(p) >= 0 ? ' on' : '') +
       '" data-proy="' + escapeHtml(p) + '"' + (fase ? ' title="' + escapeHtml(fase) + '"' : '') + '>' +
       escapeHtml(p) + ' <span class="seg-pill-num">' + c + '</span></button>';
@@ -11419,7 +11438,7 @@ function segCardHTML(t) {
   const proy = proyectoDe(t);
   const chips = [];
   if (proy) {
-    const fase = faseDeProyecto(proy);
+    const fase = faseVisibleDe(proy);
     chips.push('<span class="chip-proy">' + escapeHtml(proy) +
       (fase ? ' <em>' + escapeHtml(fase) + '</em>' : '') + '</span>');
   }
@@ -14819,14 +14838,24 @@ let proyectoForm = '';
 function renderProyectoForm() {
   const cont = document.getElementById('nt_proyecto');
   if (!cont) return;
-  cont.innerHTML = PROYECTOS_FASES.map(function (g) {
-    return '<div class="fase-col">' +
-      '<div class="fase-col-titulo">' + escapeHtml(g.fase) + '</div>' +
-      g.proyectos.map(function (p) {
-        return '<button type="button" class="fase-opt' + (proyectoForm === p ? ' on' : '') +
-          '" data-proy="' + escapeHtml(p) + '">' + escapeHtml(p) + '</button>';
-      }).join('') +
-    '</div>';
+  // Se dibuja por COLUMNAS: cada columna puede llevar más de un bloque
+  // (la derecha lleva Fase II y abajo DEFENSA).
+  const columnas = [];
+  PROYECTOS_FASES.forEach(function (g) {
+    const i = g.col || 0;
+    if (!columnas[i]) columnas[i] = [];
+    columnas[i].push(g);
+  });
+  cont.innerHTML = columnas.map(function (grupos) {
+    return '<div class="fase-col-wrap">' + grupos.map(function (g) {
+      return '<div class="fase-col">' +
+        '<div class="fase-col-titulo">' + escapeHtml(g.fase) + '</div>' +
+        g.proyectos.map(function (p) {
+          return '<button type="button" class="fase-opt' + (proyectoForm === p ? ' on' : '') +
+            '" data-proy="' + escapeHtml(p) + '">' + escapeHtml(p) + '</button>';
+        }).join('') +
+      '</div>';
+    }).join('') + '</div>';
   }).join('');
   cont.onclick = function (ev) {
     const b = ev.target.closest('[data-proy]');
