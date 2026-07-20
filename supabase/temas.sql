@@ -40,6 +40,7 @@ create policy temas_sgoi_insertar on public.temas_sgoi
 insert into public.temas_sgoi (nombre) values
   ('Semarnat - IA'),
   ('Semarnat - CUSF'),
+  ('INAH - ARQ'),
   ('INAH - MMHH'),
   ('CONAGUA'),
   ('CFE'),
