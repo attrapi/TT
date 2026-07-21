@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720k"></script>
+<script src="supabase-shim.js?v=20260720l"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -3424,6 +3424,53 @@
   /* ===== Comentarios (hilo de conversación de la tarea) ===== */
   .conv-hilo { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
   /* Arroba (@) en el hilo: menú de sugerencias + resaltado de la mención. */
+  /* ===== Campanita de notificaciones ===== */
+  .notif-wrap { position: relative; }
+  .notif-btn {
+    background: none; border: none; cursor: pointer; color: #fff; opacity: .9;
+    padding: 6px; display: flex; align-items: center; position: relative; border-radius: 8px;
+  }
+  .notif-btn:hover { opacity: 1; background: rgba(255,255,255,.12); }
+  .notif-btn svg { width: 21px; height: 21px; }
+  .notif-badge {
+    position: absolute; top: 0; right: 0; min-width: 17px; height: 17px; padding: 0 4px;
+    background: #e11d48; color: #fff; border-radius: 999px; font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .notif-panel {
+    display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 370px;
+    background: #fff; border: 1px solid var(--linea); border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.20); z-index: 5000; overflow: hidden;
+  }
+  .notif-panel.activo { display: block; }
+  .notif-panel-cab {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--linea);
+    font-weight: 800; font-size: 13.5px; color: var(--tinta); background: var(--crema);
+  }
+  .notif-leer { background: none; border: none; color: var(--guinda); font-weight: 700; font-size: 12px; cursor: pointer; font-family: var(--sans); }
+  .notif-leer:hover { text-decoration: underline; }
+  .notif-lista { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
+  .notif-item {
+    display: flex; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--linea);
+    cursor: pointer; background: #fff;
+  }
+  .notif-item:hover { background: var(--guinda-tenue); }
+  .notif-item.nueva { background: #fff8e6; }
+  .notif-item.nueva:hover { background: #fdf0d0; }
+  .notif-ico { font-size: 16px; line-height: 1.3; flex: none; }
+  .notif-cuerpo { min-width: 0; }
+  .notif-titulo { font-weight: 700; font-size: 13px; color: var(--tinta); }
+  .notif-detalle {
+    font-size: 12.5px; color: var(--tinta-suave); margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .notif-meta { font-size: 11px; color: var(--tinta-tenue); margin-top: 3px; }
+  .notif-vacio { padding: 30px 16px; text-align: center; color: var(--tinta-tenue); font-size: 13px; }
+  @media (max-width: 620px) {
+    .notif-panel { position: fixed; top: 58px; right: 8px; left: 8px; width: auto; }
+  }
+
   .arroba-menu { position: fixed; z-index: 6000; background: #fff; border: 1px solid var(--linea); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); max-height: 220px; overflow-y: auto; display: none; }
   .arroba-item { padding: 8px 12px; font-size: 13px; cursor: pointer; color: var(--tinta); white-space: nowrap; }
   .arroba-item:hover { background: var(--guinda-tenue); color: var(--guinda); }
@@ -5329,6 +5376,20 @@
         <span id="navTitulo">Tablero de Tareas</span>
       </div>
       <div class="nav-right">
+        <!-- Campanita: notificaciones de la sesión (ver notificacionesDeUsuario). -->
+        <div class="notif-wrap">
+          <button class="notif-btn" id="notifBtn" onclick="notifToggle(event)" title="Mis notificaciones">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-cab">
+              <span>Notificaciones</span>
+              <button class="notif-leer" id="notifLeer" onclick="notifMarcarLeidas()">Marcar leídas</button>
+            </div>
+            <div class="notif-lista" id="notifLista"></div>
+          </div>
+        </div>
         <div class="nav-usuario" onclick="abrirCambioContrasena()" title="Cambiar mi contraseña">
           <div class="nav-usuario-avatar" id="userAvatar">AT</div>
           <div class="nav-usuario-info">
@@ -7075,6 +7136,9 @@ function cargarBitacora() {
         const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
         const _escribiendo = document.activeElement && /^conv_input_/.test(document.activeElement.id || '');
         if (_tAb && !_escribiendo && typeof repintarHilo === 'function') repintarHilo(_tAb);
+        // La campanita se alimenta de la bitácora: cada vez que llega, se
+        // recalcula cuántas notificaciones nuevas hay.
+        if (typeof notifRefrescarBadge === 'function') notifRefrescarBadge();
         if (vistaActiva === 'bitacora') renderizarBitacora();
         // Las tarjetas muestran "Visto por" desde la bitácora. Como esta llega
         // async DESPUÉS del primer render, hay que repintar el tablero para que
@@ -11075,6 +11139,189 @@ function cambiarVista(v) {
   // De ahí en adelante ya no se reordena hasta cambiar de área/tema.
   if (v === 'seguimiento') { segRecalcularOrden(); renderizarSeguimiento(); }
 }
+
+// ===================== NOTIFICACIONES (campanita) =====================
+// No se guarda una notificación por evento: se CALCULAN aquí a partir de la
+// bitácora, que ya registra todo lo que pasa y ya llega en tiempo real. Lo
+// único que vive en la base es hasta dónde leyó cada quien (perfiles
+// .notif_visto_en, ver supabase/notificaciones.sql).
+//
+// Qué te notifica (decidido con el usuario):
+//   • Te asignaron una tarea (eres responsable directo).
+//   • Te arrobaron con @ en un comentario (de cualquier tarea).
+//   • Agregaron una acción a una tarea tuya.
+//   • Movimientos en tus tareas: devolver, validar, reprogramar, comentar…
+// Siempre se excluye lo que hiciste tú mismo.
+
+// Acciones de bitácora que avisan, y cómo se leen. Las que no están aquí
+// (visto, accion_orden…) son ruido y no notifican.
+const NOTIF_TIPOS = {
+  crear:       { icono: '📌', texto: 'Te asignaron una tarea' },
+  accion_add:  { icono: '➕', texto: 'Agregaron una acción' },
+  comentario:  { icono: '💬', texto: 'Comentaron tu tarea' },
+  devolver:    { icono: '↩️', texto: 'Te devolvieron una tarea' },
+  validar:     { icono: '✅', texto: 'Validaron tu tarea' },
+  reprogramar: { icono: '📅', texto: 'Reprogramaron tu tarea' },
+  finalizar:   { icono: '🏁', texto: 'Finalizaron tu tarea' },
+  observacion: { icono: '📝', texto: 'Dejaron una observación' },
+  reabrir:     { icono: '🔓', texto: 'Reabrieron tu tarea' },
+  enviar:      { icono: '📤', texto: 'Enviaron tu tarea a validar' }
+};
+
+// ¿El comentario me arroba a mí? Las menciones se guardan como texto plano
+// "@Nombre" (ver resaltarArrobas), así que se busca por nombre.
+function notifMeArroban(texto) {
+  if (!texto || !usuarioActual) return false;
+  const t = String(texto);
+  const nombres = [
+    usuarioActual.nombre,
+    usuarioActual.nombre_corto,
+    nombresSinApellidos(usuarioActual.nombre || '')
+  ].map(n => String(n || '').trim()).filter(n => n.length >= 3);
+  return nombres.some(n => t.toLowerCase().indexOf('@' + n.toLowerCase()) >= 0);
+}
+
+// Lista de notificaciones para el usuario de la sesión, la más nueva primero.
+function notificacionesDeUsuario() {
+  if (!usuarioActual || !Array.isArray(BITACORA)) return [];
+  const miNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '').toLowerCase();
+  const out = [];
+  for (let i = 0; i < BITACORA.length && out.length < 60; i++) {
+    const b = BITACORA[i];
+    if (!b || !b.id_tarea) continue;
+    // Lo que hice yo no me notifica.
+    if (String(b.usuario || '').trim().toLowerCase() === miNombre) continue;
+
+    const arroba = b.accion === 'comentario' && notifMeArroban(b.comentario);
+    const t = TAREAS.find(x => x.id === b.id_tarea);
+    // Una mención avisa aunque la tarea no sea mía; lo demás, solo si lo es.
+    const miTarea = !!t && esResponsableDe(t, usuarioActual);
+    if (!arroba && !miTarea) continue;
+
+    const tipo = NOTIF_TIPOS[b.accion];
+    if (!arroba && !tipo) continue;
+    // Una tarea eliminada ya no tiene a dónde llevarte.
+    if (t && t.eliminada) continue;
+
+    out.push({
+      id: b.id || (b.id_tarea + '|' + b.fecha_iso),
+      id_tarea: b.id_tarea,
+      icono: arroba ? '📣' : tipo.icono,
+      titulo: arroba ? 'Te mencionaron' : tipo.texto,
+      detalle: b.comentario || (t ? (t.tema || '') : ''),
+      quien: b.usuario || '',
+      fecha: b.fecha || '',
+      fecha_iso: b.fecha_iso || ''
+    });
+  }
+  return out;
+}
+
+// Fecha ISO → número, para comparar. NO se comparan como texto: Postgres
+// devuelve "…+00:00" y toISOString() genera "…Z", así que la comparación de
+// cadenas daría resultados equivocados aunque sea el mismo instante.
+function notifTs(iso) {
+  const n = Date.parse(iso || '');
+  return isNaN(n) ? 0 : n;
+}
+
+// ¿Esta notificación llegó después de la última vez que abriste la campanita?
+function notifEsNueva(n, visto) {
+  if (!visto) return true;   // nunca las ha abierto: todas cuentan como nuevas
+  return notifTs(n.fecha_iso) > notifTs(visto);
+}
+
+// Las que llegaron DESPUÉS de la última vez que abriste la campanita.
+function notifNuevas(lista) {
+  const visto = (usuarioActual && usuarioActual.notif_visto_en) || '';
+  return lista.filter(n => notifEsNueva(n, visto));
+}
+
+// Repinta el globito rojo. Se llama cada vez que llega bitácora nueva.
+function notifRefrescarBadge() {
+  const badge = document.getElementById('notifBadge');
+  const btn = document.getElementById('notifBtn');
+  if (!badge || !btn) return;
+  // La campanita solo tiene sentido con sesión iniciada.
+  btn.parentElement.style.display = usuarioActual ? '' : 'none';
+  if (!usuarioActual) return;
+  const n = notifNuevas(notificacionesDeUsuario()).length;
+  badge.textContent = n > 9 ? '9+' : String(n);
+  badge.style.display = n ? '' : 'none';
+  // Si el panel está abierto, también se repinta la lista.
+  const panel = document.getElementById('notifPanel');
+  if (panel && panel.classList.contains('activo')) notifRenderLista();
+}
+
+function notifRenderLista() {
+  const cont = document.getElementById('notifLista');
+  if (!cont) return;
+  const lista = notificacionesDeUsuario();
+  const visto = (usuarioActual && usuarioActual.notif_visto_en) || '';
+  if (!lista.length) {
+    cont.innerHTML = '<div class="notif-vacio">No tienes notificaciones.<br>Aquí te avisamos cuando te asignen una tarea, te mencionen con @ o se muevan tus tareas.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(function (n) {
+    const esNueva = notifEsNueva(n, visto);
+    return '<div class="notif-item' + (esNueva ? ' nueva' : '') + '" onclick="notifIr(\'' + escapeHtml(n.id_tarea) + '\')">' +
+      '<span class="notif-ico">' + n.icono + '</span>' +
+      '<div class="notif-cuerpo">' +
+        '<div class="notif-titulo">' + escapeHtml(n.titulo) + ' · ' + escapeHtml(n.id_tarea) + '</div>' +
+        (n.detalle ? '<div class="notif-detalle">' + escapeHtml(n.detalle) + '</div>' : '') +
+        '<div class="notif-meta">' + escapeHtml(n.quien ? formatearNombre(n.quien) : '') +
+          (n.fecha ? ' · ' + escapeHtml(n.fecha) : '') + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function notifToggle(ev) {
+  if (ev) ev.stopPropagation();
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const abriendo = !panel.classList.contains('activo');
+  panel.classList.toggle('activo', abriendo);
+  if (abriendo) {
+    notifRenderLista();
+    // Al abrirlas se dan por leídas, pero las nuevas se quedan resaltadas en
+    // ESTA vista para alcanzar a verlas; el globito ya se va.
+    notifMarcarLeidas(true);
+  }
+}
+
+// Marca todo como leído: guarda "ya vi hasta ahora" en el perfil.
+function notifMarcarLeidas(silencioso) {
+  if (!usuarioActual) return;
+  const ahora = new Date().toISOString();
+  usuarioActual.notif_visto_en = ahora;
+  const badge = document.getElementById('notifBadge');
+  if (badge) badge.style.display = 'none';
+  if (!silencioso) { notifRenderLista(); toast('Notificaciones marcadas como leídas', 'ok'); }
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res && !res.ok && res.error) toast(res.error, 'error');
+    })
+    .withFailureHandler(function () { /* queda marcado en pantalla; se reintenta al próximo abrir */ })
+    .guardarNotifVisto(SESION_TOKEN, ahora);
+}
+
+// Clic en una notificación: cierra el panel y abre esa tarea.
+function notifIr(id) {
+  const panel = document.getElementById('notifPanel');
+  if (panel) panel.classList.remove('activo');
+  const t = (TAREAS || []).find(x => x.id === id);
+  if (!t) { toast('La tarea ' + id + ' ya no está disponible.', 'error'); return; }
+  abrirDetalle(t);
+}
+
+// Clic fuera del panel: se cierra.
+document.addEventListener('click', function (ev) {
+  const panel = document.getElementById('notifPanel');
+  if (!panel || !panel.classList.contains('activo')) return;
+  if (!ev.target.closest('.notif-wrap')) panel.classList.remove('activo');
+});
 
 // ===================== PROYECTOS (tramos ferroviarios) =====================
 // Cada tarea se ubica en UN proyecto, de Fase I o de Fase II. La lista es fija

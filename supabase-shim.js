@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260720k';
+  window.TT_SHIM_VERSION = '20260720l';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -77,7 +77,9 @@
       jefatura: p ? (p.jefatura || '') : '',
       es_enlace: !!(p && p.es_enlace),
       acceso_completo: !!(p && p.acceso_completo),
-      nombre_corto: p ? (p.nombre_corto || '') : ''
+      nombre_corto: p ? (p.nombre_corto || '') : '',
+      // Hasta dónde ya leyó sus notificaciones (ver supabase/notificaciones.sql).
+      notif_visto_en: (p && p.notif_visto_en) || ''
     };
   }
   function areaDeDatos(d) {
@@ -161,6 +163,25 @@
       return { ok: true, token: session.access_token, usuario: USUARIO_ACTUAL };
     },
     cerrarSesion: async function () { try { await sb.auth.signOut(); } catch (e) {} return { ok: true }; },
+
+    // ---- NOTIFICACIONES (ver supabase/notificaciones.sql) ----
+    // Marca "ya leí hasta aquí". Se guarda en el PERFIL, no en el navegador,
+    // para que si las lees en la compu no te vuelvan a salir en el teléfono.
+    guardarNotifVisto: async function (token, iso) {
+      var s = await sb.auth.getSession();
+      var uid = s.data && s.data.session && s.data.session.user && s.data.session.user.id;
+      if (!uid) return { ok: false, error: 'Sin sesión.' };
+      var cuando = iso || new Date().toISOString();
+      var r = await sb.from('perfiles').update({ notif_visto_en: cuando }).eq('id', uid);
+      if (r.error) {
+        if (/notif_visto_en/i.test(r.error.message || '')) {
+          return { ok: false, error: 'Falta correr supabase/notificaciones.sql en la base.' };
+        }
+        return { ok: false, error: r.error.message };
+      }
+      if (USUARIO_ACTUAL) USUARIO_ACTUAL.notif_visto_en = cuando;
+      return { ok: true, notif_visto_en: cuando };
+    },
 
     listarUsuarios: async function () {
       var r = await sb.from('perfiles').select('nombre, rol, subdireccion').eq('activo', true);
@@ -627,7 +648,11 @@
         desde += PAG;
       }
       return { ok: true, bitacora: filas.map(function (b) {
-        return { id: b.id, fecha: fmtFecha(b.fecha), usuario: b.usuario || '', accion: b.accion || '',
+        // fecha = ya formateada para mostrar; fecha_iso = la cruda, que es la
+        // que sirve para comparar y ordenar (la campanita necesita saber qué
+        // llegó después de la última vez que abriste las notificaciones).
+        return { id: b.id, fecha: fmtFecha(b.fecha), fecha_iso: b.fecha || '',
+          usuario: b.usuario || '', accion: b.accion || '',
           id_tarea: b.tarea_codigo || '', estatus_anterior: b.estatus_anterior || '',
           estatus_nuevo: b.estatus_nuevo || '', comentario: b.comentario || '' };
       }) };
