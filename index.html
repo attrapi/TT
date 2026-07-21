@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720m"></script>
+<script src="supabase-shim.js?v=20260720n"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -616,23 +616,49 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
     overflow: hidden; margin: 0 0 20px;
   }
+  /* Cabecera en guinda institucional: es la portada de la sesión, así que pesa
+     visualmente más que las filas de filtros que vienen abajo. */
   .seg-panel-top {
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 16px 20px; background: linear-gradient(180deg, var(--crema), #fff);
-    border-bottom: 1px solid var(--linea);
+    padding: 18px 20px; color: #fff;
+    background: linear-gradient(135deg, var(--guinda) 0%, var(--guinda-oscuro) 100%);
+    position: relative; overflow: hidden;
   }
-  .seg-panel-id { flex: 1; min-width: 200px; }
+  /* Brillo diagonal muy tenue, para que el guinda no se vea plano. */
+  .seg-panel-top::after {
+    content: ''; position: absolute; top: -60%; right: -10%; width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(255,255,255,.10), transparent 68%);
+    pointer-events: none;
+  }
+  .seg-panel-id { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+  .seg-panel-icono {
+    width: 44px; height: 44px; flex: none; border-radius: 13px;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.22);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .seg-panel-icono svg { width: 22px; height: 22px; }
+  .seg-panel-kicker {
+    display: block; font-size: 10px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .13em; color: rgba(255,255,255,.62); margin-bottom: 1px;
+  }
   .seg-panel-id h2 {
-    margin: 0; font-size: 19px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px;
+    margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.02em; color: #fff; line-height: 1.15;
   }
-  .seg-panel-id h2::before {
-    content: ''; width: 4px; height: 19px; border-radius: 999px; background: var(--guinda); flex: none;
+  .seg-fecha {
+    display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.14); color: rgba(255,255,255,.9);
+    font-size: 11.5px; font-weight: 600;
   }
-  .seg-fecha { display: block; color: var(--tinta-tenue); font-size: 12.5px; margin-top: 4px; padding-left: 13px; }
-  .seg-panel-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
-  .seg-btn { border: 1px solid var(--linea); background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--tinta-suave); transition: border-color .12s, color .12s; }
-  .seg-btn:hover { border-color: var(--guinda); color: var(--guinda); }
-  .seg-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; }
+  .seg-panel-acciones { display: flex; gap: 8px; flex-wrap: wrap; position: relative; z-index: 1; }
+  /* Botones sobre el guinda: contorno claro que se rellena al pasar el cursor. */
+  .seg-btn {
+    border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.12);
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans); color: #fff;
+    transition: background .13s, color .13s, border-color .13s;
+  }
+  .seg-btn:hover { background: #fff; color: var(--guinda); border-color: #fff; }
+  .seg-btn.activa { background: #fff; border-color: #fff; color: var(--guinda); }
   /* Filtros de la sesión: primero el área, luego (si es SGOI) el tema. */
   /* Cada filtro es un renglón con su etiqueta alineada a la izquierda, para que
      Área / Proyecto / Tema se lean como una escalera y no como texto suelto. */
@@ -5694,8 +5720,14 @@
     <div class="seg-panel">
       <div class="seg-panel-top">
         <div class="seg-panel-id">
-          <h2>Sesión de seguimiento</h2>
-          <span class="seg-fecha" id="segFecha"></span>
+          <div class="seg-panel-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="seg-panel-txt">
+            <span class="seg-panel-kicker">Repaso en junta</span>
+            <h2>Sesión de seguimiento</h2>
+            <span class="seg-fecha" id="segFecha"></span>
+          </div>
         </div>
         <div class="seg-panel-acciones">
           <button class="seg-btn" id="segToggleHechas" onclick="segToggleVerHechas()" title="Mostrar u ocultar las tareas ya revisadas">Ocultar revisadas</button>
