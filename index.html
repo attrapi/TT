@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720s"></script>
+<script src="supabase-shim.js?v=20260720t"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -11205,17 +11205,20 @@ function cambiarVista(v) {
 
 // Acciones de bitácora que avisan, y cómo se leen. Las que no están aquí
 // (visto, accion_orden…) son ruido y no notifican.
+// Los textos van en neutro ("una tarea", no "tu tarea"): ahora una notificación
+// puede llegarte por ser responsable, por haberla creado, porque participa tu
+// área o porque te toca validarla. El ID de la tarea va junto al título.
 const NOTIF_TIPOS = {
-  crear:       { icono: '📌', texto: 'Te asignaron una tarea' },
+  crear:       { icono: '📌', texto: 'Nueva tarea asignada' },
   accion_add:  { icono: '➕', texto: 'Agregaron una acción' },
-  comentario:  { icono: '💬', texto: 'Comentaron tu tarea' },
-  devolver:    { icono: '↩️', texto: 'Te devolvieron una tarea' },
-  validar:     { icono: '✅', texto: 'Validaron tu tarea' },
-  reprogramar: { icono: '📅', texto: 'Reprogramaron tu tarea' },
-  finalizar:   { icono: '🏁', texto: 'Finalizaron tu tarea' },
+  comentario:  { icono: '💬', texto: 'Comentaron una tarea' },
+  devolver:    { icono: '↩️', texto: 'Devolvieron una tarea' },
+  validar:     { icono: '✅', texto: 'Validaron una tarea' },
+  reprogramar: { icono: '📅', texto: 'Reprogramaron una tarea' },
+  finalizar:   { icono: '🏁', texto: 'Finalizaron una tarea' },
   observacion: { icono: '📝', texto: 'Dejaron una observación' },
-  reabrir:     { icono: '🔓', texto: 'Reabrieron tu tarea' },
-  enviar:      { icono: '📤', texto: 'Enviaron tu tarea a validar' }
+  reabrir:     { icono: '🔓', texto: 'Reabrieron una tarea' },
+  enviar:      { icono: '📤', texto: 'Enviaron una tarea a validar' }
 };
 
 // ¿El comentario me arroba a mí? Las menciones se guardan como texto plano
@@ -11229,6 +11232,25 @@ function notifMeArroban(texto) {
     nombresSinApellidos(usuarioActual.nombre || '')
   ].map(n => String(n || '').trim()).filter(n => n.length >= 3);
   return nombres.some(n => t.toLowerCase().indexOf('@' + n.toLowerCase()) >= 0);
+}
+
+// ¿Esta tarea me toca? Cuatro vías, porque "responsable directo" sola dejaba
+// fuera al Director: listarResponsables excluye a quien tiene rol Director, así
+// que él NUNCA puede ser responsable y no recibía nada pese a ser el más
+// involucrado. Su participación es crear, validar y supervisar.
+function notifMeInvolucra(t, b) {
+  if (!t || !usuarioActual) return false;
+  // 1) Soy el responsable directo.
+  if (esResponsableDe(t, usuarioActual)) return true;
+  // 2) Yo la creé, aunque la ejecute alguien más.
+  const yo = String(usuarioActual.nombre || '').trim().toLowerCase();
+  if (yo && String(t.creado_por || '').trim().toLowerCase() === yo) return true;
+  // 3) Participa mi área.
+  const miArea = areaDelUsuario(usuarioActual);
+  if (miArea && participantesDe(t).indexOf(miArea) >= 0) return true;
+  // 4) Me la enviaron a validar (validar es del Director, ver reenviarAValidacion).
+  if (b && b.accion === 'enviar' && usuarioActual.rol === 'Director') return true;
+  return false;
 }
 
 // Lista de notificaciones para el usuario de la sesión, la más nueva primero.
@@ -11247,8 +11269,8 @@ function notificacionesDeUsuario() {
     // arroba a alguien en la sesión.
     const arroba = notifMeArroban(b.comentario);
     const t = TAREAS.find(x => x.id === b.id_tarea);
-    // Una mención avisa aunque la tarea no sea mía; lo demás, solo si lo es.
-    const miTarea = !!t && esResponsableDe(t, usuarioActual);
+    // Una mención avisa aunque la tarea no sea mía; lo demás, solo si me toca.
+    const miTarea = notifMeInvolucra(t, b);
     if (!arroba && !miTarea) continue;
 
     const tipo = NOTIF_TIPOS[b.accion];
