@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720l"></script>
+<script src="supabase-shim.js?v=20260720m"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -3321,6 +3321,7 @@
   .seg-bloc-texto:focus { outline: none; border-color: var(--verde, #166534); box-shadow: 0 0 0 3px rgba(22,101,52,.12); }
   .seg-bloc-pie { padding: 0 18px 16px; }
   .seg-bloc-pie .seg-marcar { width: 100%; }
+  .seg-bloc-hint { font-size: 11.5px; color: var(--tinta-tenue); text-align: center; margin-top: 7px; line-height: 1.4; }
 
   /* En pantallas angostas no caben lado a lado: el bloc se vuelve una hoja
      pegada abajo, encima del detalle. */
@@ -5845,7 +5846,8 @@
     <div class="seg-bloc-previos" id="segBlocPrevios"></div>
     <textarea class="seg-bloc-texto" id="segBlocTexto" placeholder="Escribe aquí lo que se acordó: qué se dijo, qué sigue, quién lo ve…"></textarea>
     <div class="seg-bloc-pie">
-      <button class="seg-marcar" onclick="segBlocGuardar()">✓ Guardar acuerdo</button>
+      <button class="seg-marcar" onclick="segBlocGuardar()">✓ Con seguimiento</button>
+      <div class="seg-bloc-hint">Guarda el acuerdo en la bitácora y deja la tarea marcada como revisada en la lista.</div>
     </div>
   </aside>
 </div>
@@ -11915,14 +11917,15 @@ function segBlocGuardar() {
   if (!id) return;
   const ta = document.getElementById('segBlocTexto');
   const acuerdo = ta ? (ta.value || '').trim() : '';
-  if (!acuerdo) { toast('Escribe el acuerdo antes de guardar.', 'error'); return; }
+  // Sin texto también se puede marcar, igual que el botón de la tarjeta: a
+  // veces se repasa una tarea y no hay nada que acordar.
   // Misma vía que la caja de la tarjeta. Si no se pudo guardar, el bloc se
   // queda abierto con el texto para no perderlo.
   if (!segGuardarAcuerdo(id, acuerdo)) return;
   // La caja de la tarjeta ya no debe conservar el borrador: se acaba de guardar.
   const enTarjeta = document.getElementById('seg-acuerdo-' + id);
   if (enTarjeta) enTarjeta.value = '';
-  toast('Acuerdo guardado en la bitácora de ' + id, 'ok');
+  toast(acuerdo ? (id + ' con seguimiento · acuerdo en la bitácora') : (id + ' marcada con seguimiento'), 'ok');
   segBlocCerrar();
   cerrarModal();
 }
