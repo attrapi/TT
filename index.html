@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720q"></script>
+<script src="supabase-shim.js?v=20260720r"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -5888,8 +5888,6 @@
     <!-- onmousedown preventDefault: sin esto el textarea pierde el foco al
          presionar y el menú de @ se cierra solo (ver ocultarArroba). -->
     <div class="seg-bloc-barra" onmousedown="event.preventDefault()">
-      <button type="button" class="seg-bloc-tool" onclick="segBlocLista('vineta')" title="Lista con viñetas">• Lista</button>
-      <button type="button" class="seg-bloc-tool" onclick="segBlocLista('numero')" title="Lista numerada">1. Lista</button>
       <button type="button" class="seg-bloc-tool" onclick="segBlocArroba()" title="Mencionar a alguien: le llega notificación">@ Mencionar</button>
     </div>
     <textarea class="seg-bloc-texto" id="segBlocTexto"
@@ -11977,41 +11975,9 @@ function segBlocRenderPrevios(id) {
   }).join('');
 }
 
-// Quita la marca de lista (viñeta o número) del inicio de una línea.
-function segSinMarca(l) { return l.replace(/^(\s*)(?:•\s?|\d+[.)]\s?)/, '$1'); }
+// Quita la marca de lista (viñeta, guion o número) del inicio de una línea.
+function segSinMarca(l) { return l.replace(/^(\s*)(?:[•\-*]\s?|\d+[.)]\s?)/, '$1'); }
 
-// Convierte en lista las líneas seleccionadas (o la del cursor). El mismo botón
-// pone y quita: si ya son de ESE tipo, las desarma. `tipo` = 'vineta' | 'numero'.
-function segBlocLista(tipo) {
-  const el = document.getElementById('segBlocTexto');
-  if (!el) return;
-  const num = tipo === 'numero';
-  const v = el.value;
-  const ini = v.lastIndexOf('\n', Math.max(0, el.selectionStart - 1)) + 1;
-  let fin = v.indexOf('\n', el.selectionEnd);
-  if (fin < 0) fin = v.length;
-  const bloque = v.slice(ini, fin);
-  const marca = l => /^\s*•\s/.test(l);
-  const marcaNum = l => /^\s*\d+[.)]\s/.test(l);
-  let texto;
-  if (!bloque.trim()) {
-    texto = num ? '1. ' : '• ';   // sin nada escrito: arranca la lista
-  } else {
-    const lineas = bloque.split('\n');
-    const yaEsEste = lineas.every(l => !l.trim() || (num ? marcaNum(l) : marca(l)));
-    let i = 0;
-    texto = lineas.map(function (l) {
-      if (!l.trim()) return l;
-      if (yaEsEste) return segSinMarca(l);
-      i++;
-      return (num ? (i + '. ') : '• ') + segSinMarca(l).trim();
-    }).join('\n');
-  }
-  el.value = v.slice(0, ini) + texto + v.slice(fin);
-  const caret = ini + texto.length;
-  el.focus();
-  el.setSelectionRange(caret, caret);
-}
 
 // Inserta un "@" donde está el cursor y abre el menú de personas.
 function segBlocArroba() {
@@ -12028,8 +11994,10 @@ function segBlocArroba() {
   mostrarArroba(el);
 }
 
-// Enter dentro de una viñeta continúa la lista sola. En una viñeta vacía la
-// cierra, que es lo que uno espera al terminar de enumerar.
+// No hay botones de lista: el formato se descubre solo. Si escribes "1. algo" o
+// "- algo" y das Enter, el siguiente renglón sale ya con su marca (y los números
+// siguen la cuenta). En una marca vacía se cierra la lista, que es lo que uno
+// espera al terminar de enumerar.
 function segBlocKeydown(ev) {
   if (ev.key !== 'Enter' || ev.shiftKey) return;
   const el = ev.target;
@@ -12037,7 +12005,7 @@ function segBlocKeydown(ev) {
   const pos = el.selectionStart;
   const ini = el.value.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
   const linea = el.value.slice(ini, pos);
-  const m = linea.match(/^(\s*)(•|(\d+)[.)])\s+/);
+  const m = linea.match(/^(\s*)([•\-*]|(\d+)[.)])\s+/);
   if (!m) return;
   ev.preventDefault();
   // Marca sin contenido: se borra y se sale de la lista.
@@ -12046,8 +12014,8 @@ function segBlocKeydown(ev) {
     el.setSelectionRange(ini, ini);
     return;
   }
-  // En lista numerada, el siguiente renglón continúa la cuenta.
-  const marca = m[3] ? ((parseInt(m[3], 10) + 1) + '. ') : '• ';
+  // Numerada: continúa la cuenta. Viñeta o guion: se repite tal cual se escribió.
+  const marca = m[3] ? ((parseInt(m[3], 10) + 1) + '. ') : (m[2] + ' ');
   const ins = '\n' + m[1] + marca;
   el.value = el.value.slice(0, pos) + ins + el.value.slice(pos);
   const caret = pos + ins.length;
