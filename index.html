@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720t"></script>
+<script src="supabase-shim.js?v=20260720u"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -3503,6 +3503,7 @@
   }
   .notif-meta { font-size: 11px; color: var(--tinta-tenue); margin-top: 3px; }
   .notif-vacio { padding: 30px 16px; text-align: center; color: var(--tinta-tenue); font-size: 13px; }
+  .notif-corte { padding: 10px 14px; text-align: center; color: var(--tinta-tenue); font-size: 11.5px; background: var(--crema); line-height: 1.45; }
   @media (max-width: 620px) {
     .notif-panel { position: fixed; top: 58px; right: 8px; left: 8px; width: auto; }
   }
@@ -11257,8 +11258,14 @@ function notifMeInvolucra(t, b) {
 function notificacionesDeUsuario() {
   if (!usuarioActual || !Array.isArray(BITACORA)) return [];
   const miNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '').toLowerCase();
-  const out = [];
-  for (let i = 0; i < BITACORA.length && out.length < 60; i++) {
+  // Cupos separados: las leídas NO le quitan lugar a las pendientes. Se quedan
+  // unas cuantas solo como contexto de lo recién revisado.
+  const pend = [], leidas = [];
+  NOTIF_CORTADA = false;
+  let i = 0;
+  for (; i < BITACORA.length; i++) {
+    if (pend.length >= NOTIF_MAX_PEND) { NOTIF_CORTADA = true; break; }
+    if (i >= NOTIF_MAX_SCAN) { NOTIF_CORTADA = true; break; }
     const b = BITACORA[i];
     if (!b || !b.id_tarea) continue;
     // Lo que hice yo no me notifica.
@@ -11278,7 +11285,7 @@ function notificacionesDeUsuario() {
     // Una tarea eliminada ya no tiene a dónde llevarte.
     if (t && t.eliminada) continue;
 
-    out.push({
+    const n = {
       id: b.id || (b.id_tarea + '|' + b.fecha_iso),
       id_tarea: b.id_tarea,
       icono: arroba ? '📣' : tipo.icono,
@@ -11291,9 +11298,17 @@ function notificacionesDeUsuario() {
       quien: b.usuario || '',
       fecha: b.fecha || '',
       fecha_iso: b.fecha_iso || ''
-    });
+    };
+    if (notifEsNueva(n)) pend.push(n);
+    else if (leidas.length < NOTIF_MAX_LEIDAS) leidas.push(n);
   }
-  return out;
+  // Si el recorrido no llegó al final, quedaron avisos más viejos sin mostrar.
+  if (i < BITACORA.length) NOTIF_CORTADA = true;
+  // Se muestran en orden cronológico (lo más nuevo arriba); lo pendiente se
+  // distingue por el resaltado, no por la posición.
+  return pend.concat(leidas).sort(function (a, b2) {
+    return (Date.parse(b2.fecha_iso) || 0) - (Date.parse(a.fecha_iso) || 0);
+  });
 }
 
 // ===== Leídas: se guarda CUÁLES se abrieron, no una fecha de corte =====
@@ -11301,6 +11316,14 @@ function notificacionesDeUsuario() {
 // Aquí cada notificación se marca al ABRIRLA, así el contador baja de una en
 // una y lo amarillo se quita solo en la que ya viste.
 let NOTIF_LEIDAS = new Set();
+
+// Cupos del panel. Separados a propósito: las ya leídas no deben quitarle
+// lugar a las pendientes, que son las que hay que atender.
+const NOTIF_MAX_PEND   = 60;    // pendientes que se listan
+const NOTIF_MAX_LEIDAS = 15;    // leídas recientes, solo como contexto
+const NOTIF_MAX_SCAN   = 1500;  // tope de recorrido de la bitácora
+const NOTIF_MAX_MEMORIA = 300;  // ids leídos que se conservan
+let NOTIF_CORTADA = false;      // ¿quedaron avisos viejos fuera del panel?
 
 // Respaldo por navegador: si falta correr notificaciones.sql, al menos no se
 // pierden al recargar. Se fusiona con lo que venga del perfil.
@@ -11325,14 +11348,15 @@ function notifNuevas(lista) { return lista.filter(notifEsNueva); }
 // siguen a la vista, para que no crezca sin límite.
 function notifMarcarIds(ids) {
   if (!usuarioActual || !ids || !ids.length) return;
-  ids.forEach(id => NOTIF_LEIDAS.add(String(id)));
-  const lista = notificacionesDeUsuario();
-  // Poda solo si ya hay bitácora cargada; si no, se conserva todo tal cual
-  // (si no, un arranque sin datos borraría lo ya leído).
+  // Reinsertar deja el id al final: un Set conserva el orden de inserción, así
+  // que la lista queda de la leída más antigua a la más reciente.
+  ids.forEach(id => { const s = String(id); NOTIF_LEIDAS.delete(s); NOTIF_LEIDAS.add(s); });
+  // Tope duro por antigüedad. Antes se podaba contra las notificaciones a la
+  // vista, pero ahora las leídas tienen su propio cupo chico: eso habría
+  // tirado ids aún vigentes y esas notificaciones habrían "revivido".
   let guardar = Array.from(NOTIF_LEIDAS);
-  if (lista.length) {
-    const vigentes = new Set(lista.map(n => String(n.id)));
-    guardar = guardar.filter(id => vigentes.has(id));
+  if (guardar.length > NOTIF_MAX_MEMORIA) {
+    guardar = guardar.slice(-NOTIF_MAX_MEMORIA);
     NOTIF_LEIDAS = new Set(guardar);
   }
   try { localStorage.setItem(notifClaveLocal(), JSON.stringify(guardar)); } catch (e) {}
@@ -11389,6 +11413,12 @@ function notifRenderLista() {
       '</div>' +
     '</div>';
   }).join('');
+  // El panel es de consulta rápida, no un archivo. Si se cortó la lista se
+  // dice, en vez de dejar creer que eso es todo lo que hay.
+  if (NOTIF_CORTADA) {
+    cont.innerHTML += '<div class="notif-corte">Solo se muestran las más recientes. ' +
+      'El historial completo está en la Bitácora.</div>';
+  }
 }
 
 function notifToggle(ev) {
