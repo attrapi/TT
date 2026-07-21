@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720h"></script>
+<script src="supabase-shim.js?v=20260720i"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -676,14 +676,24 @@
   .seg-card-acuerdo textarea { width: 100%; box-sizing: border-box; border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: var(--sans); resize: vertical; min-height: 38px; }
   .seg-card-acuerdo textarea:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
   .seg-card-acciones { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-  .seg-marcar { background: var(--verde, #166534); color: #fff; border: none; border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  /* Los tres botones de la tarjeta comparten medidas exactas: el borde de 2px
+     va también en el verde (transparente) para que no quede 4px más bajo que
+     los que sí lo pintan. */
+  .seg-marcar, .seg-abrir, .seg-deshacer {
+    border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: 13px;
+    font-family: var(--sans); cursor: pointer; border: 2px solid transparent;
+    transition: background .13s, color .13s, border-color .13s;
+  }
+  .seg-marcar { background: var(--verde, #166534); color: #fff; }
   .seg-marcar:hover { filter: brightness(1.08); }
   .seg-hecha-info { color: #4f611f; font-size: 12.5px; font-weight: 600; }
   .seg-hecha-acuerdo { color: var(--tinta-suave); font-size: 12.5px; font-style: italic; margin-top: 4px; white-space: pre-wrap; }
-  .seg-deshacer { background: transparent; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--tinta-suave); }
-  .seg-deshacer:hover { border-color: var(--rojo, #b91c1c); color: var(--rojo, #b91c1c); }
-  .seg-abrir { background: transparent; border: 1px solid var(--linea); border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--tinta-suave); }
-  .seg-abrir:hover { border-color: var(--guinda); color: var(--guinda); }
+  /* Secundario, en neutro: no compite con el verde ni con "Abrir tarea". */
+  .seg-deshacer { background: #fff; border-color: var(--linea-fuerte); color: var(--tinta-suave); }
+  .seg-deshacer:hover { background: var(--rojo, #b91c1c); border-color: var(--rojo, #b91c1c); color: #fff; }
+  /* Pastilla delineada que se rellena al pasar el cursor. */
+  .seg-abrir { background: var(--guinda-tenue); border-color: var(--guinda); color: var(--guinda); }
+  .seg-abrir:hover { background: var(--guinda); color: #fff; }
   .seg-vacio { color: var(--tinta-suave); text-align: center; padding: 40px 12px; }
   .volantes-wrap { padding: 16px 24px 26px; }
   .volantes-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
@@ -11071,6 +11081,16 @@ function faseVisibleDe(nombre) {
 const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'PROFEPA', 'INAH - MMHH', 'INAH - ARQ', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'PRIVADOS', 'OTROS'];
 let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 
+// Áreas cuyas tareas se etiquetan con estos temas: SGOI (y sus dos jefaturas)
+// y la Dirección (DPAC), que da seguimiento a esos mismos trámites. Una sola
+// lista para que el formulario, el guardado y el filtro no se desincronicen.
+const AREAS_CON_TEMAS = ['SGOI', 'JDGA', 'JDGOI', 'DPAC'];
+
+// ¿Alguna de estas áreas usa temas? (recibe códigos de área).
+function areasUsanTemas(cods) {
+  return (cods || []).some(c => AREAS_CON_TEMAS.indexOf(c) >= 0);
+}
+
 // Los temas de una tarea, siempre como arreglo de textos.
 function temasDe(t) {
   return (t && Array.isArray(t.temas)) ? t.temas.map(s => String(s || '').trim()).filter(Boolean) : [];
@@ -11174,6 +11194,12 @@ function segAreaActual() {
   return segAreasDisponibles().find(a => a.id === segArea) || null;
 }
 
+// ¿La columna elegida usa temas? SGOI y Staff (ahí caen las de DPAC, que es
+// la otra área que etiqueta con estos temas — ver AREAS_CON_TEMAS).
+function segAreaUsaTemas() {
+  return segArea === 'SGOI' || segArea === 'STAFF';
+}
+
 // Tareas activas dentro del alcance del usuario (sin las archivadas/eliminadas).
 function segTareasBase() {
   let base = (TAREAS || []).filter(t => t.estatus !== 'Archivada' && !t.eliminada);
@@ -11203,7 +11229,7 @@ function segTareasFiltradas() {
       return segProyFiltro.indexOf(p) >= 0;
     });
   }
-  if (segArea === 'SGOI' && segTemasFiltro.length) {
+  if (segAreaUsaTemas() && segTemasFiltro.length) {
     lista = lista.filter(function (t) {
       const suyos = temasDe(t);
       // La píldora "Sin tema" agrupa las que nadie ha etiquetado todavía.
@@ -11319,7 +11345,7 @@ function segRenderTemaPills() {
   const fila = document.getElementById('segTemaFila');
   const cont = document.getElementById('segTemaPills');
   if (!fila || !cont) return;
-  if (segArea !== 'SGOI') { fila.style.display = 'none'; return; }
+  if (!segAreaUsaTemas()) { fila.style.display = 'none'; return; }
   fila.style.display = '';
   const area = segAreaActual();
   // Los conteos respetan el filtro de proyecto ya aplicado: si estás viendo
@@ -14934,9 +14960,9 @@ function sincTemasVisibles() {
   const wrap = document.getElementById('nt_temas_wrap');
   if (!wrap) return;
   const marcados = Array.from(document.querySelectorAll('#nt_asignar input:checked')).map(c => c.value);
-  const haySGOI = ['SGOI', 'JDGA', 'JDGOI'].some(c => marcados.indexOf(c) >= 0);
-  wrap.style.display = haySGOI ? '' : 'none';
-  if (haySGOI) renderTemasForm();
+  const usaTemas = areasUsanTemas(marcados);
+  wrap.style.display = usaTemas ? '' : 'none';
+  if (usaTemas) renderTemasForm();
 }
 
 function renderTemasForm() {
@@ -15421,9 +15447,9 @@ function guardarNuevaTarea() {
     jefatura: jefaturaElegida,
     participantes,
     responsable, tema, areas, acuerdos, accion, fecha, enlaces,
-    // Píldoras de tema: solo tienen sentido si SGOI participa. Si se desmarcó
-    // SGOI, la tarea se guarda sin temas.
-    temas: participantes.some(c => ['SGOI', 'JDGA', 'JDGOI'].indexOf(c) >= 0) ? temasForm.slice() : [],
+    // Píldoras de tema: solo tienen sentido si participa un área que las use
+    // (SGOI, sus jefaturas o DPAC). Si se desmarcó, la tarea se guarda sin temas.
+    temas: areasUsanTemas(participantes) ? temasForm.slice() : [],
     proyecto: proyectoForm   // tramo ferroviario (Fase I / Fase II); '' = ninguno
   };
   // Al EDITAR, el editor de Acciones cambia el texto, pero lo que se MUESTRA es el
