@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720p"></script>
+<script src="supabase-shim.js?v=20260720q"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -1099,7 +1099,9 @@
   .bitacora-accion.completar { background: #dce8bf; color: #3f5713; }
   /* Seguimiento (avance: se palomeó una acción, aún faltan): gris azulado. */
   .bitacora-accion.seguimiento { background: #e2e8f0; color: #475569; }
-  .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; }
+  /* pre-wrap: sin esto los saltos de línea se colapsan y una lista de acuerdos
+     se lee como un renglón corrido ("• Revisar plano • Pedir oficio"). */
+  .bitacora-comentario { margin-top: 4px; font-size: 11px; font-style: italic; color: #9a3412; white-space: pre-wrap; }
   .bitacora-tarea {
     display: flex;
     align-items: center;
@@ -5886,7 +5888,6 @@
     <!-- onmousedown preventDefault: sin esto el textarea pierde el foco al
          presionar y el menú de @ se cierra solo (ver ocultarArroba). -->
     <div class="seg-bloc-barra" onmousedown="event.preventDefault()">
-      <button type="button" class="seg-bloc-tool" onclick="segBlocBold()" title="Negrita (Ctrl+B)"><strong>N</strong></button>
       <button type="button" class="seg-bloc-tool" onclick="segBlocLista('vineta')" title="Lista con viñetas">• Lista</button>
       <button type="button" class="seg-bloc-tool" onclick="segBlocLista('numero')" title="Lista numerada">1. Lista</button>
       <button type="button" class="seg-bloc-tool" onclick="segBlocArroba()" title="Mencionar a alguien: le llega notificación">@ Mencionar</button>
@@ -11542,13 +11543,12 @@ function esSeguimientoUser() {
 
 function seguimientoHecho(t) { return !!(t && t.seguimiento_en); }
 
-// Pinta un acuerdo: escapa el texto, resalta las @menciones y convierte
-// **negrita**. El acuerdo se GUARDA en texto plano (la bitácora no admite
-// HTML); el formato se aplica solo al mostrarlo.
+// Pinta un acuerdo: escapa el texto y resalta las @menciones. NO se hace
+// negrita ni otro formato: el acuerdo termina en la bitácora, que es texto
+// plano, y unos asteriscos sueltos ahí ensuciarían el registro histórico.
+// Las listas se sostienen solas porque "•" y "1." son caracteres, no marcado.
 function formatoAcuerdo(texto) {
-  let s = resaltarArrobas(escapeHtml(String(texto || '')));
-  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  return s;
+  return resaltarArrobas(escapeHtml(String(texto || '')));
 }
 
 // Áreas que el usuario puede repasar: el Director las 4; un subdirector, solo
@@ -12013,28 +12013,6 @@ function segBlocLista(tipo) {
   el.setSelectionRange(caret, caret);
 }
 
-// Negrita estilo markdown: **texto**. Se guarda como texto plano (la bitácora
-// no admite HTML) y se pinta en negrita al mostrarlo, ver formatoAcuerdo.
-function segBlocBold() {
-  const el = document.getElementById('segBlocTexto');
-  if (!el) return;
-  const ini = el.selectionStart, fin = el.selectionEnd;
-  const sel = el.value.slice(ini, fin);
-  if (sel) {
-    // Si ya estaba en negrita, se la quita.
-    const yaEsta = /^\*\*[\s\S]+\*\*$/.test(sel);
-    const nuevo = yaEsta ? sel.slice(2, -2) : '**' + sel + '**';
-    el.value = el.value.slice(0, ini) + nuevo + el.value.slice(fin);
-    el.focus();
-    el.setSelectionRange(ini, ini + nuevo.length);
-  } else {
-    // Sin selección: deja el cursor entre los asteriscos para escribir.
-    el.value = el.value.slice(0, ini) + '****' + el.value.slice(ini);
-    el.focus();
-    el.setSelectionRange(ini + 2, ini + 2);
-  }
-}
-
 // Inserta un "@" donde está el cursor y abre el menú de personas.
 function segBlocArroba() {
   const el = document.getElementById('segBlocTexto');
@@ -12053,10 +12031,6 @@ function segBlocArroba() {
 // Enter dentro de una viñeta continúa la lista sola. En una viñeta vacía la
 // cierra, que es lo que uno espera al terminar de enumerar.
 function segBlocKeydown(ev) {
-  // Ctrl+B / Cmd+B: negrita, como en cualquier editor.
-  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'b' || ev.key === 'B')) {
-    ev.preventDefault(); segBlocBold(); return;
-  }
   if (ev.key !== 'Enter' || ev.shiftKey) return;
   const el = ev.target;
   if (el.selectionStart !== el.selectionEnd) return;
