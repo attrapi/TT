@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720n"></script>
+<script src="supabase-shim.js?v=20260720o"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -3339,8 +3339,15 @@
   .seg-bloc-previo { border-left: 3px solid var(--linea); padding: 2px 0 2px 9px; margin-bottom: 10px; }
   .seg-bloc-previo-meta { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); }
   .seg-bloc-previo-txt { font-size: 12.5px; color: var(--tinta-suave); white-space: pre-wrap; margin-top: 2px; }
+  .seg-bloc-barra { display: flex; gap: 7px; padding: 12px 18px 0; }
+  .seg-bloc-tool {
+    border: 1px solid var(--linea); background: #fff; color: var(--tinta-suave);
+    border-radius: 7px; padding: 5px 11px; font-size: 12px; font-weight: 700;
+    font-family: var(--sans); cursor: pointer; transition: border-color .12s, color .12s, background .12s;
+  }
+  .seg-bloc-tool:hover { border-color: var(--guinda); color: var(--guinda); background: var(--guinda-tenue); }
   .seg-bloc-texto {
-    flex: 1; min-height: 160px; margin: 12px 18px; padding: 12px;
+    flex: 1; min-height: 160px; margin: 8px 18px 12px; padding: 12px;
     border: 1px solid var(--linea); border-radius: 8px; resize: none;
     font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--tinta);
   }
@@ -5876,7 +5883,13 @@
       <button class="seg-bloc-x" onclick="segBlocCerrar()" title="Cerrar el bloc">×</button>
     </div>
     <div class="seg-bloc-previos" id="segBlocPrevios"></div>
-    <textarea class="seg-bloc-texto" id="segBlocTexto" placeholder="Escribe aquí lo que se acordó: qué se dijo, qué sigue, quién lo ve…"></textarea>
+    <div class="seg-bloc-barra">
+      <button type="button" class="seg-bloc-tool" onclick="segBlocLista()" title="Convertir en lista con viñetas">• Lista</button>
+      <button type="button" class="seg-bloc-tool" onclick="segBlocArroba()" title="Mencionar a alguien: le llega notificación">@ Mencionar</button>
+    </div>
+    <textarea class="seg-bloc-texto" id="segBlocTexto"
+      oninput="mostrarArroba(this)" onblur="ocultarArroba()" onkeydown="segBlocKeydown(event)"
+      placeholder="Escribe aquí lo que se acordó: qué se dijo, qué sigue, quién lo ve…"></textarea>
     <div class="seg-bloc-pie">
       <button class="seg-marcar" onclick="segBlocGuardar()">✓ Con seguimiento</button>
       <div class="seg-bloc-hint">Guarda el acuerdo en la bitácora y deja la tarea marcada como revisada en la lista.</div>
@@ -11226,7 +11239,10 @@ function notificacionesDeUsuario() {
     // Lo que hice yo no me notifica.
     if (String(b.usuario || '').trim().toLowerCase() === miNombre) continue;
 
-    const arroba = b.accion === 'comentario' && notifMeArroban(b.comentario);
+    // Una mención avisa venga de donde venga: de un comentario del hilo o de un
+    // acuerdo de la junta (accion 'seguimiento'), que es justo para lo que se
+    // arroba a alguien en la sesión.
+    const arroba = notifMeArroban(b.comentario);
     const t = TAREAS.find(x => x.id === b.id_tarea);
     // Una mención avisa aunque la tarea no sea mía; lo demás, solo si lo es.
     const miTarea = !!t && esResponsableDe(t, usuarioActual);
@@ -11241,8 +11257,12 @@ function notificacionesDeUsuario() {
       id: b.id || (b.id_tarea + '|' + b.fecha_iso),
       id_tarea: b.id_tarea,
       icono: arroba ? '📣' : tipo.icono,
-      titulo: arroba ? 'Te mencionaron' : tipo.texto,
-      detalle: b.comentario || (t ? (t.tema || '') : ''),
+      titulo: arroba
+        ? (b.accion === 'seguimiento' ? 'Te mencionaron en un acuerdo' : 'Te mencionaron')
+        : tipo.texto,
+      // El acuerdo se guarda con el prefijo "Seguimiento (junta): "; se quita
+      // para que la notificación se lea limpia.
+      detalle: String(b.comentario || (t ? (t.tema || '') : '')).replace(/^Seguimiento \(junta\):\s*/i, ''),
       quien: b.usuario || '',
       fecha: b.fecha || '',
       fecha_iso: b.fecha_iso || ''
@@ -11942,6 +11962,72 @@ function segBlocRenderPrevios(id) {
       '<div class="seg-bloc-previo-txt">' + escapeHtml(txt) + '</div>' +
     '</div>';
   }).join('');
+}
+
+// Convierte en lista con viñetas las líneas seleccionadas (o la del cursor).
+// Si ya son viñetas, se las quita: el mismo botón pone y quita.
+function segBlocLista() {
+  const el = document.getElementById('segBlocTexto');
+  if (!el) return;
+  const v = el.value;
+  const ini = v.lastIndexOf('\n', Math.max(0, el.selectionStart - 1)) + 1;
+  let fin = v.indexOf('\n', el.selectionEnd);
+  if (fin < 0) fin = v.length;
+  const bloque = v.slice(ini, fin);
+  let texto;
+  if (!bloque.trim()) {
+    texto = '• ';   // sin nada escrito: arranca la lista
+  } else {
+    const lineas = bloque.split('\n');
+    const yaSonVinetas = lineas.every(l => !l.trim() || /^\s*•\s/.test(l));
+    texto = lineas.map(function (l) {
+      if (!l.trim()) return l;
+      return yaSonVinetas ? l.replace(/^(\s*)•\s?/, '$1') : '• ' + l.trim();
+    }).join('\n');
+  }
+  el.value = v.slice(0, ini) + texto + v.slice(fin);
+  const caret = ini + texto.length;
+  el.focus();
+  el.setSelectionRange(caret, caret);
+}
+
+// Inserta un "@" donde está el cursor y abre el menú de personas.
+function segBlocArroba() {
+  const el = document.getElementById('segBlocTexto');
+  if (!el) return;
+  const pos = el.selectionStart;
+  const antes = el.value.slice(0, pos);
+  // El "@" tiene que iniciar palabra para que el menú lo reconozca.
+  const sep = (!antes || /\s$/.test(antes)) ? '' : ' ';
+  el.value = antes + sep + '@' + el.value.slice(pos);
+  const caret = pos + sep.length + 1;
+  el.focus();
+  el.setSelectionRange(caret, caret);
+  mostrarArroba(el);
+}
+
+// Enter dentro de una viñeta continúa la lista sola. En una viñeta vacía la
+// cierra, que es lo que uno espera al terminar de enumerar.
+function segBlocKeydown(ev) {
+  if (ev.key !== 'Enter' || ev.shiftKey) return;
+  const el = ev.target;
+  if (el.selectionStart !== el.selectionEnd) return;
+  const pos = el.selectionStart;
+  const ini = el.value.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+  const linea = el.value.slice(ini, pos);
+  const m = linea.match(/^(\s*)•\s+/);
+  if (!m) return;
+  ev.preventDefault();
+  if (!linea.replace(/^\s*•\s*/, '').trim()) {
+    // Viñeta vacía: se borra y se sale de la lista.
+    el.value = el.value.slice(0, ini) + el.value.slice(pos);
+    el.setSelectionRange(ini, ini);
+    return;
+  }
+  const ins = '\n' + m[1] + '• ';
+  el.value = el.value.slice(0, pos) + ins + el.value.slice(pos);
+  const caret = pos + ins.length;
+  el.setSelectionRange(caret, caret);
 }
 
 function segBlocGuardar() {
@@ -14328,8 +14414,12 @@ function insertarArroba(nombre) {
   el.value = v.slice(0, _arrobaCtx.start) + '@' + nombre + ' ' + v.slice(_arrobaCtx.end);
   const caret = _arrobaCtx.start + nombre.length + 2;
   el.focus(); el.setSelectionRange(caret, caret);
-  const key = (el.id === 'conv_input_nuevo') ? '__nuevo__' : el.id.replace('conv_input_', '');
-  BORRADOR_HILO[key] = el.value;
+  // El borrador solo aplica a los campos del hilo de comentarios. El menú de @
+  // también se usa en el bloc de acuerdos de la junta, que no lleva borrador.
+  if (/^conv_input_/.test(el.id || '')) {
+    const key = (el.id === 'conv_input_nuevo') ? '__nuevo__' : el.id.replace('conv_input_', '');
+    BORRADOR_HILO[key] = el.value;
+  }
   arrobaMenu().style.display = 'none';
   _arrobaCtx = null;
 }
