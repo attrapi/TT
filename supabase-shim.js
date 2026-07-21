@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260720u';
+  window.TT_SHIM_VERSION = '20260721a';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -26,6 +26,69 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var USUARIO_ACTUAL = null;   // perfil del usuario logueado (para creado_por, etc.)
+
+  // ---------- GUARDIÁN DE SESIÓN ----------
+  // Supabase maneja SU PROPIA sesión (token) aparte del "recuerdo" de la app
+  // (tt_token). Si esa sesión se vence o se cierra sola (pestaña abierta muchas
+  // horas, o la app abierta en dos dispositivos que se pisan el token), la app
+  // se sigue viendo logueada pero cada GUARDADO llega a la base como "anónimo",
+  // y la base lo rechaza con "new row violates row-level security policy". Antes
+  // eso salía como un error técnico y el usuario quedaba atorado. Ahora:
+  //   1) ANTES de cada operación se renueva el token si está por vencer (evita
+  //      que el problema ocurra en primer lugar).
+  //   2) Si aun así una operación falla por sesión muerta, se AVISA claro
+  //      ("Tu sesión venció, vuelve a entrar") y se regresa al login.
+
+  // ¿El texto de un error huele a sesión perdida (no a un permiso legítimo)?
+  function textoDeSesionMuerta(msg) {
+    msg = String(msg || '').toLowerCase();
+    return msg.indexOf('row-level security') >= 0
+        || msg.indexOf('violates row-level') >= 0
+        || msg.indexOf('jwt') >= 0
+        || msg.indexOf('sin sesión') >= 0
+        || msg.indexOf('sin sesion') >= 0
+        || msg.indexOf('not authenticated') >= 0;
+  }
+
+  // ¿Hay de verdad una sesión válida? (si el token venció, intenta renovarlo una
+  // vez). Sirve para CONFIRMAR antes de dar por muerta la sesión: así un error de
+  // permiso legítimo con sesión viva NO dispara el aviso de "vencida".
+  async function sesionViva() {
+    try {
+      var s = await sb.auth.getSession();
+      var sess = s.data && s.data.session;
+      if (!sess) return false;
+      var exp = sess.expires_at ? sess.expires_at * 1000 : 0;
+      if (exp && exp <= Date.now()) {
+        var r = await sb.auth.refreshSession();
+        return !!(r && r.data && r.data.session && !r.error);
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Renueva el token de forma preventiva si le quedan menos de 2 minutos (además
+  // del auto-refresco propio de supabase-js). No hace nada si no hay sesión.
+  async function asegurarSesion() {
+    try {
+      var s = await sb.auth.getSession();
+      var sess = s.data && s.data.session;
+      if (!sess) return;
+      var exp = sess.expires_at ? sess.expires_at * 1000 : 0;
+      if (exp && (exp - Date.now()) < 120000) {
+        await sb.auth.refreshSession();
+      }
+    } catch (e) { /* si falla, la operación real dará el error y el reactivo lo maneja */ }
+  }
+
+  // Avisa UNA sola vez a la app (window.ttSesionVencida) que la sesión murió.
+  var sesionVencidaAvisada = false;
+  function dispararSesionVencida() {
+    if (sesionVencidaAvisada) return;   // no repetir por cada llamada que falle
+    sesionVencidaAvisada = true;
+    USUARIO_ACTUAL = null;
+    try { if (typeof window.ttSesionVencida === 'function') window.ttSesionVencida(); } catch (e) {}
+  }
 
   // --- Tiempo real: cuando cambian las tareas en la base, refrescar en pantalla ---
   var canalRT = null;
@@ -149,6 +212,7 @@
       if (pf.error || !pf.data) return { ok: false, error: 'No se encontró el perfil del usuario.' };
       if (pf.data.activo === false) { await sb.auth.signOut(); return { ok: false, error: 'Usuario inactivo.' }; }
       USUARIO_ACTUAL = perfilAUsuario(pf.data, email);
+      sesionVencidaAvisada = false;   // sesión fresca: rehabilita el aviso de "vencida"
       suscribirRealtime();
       return { ok: true, token: r.data.session.access_token, usuario: USUARIO_ACTUAL };
     },
@@ -159,6 +223,7 @@
       var pf = await sb.from('perfiles').select('*').eq('id', session.user.id).single();
       if (pf.error || !pf.data) return { ok: false };
       USUARIO_ACTUAL = perfilAUsuario(pf.data, session.user.email);
+      sesionVencidaAvisada = false;   // sesión fresca: rehabilita el aviso de "vencida"
       suscribirRealtime();
       return { ok: true, token: session.access_token, usuario: USUARIO_ACTUAL };
     },
@@ -778,8 +843,20 @@
     Object.keys(BACKEND).forEach(function (name) {
       api[name] = function () {
         var args = Array.prototype.slice.call(arguments);
-        Promise.resolve().then(function () { return BACKEND[name].apply(null, args); })
-          .then(function (res) { onOk(res); })
+        Promise.resolve()
+          // 1) Renueva el token si está por vencer (evita que el guardado llegue
+          //    a la base como "anónimo" por un token vencido).
+          .then(function () { return asegurarSesion(); })
+          .then(function () { return BACKEND[name].apply(null, args); })
+          // 2) Si aun así falló por sesión muerta, avisa claro y regresa al login,
+          //    en vez de mostrar el error técnico de RLS.
+          .then(async function (res) {
+            if (res && res.ok === false && textoDeSesionMuerta(res.error) && !(await sesionViva())) {
+              dispararSesionVencida();
+              res = { ok: false, sesionVencida: true, error: 'Tu sesión venció. Vuelve a entrar.' };
+            }
+            onOk(res);
+          })
           .catch(function (err) { onErr(err && err.message ? err : new Error(String(err))); });
         return api;
       };

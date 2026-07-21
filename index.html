@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720u"></script>
+<script src="supabase-shim.js?v=20260721a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -6545,6 +6545,20 @@ function aplicarSesion() {
 
   cambiarTab(tabActiva);
 }
+
+// El puente (supabase-shim) llama esto cuando detecta que la sesión de Supabase
+// ya venció/cerró y una operación llegó como "anónimo" (la base la rechaza con el
+// error de row-level security). En vez de mostrar ese texto técnico, avisamos
+// claro y regresamos al login con la página limpia.
+window.ttSesionVencida = function () {
+  if (window._ttSesionVencidaHecho) return;   // una sola vez
+  window._ttSesionVencidaHecho = true;
+  try { localStorage.removeItem('tt_token'); } catch (e) {}   // que la recarga muestre el login
+  toast('Tu sesión venció. Vuelve a entrar.', 'error');
+  // Deja leer el aviso y recarga a la pantalla de entrada (la sesión ya no sirve
+  // para guardar; seguir en la app solo llevaría a más errores).
+  setTimeout(function () { try { location.reload(); } catch (e) {} }, 3500);
+};
 
 function salir() {
   if (enAppScript() && SESION_TOKEN) {
