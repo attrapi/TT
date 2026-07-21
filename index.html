@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720g"></script>
+<script src="supabase-shim.js?v=20260720h"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -11065,7 +11065,10 @@ function faseVisibleDe(nombre) {
 // tabla `temas_sgoi` de Supabase (correr supabase/temas.sql), así que si alguien
 // agrega una píldora nueva, le aparece a todos. Sirven para filtrar la Sesión de
 // Seguimiento: eliges "SGOI → CONAGUA" y solo repasas ese bloque.
-const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'PROFEPA', 'INAH - ARQ', 'INAH - MMHH', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'PRIVADOS', 'OTROS'];
+// El ORDEN de esta lista es el orden en que se pintan las píldoras (ver
+// ordenarTemas): el catálogo de la base viene alfabético, que no es como se
+// quieren leer.
+const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'PROFEPA', 'INAH - MMHH', 'INAH - ARQ', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'PRIVADOS', 'OTROS'];
 let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 
 // Los temas de una tarea, siempre como arreglo de textos.
@@ -11083,6 +11086,16 @@ function temasDesdeTAREAS() {
 
 // Carga el catálogo: primero del caché local (instantáneo), luego del servidor.
 // `cb` se llama cada vez que la lista cambia, para repintar quien la use.
+// Orden de presentación de las píldoras: primero los temas institucionales en
+// el orden de TEMAS_SGOI_BASE, y al final los que se hayan agregado desde la
+// app (esos sí alfabéticos). Hace falta porque el catálogo llega de la base
+// ordenado por nombre, y ese no es el orden en que se quieren leer.
+function ordenarTemas(lista) {
+  const base = TEMAS_SGOI_BASE.filter(n => lista.indexOf(n) >= 0);
+  const extra = lista.filter(n => TEMAS_SGOI_BASE.indexOf(n) < 0).sort();
+  return base.concat(extra);
+}
+
 function cargarTemasSgoi(cb) {
   try {
     const c = JSON.parse(localStorage.getItem('tt_temas_sgoi_v1') || '[]');
@@ -11090,6 +11103,7 @@ function cargarTemasSgoi(cb) {
   } catch (e) {}
   TEMAS_SGOI_BASE.forEach(n => { if (TEMAS_SGOI.indexOf(n) < 0) TEMAS_SGOI.push(n); });
   temasDesdeTAREAS();
+  TEMAS_SGOI = ordenarTemas(TEMAS_SGOI);
   if (typeof cb === 'function') cb();
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
@@ -11101,6 +11115,7 @@ function cargarTemasSgoi(cb) {
         // se vuelve a correr temas.sql). Sin esto, la píldora se perdería.
         TEMAS_SGOI_BASE.forEach(n => { if (TEMAS_SGOI.indexOf(n) < 0) TEMAS_SGOI.push(n); });
         temasDesdeTAREAS();
+        TEMAS_SGOI = ordenarTemas(TEMAS_SGOI);
         try { localStorage.setItem('tt_temas_sgoi_v1', JSON.stringify(TEMAS_SGOI)); } catch (e) {}
         if (typeof cb === 'function') cb();
       }
