@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720o"></script>
+<script src="supabase-shim.js?v=20260720p"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -5883,8 +5883,12 @@
       <button class="seg-bloc-x" onclick="segBlocCerrar()" title="Cerrar el bloc">×</button>
     </div>
     <div class="seg-bloc-previos" id="segBlocPrevios"></div>
-    <div class="seg-bloc-barra">
-      <button type="button" class="seg-bloc-tool" onclick="segBlocLista()" title="Convertir en lista con viñetas">• Lista</button>
+    <!-- onmousedown preventDefault: sin esto el textarea pierde el foco al
+         presionar y el menú de @ se cierra solo (ver ocultarArroba). -->
+    <div class="seg-bloc-barra" onmousedown="event.preventDefault()">
+      <button type="button" class="seg-bloc-tool" onclick="segBlocBold()" title="Negrita (Ctrl+B)"><strong>N</strong></button>
+      <button type="button" class="seg-bloc-tool" onclick="segBlocLista('vineta')" title="Lista con viñetas">• Lista</button>
+      <button type="button" class="seg-bloc-tool" onclick="segBlocLista('numero')" title="Lista numerada">1. Lista</button>
       <button type="button" class="seg-bloc-tool" onclick="segBlocArroba()" title="Mencionar a alguien: le llega notificación">@ Mencionar</button>
     </div>
     <textarea class="seg-bloc-texto" id="segBlocTexto"
@@ -11538,6 +11542,15 @@ function esSeguimientoUser() {
 
 function seguimientoHecho(t) { return !!(t && t.seguimiento_en); }
 
+// Pinta un acuerdo: escapa el texto, resalta las @menciones y convierte
+// **negrita**. El acuerdo se GUARDA en texto plano (la bitácora no admite
+// HTML); el formato se aplica solo al mostrarlo.
+function formatoAcuerdo(texto) {
+  let s = resaltarArrobas(escapeHtml(String(texto || '')));
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return s;
+}
+
 // Áreas que el usuario puede repasar: el Director las 4; un subdirector, solo
 // la suya (y en ese caso se elige sola, sin dar clic).
 function segAreasDisponibles() {
@@ -11866,7 +11879,7 @@ function segCardHTML(t) {
   if (hecho) {
     cuerpo =
       '<div class="seg-hecha-info">✓ Con seguimiento — ' + escapeHtml(formatearNombre(t.seguimiento_por || '')) + '</div>' +
-      (t.seguimiento_acuerdo ? '<div class="seg-hecha-acuerdo">“' + escapeHtml(t.seguimiento_acuerdo) + '”</div>' : '') +
+      (t.seguimiento_acuerdo ? '<div class="seg-hecha-acuerdo">“' + formatoAcuerdo(t.seguimiento_acuerdo) + '”</div>' : '') +
       '<div class="seg-card-acciones">' +
         '<button class="seg-deshacer" onclick="segQuitar(\'' + t.id + '\')" title="Quitar el ✓ para volver a repasarla">Deshacer</button>' +
         '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
@@ -11959,36 +11972,67 @@ function segBlocRenderPrevios(id) {
     return '<div class="seg-bloc-previo">' +
       '<div class="seg-bloc-previo-meta">' + escapeHtml(b.fecha || '') +
         (b.usuario ? ' · ' + escapeHtml(b.usuario) : '') + '</div>' +
-      '<div class="seg-bloc-previo-txt">' + escapeHtml(txt) + '</div>' +
+      '<div class="seg-bloc-previo-txt">' + formatoAcuerdo(txt) + '</div>' +
     '</div>';
   }).join('');
 }
 
-// Convierte en lista con viñetas las líneas seleccionadas (o la del cursor).
-// Si ya son viñetas, se las quita: el mismo botón pone y quita.
-function segBlocLista() {
+// Quita la marca de lista (viñeta o número) del inicio de una línea.
+function segSinMarca(l) { return l.replace(/^(\s*)(?:•\s?|\d+[.)]\s?)/, '$1'); }
+
+// Convierte en lista las líneas seleccionadas (o la del cursor). El mismo botón
+// pone y quita: si ya son de ESE tipo, las desarma. `tipo` = 'vineta' | 'numero'.
+function segBlocLista(tipo) {
   const el = document.getElementById('segBlocTexto');
   if (!el) return;
+  const num = tipo === 'numero';
   const v = el.value;
   const ini = v.lastIndexOf('\n', Math.max(0, el.selectionStart - 1)) + 1;
   let fin = v.indexOf('\n', el.selectionEnd);
   if (fin < 0) fin = v.length;
   const bloque = v.slice(ini, fin);
+  const marca = l => /^\s*•\s/.test(l);
+  const marcaNum = l => /^\s*\d+[.)]\s/.test(l);
   let texto;
   if (!bloque.trim()) {
-    texto = '• ';   // sin nada escrito: arranca la lista
+    texto = num ? '1. ' : '• ';   // sin nada escrito: arranca la lista
   } else {
     const lineas = bloque.split('\n');
-    const yaSonVinetas = lineas.every(l => !l.trim() || /^\s*•\s/.test(l));
+    const yaEsEste = lineas.every(l => !l.trim() || (num ? marcaNum(l) : marca(l)));
+    let i = 0;
     texto = lineas.map(function (l) {
       if (!l.trim()) return l;
-      return yaSonVinetas ? l.replace(/^(\s*)•\s?/, '$1') : '• ' + l.trim();
+      if (yaEsEste) return segSinMarca(l);
+      i++;
+      return (num ? (i + '. ') : '• ') + segSinMarca(l).trim();
     }).join('\n');
   }
   el.value = v.slice(0, ini) + texto + v.slice(fin);
   const caret = ini + texto.length;
   el.focus();
   el.setSelectionRange(caret, caret);
+}
+
+// Negrita estilo markdown: **texto**. Se guarda como texto plano (la bitácora
+// no admite HTML) y se pinta en negrita al mostrarlo, ver formatoAcuerdo.
+function segBlocBold() {
+  const el = document.getElementById('segBlocTexto');
+  if (!el) return;
+  const ini = el.selectionStart, fin = el.selectionEnd;
+  const sel = el.value.slice(ini, fin);
+  if (sel) {
+    // Si ya estaba en negrita, se la quita.
+    const yaEsta = /^\*\*[\s\S]+\*\*$/.test(sel);
+    const nuevo = yaEsta ? sel.slice(2, -2) : '**' + sel + '**';
+    el.value = el.value.slice(0, ini) + nuevo + el.value.slice(fin);
+    el.focus();
+    el.setSelectionRange(ini, ini + nuevo.length);
+  } else {
+    // Sin selección: deja el cursor entre los asteriscos para escribir.
+    el.value = el.value.slice(0, ini) + '****' + el.value.slice(ini);
+    el.focus();
+    el.setSelectionRange(ini + 2, ini + 2);
+  }
 }
 
 // Inserta un "@" donde está el cursor y abre el menú de personas.
@@ -12009,22 +12053,28 @@ function segBlocArroba() {
 // Enter dentro de una viñeta continúa la lista sola. En una viñeta vacía la
 // cierra, que es lo que uno espera al terminar de enumerar.
 function segBlocKeydown(ev) {
+  // Ctrl+B / Cmd+B: negrita, como en cualquier editor.
+  if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'b' || ev.key === 'B')) {
+    ev.preventDefault(); segBlocBold(); return;
+  }
   if (ev.key !== 'Enter' || ev.shiftKey) return;
   const el = ev.target;
   if (el.selectionStart !== el.selectionEnd) return;
   const pos = el.selectionStart;
   const ini = el.value.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
   const linea = el.value.slice(ini, pos);
-  const m = linea.match(/^(\s*)•\s+/);
+  const m = linea.match(/^(\s*)(•|(\d+)[.)])\s+/);
   if (!m) return;
   ev.preventDefault();
-  if (!linea.replace(/^\s*•\s*/, '').trim()) {
-    // Viñeta vacía: se borra y se sale de la lista.
+  // Marca sin contenido: se borra y se sale de la lista.
+  if (!segSinMarca(linea).trim()) {
     el.value = el.value.slice(0, ini) + el.value.slice(pos);
     el.setSelectionRange(ini, ini);
     return;
   }
-  const ins = '\n' + m[1] + '• ';
+  // En lista numerada, el siguiente renglón continúa la cuenta.
+  const marca = m[3] ? ((parseInt(m[3], 10) + 1) + '. ') : '• ';
+  const ins = '\n' + m[1] + marca;
   el.value = el.value.slice(0, pos) + ins + el.value.slice(pos);
   const caret = pos + ins.length;
   el.setSelectionRange(caret, caret);
