@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720j"></script>
+<script src="supabase-shim.js?v=20260720k"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -11669,7 +11669,9 @@ function segBlocGuardar() {
   const ta = document.getElementById('segBlocTexto');
   const acuerdo = ta ? (ta.value || '').trim() : '';
   if (!acuerdo) { toast('Escribe el acuerdo antes de guardar.', 'error'); return; }
-  segGuardarAcuerdo(id, acuerdo);   // misma vía que la caja de la tarjeta
+  // Misma vía que la caja de la tarjeta. Si no se pudo guardar, el bloc se
+  // queda abierto con el texto para no perderlo.
+  if (!segGuardarAcuerdo(id, acuerdo)) return;
   // La caja de la tarjeta ya no debe conservar el borrador: se acaba de guardar.
   const enTarjeta = document.getElementById('seg-acuerdo-' + id);
   if (enTarjeta) enTarjeta.value = '';
@@ -11690,7 +11692,13 @@ function segMarcar(id) {
 // existan dos maneras distintas de registrar lo mismo.
 function segGuardarAcuerdo(id, acuerdo) {
   const t = (TAREAS || []).find(x => x.id === id);
-  if (!t) return;
+  // La tarea pudo haber sido archivada o eliminada por otra persona mientras la
+  // repasabas. Antes esto fallaba en silencio: se daba Guardar y no pasaba nada.
+  // Devuelve si se pudo guardar, para que quien llama no dé por hecho el éxito.
+  if (!t) {
+    toast('La tarea ' + id + ' ya no está disponible (alguien la archivó o eliminó). Copia tu acuerdo antes de cerrar.', 'error');
+    return false;
+  }
   const miNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   t.seguimiento_en = new Date().toISOString();
   t.seguimiento_por = miNombre;
@@ -11707,6 +11715,7 @@ function segGuardarAcuerdo(id, acuerdo) {
     })
     .withFailureHandler(function (e) { toast('No se pudo guardar el seguimiento: ' + (e && e.message ? e.message : e), 'error'); })
     .marcarSeguimiento(SESION_TOKEN, id, acuerdo);
+  return true;
 }
 
 function segQuitar(id) {
@@ -16765,7 +16774,9 @@ window.ttRefrescar = function () {
       // Si hay un DETALLE abierto (no el formulario) y no estás escribiendo, lo
       // repintamos para ver acciones/adjuntos nuevos de otra persona en vivo.
       const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
-      const _esc = document.activeElement && /(conv_input_|^nt_|detEnlaceInput|chk-nuevo-)/.test(document.activeElement.id || '');
+      // segBlocTexto = bloc de acuerdos de la junta: aunque vive FUERA del modal
+      // (no se borraría), repintar el detalle a media redacción distrae.
+      const _esc = document.activeElement && /(conv_input_|^nt_|detEnlaceInput|chk-nuevo-|^segBlocTexto$)/.test(document.activeElement.id || '');
       // Tampoco repintar si se está ARRASTRANDO una acción (destruiría la fila).
       const _arrastrando = (typeof _chkDrag !== 'undefined' && _chkDrag);
       if (_tAb && !formTareaAbierto && !_esc && !_arrastrando && typeof abrirDetalle === 'function') {
