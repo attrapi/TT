@@ -12,6 +12,13 @@
 --  Pegar en: Supabase → SQL Editor → New query → Run. Es idempotente.
 -- =====================================================================
 
+-- Cuáles notificaciones ya abrió (ids de la bitácora). Se guarda la LISTA y no
+-- una fecha de corte: el contador tiene que bajar de una en una conforme se
+-- abren, no marcarse todo leído por asomarse al panel.
+alter table public.perfiles add column if not exists notif_leidas jsonb not null default '[]'::jsonb;
+
+-- Columna de la primera versión (marca de tiempo). Ya no se usa; se deja para
+-- no romper bases donde ya se creó.
 alter table public.perfiles add column if not exists notif_visto_en timestamptz;
 
 -- Cada quien actualiza SU marca de leído. La política de perfiles puede ser
@@ -25,6 +32,6 @@ create policy perfiles_actualiza_propio on public.perfiles
 
 -- Verificación
 select 'notificaciones listo' as resultado,
-       count(*) filter (where notif_visto_en is not null) as ya_leyeron_alguna_vez,
+       count(*) filter (where notif_leidas <> '[]'::jsonb) as perfiles_con_leidas,
        count(*) as perfiles
 from public.perfiles;

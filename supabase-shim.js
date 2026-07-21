@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260720r';
+  window.TT_SHIM_VERSION = '20260720s';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -78,8 +78,8 @@
       es_enlace: !!(p && p.es_enlace),
       acceso_completo: !!(p && p.acceso_completo),
       nombre_corto: p ? (p.nombre_corto || '') : '',
-      // Hasta dónde ya leyó sus notificaciones (ver supabase/notificaciones.sql).
-      notif_visto_en: (p && p.notif_visto_en) || ''
+      // Ids de bitácora de las notificaciones que ya abrió (notificaciones.sql).
+      notif_leidas: (p && Array.isArray(p.notif_leidas)) ? p.notif_leidas.map(String) : []
     };
   }
   function areaDeDatos(d) {
@@ -165,22 +165,23 @@
     cerrarSesion: async function () { try { await sb.auth.signOut(); } catch (e) {} return { ok: true }; },
 
     // ---- NOTIFICACIONES (ver supabase/notificaciones.sql) ----
-    // Marca "ya leí hasta aquí". Se guarda en el PERFIL, no en el navegador,
-    // para que si las lees en la compu no te vuelvan a salir en el teléfono.
-    guardarNotifVisto: async function (token, iso) {
+    // Guarda CUÁLES notificaciones ya abrió. Va en el PERFIL, no en el
+    // navegador, para que si las lees en la compu no te vuelvan a salir en el
+    // teléfono. La app manda la lista ya podada, así que no crece sin fin.
+    guardarNotifLeidas: async function (token, ids) {
       var s = await sb.auth.getSession();
       var uid = s.data && s.data.session && s.data.session.user && s.data.session.user.id;
       if (!uid) return { ok: false, error: 'Sin sesión.' };
-      var cuando = iso || new Date().toISOString();
-      var r = await sb.from('perfiles').update({ notif_visto_en: cuando }).eq('id', uid);
+      var lista = Array.isArray(ids) ? ids.map(String) : [];
+      var r = await sb.from('perfiles').update({ notif_leidas: lista }).eq('id', uid);
       if (r.error) {
-        if (/notif_visto_en/i.test(r.error.message || '')) {
-          return { ok: false, error: 'Falta correr supabase/notificaciones.sql en la base.' };
+        if (/notif_leidas/i.test(r.error.message || '')) {
+          return { ok: false, error: 'Falta correr supabase/notificaciones.sql en la base: las notificaciones leídas no se están guardando.' };
         }
         return { ok: false, error: r.error.message };
       }
-      if (USUARIO_ACTUAL) USUARIO_ACTUAL.notif_visto_en = cuando;
-      return { ok: true, notif_visto_en: cuando };
+      if (USUARIO_ACTUAL) USUARIO_ACTUAL.notif_leidas = lista;
+      return { ok: true };
     },
 
     listarUsuarios: async function () {

@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260720r"></script>
+<script src="supabase-shim.js?v=20260720s"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -11194,7 +11194,7 @@ function cambiarVista(v) {
 // No se guarda una notificación por evento: se CALCULAN aquí a partir de la
 // bitácora, que ya registra todo lo que pasa y ya llega en tiempo real. Lo
 // único que vive en la base es hasta dónde leyó cada quien (perfiles
-// .notif_visto_en, ver supabase/notificaciones.sql).
+// .notif_leidas, ver supabase/notificaciones.sql).
 //
 // Qué te notifica (decidido con el usuario):
 //   • Te asignaron una tarea (eres responsable directo).
@@ -11274,24 +11274,59 @@ function notificacionesDeUsuario() {
   return out;
 }
 
-// Fecha ISO → número, para comparar. NO se comparan como texto: Postgres
-// devuelve "…+00:00" y toISOString() genera "…Z", así que la comparación de
-// cadenas daría resultados equivocados aunque sea el mismo instante.
-function notifTs(iso) {
-  const n = Date.parse(iso || '');
-  return isNaN(n) ? 0 : n;
+// ===== Leídas: se guarda CUÁLES se abrieron, no una fecha de corte =====
+// Con una fecha de corte, asomarse al panel marcaba todo como leído de golpe.
+// Aquí cada notificación se marca al ABRIRLA, así el contador baja de una en
+// una y lo amarillo se quita solo en la que ya viste.
+let NOTIF_LEIDAS = new Set();
+
+// Respaldo por navegador: si falta correr notificaciones.sql, al menos no se
+// pierden al recargar. Se fusiona con lo que venga del perfil.
+function notifClaveLocal() {
+  return 'tt_notif_leidas_' + String((usuarioActual && usuarioActual.email) || '');
 }
 
-// ¿Esta notificación llegó después de la última vez que abriste la campanita?
-function notifEsNueva(n, visto) {
-  if (!visto) return true;   // nunca las ha abierto: todas cuentan como nuevas
-  return notifTs(n.fecha_iso) > notifTs(visto);
+function notifCargarLeidas() {
+  NOTIF_LEIDAS = new Set();
+  if (!usuarioActual) return;
+  try {
+    const c = JSON.parse(localStorage.getItem(notifClaveLocal()) || '[]');
+    if (Array.isArray(c)) c.forEach(id => NOTIF_LEIDAS.add(String(id)));
+  } catch (e) {}
+  (usuarioActual.notif_leidas || []).forEach(id => NOTIF_LEIDAS.add(String(id)));
 }
 
-// Las que llegaron DESPUÉS de la última vez que abriste la campanita.
-function notifNuevas(lista) {
-  const visto = (usuarioActual && usuarioActual.notif_visto_en) || '';
-  return lista.filter(n => notifEsNueva(n, visto));
+function notifEsNueva(n) { return !NOTIF_LEIDAS.has(String(n.id)); }
+function notifNuevas(lista) { return lista.filter(notifEsNueva); }
+
+// Marca ids como leídos y lo guarda. La lista se poda a las notificaciones que
+// siguen a la vista, para que no crezca sin límite.
+function notifMarcarIds(ids) {
+  if (!usuarioActual || !ids || !ids.length) return;
+  ids.forEach(id => NOTIF_LEIDAS.add(String(id)));
+  const lista = notificacionesDeUsuario();
+  // Poda solo si ya hay bitácora cargada; si no, se conserva todo tal cual
+  // (si no, un arranque sin datos borraría lo ya leído).
+  let guardar = Array.from(NOTIF_LEIDAS);
+  if (lista.length) {
+    const vigentes = new Set(lista.map(n => String(n.id)));
+    guardar = guardar.filter(id => vigentes.has(id));
+    NOTIF_LEIDAS = new Set(guardar);
+  }
+  try { localStorage.setItem(notifClaveLocal(), JSON.stringify(guardar)); } catch (e) {}
+  if (usuarioActual) usuarioActual.notif_leidas = guardar;
+  if (!enAppScript() || !SESION_TOKEN) return;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      // Si la columna no existe, hay que decirlo: si no, el usuario ve que las
+      // notificaciones "reviven" al cambiar de dispositivo y no sabe por qué.
+      if (res && !res.ok && res.error && !window._notifAvisado) {
+        window._notifAvisado = true;
+        toast(res.error, 'error');
+      }
+    })
+    .withFailureHandler(function () {})
+    .guardarNotifLeidas(SESION_TOKEN, guardar);
 }
 
 // Repinta el globito rojo. Se llama cada vez que llega bitácora nueva.
@@ -11302,6 +11337,7 @@ function notifRefrescarBadge() {
   // La campanita solo tiene sentido con sesión iniciada.
   btn.parentElement.style.display = usuarioActual ? '' : 'none';
   if (!usuarioActual) return;
+  notifCargarLeidas();   // perfil + respaldo local
   const n = notifNuevas(notificacionesDeUsuario()).length;
   badge.textContent = n > 9 ? '9+' : String(n);
   badge.style.display = n ? '' : 'none';
@@ -11314,14 +11350,14 @@ function notifRenderLista() {
   const cont = document.getElementById('notifLista');
   if (!cont) return;
   const lista = notificacionesDeUsuario();
-  const visto = (usuarioActual && usuarioActual.notif_visto_en) || '';
   if (!lista.length) {
     cont.innerHTML = '<div class="notif-vacio">No tienes notificaciones.<br>Aquí te avisamos cuando te asignen una tarea, te mencionen con @ o se muevan tus tareas.</div>';
     return;
   }
   cont.innerHTML = lista.map(function (n) {
-    const esNueva = notifEsNueva(n, visto);
-    return '<div class="notif-item' + (esNueva ? ' nueva' : '') + '" onclick="notifIr(\'' + escapeHtml(n.id_tarea) + '\')">' +
+    const esNueva = notifEsNueva(n);
+    return '<div class="notif-item' + (esNueva ? ' nueva' : '') +
+      '" onclick="notifIr(\'' + escapeHtml(n.id_tarea) + '\',\'' + escapeHtml(String(n.id)) + '\')">' +
       '<span class="notif-ico">' + n.icono + '</span>' +
       '<div class="notif-cuerpo">' +
         '<div class="notif-titulo">' + escapeHtml(n.titulo) + ' · ' + escapeHtml(n.id_tarea) + '</div>' +
@@ -11339,37 +11375,30 @@ function notifToggle(ev) {
   if (!panel) return;
   const abriendo = !panel.classList.contains('activo');
   panel.classList.toggle('activo', abriendo);
-  if (abriendo) {
-    notifRenderLista();
-    // Al abrirlas se dan por leídas, pero las nuevas se quedan resaltadas en
-    // ESTA vista para alcanzar a verlas; el globito ya se va.
-    notifMarcarLeidas(true);
-  }
+  // Abrir el panel NO marca nada: solo se marca lo que de verdad se abre.
+  if (abriendo) notifRenderLista();
 }
 
-// Marca todo como leído: guarda "ya vi hasta ahora" en el perfil.
-function notifMarcarLeidas(silencioso) {
-  if (!usuarioActual) return;
-  const ahora = new Date().toISOString();
-  usuarioActual.notif_visto_en = ahora;
-  const badge = document.getElementById('notifBadge');
-  if (badge) badge.style.display = 'none';
-  if (!silencioso) { notifRenderLista(); toast('Notificaciones marcadas como leídas', 'ok'); }
-  if (!enAppScript() || !SESION_TOKEN) return;
-  google.script.run
-    .withSuccessHandler(function (res) {
-      if (res && !res.ok && res.error) toast(res.error, 'error');
-    })
-    .withFailureHandler(function () { /* queda marcado en pantalla; se reintenta al próximo abrir */ })
-    .guardarNotifVisto(SESION_TOKEN, ahora);
+// Botón "Marcar leídas": el único atajo para dar por vistas todas de golpe.
+function notifMarcarLeidas() {
+  const lista = notificacionesDeUsuario();
+  const pendientes = notifNuevas(lista).map(n => String(n.id));
+  if (!pendientes.length) { toast('No tienes notificaciones sin abrir.', 'ok'); return; }
+  notifMarcarIds(pendientes);
+  notifRenderLista();
+  notifRefrescarBadge();
+  toast(pendientes.length + (pendientes.length === 1 ? ' notificación marcada como leída' : ' notificaciones marcadas como leídas'), 'ok');
 }
 
-// Clic en una notificación: cierra el panel y abre esa tarea.
-function notifIr(id) {
+// Clic en una notificación: se marca SOLO esa (el contador baja de uno), se
+// cierra el panel y se abre la tarea.
+function notifIr(idTarea, notifId) {
+  if (notifId) notifMarcarIds([notifId]);
+  notifRefrescarBadge();
   const panel = document.getElementById('notifPanel');
   if (panel) panel.classList.remove('activo');
-  const t = (TAREAS || []).find(x => x.id === id);
-  if (!t) { toast('La tarea ' + id + ' ya no está disponible.', 'error'); return; }
+  const t = (TAREAS || []).find(x => x.id === idTarea);
+  if (!t) { toast('La tarea ' + idTarea + ' ya no está disponible.', 'error'); return; }
   abrirDetalle(t);
 }
 
