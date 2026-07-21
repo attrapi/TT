@@ -11,7 +11,7 @@ with revisiones as (
   select 'tabla · perfiles',            to_regclass('public.perfiles')         is not null, 'perfiles.sql' union all
   select 'tabla · bitacora',            to_regclass('public.bitacora')         is not null, 'migracion-bitacora.sql' union all
   select 'tabla · volantes',            to_regclass('public.volantes')         is not null, 'volantes.sql' union all
-  select 'tabla · temas_sgoi',          to_regclass('public.temas_sgoi')       is not null, 'temas.sql  ← NUEVO' union all
+  select 'tabla · temas_sgoi',          to_regclass('public.temas_sgoi')       is not null, 'temas.sql' union all
   select 'tabla · areas_catalogo',      to_regclass('public.areas_catalogo')   is not null, 'schema.sql' union all
   select 'tabla · plantilla_correo',    to_regclass('public.plantilla_correo') is not null, 'correo-tareas.sql' union all
 
@@ -19,11 +19,23 @@ with revisiones as (
   select 'columna · tareas.temas',
          exists (select 1 from information_schema.columns
                  where table_schema='public' and table_name='tareas' and column_name='temas'),
-         'temas.sql  ← NUEVO' union all
+         'temas.sql' union all
   select 'columna · tareas.seguimiento_en',
          exists (select 1 from information_schema.columns
                  where table_schema='public' and table_name='tareas' and column_name='seguimiento_en'),
          'seguimiento.sql' union all
+  select 'columna · tareas.proyecto',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='tareas' and column_name='proyecto'),
+         'proyectos.sql' union all
+  select 'columna · tareas.tramo',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='tareas' and column_name='tramo'),
+         'proyectos.sql' union all
+  select 'columna · perfiles.notif_leidas',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='perfiles' and column_name='notif_leidas'),
+         'notificaciones.sql' union all
   select 'columna · tareas.participantes',
          exists (select 1 from information_schema.columns
                  where table_schema='public' and table_name='tareas' and column_name='participantes'),
