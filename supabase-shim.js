@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260721a';
+  window.TT_SHIM_VERSION = '20260723a';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -88,6 +88,55 @@
     sesionVencidaAvisada = true;
     USUARIO_ACTUAL = null;
     try { if (typeof window.ttSesionVencida === 'function') window.ttSesionVencida(); } catch (e) {}
+  }
+
+  // ---------- VOLANTE REPETIDO ----------
+  // La base tiene un índice único sobre upper(numero) (volantes_numero_unico),
+  // así que dos volantes NO pueden llevar el mismo número — sin importar el área
+  // ni quién los registró.
+  // Antes esto se detectaba buscando las palabras "unique"/"duplicate" en el
+  // TEXTO del error: cualquier otro problema que las mencionara se le mostraba
+  // al usuario como "ya existe ese número". Ahora se mira el CÓDIGO de Postgres
+  // (23505 = unique_violation) y, de respaldo, el nombre del índice.
+  function esVolanteRepetido(err) {
+    if (!err) return false;
+    if (String(err.code || '') === '23505') return true;
+    return /volantes_numero_unico/i.test(err.message || '');
+  }
+
+  // Trae el volante que YA tiene ese número, para poder decir DÓNDE está (el
+  // usuario suele no verlo: la lista arranca filtrada por su propia área).
+  // `exceptoId` sirve al editar: no cuenta el volante que se está guardando.
+  async function volantePorNumero(numero, exceptoId) {
+    try {
+      // En LIKE/ILIKE, % y _ son comodines: se escapan para buscar el número tal cual.
+      var patron = String(numero || '').replace(/([%_\\])/g, '\\$1');
+      var q = sb.from('volantes')
+        .select('id,numero,area,estatus,creado_por,created_at')
+        .ilike('numero', patron).limit(1);
+      if (exceptoId) q = q.neq('id', exceptoId);
+      var r = await q;
+      return (r.data && r.data[0]) || null;
+    } catch (e) { return null; }
+  }
+
+  // "Ya existe el volante X (área SA, registrado por Fulana el 14/07/2026)."
+  function mensajeRepetido(numero, fila, esOtro) {
+    var m = 'Ya existe ' + (esOtro ? 'otro volante' : 'un volante') + ' con el número ' + numero;
+    if (fila) {
+      var det = [];
+      if (fila.area) det.push('área ' + fila.area);
+      if (fila.creado_por) det.push('registrado por ' + fila.creado_por);
+      if (fila.created_at) {
+        var d = new Date(fila.created_at);
+        if (!isNaN(d.getTime())) {
+          det.push('el ' + String(d.getDate()).padStart(2, '0') + '/' +
+            String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear());
+        }
+      }
+      if (det.length) m += ' (' + det.join(', ') + ')';
+    }
+    return m + '.';
   }
 
   // --- Tiempo real: cuando cambian las tareas en la base, refrescar en pantalla ---
@@ -594,8 +643,12 @@
         r = await sb.from('volantes').insert(fila).select('id').single();
       }
       if (r.error) {
-        var dup = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
-        return { ok: false, error: dup ? 'Ya existe un volante con el número ' + fila.numero + '.' : r.error.message };
+        if (esVolanteRepetido(r.error)) {
+          var yaEsta = await volantePorNumero(fila.numero);
+          return { ok: false, duplicado: yaEsta || { numero: fila.numero },
+                   error: mensajeRepetido(fila.numero, yaEsta, false) };
+        }
+        return { ok: false, error: r.error.message };
       }
       return { ok: true, id: r.data.id, aviso: aviso || undefined };
     },
@@ -632,8 +685,12 @@
         r = await sb.from('volantes').update(upd).eq('id', id);
       }
       if (r.error) {
-        var dup2 = /duplicate|unique|volantes_numero_unico/i.test(r.error.message || '');
-        return { ok: false, error: dup2 ? 'Ya existe otro volante con el número ' + upd.numero + '.' : r.error.message };
+        if (esVolanteRepetido(r.error)) {
+          var yaEsta2 = await volantePorNumero(upd.numero, id);
+          return { ok: false, duplicado: yaEsta2 || { numero: upd.numero },
+                   error: mensajeRepetido(upd.numero, yaEsta2, true) };
+        }
+        return { ok: false, error: r.error.message };
       }
       return { ok: true, aviso: aviso2 || undefined };
     },

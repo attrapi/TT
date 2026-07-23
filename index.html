@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260721a"></script>
+<script src="supabase-shim.js?v=20260723a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -746,6 +746,13 @@
   .vol-farea-btn.activa[data-sub="SGOI"] { background: var(--sub-sgoi); border-color: var(--sub-sgoi); }
   .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
   .vol-farea-btn.activa[data-sub="SPAC"] { background: var(--sub-spac); border-color: var(--sub-spac); }
+  /* "Aquí no hay coincidencias, pero N volantes coinciden en otras áreas." */
+  .vol-otras-areas {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding: 9px 12px; border-radius: 10px;
+    background: rgba(0, 0, 0, .035); border: 1px dashed var(--linea);
+    font-size: 12.5px; color: var(--tinta-suave);
+  }
   .vol-area {
     font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
     color: #fff; letter-spacing: .04em;
@@ -4149,6 +4156,17 @@
     color: var(--tinta-tenue);
     font-style: italic;
   }
+  /* Aviso de "ese número ya está usado", pegado al campo No. de volante: dice
+     en qué área está el volante que lo tiene y quién lo registró. */
+  .vol-num-aviso { display: none; }
+  .vol-num-aviso.activo {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    margin-top: 6px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(190, 30, 45, .08); border: 1px solid rgba(190, 30, 45, .35);
+    font-size: 12px; line-height: 1.4; color: var(--tinta);
+  }
+  .vol-num-aviso .vol-btn { flex: none; }
+  input.campo-repetido { border-color: rgba(190, 30, 45, .7) !important; background: rgba(190, 30, 45, .04); }
 
   /* === MODAL CARGAR EXCEL === */
   .excel-intro {
@@ -9752,6 +9770,7 @@ function cerrarModal() {
   tareaEditando = null;
   archivoPendiente = null;
   creandoTarea = false;   // libera el candado anti-doble-envío
+  guardandoVolante = false;   // ídem para el formulario de volantes
   formTareaAbierto = false;
   comentariosNuevaTarea = [];   // limpia el hilo pendiente (tarea nueva)
   BORRADOR_HILO = {};           // descarta borradores de comentario sin enviar
@@ -12220,6 +12239,7 @@ let volFormAdjuntosNuevos = [];// archivos elegidos, pendientes de subir (File)
 let volFormAdjuntosQuitar = [];// urls a borrar de Drive al guardar (edición)
 let volFormAdjuntosDirty = false;
 let volChkAdjuntarUid = null;  // uid de la acción a la que se le está adjuntando archivo
+let guardandoVolante = false;  // candado anti-doble-envío (igual que creandoTarea)
 
 // Lo llama el realtime del shim cuando alguien registra/edita un volante.
 window.ttRefrescarVolantes = function () {
@@ -12273,21 +12293,34 @@ function pintarVolantes() {
     volPintarFiltroArea();
   }
   let vs = VOLANTES.slice();
-  if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volAreaDe(v) === volFiltroArea);
+  // La BÚSQUEDA se aplica ANTES del filtro de área, a propósito: el No. de
+  // volante es único en TODA la tabla, así que si buscas un número y no aparece
+  // aquí, puede estar registrado en otra área. Antes se buscaba solo dentro del
+  // área activa y el volante quedaba invisible ("no existe") aunque la base sí
+  // lo tuviera y rechazara el número al registrarlo.
   if (volBuscarTxt) {
     const q = sinAcentos(volBuscarTxt).toLowerCase();
     vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.asignado_a, v.referencia, v.tipo_atencion, v.creado_por]
       .join(' ')).toLowerCase().indexOf(q) >= 0);
   }
+  const coincidenTodas = vs.length;
+  if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volAreaDe(v) === volFiltroArea);
+  const enOtrasAreas = coincidenTodas - vs.length;
   const meta = document.getElementById('volantesMeta');
   if (meta) meta.textContent = vs.length + (vs.length === 1 ? ' volante' : ' volantes');
+  // Aviso cuando la búsqueda sí encontró algo, pero fuera del área que se ve.
+  const avisoOtras = (volBuscarTxt && enOtrasAreas > 0)
+    ? '<div class="vol-otras-areas">' + (vs.length ? '' : 'Aquí no hay coincidencias, pero ') +
+      enOtrasAreas + (enOtrasAreas === 1 ? ' volante coincide' : ' volantes coinciden') +
+      ' en otras áreas. <button class="vol-btn" onclick="volSetArea(\'TODAS\')">Ver todas</button></div>'
+    : '';
   if (!vs.length) {
-    lista.innerHTML = '<div class="vol-vacio">' + (volCargados
+    lista.innerHTML = avisoOtras + '<div class="vol-vacio">' + (volCargados
       ? (VOLANTES.length ? 'Ningún volante coincide con la búsqueda.' : 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.')
       : 'Cargando volantes…') + '</div>';
     return;
   }
-  lista.innerHTML = vs.map(v => {
+  lista.innerHTML = avisoOtras + vs.map(v => {
     const campos = [
       ['Fecha de recepción', v.fecha_recepcion ? formatearFechaCorta(v.fecha_recepcion) : '—'],
       ['Fecha del documento', v.fecha_documento ? formatearFechaCorta(v.fecha_documento) : '—'],
@@ -13025,6 +13058,7 @@ function abrirFormVolante(v) {
             <label>No. de volante <span class="req">*</span></label>
             <input type="text" id="vol_numero" required maxlength="60" value="${val('numero')}" placeholder="Ej. VOL-001-2026-001" style="text-transform:uppercase" oninput="this.value = this.value.toUpperCase()">
             <div class="form-hint">Se captura con su estructura; se convierte solo a MAYÚSCULAS.</div>
+            <div class="vol-num-aviso" id="vol_numAviso"></div>
           </div>
           <div class="form-campo">
             <label>Tipo de atención</label>
@@ -13138,7 +13172,48 @@ function abrirFormVolante(v) {
   document.getElementById('modalFondo').classList.add('activo');
 }
 
+// Aviso de "ese número ya está usado" pegado al campo No. de volante. El número
+// es único en TODA la tabla (no por área), pero la lista arranca filtrada por el
+// área del usuario, así que el volante que estorba casi nunca está a la vista y
+// el mensaje parecía falso ("dice que ya existe y no existe"). Aquí se dice
+// dónde está, se recarga la lista y se deja apuntando a él.
+// Con `msg` vacío, borra el aviso.
+function volAvisoNumero(msg, dup) {
+  const inp = document.getElementById('vol_numero');
+  if (inp) inp.classList.toggle('campo-repetido', !!msg);
+  const box = document.getElementById('vol_numAviso');
+  if (!box) return;
+  if (!msg) { box.innerHTML = ''; box.classList.remove('activo'); return; }
+  box.classList.add('activo');
+  box.innerHTML = '<span>⚠️ ' + escapeHtml(msg) + '</span>' +
+    (dup && dup.id ? '<button type="button" class="vol-btn" onclick="volVerDuplicado(\'' + dup.id + '\')">Ver ese volante</button>' : '');
+  if (dup && dup.id) {
+    volFiltroArea = 'TODAS';         // el que estorba puede ser de otra área
+    volPintarFiltroArea();
+    volBuscarTxt = dup.numero || '';
+    const b = document.getElementById('volBuscar');
+    if (b) b.value = volBuscarTxt;
+    cargarVolantes();                // por si lo acaban de registrar en otra sesión
+  }
+}
+
+// Abre el volante que ya usa ese número. Se avisa antes porque salir del
+// formulario descarta lo que se lleva capturado.
+function volVerDuplicado(id) {
+  if (!confirm('Se perderá lo que llevas capturado en este formulario. ¿Abrir el volante que ya usa ese número?')) return;
+  volanteEditando = null;
+  cerrarModal();
+  abrirDetalleVolante(id);
+}
+
 function guardarVolante() {
+  // CANDADO: el formulario se envía con Enter además del botón, y el guardado
+  // real ocurre DESPUÉS de subir el PDF a Drive (segundos). Sin esto, un segundo
+  // Enter alcanzaba a mandar otro registro: el primero se creaba bien y el
+  // segundo chocaba contra el índice único → "Ya existe el volante X" por un
+  // volante que el propio usuario acababa de crear sin darse cuenta.
+  // (Deshabilitar el botón NO alcanza: no frena el submit por Enter.)
+  if (guardandoVolante) return;
   const datos = {
     numero: (document.getElementById('vol_numero').value || '').trim().toUpperCase(),
     fecha_recepcion: document.getElementById('vol_fecha_recepcion').value || '',
@@ -13165,13 +13240,24 @@ function guardarVolante() {
   if (!datos.asunto) { toast('Escribe el asunto del volante', 'error'); return; }
   const editando = volanteEditando;
   const btn = document.getElementById('vol_btnGuardar');
+  guardandoVolante = true;   // de aquí en adelante se ignora cualquier reenvío
+  volAvisoNumero('');        // limpia el aviso de número repetido de un intento previo
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  // Devuelve el formulario a su estado usable tras un fallo (libera el candado).
+  const liberar = function () {
+    guardandoVolante = false;
+    if (btn) { btn.disabled = false; btn.textContent = editando ? 'Guardar cambios' : 'Registrar volante'; }
+  };
   // Si se está editando desde el detalle abierto, al guardar se vuelve al detalle.
   const volverA = (editando && String(volanteAbierto) === String(editando.id)) ? editando.id : null;
   const listo = function (res) {
     if (!res || !res.ok) {
-      if (btn) { btn.disabled = false; btn.textContent = editando ? 'Guardar cambios' : 'Registrar volante'; }
+      liberar();
       toast((res && res.error) || 'No se pudo guardar el volante', 'error');
+      // Número repetido: el volante que estorba casi nunca está a la vista (la
+      // lista arranca filtrada por el área del usuario). Se dice DÓNDE está,
+      // se recarga la lista y se deja apuntando a él para que se pueda ver.
+      if (res && res.duplicado) volAvisoNumero(res.error, res.duplicado);
       return;
     }
     // Refresca la fila local de inmediato (por si se reabre el detalle) y en paralelo
@@ -13221,7 +13307,7 @@ function guardarVolante() {
   // Drive los que se quitaron (edición); 3) guarda el volante con la lista final.
   volSubirAdjuntosPendientes(function (subidos) {
     if (subidos === null) {   // falló una subida: no se guarda a medias
-      if (btn) { btn.disabled = false; btn.textContent = editando ? 'Guardar cambios' : 'Registrar volante'; }
+      liberar();
       return;
     }
     volFormAdjuntosNuevos = [];
@@ -13231,8 +13317,15 @@ function guardarVolante() {
     volFormAdjuntosQuitar = [];
     const adjFinales = volFormAdjuntos.concat(subidos);
     if (!editando || volFormAdjuntosDirty || subidos.length) datos.adjuntos = adjFinales;
-    if (editando) google.script.run.withSuccessHandler(listo).actualizarVolante(SESION_TOKEN, editando.id, datos);
-    else google.script.run.withSuccessHandler(listo).crearVolante(SESION_TOKEN, datos);
+    // Sin withFailureHandler, un error de red dejaba el botón en "Guardando…"
+    // para siempre y sin aviso: el usuario recargaba y volvía a capturar el
+    // mismo número (que para entonces ya podía estar guardado).
+    const falla = function (e) {
+      liberar();
+      toast('No se pudo guardar el volante: ' + (e && e.message ? e.message : e), 'error');
+    };
+    if (editando) google.script.run.withSuccessHandler(listo).withFailureHandler(falla).actualizarVolante(SESION_TOKEN, editando.id, datos);
+    else google.script.run.withSuccessHandler(listo).withFailureHandler(falla).crearVolante(SESION_TOKEN, datos);
   });
 }
 
