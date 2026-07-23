@@ -752,11 +752,25 @@
   .vol-farea-btn.activa[data-tipo="CONOCIMIENTO"] { background: #1e3a8a; border-color: #1e3a8a; }
   .vol-farea-btn.activa[data-est="PROCESO"]       { background: #b45309; border-color: #b45309; }
   .vol-farea-btn.activa[data-est="ATENDIDO"]      { background: #166534; border-color: #166534; }
-  /* Renglón de filtros, debajo de la barra de "+ Nuevo Volante" y el buscador. */
-  .volantes-filtros { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin: 0 0 16px; }
+  /* Renglón de filtros, debajo de la barra de "+ Nuevo Volante" y el buscador.
+     Cada grupo (etiqueta + sus botones) se mantiene junto y salta de renglón
+     COMPLETO: con 10 botones en fila se veían todos encimados. El hueco entre
+     grupos (22px) es mucho mayor que el de adentro (6px), que es lo que hace que
+     se lean como tres filtros y no como una tira de botones sueltos. */
+  .volantes-filtros { display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; margin: 0 0 16px; }
+  .vol-fgrupo { display: flex; align-items: center; gap: 8px; }
+  .volantes-filtros .vol-farea-btn { padding: 5px 11px; font-size: 12px; }
   .vol-fetq {
     font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .05em; color: var(--tinta-tenue);
+    letter-spacing: .05em; color: var(--tinta-tenue); white-space: nowrap;
+  }
+  /* En pantallas angostas cada filtro ocupa su propio renglón, con la etiqueta
+     a la izquierda y sus botones repartidos: nunca se encima nada. */
+  @media (max-width: 760px) {
+    .volantes-filtros { gap: 10px; }
+    .vol-fgrupo { width: 100%; align-items: flex-start; }
+    .vol-fgrupo .vol-farea { flex: 1; flex-wrap: wrap; }
+    .vol-fetq { min-width: 58px; padding-top: 6px; }
   }
   /* "Aquí no hay coincidencias, pero N volantes coinciden en otras áreas." */
   .vol-otras-areas {
@@ -5748,24 +5762,30 @@
     <!-- Filtros: área, tipo de atención y estatus. Se combinan entre sí y con
          el buscador (todos a la vez), para poder encontrar un volante. -->
     <div class="volantes-filtros">
-      <span class="vol-fetq">Área</span>
-      <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
-        <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
-        <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
-        <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
-        <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
+      <div class="vol-fgrupo">
+        <span class="vol-fetq">Área</span>
+        <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
+          <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
+          <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
+          <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
+          <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
+        </div>
       </div>
-      <span class="vol-fetq">Tipo</span>
-      <div class="vol-farea" id="volFiltroTipoBox" title="Filtrar por tipo de atención">
-        <button class="vol-farea-btn" data-tipo="TODOS" onclick="volSetTipo('TODOS')">Todos</button>
-        <button class="vol-farea-btn" data-tipo="ATENCION" onclick="volSetTipo('ATENCION')">Atención</button>
-        <button class="vol-farea-btn" data-tipo="CONOCIMIENTO" onclick="volSetTipo('CONOCIMIENTO')">Conocimiento</button>
+      <div class="vol-fgrupo">
+        <span class="vol-fetq">Tipo</span>
+        <div class="vol-farea" id="volFiltroTipoBox" title="Filtrar por tipo de atención">
+          <button class="vol-farea-btn" data-tipo="TODOS" onclick="volSetTipo('TODOS')">Todos</button>
+          <button class="vol-farea-btn" data-tipo="ATENCION" onclick="volSetTipo('ATENCION')">Atención</button>
+          <button class="vol-farea-btn" data-tipo="CONOCIMIENTO" onclick="volSetTipo('CONOCIMIENTO')">Conocimiento</button>
+        </div>
       </div>
-      <span class="vol-fetq">Estatus</span>
-      <div class="vol-farea" id="volFiltroEstBox" title="Filtrar por estatus">
-        <button class="vol-farea-btn" data-est="TODOS" onclick="volSetEstatus('TODOS')">Todos</button>
-        <button class="vol-farea-btn" data-est="PROCESO" onclick="volSetEstatus('PROCESO')">En proceso</button>
-        <button class="vol-farea-btn" data-est="ATENDIDO" onclick="volSetEstatus('ATENDIDO')">Atendido</button>
+      <div class="vol-fgrupo">
+        <span class="vol-fetq">Estatus</span>
+        <div class="vol-farea" id="volFiltroEstBox" title="Filtrar por estatus">
+          <button class="vol-farea-btn" data-est="TODOS" onclick="volSetEstatus('TODOS')">Todos</button>
+          <button class="vol-farea-btn" data-est="PROCESO" onclick="volSetEstatus('PROCESO')">En proceso</button>
+          <button class="vol-farea-btn" data-est="ATENDIDO" onclick="volSetEstatus('ATENDIDO')">Atendido</button>
+        </div>
       </div>
     </div>
     <div class="volantes-lista" id="volantesLista"></div>
