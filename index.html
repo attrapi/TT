@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260723a"></script>
+<script src="supabase-shim.js?v=20260723b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -4970,7 +4970,8 @@
   /* --- Pantalla de inicio --- */
   .juego-titulo { font-family: var(--serif); font-size: 30px; color: var(--guinda); margin: 4px 0 2px; line-height: 1.05; }
   .juego-sub { color: var(--tinta-suave); font-size: 13.5px; margin-bottom: 18px; }
-  .juego-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0; }
+  /* auto-fit: se acomoda igual con 3 tarjetas (pantalla final) que con 6 (inicio). */
+  .juego-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; margin-bottom: 0; }
   @media (max-width: 560px) { .juego-stats { grid-template-columns: repeat(2, 1fr); } }
   /* Bloque de puntajes (hasta abajo, a todo lo ancho). */
   .juego-puntajes { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--linea); }
@@ -5287,6 +5288,54 @@
   .juego-home-grid .juego-modo:hover .juego-modo-arrow { opacity: 1; transform: translateX(3px); }
 
   /* Buscador de artículos */
+  /* --- Retomar la partida que quedó a medias --- */
+  .juego-seguir {
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    border: 2px solid var(--verde); background: var(--verde-tenue);
+    border-radius: 16px; padding: 12px 14px; margin-bottom: 14px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .juego-seguir:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,128,61,.16); }
+  .juego-seguir-ico {
+    width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
+    background: var(--verde); color: #fff; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .juego-seguir-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
+  .juego-seguir-txt b { font-size: 14.5px; color: #166534; }
+  .juego-seguir-txt span { font-size: 12px; color: var(--tinta-suave); }
+  .juego-seguir-x {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--tinta-suave); font-size: 17px; line-height: 1;
+  }
+  .juego-seguir-x:hover { background: rgba(0,0,0,.07); color: var(--rojo); }
+
+  /* --- Perfil de estudio: meta del día, calendario y dominio de la ley --- */
+  .juego-perfil {
+    border: 1px solid var(--linea); border-radius: 16px;
+    padding: 14px 16px; margin-bottom: 14px; background: #fff;
+  }
+  .juego-perfil-tit {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-weight: 800; color: var(--tinta); font-size: 14px; margin-bottom: 10px;
+  }
+  .juego-nube {
+    margin-left: auto; font-size: 11px; font-weight: 700; color: var(--tinta-suave);
+    background: var(--crema); border-radius: 99px; padding: 3px 9px; white-space: nowrap;
+  }
+  .juego-meta-barra { height: 9px; border-radius: 99px; background: #eee; overflow: hidden; }
+  .juego-meta-barra.dom { margin-top: 12px; }
+  .juego-meta-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--ambar), #f59e0b); transition: width .5s ease; }
+  .juego-meta-fill.hecha { background: linear-gradient(90deg, #34d399, var(--verde)); }
+  .juego-dominio-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #a78bfa, var(--guinda)); transition: width .5s ease; }
+  .juego-meta-txt { font-size: 12px; color: var(--tinta-suave); margin-top: 6px; font-weight: 600; }
+  .juego-meta-txt b { color: var(--tinta); }
+  .juego-calendario { display: flex; gap: 4px; margin-top: 11px; }
+  .juego-dia { flex: 1; height: 14px; border-radius: 4px; background: #eceff1; }
+  .juego-dia.algo { background: #bbf7d0; }
+  .juego-dia.meta { background: var(--verde); }
+
   .juego-buscar { display: flex; gap: 8px; margin-bottom: 14px; }
   .juego-buscar input {
     flex: 1; min-width: 0; border: 2px solid var(--linea); border-radius: 12px;
@@ -10692,7 +10741,8 @@ const JUEGO_LEYES = [
 let juegoLeyActual = 'lopsrm';   // por default: Ley de Obras Públicas (LOPSRM)
 function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || JUEGO_LEYES[0]; }
 function _juegoPreguntas() { return _juegoLey().preguntas; }
-function _juegoStoreKey() { return 'juego_' + juegoLeyActual + '_v1'; }
+function _juegoClaveDe(leyId) { return 'juego_' + leyId + '_v1'; }
+function _juegoStoreKey() { return _juegoClaveDe(juegoLeyActual); }
 // Cambia de ley SOLO si está desbloqueada (las bloqueadas no se pueden elegir).
 function juegoCambiarLey(id) {
   const idx = JUEGO_LEYES.findIndex(l => l.id === id);
@@ -10749,11 +10799,216 @@ function _juegoBarajar(a) {
   for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
   return x;
 }
-function _juegoCargar() { try { return JSON.parse(localStorage.getItem(_juegoStoreKey())) || {}; } catch (e) { return {}; } }
-function _juegoGuardar(p) { try { localStorage.setItem(_juegoStoreKey(), JSON.stringify(p)); } catch (e) {} }
-function _juegoHoy() { return new Date().toISOString().split('T')[0]; }
-function _juegoAyer() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; }
+/* ---------------------------------------------------------------------
+ * PROGRESO DEL JUEGO: se guarda en DOS lados
+ *   1) localStorage → inmediato y funciona sin internet.
+ *   2) Supabase (tabla juego_progreso) → respaldo en TU CUENTA, para que el
+ *      avance te siga a cualquier dispositivo y no se pierda si se limpia la
+ *      caché del navegador.
+ * Mientras juegas manda el navegador; la nube se actualiza sola unos segundos
+ * después. Al abrir el juego se BAJA la nube y se FUSIONA con lo local: nunca
+ * se pisa un avance, gana el valor más alto (o el registro más reciente).
+ * ------------------------------------------------------------------- */
+
+// Repaso espaciado (cajas de Leitner): al acertar la pregunta sube de caja y
+// tarda más en volver; al fallar regresa a la caja 0 y reaparece hoy mismo.
+const JUEGO_INTERVALOS  = [0, 1, 2, 4, 8, 16];        // días de espera por caja
+const JUEGO_CAJA_TOP    = JUEGO_INTERVALOS.length - 1; // última caja = pregunta dominada
+const JUEGO_META_DIARIA = 10;                          // aciertos para cumplir el día
+const JUEGO_DIAS_HIST   = 120;                         // días de actividad que se conservan
+
+// Fecha LOCAL en YYYY-MM-DD. (toISOString da UTC: en México adelantaría el día
+// a partir de las 6 de la tarde y rompería la racha diaria.)
+function _juegoDiaISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function _juegoHoy() { return _juegoDiaISO(new Date()); }
+function _juegoAyer() { const d = new Date(); d.setDate(d.getDate() - 1); return _juegoDiaISO(d); }
+function _juegoEnDias(n) { const d = new Date(); d.setDate(d.getDate() + (n || 0)); return _juegoDiaISO(d); }
 function _juegoKey(q) { return q.art + '|' + q.pregunta.slice(0, 28); }
+
+// Deja el progreso con TODOS sus campos (y migra el formato viejo, que solo
+// tenía `falladas: {clave:true}`, a la memoria por pregunta con cajas).
+function _juegoNormalizar(p) {
+  p = p || {};
+  p.mejor         = p.mejor || 0;
+  p.totalAciertos = p.totalAciertos || 0;
+  p.totalFallos   = p.totalFallos || 0;
+  p.partidas      = p.partidas || 0;
+  p.rachaDiaria   = p.rachaDiaria || 0;
+  p.ultimoDia     = p.ultimoDia || '';
+  p.preg          = p.preg || {};    // memoria por pregunta
+  p.dias          = p.dias || {};    // actividad por día
+  p.partida       = p.partida || null;
+  p.act           = p.act || 0;      // sello de la última modificación (para fusionar)
+  if (p.falladas) {                  // formato v1 → v2
+    Object.keys(p.falladas).forEach(function (k) {
+      if (!p.preg[k]) p.preg[k] = { v: 1, a: 0, f: 1, n: 0, ult: '', prox: _juegoHoy() };
+    });
+    delete p.falladas;
+  }
+  return p;
+}
+
+function _juegoLeerLey(leyId) {
+  try { return _juegoNormalizar(JSON.parse(localStorage.getItem(_juegoClaveDe(leyId))) || {}); }
+  catch (e) { return _juegoNormalizar({}); }
+}
+function _juegoEscribirLey(leyId, p) {
+  try { localStorage.setItem(_juegoClaveDe(leyId), JSON.stringify(p)); } catch (e) {}
+}
+function _juegoCargar() { return _juegoLeerLey(juegoLeyActual); }
+// `soloLocal` = no subir a la nube todavía (para guardados muy seguidos).
+function _juegoGuardar(p, soloLocal) {
+  p.act = Date.now();
+  _juegoEscribirLey(juegoLeyActual, p);
+  if (!soloLocal) _juegoSubirPronto(juegoLeyActual);
+}
+
+// ---------- Sincronización con la nube ----------
+let JUEGO_NUBE_ESTADO = 'pendiente';   // pendiente | ok | sin-nube
+let _juegoSubirTimer = null;
+let _juegoSubirLey = '';
+
+// Sube con retraso: contestar 10 preguntas seguidas hace UNA sola escritura.
+function _juegoSubirPronto(leyId) {
+  if (_juegoSubirTimer && _juegoSubirLey !== leyId) _juegoSubirAhora();  // cambió de ley: no perder la anterior
+  _juegoSubirLey = leyId;
+  clearTimeout(_juegoSubirTimer);
+  _juegoSubirTimer = setTimeout(_juegoSubirAhora, 2500);
+}
+function _juegoSubirAhora() {
+  clearTimeout(_juegoSubirTimer); _juegoSubirTimer = null;
+  const ley = _juegoSubirLey; _juegoSubirLey = '';   // sin pendiente: no re-subir de más
+  if (!ley) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok) JUEGO_NUBE_ESTADO = 'ok'; })
+      .withFailureHandler(function () {})
+      .guardarProgresoJuego(ley, _juegoLeerLey(ley));
+  } catch (e) {}
+}
+
+// Fusiona dos progresos de la MISMA ley sin perder nada de ninguno de los dos.
+function _juegoFusionar(a, b) {
+  a = _juegoNormalizar(a); b = _juegoNormalizar(b);
+  const r = _juegoNormalizar(JSON.parse(JSON.stringify(a)));
+  ['mejor', 'totalAciertos', 'totalFallos', 'partidas'].forEach(function (c) {
+    r[c] = Math.max(a[c] || 0, b[c] || 0);
+  });
+  // Racha diaria: manda el registro con el último día más reciente.
+  if ((b.ultimoDia || '') > (a.ultimoDia || '')) { r.ultimoDia = b.ultimoDia; r.rachaDiaria = b.rachaDiaria || 0; }
+  else if ((a.ultimoDia || '') === (b.ultimoDia || '')) { r.rachaDiaria = Math.max(a.rachaDiaria || 0, b.rachaDiaria || 0); }
+  // Memoria por pregunta: gana el registro con más intentos.
+  Object.keys(b.preg).forEach(function (k) {
+    const x = r.preg[k], y = b.preg[k];
+    if (!x || (y.v || 0) > (x.v || 0)) r.preg[k] = y;
+  });
+  // Actividad diaria: por día, lo más alto de cada lado.
+  Object.keys(b.dias).forEach(function (d) {
+    const x = r.dias[d] || { a: 0, n: 0 }, y = b.dias[d] || { a: 0, n: 0 };
+    r.dias[d] = { a: Math.max(x.a || 0, y.a || 0), n: Math.max(x.n || 0, y.n || 0) };
+  });
+  // Partida a medio jugar: la guardada más recientemente.
+  if ((b.act || 0) > (a.act || 0) && b.partida) r.partida = b.partida;
+  r.act = Math.max(a.act || 0, b.act || 0);
+  return r;
+}
+
+// Baja el avance de la nube y lo fusiona con el de este equipo. `cb` se llama
+// al terminar (haya o no nube) para repintar la pantalla ya con todo.
+function _juegoBajarNube(cb) {
+  let listo = false;
+  const fin = function (estado) {
+    if (listo) return; listo = true;
+    JUEGO_NUBE_ESTADO = estado;
+    if (cb) cb();
+  };
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.ok || !res.progreso) { fin('sin-nube'); return; }
+        Object.keys(res.progreso).forEach(function (ley) {
+          _juegoEscribirLey(ley, _juegoFusionar(_juegoLeerLey(ley), res.progreso[ley]));
+        });
+        fin('ok');
+      })
+      .withFailureHandler(function () { fin('sin-nube'); })
+      .leerProgresoJuego();
+  } catch (e) { fin('sin-nube'); }
+  setTimeout(function () { fin('sin-nube'); }, 6000);   // si la red tarda, no dejar el juego esperando
+}
+
+// ---------- Memoria por pregunta y hábito diario ----------
+
+// Registra la respuesta: mueve la pregunta de caja, apunta el día y actualiza
+// la racha. Devuelve el progreso ya modificado (falta guardarlo).
+function _juegoRegistrarRespuesta(p, q, ok) {
+  const hoy = _juegoHoy();
+  const k = _juegoKey(q);
+  const r = p.preg[k] || { v: 0, a: 0, f: 0, n: 0, ult: '', prox: '' };
+  r.v++;
+  if (ok) { r.a++; r.n = Math.min(JUEGO_CAJA_TOP, (r.n || 0) + 1); }
+  else    { r.f++; r.n = 0; }
+  r.ult = hoy;
+  r.prox = _juegoEnDias(JUEGO_INTERVALOS[r.n]);
+  p.preg[k] = r;
+
+  if (ok) p.totalAciertos++; else p.totalFallos++;
+
+  // Racha diaria: cuenta el PRIMER movimiento del día (antes solo subía al
+  // terminar una partida, así que estudiar sin terminarla no contaba).
+  if (p.ultimoDia !== hoy) {
+    p.rachaDiaria = (p.ultimoDia === _juegoAyer()) ? (p.rachaDiaria || 0) + 1 : 1;
+    p.ultimoDia = hoy;
+  }
+  const d = p.dias[hoy] || { a: 0, n: 0 };
+  d.n++; if (ok) d.a++;
+  p.dias[hoy] = d;
+
+  // Poda del historial para no llenar el localStorage.
+  const dias = Object.keys(p.dias).sort();
+  if (dias.length > JUEGO_DIAS_HIST) dias.slice(0, dias.length - JUEGO_DIAS_HIST).forEach(function (x) { delete p.dias[x]; });
+  return p;
+}
+
+// Preguntas que TOCA repasar hoy: ya vistas, aún no dominadas y con la fecha
+// de repaso cumplida. Primero las de caja más baja (las que peor te salen).
+function _juegoPendientes(preguntas, p) {
+  const hoy = _juegoHoy();
+  return preguntas.filter(function (q) {
+    const r = p.preg[_juegoKey(q)];
+    return r && (r.n || 0) < JUEGO_CAJA_TOP && (!r.prox || r.prox <= hoy);
+  }).sort(function (x, y) {
+    const a = p.preg[_juegoKey(x)], b = p.preg[_juegoKey(y)];
+    return (a.n || 0) - (b.n || 0) || (b.f || 0) - (a.f || 0);
+  });
+}
+
+// Resumen del perfil de estudio de la ley actual.
+function _juegoResumen(preguntas, p) {
+  const hoy = _juegoHoy();
+  let dominadas = 0, vistas = 0;
+  preguntas.forEach(function (q) {
+    const r = p.preg[_juegoKey(q)];
+    if (!r) return;
+    vistas++;
+    if ((r.n || 0) >= JUEGO_CAJA_TOP) dominadas++;
+  });
+  const intentos = (p.totalAciertos || 0) + (p.totalFallos || 0);
+  const d = p.dias[hoy] || { a: 0, n: 0 };
+  return {
+    dominadas: dominadas,
+    vistas: vistas,
+    nuevas: preguntas.length - vistas,
+    total: preguntas.length,
+    precision: intentos ? Math.round((p.totalAciertos || 0) / intentos * 100) : 0,
+    hoyAciertos: d.a || 0,
+    hoyPreguntas: d.n || 0,
+    metaHecha: (d.a || 0) >= JUEGO_META_DIARIA,
+    pendientes: _juegoPendientes(preguntas, p).length
+  };
+}
 const JUEGO_NIVELES = [{m:0,n:'Aprendiz'},{m:20,n:'Conocedor'},{m:50,n:'Especialista'},{m:100,n:'Experto'},{m:200,n:'Maestro'}];
 // Aciertos para DOMINAR una ley (nivel máximo) y desbloquear la siguiente.
 const JUEGO_UMBRAL_DESBLOQUEO = JUEGO_NIVELES[JUEGO_NIVELES.length - 1].m;
@@ -10765,9 +11020,7 @@ function _juegoNivel(ac) {
   return { nombre: N[i].n, pct, sig: sig ? sig.n : null, falta: sig ? (sig.m - ac) : 0 };
 }
 // Aciertos acumulados guardados de una ley (para la progresión/desbloqueo).
-function _juegoAciertosDe(leyId) {
-  try { return (JSON.parse(localStorage.getItem('juego_' + leyId + '_v1')) || {}).totalAciertos || 0; } catch (e) { return 0; }
-}
+function _juegoAciertosDe(leyId) { return _juegoLeerLey(leyId).totalAciertos || 0; }
 // Una ley está desbloqueada si es la primera, o si ya dominaste (nivel máximo) la anterior.
 function juegoLeyDesbloqueada(idx) {
   if (idx <= 0) return true;
@@ -10778,8 +11031,21 @@ function abrirJuegoLopsrm() {
   if (!esDanielDeLaGarza()) return;
   document.getElementById('juegoLopsrm').classList.add('abierto');
   renderJuegoInicio();
+  // Trae el avance guardado en la cuenta (otro dispositivo, caché borrada) y
+  // repinta el inicio ya fusionado. Si no hay nube, se queda con lo local.
+  if (JUEGO_NUBE_ESTADO === 'pendiente') {
+    _juegoBajarNube(function () { if (!JUEGO && document.getElementById('juegoCard')) renderJuegoInicio(); });
+  }
 }
-function cerrarJuegoLopsrm() { _juegoLimpiarTimer(); document.getElementById('juegoLopsrm').classList.remove('abierto'); JUEGO = null; }
+function cerrarJuegoLopsrm() {
+  _juegoLimpiarTimer();
+  _juegoSubirAhora();   // no esperar el retraso: al salir se sube ya
+  document.getElementById('juegoLopsrm').classList.remove('abierto');
+  JUEGO = null;
+}
+// Si cierras la pestaña o cambias de app a media partida, sube lo pendiente.
+document.addEventListener('visibilitychange', function () { if (document.hidden) _juegoSubirAhora(); });
+window.addEventListener('pagehide', function () { _juegoSubirAhora(); });
 
 const _JUEGO_FRASES = [
   'Quien domina la ley, domina el proceso. 💪',
@@ -10799,8 +11065,9 @@ function renderJuegoInicio() {
   const ley = _juegoLey();
   const p = _juegoCargar();
   const niv = _juegoNivel(p.totalAciertos || 0);
-  const falladasN = Object.keys(p.falladas || {}).length;
   const preguntas = _juegoPreguntas();
+  const res = _juegoResumen(preguntas, p);
+  const porRepasar = res.pendientes;
   const totalP = preguntas.length;
   const frase = _JUEGO_FRASES[Math.floor(Math.random() * _JUEGO_FRASES.length)];
   const dato = preguntas[Math.floor(Math.random() * totalP)];
@@ -10852,6 +11119,47 @@ function renderJuegoInicio() {
     +   '<span class="juego-nivel-badge-sub">' + (niv.sig ? 'Faltan ' + niv.falta + ' para ' + escapeHtml(niv.sig) : '¡Nivel máximo! 🏆') + '</span>'
     + '</span></div>';
 
+  // Partida a medio jugar: se ofrece retomarla exactamente donde se quedó.
+  const sp = p.partida;
+  const seguir = (sp && sp.preguntas && sp.preguntas.length)
+    ? '<div class="juego-seguir" onclick="juegoContinuar()">'
+      +   '<span class="juego-seguir-ico">▶</span>'
+      +   '<span class="juego-seguir-txt"><b>Continuar donde te quedaste</b>'
+      +     '<span>' + escapeHtml(_juegoNombreModo(sp.modo, sp.tema)) + ' · pregunta '
+      +       Math.min((sp.idx || 0) + 1, sp.preguntas.length) + ' de ' + sp.preguntas.length
+      +       ' · ' + (sp.puntos || 0) + ' pts</span></span>'
+      +   '<span class="juego-seguir-x" onclick="event.stopPropagation();juegoDescartarPartida()" title="Descartar partida">×</span>'
+      + '</div>'
+    : '';
+
+  // Perfil de estudio: la meta de hoy, los últimos 14 días y cuánto llevas
+  // dominado de esta ley. Es lo que hace que se sienta un avance diario.
+  const metaPct = Math.min(100, Math.round(res.hoyAciertos / JUEGO_META_DIARIA * 100));
+  const domPct  = res.total ? Math.round(res.dominadas / res.total * 100) : 0;
+  const nube = JUEGO_NUBE_ESTADO === 'ok'      ? '☁️ Se guarda en tu cuenta'
+             : JUEGO_NUBE_ESTADO === 'pendiente' ? '⏳ Buscando tu avance…'
+             : '💾 Solo en este equipo';
+  let calendario = '';
+  for (let i = 13; i >= 0; i--) {
+    const dia = _juegoEnDias(-i);
+    const dd = p.dias[dia];
+    const cls = !dd ? '' : ((dd.a || 0) >= JUEGO_META_DIARIA ? ' meta' : ' algo');
+    calendario += '<span class="juego-dia' + cls + '" title="' + dia + (dd ? ' · ' + (dd.a || 0) + ' aciertos' : ' · sin jugar') + '"></span>';
+  }
+  const perfil =
+    '<div class="juego-perfil">'
+    + '<div class="juego-perfil-tit">🎯 Tu día <span class="juego-nube">' + nube + '</span></div>'
+    + '<div class="juego-meta-barra"><div class="juego-meta-fill' + (res.metaHecha ? ' hecha' : '') + '" style="width:' + metaPct + '%"></div></div>'
+    + '<div class="juego-meta-txt">' + (res.metaHecha
+        ? '¡Meta de hoy cumplida! 🎉 ' + res.hoyAciertos + ' aciertos · racha 🔥 ' + (p.rachaDiaria || 0)
+        : 'Meta de hoy: <b>' + res.hoyAciertos + ' / ' + JUEGO_META_DIARIA + '</b> aciertos'
+          + ((p.rachaDiaria || 0) > 0 && p.ultimoDia !== _juegoHoy() ? ' · ⚠️ juega hoy para no perder tu racha de ' + p.rachaDiaria + ' días' : '')) + '</div>'
+    + '<div class="juego-calendario" title="Últimos 14 días">' + calendario + '</div>'
+    + '<div class="juego-meta-barra dom"><div class="juego-dominio-fill" style="width:' + domPct + '%"></div></div>'
+    + '<div class="juego-meta-txt">Dominas <b>' + res.dominadas + ' de ' + res.total + '</b> preguntas de ' + escapeHtml(ley.abrev)
+      + (res.nuevas ? ' · ' + res.nuevas + ' que aún no ves' : ' · ya las viste todas') + '</div>'
+    + '</div>';
+
   card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<button class="juego-regresar" onclick="cerrarJuegoLopsrm()">← Regresar</button>'
@@ -10861,6 +11169,8 @@ function renderJuegoInicio() {
     +   '<div class="juego-hero-ley">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b> · ' + escapeHtml(ley.nombre) + '</div>'
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
+    + seguir
+    + perfil
     + '<div class="juego-buscar">'
     +   '<input id="juegoArtInput" type="text" autocomplete="off" placeholder="Buscar artículo de ' + escapeHtml(ley.abrev) + '… (ej. 27 o 27 bis)" onkeydown="if(event.key===\'Enter\')juegoBuscarArticulo()">'
     +   '<button onclick="juegoBuscarArticulo()">🔎 Ver artículo</button>'
@@ -10877,7 +11187,7 @@ function renderJuegoInicio() {
     +     '<div class="juego-modos">'
     +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
     +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
-    +       modo('repaso', '🔁', 'Repaso', (falladasN ? 'Vuelve a tus ' + falladasN + ' preguntas falladas hasta dominarlas.' : 'Sin pendientes. ¡Vas al corriente! 🎉'), '#15803D')
+    +       modo('repaso', '🔁', 'Repaso', (porRepasar ? 'Hoy te tocan ' + porRepasar + ' preguntas: las que peor te salen, primero.' : 'Nada pendiente hoy. ¡Vas al corriente! 🎉'), '#15803D')
     +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
     +     '<div id="juegoTemasWrap" style="display:none;margin-top:12px;"><div class="juego-temas">' + chips + '</div></div>'
@@ -10890,31 +11200,105 @@ function renderJuegoInicio() {
     +   '<div class="juego-stats">'
     +     stat('🏅', (p.mejor || 0), 'Mejor puntaje')
     +     stat('🔥', (p.rachaDiaria || 0), 'Racha diaria')
+    +     stat('🎯', res.precision + '%', 'Precisión')
+    +     stat('🏆', res.dominadas, 'Dominadas')
     +     stat('🎮', (p.partidas || 0), 'Partidas')
-    +     stat('📌', falladasN, 'Por repasar')
+    +     stat('📌', porRepasar, 'Por repasar')
     +   '</div>'
     + '</div>';
 }
 
+// Barajado REPRODUCIBLE: con la misma semilla sale el mismo orden. Lo usa el
+// "Reto diario" para que el reto de hoy sea el mismo todo el día.
+function _juegoSemilla(txt) {
+  let h = 2166136261;
+  for (let i = 0; i < txt.length; i++) { h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function _juegoBarajarSemilla(a, semilla) {
+  const x = a.slice();
+  let s = semilla || 1;
+  const rnd = function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = x[i]; x[i] = x[j]; x[j] = t; }
+  return x;
+}
+
+function _juegoNombreModo(m, t) {
+  if (m === 'rapido') return 'Reto rápido';
+  if (m === 'diario') return 'Reto diario';
+  if (m === 'repaso') return 'Repaso';
+  if (m === 'tema')   return 'Tema: ' + (t || '');
+  return 'Partida';
+}
+
 function juegoIniciar(modo, tema) {
+  const p0 = _juegoCargar();
   let pool = _juegoPreguntas().slice();
   if (modo === 'tema' && tema) pool = pool.filter(q => q.tema === tema);
+
+  let lista;
   if (modo === 'repaso') {
-    const p = _juegoCargar(); const fall = p.falladas || {};
-    pool = pool.filter(q => fall[_juegoKey(q)]);
-    if (!pool.length) { toast('¡No tienes preguntas por repasar! 🎉', 'ok'); return; }
+    // Solo lo que TOCA repasar hoy, empezando por lo que peor te sale.
+    pool = _juegoPendientes(pool, p0);
+    if (!pool.length) { toast('¡Nada por repasar hoy! 🎉 Las preguntas vuelven solas conforme pasan los días.', 'ok'); return; }
+    lista = pool.slice(0, 12);
+  } else if (modo === 'diario') {
+    lista = _juegoBarajarSemilla(pool, _juegoSemilla(juegoLeyActual + '|' + _juegoHoy())).slice(0, JUEGO_LARGO);
+  } else if (modo === 'rapido') {
+    // Mezcla útil: hasta 5 que toca repasar + hasta 5 que nunca has visto, y si
+    // con eso no se llegó a 10, se completa con las demás.
+    const tomar = (arr, n) => _juegoBarajar(arr).slice(0, n);
+    let sel = tomar(_juegoPendientes(pool, p0), 5)
+      .concat(tomar(pool.filter(q => !p0.preg[_juegoKey(q)]), 5));
+    if (sel.length < JUEGO_LARGO) {
+      sel = sel.concat(tomar(pool.filter(q => sel.indexOf(q) < 0), JUEGO_LARGO - sel.length));
+    }
+    lista = _juegoBarajar(sel.slice(0, JUEGO_LARGO));
+  } else {
+    lista = _juegoBarajar(pool).slice(0, 12);
   }
-  let lista = _juegoBarajar(pool);
-  if (modo === 'rapido' || modo === 'diario') lista = lista.slice(0, JUEGO_LARGO);
-  else lista = lista.slice(0, 12);
+
   // Baraja también las opciones de cada pregunta (para no memorizar posiciones).
   const preguntas = lista.map(q => {
     const ops = q.opciones.map((t, i) => ({ t, ok: i === q.correcta }));
     const mez = _juegoBarajar(ops);
-    return { tema: q.tema, art: q.art, pregunta: q.pregunta, explica: q.explica, opc: mez.map(o => o.t), correctaIdx: mez.findIndex(o => o.ok) };
+    return { tema: q.tema, art: q.art, pregunta: q.pregunta, explica: q.explica, simple: q.simple || '', opc: mez.map(o => o.t), correctaIdx: mez.findIndex(o => o.ok) };
   });
-  JUEGO = { modo, tema: tema || '', preguntas, idx: 0, puntos: 0, aciertos: 0, respondidasN: 0, vidas: JUEGO_VIDAS, racha: 0, rachaMax: 0, respondida: false, timerId: null, tRestante: 0 };
+  JUEGO = { modo, tema: tema || '', preguntas, idx: 0, puntos: 0, aciertos: 0, respondidasN: 0, vidas: JUEGO_VIDAS, racha: 0, rachaMax: 0, respondida: false, elegido: null, timerId: null, tRestante: 0 };
+  _juegoGuardarPartida();
   renderJuegoPregunta();
+}
+
+// ---------- Partida a medio jugar (para retomarla después) ----------
+function _juegoAplicarPartida(p, borrar) {
+  p.partida = (borrar || !JUEGO) ? null : {
+    modo: JUEGO.modo, tema: JUEGO.tema, preguntas: JUEGO.preguntas, idx: JUEGO.idx,
+    puntos: JUEGO.puntos, aciertos: JUEGO.aciertos, respondidasN: JUEGO.respondidasN,
+    vidas: JUEGO.vidas, racha: JUEGO.racha, rachaMax: JUEGO.rachaMax,
+    respondida: !!JUEGO.respondida, elegido: (JUEGO.elegido === undefined ? null : JUEGO.elegido)
+  };
+  return p;
+}
+function _juegoGuardarPartida(borrar) { _juegoGuardar(_juegoAplicarPartida(_juegoCargar(), borrar)); }
+
+function juegoContinuar() {
+  const s = _juegoCargar().partida;
+  if (!s || !s.preguntas || !s.preguntas.length) { toast('Ya no hay partida guardada.', 'info'); renderJuegoInicio(); return; }
+  JUEGO = {
+    modo: s.modo, tema: s.tema || '', preguntas: s.preguntas, idx: Math.min(s.idx || 0, s.preguntas.length - 1),
+    puntos: s.puntos || 0, aciertos: s.aciertos || 0, respondidasN: s.respondidasN || 0,
+    vidas: (s.vidas === undefined ? JUEGO_VIDAS : s.vidas), racha: s.racha || 0, rachaMax: s.rachaMax || 0,
+    respondida: !!s.respondida, elegido: (s.elegido === undefined ? null : s.elegido),
+    timerId: null, tRestante: 0
+  };
+  // Si la dejaste viendo la explicación, vuelve a esa misma pantalla.
+  if (JUEGO.respondida && JUEGO.elegido !== null) renderJuegoPregunta(JUEGO.elegido);
+  else { JUEGO.respondida = false; renderJuegoPregunta(); }
+}
+function juegoDescartarPartida() {
+  const p = _juegoCargar(); p.partida = null; _juegoGuardar(p);
+  toast('Partida descartada.', 'info');
+  renderJuegoInicio();
 }
 
 function _juegoLimpiarTimer() { if (JUEGO && JUEGO.timerId) { clearInterval(JUEGO.timerId); JUEGO.timerId = null; } }
@@ -10982,6 +11366,7 @@ function renderJuegoPregunta(elegido) {
 function juegoResponder(elegido) {
   if (!JUEGO || JUEGO.respondida) return;
   JUEGO.respondida = true;
+  JUEGO.elegido = elegido;
   _juegoLimpiarTimer();
   const q = JUEGO.preguntas[JUEGO.idx];
   const ok = elegido === q.correctaIdx;
@@ -10998,9 +11383,11 @@ function juegoResponder(elegido) {
     JUEGO.vidas--;
     JUEGO.racha = 0;
   }
-  // Repaso espaciado: marca/limpia la pregunta como fallada.
-  const p = _juegoCargar(); p.falladas = p.falladas || {};
-  const k = _juegoKey(q); if (ok) delete p.falladas[k]; else p.falladas[k] = true;
+  // Todo el avance se guarda AQUÍ, respuesta por respuesta: la memoria de la
+  // pregunta (su caja de repaso), el día/racha y la partida en curso. Así nada
+  // se pierde aunque cierres a media partida o se te acabe la pila.
+  const p = _juegoRegistrarRespuesta(_juegoCargar(), q, ok);
+  _juegoAplicarPartida(p);
   _juegoGuardar(p);
   renderJuegoPregunta(elegido);
 }
@@ -11008,8 +11395,9 @@ function juegoResponder(elegido) {
 function juegoSiguiente() {
   if (!JUEGO) return;
   if (JUEGO.vidas <= 0) { renderJuegoFinal(); return; }
-  JUEGO.idx++; JUEGO.respondida = false;
+  JUEGO.idx++; JUEGO.respondida = false; JUEGO.elegido = null;
   if (JUEGO.idx >= JUEGO.preguntas.length) { renderJuegoFinal(); return; }
+  _juegoGuardarPartida();
   renderJuegoPregunta();
 }
 
@@ -11022,14 +11410,15 @@ function renderJuegoFinal() {
   if (pct >= 90) { medalla = '🏆'; titulo = '¡Maestro de la Ley!'; }
   else if (pct >= 70) { medalla = '🥇'; titulo = '¡Muy bien!'; }
   else if (pct >= 50) { medalla = '🥈'; titulo = '¡Vas bien!'; }
-  // Persistencia: mejor puntaje, aciertos totales, partidas y racha diaria.
+  // Los aciertos, la racha y la memoria de cada pregunta ya se guardaron al ir
+  // respondiendo; aquí solo se cierra la partida (mejor puntaje y conteo) y se
+  // sube el avance a la cuenta sin esperar.
   const p = _juegoCargar();
   p.mejor = Math.max(p.mejor || 0, JUEGO.puntos);
-  p.totalAciertos = (p.totalAciertos || 0) + JUEGO.aciertos;
   p.partidas = (p.partidas || 0) + 1;
-  const hoy = _juegoHoy();
-  if (p.ultimoDia !== hoy) { p.rachaDiaria = (p.ultimoDia === _juegoAyer()) ? (p.rachaDiaria || 0) + 1 : 1; p.ultimoDia = hoy; }
+  _juegoAplicarPartida(p, true);
   _juegoGuardar(p);
+  _juegoSubirAhora();
   if (pct >= 70) lanzarConfeti({ cantidad: 70, duracion: 1600 });
   const modo = JUEGO.modo, tema = JUEGO.tema;
   document.getElementById('juegoCard').innerHTML =

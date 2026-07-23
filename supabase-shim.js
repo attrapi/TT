@@ -11,7 +11,7 @@
 
   // Marcador de versión del shim, para verificar en consola cuál está corriendo
   // (window.TT_SHIM_VERSION). Subir junto con el ?v= de index.html.
-  window.TT_SHIM_VERSION = '20260723a';
+  window.TT_SHIM_VERSION = '20260723b';
 
   // ---- Configuración (la anon/publishable key es pública: va en el navegador) ----
   var SUPABASE_URL = 'https://cduqgcyktcruvxrmlkks.supabase.co';
@@ -870,6 +870,39 @@
         if (r.error) return { ok: false, error: r.error.message };
         // La RLS deja a los no-Director actualizar 0 filas (sin error): lo detectamos.
         if (!r.data || !r.data.length) return { ok: false, error: 'Solo el Director puede editar la plantilla.' };
+        return { ok: true };
+      } catch (e) { return { ok: false, error: String(e) }; }
+    },
+
+    // ---- JUEGO "Reta a la Ley": avance de estudio del usuario ----
+    // El juego funciona con localStorage (offline); esto es el respaldo en la
+    // cuenta para que el avance siga al usuario a cualquier dispositivo. Si la
+    // tabla todavía no existe (falta correr supabase/juego.sql), regresa
+    // ok:false y el juego sigue jugándose solo con el navegador.
+    leerProgresoJuego: async function () {
+      try {
+        var u = await sb.auth.getUser();
+        var uid = u.data && u.data.user && u.data.user.id;
+        if (!uid) return { ok: false, error: 'sin sesión', progreso: {} };
+        var r = await sb.from('juego_progreso').select('ley,datos').eq('usuario_id', uid);
+        if (r.error) return { ok: false, error: r.error.message, progreso: {} };
+        var out = {};
+        (r.data || []).forEach(function (x) { out[x.ley] = x.datos || {}; });
+        return { ok: true, progreso: out };
+      } catch (e) { return { ok: false, error: String(e), progreso: {} }; }
+    },
+    guardarProgresoJuego: async function (ley, datos) {
+      try {
+        var u = await sb.auth.getUser();
+        var uid = u.data && u.data.user && u.data.user.id;
+        if (!uid) return { ok: false, error: 'sin sesión' };
+        var r = await sb.from('juego_progreso').upsert({
+          usuario_id: uid,
+          ley: String(ley || ''),
+          datos: datos || {},
+          actualizado: new Date().toISOString()
+        }, { onConflict: 'usuario_id,ley' });
+        if (r.error) return { ok: false, error: r.error.message };
         return { ok: true };
       } catch (e) { return { ok: false, error: String(e) }; }
     },
