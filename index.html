@@ -5259,13 +5259,6 @@
   }
   .juego-ley-chip.activa .juego-ley-tag { background: rgba(255,255,255,.22); color: #fff; }
   .juego-ley-tag.abierta { color: var(--verde); background: var(--verde-tenue); }
-  /* Ley BLOQUEADA: apagada, sin hover, cursor not-allowed. */
-  .juego-ley-chip.bloqueada {
-    opacity: .6; cursor: not-allowed; background: var(--grafito-tenue); border-style: dashed;
-  }
-  .juego-ley-chip.bloqueada:hover { transform: none; border-color: var(--linea); background: var(--grafito-tenue); }
-  .juego-ley-chip.bloqueada .juego-ley-emoji { background: #e5e7eb; }
-  .juego-ley-chip.bloqueada .juego-ley-nom { color: var(--tinta-tenue); }
   /* Numerito de paso (1 = elige ley, 2 = elige cómo jugar). */
   .juego-paso-n {
     display: inline-flex; align-items: center; justify-content: center;
@@ -10845,10 +10838,10 @@ function _juegoLey() { return JUEGO_LEYES.find(l => l.id === juegoLeyActual) || 
 function _juegoPreguntas() { return _juegoLey().preguntas; }
 function _juegoClaveDe(leyId) { return 'juego_' + leyId + '_v1'; }
 function _juegoStoreKey() { return _juegoClaveDe(juegoLeyActual); }
-// Cambia de ley SOLO si está desbloqueada (las bloqueadas no se pueden elegir).
+// Cambia de ley. Todas están abiertas: cada quien estudia la que necesita
+// (cada ley lleva su propio avance, nivel y medallero).
 function juegoCambiarLey(id) {
-  const idx = JUEGO_LEYES.findIndex(l => l.id === id);
-  if (idx < 0 || !juegoLeyDesbloqueada(idx)) return;
+  if (!JUEGO_LEYES.some(l => l.id === id)) return;
   juegoLeyActual = id; renderJuegoInicio();
 }
 
@@ -11162,7 +11155,7 @@ const JUEGO_MEDALLAS = [
   { id: 'perf3',   e: '🥋', n: 'Cinta negra',     d: '3 partidas impecables',             c: function (p) { return (p.perfectas || 0) >= 3; } },
   // Nivel
   { id: 'esp',     e: '🎖️', n: 'Especialista',    d: 'Llega a 50 aciertos',               c: function (p) { return (p.totalAciertos || 0) >= 50; } },
-  { id: 'mst',     e: '👑', n: 'Maestro de la Ley', d: 'Llega a 200 aciertos y desbloquea la siguiente ley', c: function (p) { return (p.totalAciertos || 0) >= 200; } },
+  { id: 'mst',     e: '👑', n: 'Maestro de la Ley', d: 'Llega a 200 aciertos en esta ley', c: function (p) { return (p.totalAciertos || 0) >= 200; } },
   // Volumen
   { id: 'p25',     e: '🎮', n: 'Veterano',        d: 'Termina 25 partidas',               c: function (p) { return (p.partidas || 0) >= 25; } }
 ];
@@ -11183,11 +11176,10 @@ function _juegoFechaCorta(iso) { const x = String(iso || '').split('-'); return 
 
 // Aciertos acumulados guardados de una ley (para la progresión/desbloqueo).
 function _juegoAciertosDe(leyId) { return _juegoLeerLey(leyId).totalAciertos || 0; }
-// Una ley está desbloqueada si es la primera, o si ya dominaste (nivel máximo) la anterior.
-function juegoLeyDesbloqueada(idx) {
-  if (idx <= 0) return true;
-  return _juegoAciertosDe(JUEGO_LEYES[idx - 1].id) >= JUEGO_UMBRAL_DESBLOQUEO;
-}
+// Antes las leyes se desbloqueaban en cadena (dominar una abría la siguiente);
+// ahora TODAS están abiertas desde el principio. Se conserva la función por si
+// algo viejo la llama.
+function juegoLeyDesbloqueada() { return true; }
 
 function abrirJuegoLopsrm() {
   if (!esDanielDeLaGarza()) return;
@@ -11212,7 +11204,7 @@ window.addEventListener('pagehide', function () { _juegoSubirAhora(); });
 const _JUEGO_FRASES = [
   'Quien domina la ley, domina el proceso. 💪',
   'Un artículo al día y serás imparable. 📈',
-  'La mejor licitación es la que te sabes de memoria.',
+  'En la junta gana el que cita el artículo. 🎯',
   'Saber la regla es ganar antes de empezar. ♟️',
   'Cada acierto te acerca a ser Maestro. 🏆',
   'No adivines: aprende el artículo. 📖',
@@ -11250,24 +11242,17 @@ function renderJuegoInicio() {
       + '<span class="juego-tema-prog' + (o.d >= o.t ? ' full' : '') + '">' + (o.d >= o.t ? '✓ ' : '') + o.d + '/' + o.t + '</span></button>';
   }).join('');
 
-  // Selector/progresión de leyes: la actual y las desbloqueadas son elegibles;
-  // las demás aparecen BLOQUEADAS (🔒) hasta dominar la anterior.
-  const nivMax = JUEGO_NIVELES[JUEGO_NIVELES.length - 1].n;
-  const selLeyes = JUEGO_LEYES.map(function (l, i) {
+  // Selector de leyes: TODAS abiertas. Cada chip muestra el nivel que llevas
+  // en ESA ley (emoji + aciertos), para ver tu avance en cada una de un vistazo.
+  const selLeyes = JUEGO_LEYES.map(function (l) {
     const activa = l.id === juegoLeyActual;
-    if (juegoLeyDesbloqueada(i)) {
-      return '<button class="juego-ley-chip' + (activa ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + '">'
-        + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
-        + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
-        + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
-        + (activa ? '<span class="juego-ley-tag">Actual</span>' : '<span class="juego-ley-tag abierta">✓ Abierta</span>')
-        + '</button>';
-    }
-    const prev = JUEGO_LEYES[i - 1];
-    return '<button class="juego-ley-chip bloqueada" disabled title="Bloqueada">'
-      + '<span class="juego-ley-emoji">🔒</span>'
+    const acL = _juegoAciertosDe(l.id);
+    const nivL = _juegoNivel(acL);
+    return '<button class="juego-ley-chip' + (activa ? ' activa' : '') + '" onclick="juegoCambiarLey(\'' + l.id + '\')" title="' + escapeHtml(l.desc) + ' · ' + escapeHtml(nivL.nombre) + '">'
+      + '<span class="juego-ley-emoji">' + l.emoji + '</span>'
       + '<span class="juego-ley-txt"><span class="juego-ley-abrev">' + escapeHtml(l.abrev) + '</span>'
-      + '<span class="juego-ley-nom">Llega a <b>' + escapeHtml(nivMax) + '</b> en ' + escapeHtml(prev.abrev) + ' para desbloquear</span></span>'
+      + '<span class="juego-ley-nom">' + escapeHtml(l.nombre) + '</span></span>'
+      + (activa ? '<span class="juego-ley-tag">Actual</span>' : '<span class="juego-ley-tag abierta">' + nivL.emoji + ' ' + acL + '</span>')
       + '</button>';
   }).join('');
 
@@ -11359,7 +11344,7 @@ function renderJuegoInicio() {
     + '<div class="juego-xp-barra"><div class="juego-xp-fill" style="width:' + niv.pct + '%"></div></div>'
     + '<div class="juego-xp-falta">' + (niv.sig
         ? 'Te faltan <b>' + niv.falta + '</b> aciertos para ser <b>' + escapeHtml(niv.sig) + '</b>'
-        : 'Dominaste esta ley. ¡Desbloqueaste la siguiente! 🔓') + '</div>'
+        : '¡Dominaste esta ley! Ya nadie te la cuenta 👑') + '</div>'
     + '</div>';
 
   // Perfil de estudio: la meta de hoy, los últimos 14 días y cuánto llevas
@@ -11433,7 +11418,7 @@ function renderJuegoInicio() {
     + '<div class="juego-home-grid">'
     +   '<div class="juego-col">'
     +     '<div class="juego-modos-tit">📚 Leyes</div>'
-    +     '<div class="juego-leyes-hint">Domina una ley (nivel <b>' + escapeHtml(nivMax) + '</b>) para desbloquear la siguiente.</div>'
+    +     '<div class="juego-leyes-hint">Todas abiertas: cada ley lleva su propio nivel, avance y medallero.</div>'
     +     '<div class="juego-leyes">' + selLeyes + '</div>'
     +   '</div>'
     +   '<div class="juego-col">'
