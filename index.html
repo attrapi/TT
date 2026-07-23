@@ -5373,6 +5373,64 @@
   .juego-dia.algo { background: #bbf7d0; }
   .juego-dia.meta { background: var(--verde); }
 
+  /* --- Medallero (inicio): ganadas a color, bloqueadas en gris con su reto --- */
+  .juego-medallero { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--linea); }
+  .juego-insignias { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
+  .juego-insignia {
+    border: 1px solid var(--linea); border-radius: 14px; padding: 12px 8px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    text-align: center; background: #fff;
+  }
+  .juego-insignia-ico { font-size: 26px; line-height: 1; }
+  .juego-insignia-nom { font-weight: 800; font-size: 11.5px; color: var(--tinta); line-height: 1.15; }
+  .juego-insignia-desc { font-size: 9.5px; color: var(--tinta-suave); font-weight: 600; line-height: 1.25; }
+  .juego-insignia:not(.ganada) { opacity: .55; }
+  .juego-insignia:not(.ganada) .juego-insignia-ico { filter: grayscale(1); }
+  .juego-insignia.ganada {
+    border-color: var(--ambar); background: linear-gradient(180deg, #fffbeb, #fff);
+    box-shadow: 0 3px 10px rgba(180,83,9,.10);
+  }
+  .juego-insignia.ganada .juego-insignia-nom { color: #92400e; }
+  .juego-insignia.ganada .juego-insignia-desc { color: #15803D; }
+
+  /* --- Pantalla final: medallas nuevas, siguiente nivel y qué releer --- */
+  .juego-final-medallas { display: flex; flex-direction: column; gap: 8px; margin: 14px auto 4px; max-width: 340px; }
+  .juego-final-medallas-tit { font-weight: 800; color: #92400e; font-size: 14px; font-family: 'Baloo 2', var(--sans); }
+  .juego-medalla-nueva {
+    display: flex; align-items: center; gap: 12px; text-align: left;
+    border: 2px solid var(--ambar); background: #fffbeb; border-radius: 14px; padding: 10px 14px;
+    animation: juego-pop .45s cubic-bezier(.34,1.56,.64,1);
+  }
+  .jmn-ico { font-size: 30px; line-height: 1; }
+  .jmn-txt { display: flex; flex-direction: column; line-height: 1.25; }
+  .jmn-txt b { color: #92400e; font-size: 14.5px; }
+  .jmn-txt small { color: var(--tinta-suave); font-size: 11.5px; font-weight: 600; }
+  @keyframes juego-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .juego-final-nivel { max-width: 340px; margin: 16px auto 0; }
+  .juego-final-nivel .juego-xp-barra { background: #eee; box-shadow: none; }
+  .juego-final-nivel-txt { font-size: 12px; color: var(--tinta-suave); font-weight: 600; margin-top: 6px; }
+  .juego-final-nivel-txt b { color: var(--guinda); }
+  .juego-final-repaso {
+    margin: 16px auto 0; max-width: 430px; text-align: left;
+    background: var(--crema); border: 1px solid var(--linea); border-radius: 14px; padding: 12px 14px;
+  }
+  .juego-final-repaso-tit { font-weight: 800; color: var(--tinta); font-size: 13px; margin-bottom: 8px; }
+  .juego-art-chip {
+    display: inline-block; margin: 0 6px 6px 0; background: #fff;
+    border: 1px solid var(--linea); border-radius: 999px; padding: 5px 11px;
+    font-size: 12px; font-weight: 700; color: var(--guinda); text-decoration: none;
+  }
+  .juego-art-chip:hover { border-color: var(--guinda); }
+  .juego-final-repaso-sub { font-size: 11px; color: var(--tinta-suave); font-weight: 600; margin-top: 2px; }
+  .juego-final-repaso-sub b { color: #15803D; }
+
+  /* Avance por tema dentro de cada chip (dominadas/total del bloque). */
+  .juego-tema-prog {
+    font-size: 10px; font-weight: 800; color: var(--tinta-suave);
+    background: var(--crema); border-radius: 99px; padding: 2px 7px; margin-left: 6px;
+  }
+  .juego-tema-prog.full { color: #166534; background: var(--verde-tenue); }
+
   .juego-buscar { display: flex; gap: 8px; margin-bottom: 14px; }
   .juego-buscar input {
     flex: 1; min-width: 0; border: 2px solid var(--linea); border-radius: 12px;
@@ -10884,6 +10942,9 @@ function _juegoNormalizar(p) {
   p.preg          = p.preg || {};    // memoria por pregunta
   p.dias          = p.dias || {};    // actividad por día
   p.partida       = p.partida || null;
+  p.logros        = p.logros || {};  // medallas ganadas: { id: 'YYYY-MM-DD' }
+  p.perfectas     = p.perfectas || 0;    // partidas de 10+ sin un solo error
+  p.retosHechos   = p.retosHechos || 0;  // retos diarios completados
   p.act           = p.act || 0;      // sello de la última modificación (para fusionar)
   if (p.falladas) {                  // formato v1 → v2
     Object.keys(p.falladas).forEach(function (k) {
@@ -10937,7 +10998,7 @@ function _juegoSubirAhora() {
 function _juegoFusionar(a, b) {
   a = _juegoNormalizar(a); b = _juegoNormalizar(b);
   const r = _juegoNormalizar(JSON.parse(JSON.stringify(a)));
-  ['mejor', 'totalAciertos', 'totalFallos', 'partidas'].forEach(function (c) {
+  ['mejor', 'totalAciertos', 'totalFallos', 'partidas', 'perfectas', 'retosHechos'].forEach(function (c) {
     r[c] = Math.max(a[c] || 0, b[c] || 0);
   });
   // Racha diaria: manda el registro con el último día más reciente.
@@ -10948,10 +11009,15 @@ function _juegoFusionar(a, b) {
     const x = r.preg[k], y = b.preg[k];
     if (!x || (y.v || 0) > (x.v || 0)) r.preg[k] = y;
   });
-  // Actividad diaria: por día, lo más alto de cada lado.
+  // Actividad diaria: por día, lo más alto de cada lado (r = reto diario hecho).
   Object.keys(b.dias).forEach(function (d) {
     const x = r.dias[d] || { a: 0, n: 0 }, y = b.dias[d] || { a: 0, n: 0 };
-    r.dias[d] = { a: Math.max(x.a || 0, y.a || 0), n: Math.max(x.n || 0, y.n || 0) };
+    r.dias[d] = { a: Math.max(x.a || 0, y.a || 0), n: Math.max(x.n || 0, y.n || 0), r: Math.max(x.r || 0, y.r || 0) };
+  });
+  // Medallas: la unión de ambas; si las dos la tienen, queda la fecha más antigua.
+  Object.keys(b.logros).forEach(function (id) {
+    const x = r.logros[id], y = b.logros[id];
+    r.logros[id] = x ? (x < y ? x : y) : y;
   });
   // Partida a medio jugar: la guardada más recientemente.
   if ((b.act || 0) > (a.act || 0) && b.partida) r.partida = b.partida;
@@ -11073,6 +11139,48 @@ function _juegoNivel(ac) {
     sig: sig ? sig.n : null, sigEmoji: sig ? sig.e : null, falta: sig ? (sig.m - ac) : 0
   };
 }
+// ---------- MEDALLAS ----------
+// Cada ley tiene su propio medallero (estudiar otra ley = medallas nuevas).
+// Se ganan una sola vez y quedan guardadas en p.logros con su fecha. Las
+// bloqueadas se MUESTRAN en gris con lo que falta: ver el hueco da ganas.
+const JUEGO_MEDALLAS = [
+  // Constancia (el hábito diario es lo que más queremos premiar)
+  { id: 'primera', e: '🚀', n: 'Primer paso',     d: 'Termina tu primera partida',        c: function (p) { return (p.partidas || 0) >= 1; } },
+  { id: 'r3',      e: '🔥', n: 'Calentando',      d: 'Estudia 3 días seguidos',           c: function (p) { return (p.rachaDiaria || 0) >= 3; } },
+  { id: 'r7',      e: '🗓️', n: 'Semana perfecta', d: 'Estudia 7 días seguidos',           c: function (p) { return (p.rachaDiaria || 0) >= 7; } },
+  { id: 'r14',     e: '⚡', n: 'Imparable',       d: 'Estudia 14 días seguidos',          c: function (p) { return (p.rachaDiaria || 0) >= 14; } },
+  { id: 'r30',     e: '🐐', n: 'Leyenda',         d: 'Estudia 30 días seguidos',          c: function (p) { return (p.rachaDiaria || 0) >= 30; } },
+  // Ritual del reto diario
+  { id: 'rd5',     e: '☀️', n: 'Ritual diario',   d: 'Completa 5 retos diarios',          c: function (p) { return (p.retosHechos || 0) >= 5; } },
+  { id: 'rd20',    e: '🛡️', n: 'Hábito de acero', d: 'Completa 20 retos diarios',         c: function (p) { return (p.retosHechos || 0) >= 20; } },
+  // Dominio (saber de verdad: 5 aciertos seguidos por pregunta)
+  { id: 'd10',     e: '🏆', n: 'Coleccionista',   d: 'Domina 10 preguntas',               c: function (p, res) { return res.dominadas >= 10; } },
+  { id: 'd25',     e: '📚', n: 'Erudito',         d: 'Domina 25 preguntas',               c: function (p, res) { return res.dominadas >= 25; } },
+  { id: 'd50',     e: '🧠', n: 'Enciclopedia',    d: 'Domina 50 preguntas',               c: function (p, res) { return res.dominadas >= 50; } },
+  // Precisión
+  { id: 'perf',    e: '💎', n: 'Impecable',       d: 'Una partida de 10 sin ningún error', c: function (p) { return (p.perfectas || 0) >= 1; } },
+  { id: 'perf3',   e: '🥋', n: 'Cinta negra',     d: '3 partidas impecables',             c: function (p) { return (p.perfectas || 0) >= 3; } },
+  // Nivel
+  { id: 'esp',     e: '🎖️', n: 'Especialista',    d: 'Llega a 50 aciertos',               c: function (p) { return (p.totalAciertos || 0) >= 50; } },
+  { id: 'mst',     e: '👑', n: 'Maestro de la Ley', d: 'Llega a 200 aciertos y desbloquea la siguiente ley', c: function (p) { return (p.totalAciertos || 0) >= 200; } },
+  // Volumen
+  { id: 'p25',     e: '🎮', n: 'Veterano',        d: 'Termina 25 partidas',               c: function (p) { return (p.partidas || 0) >= 25; } }
+];
+
+// Revisa TODAS las medallas contra el progreso actual; otorga las que apliquen
+// y devuelve las recién ganadas (para celebrarlas en el momento).
+function _juegoChecarMedallas(p) {
+  const res = _juegoResumen(_juegoPreguntas(), p);
+  const hoy = _juegoHoy();
+  const nuevas = [];
+  JUEGO_MEDALLAS.forEach(function (m) {
+    if (!p.logros[m.id] && m.c(p, res)) { p.logros[m.id] = hoy; nuevas.push(m); }
+  });
+  return nuevas;
+}
+
+function _juegoFechaCorta(iso) { const x = String(iso || '').split('-'); return x.length === 3 ? x[2] + '/' + x[1] + '/' + x[0] : iso; }
+
 // Aciertos acumulados guardados de una ley (para la progresión/desbloqueo).
 function _juegoAciertosDe(leyId) { return _juegoLeerLey(leyId).totalAciertos || 0; }
 // Una ley está desbloqueada si es la primera, o si ya dominaste (nivel máximo) la anterior.
@@ -11127,7 +11235,20 @@ function renderJuegoInicio() {
   const dato = preguntas[Math.floor(Math.random() * totalP)];
   const temas = [];
   preguntas.forEach(q => { if (temas.indexOf(q.tema) < 0) temas.push(q.tema); });
-  const chips = temas.map(t => '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t) + '</button>').join('');
+  // Avance por tema (dominadas/total): cada chip muestra cuánto llevas de ese
+  // bloque, para que se vea qué falta por conquistar.
+  const domTema = {};
+  preguntas.forEach(function (q) {
+    const o = domTema[q.tema] = domTema[q.tema] || { d: 0, t: 0 };
+    o.t++;
+    const r = p.preg[_juegoKey(q)];
+    if (r && (r.n || 0) >= JUEGO_CAJA_TOP) o.d++;
+  });
+  const chips = temas.map(t => {
+    const o = domTema[t];
+    return '<button class="juego-tema-chip" onclick="juegoIniciar(\'tema\',\'' + t.replace(/'/g, "\\'") + '\')">' + escapeHtml(t)
+      + '<span class="juego-tema-prog' + (o.d >= o.t ? ' full' : '') + '">' + (o.d >= o.t ? '✓ ' : '') + o.d + '/' + o.t + '</span></button>';
+  }).join('');
 
   // Selector/progresión de leyes: la actual y las desbloqueadas son elegibles;
   // las demás aparecen BLOQUEADAS (🔒) hasta dominar la anterior.
@@ -11192,6 +11313,7 @@ function renderJuegoInicio() {
   // ----- UN SOLO BOTÓN GRANDE que ya sabe qué te conviene jugar: retomar lo
   // que dejaste, si no repasar lo que se te olvida, si no el reto de hoy.
   const sp = p.partida && p.partida.preguntas && p.partida.preguntas.length ? p.partida : null;
+  const retoHoy = !!((p.dias[_juegoHoy()] || {}).r);
   const faltanMeta = Math.max(0, JUEGO_META_DIARIA - res.hoyAciertos);
   const subMeta = res.metaHecha
     ? '¡Ya cumpliste tu meta de hoy! 🎉'
@@ -11207,10 +11329,14 @@ function renderJuegoInicio() {
     ctaAccion = "juegoIniciar('repaso')";
     ctaTxt = '🔁 Repasar ' + res.pendientes + (res.pendientes === 1 ? ' pregunta' : ' preguntas');
     ctaSub = subMeta;
-  } else {
+  } else if (!retoHoy) {
     ctaAccion = "juegoIniciar('diario')";
-    ctaTxt = '⚡ Jugar el reto de hoy';
+    ctaTxt = '📅 Jugar el reto de hoy';
     ctaSub = subMeta;
+  } else {
+    ctaAccion = "juegoIniciar('rapido')";
+    ctaTxt = '⚡ Una ronda rápida';
+    ctaSub = res.metaHecha ? 'Reto de hoy ✓ · suma aciertos para tu nivel' : subMeta;
   }
   const cta =
     '<div class="juego-cta-wrap">'
@@ -11264,6 +11390,23 @@ function renderJuegoInicio() {
       + (res.nuevas ? ' · ' + res.nuevas + ' que aún no ves' : ' · ya las viste todas') + '</div>'
     + '</div>';
 
+  // ----- MEDALLERO: las ganadas brillan, las bloqueadas se ven en gris con lo
+  // que falta. Ver los huecos es lo que da ganas de llenarlos.
+  const ganadas = JUEGO_MEDALLAS.filter(function (m) { return p.logros[m.id]; }).length;
+  const medallero =
+    '<div class="juego-medallero">'
+    + '<div class="juego-puntajes-tit">🏅 Medallero · ' + ganadas + ' de ' + JUEGO_MEDALLAS.length + '</div>'
+    + '<div class="juego-insignias">'
+    + JUEGO_MEDALLAS.map(function (m) {
+        const f = p.logros[m.id];
+        return '<div class="juego-insignia' + (f ? ' ganada' : '') + '" title="' + escapeHtml(m.d) + (f ? ' · Ganada el ' + _juegoFechaCorta(f) : '') + '">'
+          + '<span class="juego-insignia-ico">' + m.e + '</span>'
+          + '<span class="juego-insignia-nom">' + escapeHtml(m.n) + '</span>'
+          + '<span class="juego-insignia-desc">' + escapeHtml(f ? '✓ ' + _juegoFechaCorta(f) : m.d) + '</span>'
+          + '</div>';
+      }).join('')
+    + '</div></div>';
+
   card.innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<button class="juego-regresar" onclick="cerrarJuegoLopsrm()">← Regresar</button>'
@@ -11297,7 +11440,7 @@ function renderJuegoInicio() {
     +     '<div class="juego-modos-tit">🎮 Elige cómo jugar</div>'
     +     '<div class="juego-modos">'
     +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
-    +       modo('diario', '📅', 'Reto diario', 'Tu reto de hoy. Juega cada día y sube tu racha 🔥.', '#691C32')
+    +       modo('diario', '📅', 'Reto diario', (retoHoy ? '✓ Hecho hoy. Mañana hay uno nuevo: vuelve por tu racha 🔥.' : 'El reto de hoy: complétalo diario y colecciona medallas ☀️.'), '#691C32')
     +       modo('repaso', '🔁', 'Repaso', (porRepasar ? 'Hoy te tocan ' + porRepasar + ' preguntas: las que peor te salen, primero.' : 'Nada pendiente hoy. ¡Vas al corriente! 🎉'), '#15803D')
     +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
@@ -11314,7 +11457,8 @@ function renderJuegoInicio() {
     +     stat('👀', res.vistas, 'Preguntas vistas')
     +     stat('📌', porRepasar, 'Por repasar')
     +   '</div>'
-    + '</div>';
+    + '</div>'
+    + medallero;
 }
 
 // Barajado REPRODUCIBLE: con la misma semilla sale el mismo orden. Lo usa el
@@ -11373,7 +11517,7 @@ function juegoIniciar(modo, tema) {
     const mez = _juegoBarajar(ops);
     return { tema: q.tema, art: q.art, pregunta: q.pregunta, explica: q.explica, simple: q.simple || '', opc: mez.map(o => o.t), correctaIdx: mez.findIndex(o => o.ok) };
   });
-  JUEGO = { modo, tema: tema || '', preguntas, idx: 0, puntos: 0, aciertos: 0, respondidasN: 0, vidas: JUEGO_VIDAS, racha: 0, rachaMax: 0, respondida: false, elegido: null, timerId: null, tRestante: 0 };
+  JUEGO = { modo, tema: tema || '', preguntas, idx: 0, puntos: 0, aciertos: 0, respondidasN: 0, vidas: JUEGO_VIDAS, racha: 0, rachaMax: 0, respondida: false, elegido: null, falladasPartida: [], timerId: null, tRestante: 0 };
   _juegoGuardarPartida();
   renderJuegoPregunta();
 }
@@ -11384,7 +11528,8 @@ function _juegoAplicarPartida(p, borrar) {
     modo: JUEGO.modo, tema: JUEGO.tema, preguntas: JUEGO.preguntas, idx: JUEGO.idx,
     puntos: JUEGO.puntos, aciertos: JUEGO.aciertos, respondidasN: JUEGO.respondidasN,
     vidas: JUEGO.vidas, racha: JUEGO.racha, rachaMax: JUEGO.rachaMax,
-    respondida: !!JUEGO.respondida, elegido: (JUEGO.elegido === undefined ? null : JUEGO.elegido)
+    respondida: !!JUEGO.respondida, elegido: (JUEGO.elegido === undefined ? null : JUEGO.elegido),
+    fall: JUEGO.falladasPartida || []
   };
   return p;
 }
@@ -11398,7 +11543,7 @@ function juegoContinuar() {
     puntos: s.puntos || 0, aciertos: s.aciertos || 0, respondidasN: s.respondidasN || 0,
     vidas: (s.vidas === undefined ? JUEGO_VIDAS : s.vidas), racha: s.racha || 0, rachaMax: s.rachaMax || 0,
     respondida: !!s.respondida, elegido: (s.elegido === undefined ? null : s.elegido),
-    timerId: null, tRestante: 0
+    falladasPartida: s.fall || [], timerId: null, tRestante: 0
   };
   // Si la dejaste viendo la explicación, vuelve a esa misma pantalla.
   if (JUEGO.respondida && JUEGO.elegido !== null) renderJuegoPregunta(JUEGO.elegido);
@@ -11491,6 +11636,8 @@ function juegoResponder(elegido) {
   } else {
     JUEGO.vidas--;
     JUEGO.racha = 0;
+    // Se apunta el artículo fallado para el resumen "dales otra leída" del final.
+    (JUEGO.falladasPartida = JUEGO.falladasPartida || []).push({ art: q.art, tema: q.tema });
   }
   // Todo el avance se guarda AQUÍ, respuesta por respuesta: la memoria de la
   // pregunta (su caja de repaso), el día/racha y la partida en curso. Así nada
@@ -11499,16 +11646,20 @@ function juegoResponder(elegido) {
   const nivAntes = _juegoNivel(antes.totalAciertos || 0);
   const metaAntes = ((antes.dias[_juegoHoy()] || {}).a || 0) >= JUEGO_META_DIARIA;
   const p = _juegoRegistrarRespuesta(antes, q, ok);
+  const nuevasMed = _juegoChecarMedallas(p);   // rachas y dominadas pueden caer a media partida
   _juegoAplicarPartida(p);
   _juegoGuardar(p);
   renderJuegoPregunta(elegido);
 
-  // Los dos premios que dan ganas de volver mañana: subir de nivel y cerrar el
-  // día. Se celebran en el momento, no hasta el final de la partida.
+  // Los premios que dan ganas de volver mañana, celebrados EN EL MOMENTO:
+  // subir de nivel > medalla nueva > cerrar la meta del día.
   const nivAhora = _juegoNivel(p.totalAciertos || 0);
   if (nivAhora.idx > nivAntes.idx) {
     lanzarConfeti({ cantidad: 130, duracion: 2400 });
     toast('¡Subiste a ' + nivAhora.nombre + '! ' + nivAhora.emoji, 'ok');
+  } else if (nuevasMed.length) {
+    lanzarConfeti({ cantidad: 110, duracion: 2000 });
+    toast('🏅 ¡Medalla nueva! ' + nuevasMed.map(function (m) { return m.e + ' ' + m.n; }).join(' · '), 'ok');
   } else if (!metaAntes && ((p.dias[_juegoHoy()] || {}).a || 0) >= JUEGO_META_DIARIA) {
     lanzarConfeti({ cantidad: 80, duracion: 1800 });
     toast('¡Meta de hoy cumplida! 🔥 ' + (p.rachaDiaria || 1) + (p.rachaDiaria === 1 ? ' día' : ' días seguidos'), 'ok');
@@ -11539,10 +11690,53 @@ function renderJuegoFinal() {
   const p = _juegoCargar();
   p.mejor = Math.max(p.mejor || 0, JUEGO.puntos);
   p.partidas = (p.partidas || 0) + 1;
+  // Partida impecable: 10+ respondidas y ni un solo error.
+  if (JUEGO.respondidasN >= 10 && JUEGO.aciertos === JUEGO.respondidasN) p.perfectas = (p.perfectas || 0) + 1;
+  // Reto diario terminado (contestaste TODAS): cuenta una sola vez por día.
+  const hoyF = _juegoHoy();
+  if (JUEGO.modo === 'diario' && JUEGO.respondidasN >= JUEGO.preguntas.length) {
+    const df = p.dias[hoyF] || { a: 0, n: 0 };
+    if (!df.r) { df.r = 1; p.dias[hoyF] = df; p.retosHechos = (p.retosHechos || 0) + 1; }
+  }
+  const nuevasMed = _juegoChecarMedallas(p);
   _juegoAplicarPartida(p, true);
   _juegoGuardar(p);
   _juegoSubirAhora();
-  if (pct >= 70) lanzarConfeti({ cantidad: 70, duracion: 1600 });
+  if (pct >= 70 || nuevasMed.length) lanzarConfeti({ cantidad: nuevasMed.length ? 110 : 70, duracion: nuevasMed.length ? 2200 : 1600 });
+
+  // Medallas recién ganadas, en grande.
+  const medallasHtml = nuevasMed.length
+    ? '<div class="juego-final-medallas"><div class="juego-final-medallas-tit">🎉 ¡Medalla' + (nuevasMed.length > 1 ? 's' : '') + ' nueva' + (nuevasMed.length > 1 ? 's' : '') + '!</div>'
+      + nuevasMed.map(function (m) {
+          return '<div class="juego-medalla-nueva"><span class="jmn-ico">' + m.e + '</span>'
+            + '<span class="jmn-txt"><b>' + escapeHtml(m.n) + '</b><small>' + escapeHtml(m.d) + '</small></span></div>';
+        }).join('')
+      + '</div>'
+    : '';
+
+  // Lo que fallaste, para darle otra leída AHORITA que duele: artículo + tema
+  // con liga al PDF. Además esas preguntas ya quedaron en tu Repaso.
+  const yaVisto = {};
+  const falladas = (JUEGO.falladasPartida || []).filter(function (f) {
+    const k = f.art + '|' + f.tema; if (yaVisto[k]) return false; yaVisto[k] = 1; return true;
+  });
+  const repasoHtml = falladas.length
+    ? '<div class="juego-final-repaso"><div class="juego-final-repaso-tit">📖 Dales otra leída</div>'
+      + falladas.map(function (f) {
+          return '<a class="juego-art-chip" href="' + _juegoLey().pdf + '" target="_blank" rel="noopener">' + escapeHtml(f.art) + ' · ' + escapeHtml(f.tema) + '</a>';
+        }).join('')
+      + '<div class="juego-final-repaso-sub">Te las vuelvo a preguntar en <b>Repaso</b> hasta que las domines 🔁</div></div>'
+    : '';
+
+  // Cuánto falta para el siguiente nivel: la razón para jugar UNA partida más.
+  const nivF = _juegoNivel(p.totalAciertos || 0);
+  const nivelHtml = nivF.sig
+    ? '<div class="juego-final-nivel">'
+      + '<div class="juego-xp-barra"><div class="juego-xp-fill" style="width:' + nivF.pct + '%"></div></div>'
+      + '<div class="juego-final-nivel-txt">' + nivF.emoji + ' ' + escapeHtml(nivF.nombre) + ' · te faltan <b>' + nivF.falta + '</b> aciertos para ' + escapeHtml(nivF.sig) + ' ' + nivF.sigEmoji + '</div>'
+      + '</div>'
+    : '';
+
   const modo = JUEGO.modo, tema = JUEGO.tema;
   document.getElementById('juegoCard').innerHTML =
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
@@ -11550,11 +11744,14 @@ function renderJuegoFinal() {
     +   '<div class="juego-medalla">' + medalla + '</div>'
     +   '<div class="juego-final-tit">' + titulo + '</div>'
     +   '<div class="juego-final-desc">Acertaste ' + JUEGO.aciertos + ' de ' + tot + ' (' + pct + '%) · racha máx. 🔥 ' + JUEGO.rachaMax + '</div>'
+    +   medallasHtml
     +   '<div class="juego-stats">'
     +     '<div class="juego-stat"><div class="juego-stat-num">' + JUEGO.puntos + '</div><div class="juego-stat-lbl">Puntos</div></div>'
     +     '<div class="juego-stat"><div class="juego-stat-num">' + (p.mejor || 0) + '</div><div class="juego-stat-lbl">Mejor</div></div>'
     +     '<div class="juego-stat"><div class="juego-stat-num">🔥 ' + (p.rachaDiaria || 0) + '</div><div class="juego-stat-lbl">Días seguidos</div></div>'
     +   '</div>'
+    +   nivelHtml
+    +   repasoHtml
     +   '<button class="juego-btn" onclick="juegoIniciar(\'' + modo + '\',\'' + String(tema).replace(/'/g, "\\'") + '\')">Jugar de nuevo</button>'
     +   '<button class="juego-volver" onclick="renderJuegoInicio()">← Volver al inicio</button>'
     + '</div>';
