@@ -5099,56 +5099,116 @@
     background: radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
     pointer-events: none;
   }
-  .juego-hero-top {
-    display: flex; align-items: center; justify-content: center; gap: 14px;
-    flex-wrap: wrap; position: relative;
+  /* El nombre del juego va chiquito arriba: la estrella del header es TU NIVEL. */
+  .juego-marca {
+    position: relative; color: rgba(255,255,255,.85);
+    font-family: 'Baloo 2', var(--sans); font-weight: 800;
+    font-size: 15px; letter-spacing: .10em; text-transform: uppercase;
+    margin-bottom: 18px;
   }
-  .juego-card.home .juego-titulo {
-    color: #fff; font-size: 34px; margin: 0; line-height: 1.05;
-    font-family: 'Baloo 2', var(--sans); font-weight: 800; letter-spacing: .2px;
-    text-shadow: 0 2px 14px rgba(0,0,0,.28);
+
+  /* Bloque de nivel: medallón + barra de avance al siguiente. */
+  .juego-hero-nivel {
+    position: relative; display: flex; align-items: center; gap: 18px;
+    max-width: 470px; margin: 0 auto; text-align: left;
   }
-  .juego-card.home .juego-sub { color: rgba(255,255,255,.82); font-size: 13.5px; margin: 9px 0 0; position: relative; }
-  /* Insignia de nivel: ARRIBA A LA DERECHA del hero, aparte del título. Compacta. */
-  .juego-nivel-badge {
-    position: absolute; top: 16px; right: 58px; z-index: 2;
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.26);
-    border-radius: 999px; padding: 5px 13px 5px 6px;
+  .juego-hero-nivel-txt { flex: 1; min-width: 0; }
+  .juego-nivel-nom {
+    color: #fff; font-family: 'Baloo 2', var(--sans); font-weight: 800;
+    font-size: 27px; line-height: 1.05; text-shadow: 0 2px 14px rgba(0,0,0,.30);
+  }
+
+  /* Medallón: el emoji de tu nivel dentro de un anillo que se va llenando. */
+  .juego-medallon { position: relative; width: 84px; height: 84px; flex: 0 0 84px; }
+  .juego-anillo { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
+  .juego-anillo circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+  .juego-anillo-bg { stroke: rgba(0,0,0,.22); }
+  .juego-anillo-fill {
+    stroke: #fbbf24; stroke-dasharray: 276.5;
+    filter: drop-shadow(0 0 6px rgba(251,191,36,.55));
+    transition: stroke-dashoffset 1s cubic-bezier(.22,1,.36,1);
+  }
+  .juego-medallon-ico {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 34px; line-height: 1;
+  }
+  /* Cuando ya casi subes de nivel, el medallón late: falta poquito. */
+  .juego-medallon.cerca .juego-medallon-ico { animation: juego-late 1.4s ease-in-out infinite; }
+  @keyframes juego-late { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.13); } }
+
+  /* Barra de nivel, con el nivel de aquí y el de allá en las puntas. */
+  .juego-xp { margin-top: 9px; }
+  .juego-xp-etiquetas {
+    display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px;
+    font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    color: rgba(255,255,255,.70);
+  }
+  .juego-xp-aqui { color: #fde68a; }
+  .juego-xp-barra {
+    height: 10px; border-radius: 99px; background: rgba(0,0,0,.24);
+    overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.30);
+  }
+  .juego-xp-fill {
+    height: 100%; border-radius: 99px; position: relative; overflow: hidden;
+    background: linear-gradient(90deg, #fbbf24, #34d399);
+    transition: width .9s cubic-bezier(.22,1,.36,1);
+  }
+  /* Destello que recorre la barra: recuerda que hay algo por ganar. */
+  .juego-xp-fill::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%);
+    animation: juego-brillo 2.8s linear infinite;
+  }
+  @keyframes juego-brillo { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  .juego-xp-falta { color: rgba(255,255,255,.80); font-size: 12px; margin-top: 7px; font-weight: 600; }
+  .juego-xp-falta b { color: #fde68a; font-weight: 800; }
+
+  /* Fichas: racha, aciertos y dominadas de un vistazo. */
+  .juego-fichas { position: relative; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .juego-ficha {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    min-width: 100px; padding: 9px 14px; border-radius: 14px;
+    background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.20);
     backdrop-filter: blur(3px);
   }
-  .juego-nivel-badge-ico {
-    width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 15px;
-    background: linear-gradient(135deg, #fbbf24, #d97706);
-    box-shadow: 0 3px 9px rgba(0,0,0,.28);
+  .juego-ficha b { color: #fff; font-family: 'Baloo 2', var(--sans); font-size: 19px; font-weight: 800; line-height: 1.15; }
+  .juego-ficha span { color: rgba(255,255,255,.72); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .juego-ficha.viva { background: rgba(251,191,36,.24); border-color: rgba(251,191,36,.55); }
+  .juego-ficha.viva b { animation: juego-flama 1.9s ease-in-out infinite; }
+  @keyframes juego-flama { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+  .juego-ficha.riesgo { background: rgba(239,68,68,.22); border-color: rgba(239,68,68,.50); }
+  .juego-ficha.oro { background: rgba(52,211,153,.20); border-color: rgba(52,211,153,.45); }
+
+  /* Un solo botón grande: el juego ya decidió qué te conviene jugar. */
+  .juego-cta-wrap { position: relative; max-width: 430px; margin: 20px auto 0; }
+  .juego-cta {
+    width: 100%; border: 0; cursor: pointer; border-radius: 16px; font-family: inherit;
+    padding: 14px 20px; display: flex; flex-direction: column; gap: 2px;
+    background: linear-gradient(180deg, #fff 0%, #f4eff0 100%);
+    box-shadow: 0 7px 0 rgba(0,0,0,.22), 0 14px 30px rgba(0,0,0,.28);
+    transition: transform .12s ease, box-shadow .12s ease;
   }
-  .juego-nivel-badge-txt { display: flex; flex-direction: column; gap: 1px; text-align: left; line-height: 1.1; }
-  .juego-nivel-badge-nom { color: #fff; font-weight: 800; font-size: 13px; font-family: 'Baloo 2', var(--sans); }
-  .juego-nivel-badge-sub { color: rgba(255,255,255,.78); font-size: 9.5px; font-weight: 600; }
-  /* Barra de progreso DENTRO de la insignia (avance al siguiente nivel). */
-  .juego-nivel-badge-bar {
-    display: block; height: 5px; width: 100%; min-width: 122px;
-    border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; margin: 3px 0 2px;
+  .juego-cta:hover { transform: translateY(-2px); box-shadow: 0 9px 0 rgba(0,0,0,.22), 0 18px 36px rgba(0,0,0,.32); }
+  .juego-cta:active { transform: translateY(4px); box-shadow: 0 3px 0 rgba(0,0,0,.22), 0 8px 18px rgba(0,0,0,.26); }
+  .juego-cta-txt { font-family: 'Baloo 2', var(--sans); font-weight: 800; font-size: 18px; color: var(--guinda); line-height: 1.2; }
+  .juego-cta-sub { font-size: 12px; color: var(--tinta-suave); font-weight: 600; }
+  .juego-cta-alt {
+    display: block; margin: 10px auto 0; background: none; border: 0; cursor: pointer;
+    color: rgba(255,255,255,.72); font-size: 12px; font-weight: 700; font-family: inherit;
+    text-decoration: underline; text-underline-offset: 3px;
   }
-  .juego-nivel-badge-fill {
-    display: block; height: 100%; border-radius: 99px;
-    background: linear-gradient(90deg, #fbbf24, #34d399); transition: width .6s ease;
-  }
-  /* En móvil la insignia baja a estática para no encimarse con el título. */
-  @media (max-width: 560px) {
-    .juego-nivel-badge { position: static; margin: 0 auto 4px; }
-  }
-  /* Progreso del nivel sobre el hero. */
-  .juego-hero-prog { max-width: 340px; margin: 16px auto 0; position: relative; }
-  .juego-hero-prog-barra { height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
-  .juego-hero-prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #fbbf24, #34d399); transition: width .6s ease; }
-  .juego-hero-prog-txt { color: rgba(255,255,255,.8); font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .juego-cta-alt:hover { color: #fff; }
+
   .juego-frase {
-    position: relative; display: inline-block; margin-top: 15px; max-width: 90%;
-    color: #fff; font-style: italic; font-size: 14px; font-weight: 500;
-    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.20);
-    border-radius: 999px; padding: 7px 17px;
+    position: relative; display: inline-block; margin-top: 14px; max-width: 90%;
+    color: rgba(255,255,255,.80); font-style: italic; font-size: 12.5px; font-weight: 500;
+  }
+
+  /* Quien pidió menos movimiento, sin animaciones. */
+  @media (prefers-reduced-motion: reduce) {
+    .juego-xp-fill::after,
+    .juego-medallon.cerca .juego-medallon-ico,
+    .juego-ficha.viva b { animation: none; }
   }
   /* Botón cerrar legible sobre el hero oscuro. */
   .juego-card.home .juego-cerrar { background: rgba(255,255,255,.18); color: #fff; }
@@ -5183,9 +5243,9 @@
   .juego-home-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 18px; align-items: start; }
   @media (max-width: 720px) { .juego-home-grid { grid-template-columns: 1fr; } }
   .juego-col { display: flex; flex-direction: column; gap: 14px; }
-  /* Ley actual en el header (debajo del título). */
+  /* Ley actual en el header (debajo del botón grande). */
   .juego-hero-ley {
-    display: inline-flex; align-items: center; gap: 8px; margin: 11px auto 0;
+    display: inline-flex; align-items: center; gap: 8px; margin: 20px auto 0;
     background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.26);
     border-radius: 999px; padding: 6px 16px; color: #fff; font-size: 14px;
     font-family: 'Baloo 2', var(--sans); position: relative;
@@ -5288,29 +5348,6 @@
   .juego-home-grid .juego-modo:hover .juego-modo-arrow { opacity: 1; transform: translateX(3px); }
 
   /* Buscador de artículos */
-  /* --- Retomar la partida que quedó a medias --- */
-  .juego-seguir {
-    display: flex; align-items: center; gap: 12px; cursor: pointer;
-    border: 2px solid var(--verde); background: var(--verde-tenue);
-    border-radius: 16px; padding: 12px 14px; margin-bottom: 14px;
-    transition: transform .15s ease, box-shadow .15s ease;
-  }
-  .juego-seguir:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,128,61,.16); }
-  .juego-seguir-ico {
-    width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%;
-    background: var(--verde); color: #fff; font-size: 13px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .juego-seguir-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
-  .juego-seguir-txt b { font-size: 14.5px; color: #166534; }
-  .juego-seguir-txt span { font-size: 12px; color: var(--tinta-suave); }
-  .juego-seguir-x {
-    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--tinta-suave); font-size: 17px; line-height: 1;
-  }
-  .juego-seguir-x:hover { background: rgba(0,0,0,.07); color: var(--rojo); }
-
   /* --- Perfil de estudio: meta del día, calendario y dominio de la ley --- */
   .juego-perfil {
     border: 1px solid var(--linea); border-radius: 16px;
@@ -5357,8 +5394,15 @@
   @media (max-width: 480px) {
     .juego-card { padding: 22px 18px 26px; border-radius: 18px; }
     .juego-card.home { padding-top: 0; }
-    .juego-hero { margin: 0 -18px 18px; padding: 30px 20px 24px; }
-    .juego-card.home .juego-titulo { font-size: 28px; }
+    .juego-hero { margin: 0 -18px 18px; padding: 26px 18px 24px; }
+    .juego-marca { font-size: 13px; margin-bottom: 14px; }
+    .juego-hero-nivel { gap: 13px; }
+    .juego-medallon { width: 66px; height: 66px; flex-basis: 66px; }
+    .juego-medallon-ico { font-size: 27px; }
+    .juego-nivel-nom { font-size: 22px; }
+    .juego-ficha { min-width: 0; flex: 1; padding: 8px 4px; }
+    .juego-ficha b { font-size: 17px; }
+    .juego-ficha span { font-size: 9px; letter-spacing: .02em; }
     .juego-modos { grid-template-columns: 1fr; }
     .juego-titulo { font-size: 25px; }
     .juego-pregunta { font-size: 17px; }
@@ -11009,7 +11053,14 @@ function _juegoResumen(preguntas, p) {
     pendientes: _juegoPendientes(preguntas, p).length
   };
 }
-const JUEGO_NIVELES = [{m:0,n:'Aprendiz'},{m:20,n:'Conocedor'},{m:50,n:'Especialista'},{m:100,n:'Experto'},{m:200,n:'Maestro'}];
+// Cada nivel trae su propio emoji: subir de nivel se ve, no solo se lee.
+const JUEGO_NIVELES = [
+  { m: 0,   n: 'Aprendiz',     e: '🌱' },
+  { m: 20,  n: 'Conocedor',    e: '📗' },
+  { m: 50,  n: 'Especialista', e: '🎖️' },
+  { m: 100, n: 'Experto',      e: '🥇' },
+  { m: 200, n: 'Maestro',      e: '👑' }
+];
 // Aciertos para DOMINAR una ley (nivel máximo) y desbloquear la siguiente.
 const JUEGO_UMBRAL_DESBLOQUEO = JUEGO_NIVELES[JUEGO_NIVELES.length - 1].m;
 function _juegoNivel(ac) {
@@ -11017,7 +11068,10 @@ function _juegoNivel(ac) {
   let i = 0; for (let k = 0; k < N.length; k++) if (ac >= N[k].m) i = k;
   const sig = N[i + 1];
   const pct = sig ? Math.min(100, Math.round((ac - N[i].m) / (sig.m - N[i].m) * 100)) : 100;
-  return { nombre: N[i].n, pct, sig: sig ? sig.n : null, falta: sig ? (sig.m - ac) : 0 };
+  return {
+    nombre: N[i].n, emoji: N[i].e, idx: i, pct: pct,
+    sig: sig ? sig.n : null, sigEmoji: sig ? sig.e : null, falta: sig ? (sig.m - ac) : 0
+  };
 }
 // Aciertos acumulados guardados de una ley (para la progresión/desbloqueo).
 function _juegoAciertosDe(leyId) { return _juegoLeerLey(leyId).totalAciertos || 0; }
@@ -11109,28 +11163,78 @@ function renderJuegoInicio() {
     return '<div class="juego-stat"><div class="juego-stat-ico">' + ico + '</div><div class="juego-stat-num">' + num + '</div><div class="juego-stat-lbl">' + lbl + '</div></div>';
   };
 
-  // Insignia de nivel (Aprendiz, Conocedor…) con su BARRA DE PROGRESO adentro,
-  // para que se vea el avance al siguiente nivel.
-  const badge =
-    '<div class="juego-nivel-badge"><span class="juego-nivel-badge-ico">🎖️</span>'
-    + '<span class="juego-nivel-badge-txt">'
-    +   '<span class="juego-nivel-badge-nom">' + escapeHtml(niv.nombre) + '</span>'
-    +   '<span class="juego-nivel-badge-bar"><span class="juego-nivel-badge-fill" style="width:' + niv.pct + '%"></span></span>'
-    +   '<span class="juego-nivel-badge-sub">' + (niv.sig ? 'Faltan ' + niv.falta + ' para ' + escapeHtml(niv.sig) : '¡Nivel máximo! 🏆') + '</span>'
-    + '</span></div>';
+  // ----- MEDALLÓN DE NIVEL: el emoji del nivel dentro de un anillo que se
+  // llena conforme te acercas al siguiente. Es lo primero que ves al entrar.
+  const CIRC = 276.5;   // perímetro del círculo r=44 del SVG de abajo
+  const medallon =
+    '<div class="juego-medallon' + (niv.pct >= 90 && niv.sig ? ' cerca' : '') + '">'
+    + '<svg class="juego-anillo" viewBox="0 0 100 100" aria-hidden="true">'
+    +   '<circle class="juego-anillo-bg" cx="50" cy="50" r="44"></circle>'
+    +   '<circle class="juego-anillo-fill" cx="50" cy="50" r="44" style="stroke-dashoffset:' + (CIRC * (1 - niv.pct / 100)).toFixed(1) + '"></circle>'
+    + '</svg>'
+    + '<span class="juego-medallon-ico">' + niv.emoji + '</span>'
+    + '</div>';
 
-  // Partida a medio jugar: se ofrece retomarla exactamente donde se quedó.
-  const sp = p.partida;
-  const seguir = (sp && sp.preguntas && sp.preguntas.length)
-    ? '<div class="juego-seguir" onclick="juegoContinuar()">'
-      +   '<span class="juego-seguir-ico">▶</span>'
-      +   '<span class="juego-seguir-txt"><b>Continuar donde te quedaste</b>'
-      +     '<span>' + escapeHtml(_juegoNombreModo(sp.modo, sp.tema)) + ' · pregunta '
-      +       Math.min((sp.idx || 0) + 1, sp.preguntas.length) + ' de ' + sp.preguntas.length
-      +       ' · ' + (sp.puntos || 0) + ' pts</span></span>'
-      +   '<span class="juego-seguir-x" onclick="event.stopPropagation();juegoDescartarPartida()" title="Descartar partida">×</span>'
-      + '</div>'
-    : '';
+  // ----- FICHAS VIVAS: racha, aciertos y dominadas de un vistazo.
+  const rachaViva   = p.ultimoDia === _juegoHoy();
+  const rachaRiesgo = (p.rachaDiaria || 0) > 0 && !rachaViva;
+  const ficha = function (ico, num, lbl, cls) {
+    return '<span class="juego-ficha' + (cls ? ' ' + cls : '') + '">'
+      + '<b>' + ico + ' ' + num + '</b><span>' + lbl + '</span></span>';
+  };
+  const fichas =
+    '<div class="juego-fichas">'
+    + ficha('🔥', (p.rachaDiaria || 0), rachaRiesgo ? 'racha en riesgo' : 'días seguidos', rachaViva ? 'viva' : (rachaRiesgo ? 'riesgo' : ''))
+    + ficha('🎯', res.precision + '%', 'precisión', '')
+    + ficha('🏆', res.dominadas, 'dominadas', res.dominadas ? 'oro' : '')
+    + '</div>';
+
+  // ----- UN SOLO BOTÓN GRANDE que ya sabe qué te conviene jugar: retomar lo
+  // que dejaste, si no repasar lo que se te olvida, si no el reto de hoy.
+  const sp = p.partida && p.partida.preguntas && p.partida.preguntas.length ? p.partida : null;
+  const faltanMeta = Math.max(0, JUEGO_META_DIARIA - res.hoyAciertos);
+  const subMeta = res.metaHecha
+    ? '¡Ya cumpliste tu meta de hoy! 🎉'
+    : 'Te faltan ' + faltanMeta + ' aciertos para tu meta de hoy';
+  let ctaAccion, ctaTxt, ctaSub;
+  if (sp) {
+    ctaAccion = 'juegoContinuar()';
+    ctaTxt = '▶ Continuar donde te quedaste';
+    ctaSub = escapeHtml(_juegoNombreModo(sp.modo, sp.tema)) + ' · pregunta '
+      + Math.min((sp.idx || 0) + 1, sp.preguntas.length) + ' de ' + sp.preguntas.length
+      + ' · ' + (sp.puntos || 0) + ' pts';
+  } else if (res.pendientes) {
+    ctaAccion = "juegoIniciar('repaso')";
+    ctaTxt = '🔁 Repasar ' + res.pendientes + (res.pendientes === 1 ? ' pregunta' : ' preguntas');
+    ctaSub = subMeta;
+  } else {
+    ctaAccion = "juegoIniciar('diario')";
+    ctaTxt = '⚡ Jugar el reto de hoy';
+    ctaSub = subMeta;
+  }
+  const cta =
+    '<div class="juego-cta-wrap">'
+    + '<button class="juego-cta" onclick="' + ctaAccion + '">'
+    +   '<span class="juego-cta-txt">' + ctaTxt + '</span>'
+    +   '<span class="juego-cta-sub">' + ctaSub + '</span>'
+    + '</button>'
+    + (sp ? '<button class="juego-cta-alt" onclick="juegoDescartarPartida()">o empezar de cero</button>' : '')
+    + '</div>';
+
+  // Barra de nivel con el nombre del nivel de aquí y el de allá.
+  const barraNivel =
+    '<div class="juego-xp">'
+    + '<div class="juego-xp-etiquetas">'
+    +   '<span class="juego-xp-aqui">' + (p.totalAciertos || 0) + ' aciertos</span>'
+    +   '<span class="juego-xp-alla">' + (niv.sig
+          ? escapeHtml(niv.sig) + ' ' + niv.sigEmoji + ' a los ' + JUEGO_NIVELES[niv.idx + 1].m
+          : '¡Nivel máximo! 🏆') + '</span>'
+    + '</div>'
+    + '<div class="juego-xp-barra"><div class="juego-xp-fill" style="width:' + niv.pct + '%"></div></div>'
+    + '<div class="juego-xp-falta">' + (niv.sig
+        ? 'Te faltan <b>' + niv.falta + '</b> aciertos para ser <b>' + escapeHtml(niv.sig) + '</b>'
+        : 'Dominaste esta ley. ¡Desbloqueaste la siguiente! 🔓') + '</div>'
+    + '</div>';
 
   // Perfil de estudio: la meta de hoy, los últimos 14 días y cuánto llevas
   // dominado de esta ley. Es lo que hace que se sienta un avance diario.
@@ -11164,12 +11268,19 @@ function renderJuegoInicio() {
     '<button class="juego-cerrar" onclick="cerrarJuegoLopsrm()">×</button>'
     + '<button class="juego-regresar" onclick="cerrarJuegoLopsrm()">← Regresar</button>'
     + '<div class="juego-hero">'
-    +   badge
-    +   '<div class="juego-hero-top"><div class="juego-titulo">⚖️ Reta a la Ley</div></div>'
+    +   '<div class="juego-marca">⚖️ Reta a la Ley</div>'
+    +   '<div class="juego-hero-nivel">'
+    +     medallon
+    +     '<div class="juego-hero-nivel-txt">'
+    +       '<div class="juego-nivel-nom">' + escapeHtml(niv.nombre) + '</div>'
+    +       barraNivel
+    +     '</div>'
+    +   '</div>'
+    +   fichas
+    +   cta
     +   '<div class="juego-hero-ley">' + ley.emoji + ' <b>' + escapeHtml(ley.abrev) + '</b> · ' + escapeHtml(ley.nombre) + '</div>'
     +   '<div class="juego-frase">“' + frase + '”</div>'
     + '</div>'
-    + seguir
     + perfil
     + '<div class="juego-buscar">'
     +   '<input id="juegoArtInput" type="text" autocomplete="off" placeholder="Buscar artículo de ' + escapeHtml(ley.abrev) + '… (ej. 27 o 27 bis)" onkeydown="if(event.key===\'Enter\')juegoBuscarArticulo()">'
@@ -11199,10 +11310,8 @@ function renderJuegoInicio() {
     +   '<div class="juego-puntajes-tit">📊 Tus puntajes</div>'
     +   '<div class="juego-stats">'
     +     stat('🏅', (p.mejor || 0), 'Mejor puntaje')
-    +     stat('🔥', (p.rachaDiaria || 0), 'Racha diaria')
-    +     stat('🎯', res.precision + '%', 'Precisión')
-    +     stat('🏆', res.dominadas, 'Dominadas')
     +     stat('🎮', (p.partidas || 0), 'Partidas')
+    +     stat('👀', res.vistas, 'Preguntas vistas')
     +     stat('📌', porRepasar, 'Por repasar')
     +   '</div>'
     + '</div>';
@@ -11386,10 +11495,24 @@ function juegoResponder(elegido) {
   // Todo el avance se guarda AQUÍ, respuesta por respuesta: la memoria de la
   // pregunta (su caja de repaso), el día/racha y la partida en curso. Así nada
   // se pierde aunque cierres a media partida o se te acabe la pila.
-  const p = _juegoRegistrarRespuesta(_juegoCargar(), q, ok);
+  const antes = _juegoCargar();
+  const nivAntes = _juegoNivel(antes.totalAciertos || 0);
+  const metaAntes = ((antes.dias[_juegoHoy()] || {}).a || 0) >= JUEGO_META_DIARIA;
+  const p = _juegoRegistrarRespuesta(antes, q, ok);
   _juegoAplicarPartida(p);
   _juegoGuardar(p);
   renderJuegoPregunta(elegido);
+
+  // Los dos premios que dan ganas de volver mañana: subir de nivel y cerrar el
+  // día. Se celebran en el momento, no hasta el final de la partida.
+  const nivAhora = _juegoNivel(p.totalAciertos || 0);
+  if (nivAhora.idx > nivAntes.idx) {
+    lanzarConfeti({ cantidad: 130, duracion: 2400 });
+    toast('¡Subiste a ' + nivAhora.nombre + '! ' + nivAhora.emoji, 'ok');
+  } else if (!metaAntes && ((p.dias[_juegoHoy()] || {}).a || 0) >= JUEGO_META_DIARIA) {
+    lanzarConfeti({ cantidad: 80, duracion: 1800 });
+    toast('¡Meta de hoy cumplida! 🔥 ' + (p.rachaDiaria || 1) + (p.rachaDiaria === 1 ? ' día' : ' días seguidos'), 'ok');
+  }
 }
 
 function juegoSiguiente() {
