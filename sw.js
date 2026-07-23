@@ -18,7 +18,7 @@
    que el navegador limpie la caché vieja y tome la nueva.
    ========================================================================== */
 
-const CACHE_VERSION = 'tt-v1-20260723a';
+const CACHE_VERSION = 'tt-v1-20260723b';
 const CACHE_NAME = 'tt-cache-' + CACHE_VERSION;
 
 // Cascarón mínimo que se precachea al instalar. Rutas relativas para que
@@ -87,9 +87,14 @@ self.addEventListener('fetch', (event) => {
 
   // Navegación (abrir/recargar la app): network-first para tomar siempre la
   // última versión cuando hay internet; caché como respaldo sin conexión.
+  // OJO con `cache: 'reload'`: GitHub Pages sirve el HTML con max-age=600, así
+  // que un fetch normal se resuelve contra la caché HTTP del navegador y nos
+  // devolvía el index.html de hasta 10 minutos atrás — "network-first" solo de
+  // nombre. Con 'reload' se ignora esa caché (y de paso se actualiza), que es
+  // lo que hace que un cambio recién publicado se vea al recargar.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'reload', credentials: 'same-origin' })
         .then((res) => guardarEnCache(req, res))
         .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
     );
