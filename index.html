@@ -746,6 +746,18 @@
   .vol-farea-btn.activa[data-sub="SGOI"] { background: var(--sub-sgoi); border-color: var(--sub-sgoi); }
   .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
   .vol-farea-btn.activa[data-sub="SPAC"] { background: var(--sub-spac); border-color: var(--sub-spac); }
+  /* Filtros de tipo y estatus: cada uno toma el color de SU píldora, para que el
+     botón encendido y la píldora de la tarjeta se lean como lo mismo. */
+  .vol-farea-btn.activa[data-tipo="ATENCION"]     { background: #4f611f; border-color: #4f611f; }
+  .vol-farea-btn.activa[data-tipo="CONOCIMIENTO"] { background: #1e3a8a; border-color: #1e3a8a; }
+  .vol-farea-btn.activa[data-est="PROCESO"]       { background: #b45309; border-color: #b45309; }
+  .vol-farea-btn.activa[data-est="ATENDIDO"]      { background: #166534; border-color: #166534; }
+  /* Renglón de filtros, debajo de la barra de "+ Nuevo Volante" y el buscador. */
+  .volantes-filtros { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin: 0 0 16px; }
+  .vol-fetq {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--tinta-tenue);
+  }
   /* "Aquí no hay coincidencias, pero N volantes coinciden en otras áreas." */
   .vol-otras-areas {
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
@@ -781,6 +793,7 @@
   .vol-campo .vol-etq { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-suave); font-weight: 700; }
   .vol-pie { margin-top: 10px; font-size: 11.5px; color: var(--tinta-suave); }
   .vol-vacio { text-align: center; color: var(--tinta-suave); padding: 40px 10px; border: 1px dashed var(--linea); border-radius: 12px; background: #fff; }
+  .vol-vacio .vol-btn { margin-left: 8px; vertical-align: baseline; }
   .vol-est { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: .03em; text-transform: uppercase; }
   .vol-est.proceso  { background: #fef3c7; color: #92400e; }
   .vol-est.atendido { background: #dcfce7; color: #166534; }
@@ -5730,13 +5743,30 @@
     </div>
     <div class="volantes-toolbar">
       <button class="btn-nuevo" onclick="abrirNuevoVolante()">+ Nuevo Volante</button>
+      <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
+    </div>
+    <!-- Filtros: área, tipo de atención y estatus. Se combinan entre sí y con
+         el buscador (todos a la vez), para poder encontrar un volante. -->
+    <div class="volantes-filtros">
+      <span class="vol-fetq">Área</span>
       <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
         <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
         <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
         <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
         <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
       </div>
-      <input type="search" class="filtros-buscar" id="volBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="volSetBuscar(this.value)">
+      <span class="vol-fetq">Tipo</span>
+      <div class="vol-farea" id="volFiltroTipoBox" title="Filtrar por tipo de atención">
+        <button class="vol-farea-btn" data-tipo="TODOS" onclick="volSetTipo('TODOS')">Todos</button>
+        <button class="vol-farea-btn" data-tipo="ATENCION" onclick="volSetTipo('ATENCION')">Atención</button>
+        <button class="vol-farea-btn" data-tipo="CONOCIMIENTO" onclick="volSetTipo('CONOCIMIENTO')">Conocimiento</button>
+      </div>
+      <span class="vol-fetq">Estatus</span>
+      <div class="vol-farea" id="volFiltroEstBox" title="Filtrar por estatus">
+        <button class="vol-farea-btn" data-est="TODOS" onclick="volSetEstatus('TODOS')">Todos</button>
+        <button class="vol-farea-btn" data-est="PROCESO" onclick="volSetEstatus('PROCESO')">En proceso</button>
+        <button class="vol-farea-btn" data-est="ATENDIDO" onclick="volSetEstatus('ATENDIDO')">Atendido</button>
+      </div>
     </div>
     <div class="volantes-lista" id="volantesLista"></div>
   </div>
@@ -12269,11 +12299,34 @@ function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVola
 // ---- Filtro por ÁREA (SGOI / SA) de la lista de volantes ----
 // Los volantes viejos (sin columna area) cuentan como SGOI.
 let volFiltroArea = null;   // null = aún sin decidir; se toma del área del usuario al pintar
+let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
+let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
 function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
 function volSetArea(a) { volFiltroArea = a; volPintarFiltroArea(); pintarVolantes(); }
-function volPintarFiltroArea() {
-  document.querySelectorAll('#volFiltroAreaBox .vol-farea-btn').forEach(b =>
-    b.classList.toggle('activa', b.getAttribute('data-sub') === volFiltroArea));
+function volSetTipo(t) { volFiltroTipo = t; volPintarFiltroTipo(); pintarVolantes(); }
+function volSetEstatus(e) { volFiltroEstatus = e; volPintarFiltroEstatus(); pintarVolantes(); }
+
+// Enciende el botón que corresponde dentro de un grupo de filtros.
+function volPintarGrupo(idCaja, attr, valor) {
+  document.querySelectorAll('#' + idCaja + ' .vol-farea-btn').forEach(b =>
+    b.classList.toggle('activa', b.getAttribute(attr) === valor));
+}
+function volPintarFiltroArea() { volPintarGrupo('volFiltroAreaBox', 'data-sub', volFiltroArea); }
+function volPintarFiltroTipo() { volPintarGrupo('volFiltroTipoBox', 'data-tipo', volFiltroTipo); }
+function volPintarFiltroEstatus() { volPintarGrupo('volFiltroEstBox', 'data-est', volFiltroEstatus); }
+
+// ¿Hay algún filtro puesto? (para ofrecer quitarlos cuando no sale nada)
+function volHayFiltros() {
+  return (volFiltroArea && volFiltroArea !== 'TODAS')
+      || (volFiltroTipo && volFiltroTipo !== 'TODOS')
+      || (volFiltroEstatus && volFiltroEstatus !== 'TODOS');
+}
+// Deja los tres filtros en "todos". NO borra la búsqueda: casi siempre lo que
+// se quiere es ver dónde cayó lo que se está buscando.
+function volLimpiarFiltros() {
+  volFiltroArea = 'TODAS'; volFiltroTipo = 'TODOS'; volFiltroEstatus = 'TODOS';
+  volPintarFiltroArea(); volPintarFiltroTipo(); volPintarFiltroEstatus();
+  pintarVolantes();
 }
 
 // Clase de color de la píldora del tipo: Atención → rojo, Conocimiento → azul.
@@ -12291,6 +12344,8 @@ function pintarVolantes() {
     const subU = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
     volFiltroArea = (subU === 'SA' || subU === 'SGOI' || subU === 'SPAC') ? subU : 'TODAS';
     volPintarFiltroArea();
+    volPintarFiltroTipo();      // ambos arrancan en "Todos"
+    volPintarFiltroEstatus();
   }
   let vs = VOLANTES.slice();
   // La BÚSQUEDA se aplica ANTES del filtro de área, a propósito: el No. de
@@ -12303,6 +12358,18 @@ function pintarVolantes() {
     vs = vs.filter(v => sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.asignado_a, v.referencia, v.tipo_atencion, v.creado_por]
       .join(' ')).toLowerCase().indexOf(q) >= 0);
   }
+  // Tipo de atención y estatus. Se comparan con los mismos criterios que usan
+  // las píldoras de la tarjeta (volTipoClase tolera acentos y mayúsculas).
+  if (volFiltroTipo && volFiltroTipo !== 'TODOS') {
+    const quiere = volFiltroTipo === 'ATENCION' ? 'atencion' : 'conocimiento';
+    vs = vs.filter(v => volTipoClase(v.tipo_atencion) === quiere);
+  }
+  if (volFiltroEstatus && volFiltroEstatus !== 'TODOS') {
+    const atendidos = volFiltroEstatus === 'ATENDIDO';
+    vs = vs.filter(v => ((v.estatus || '') === 'Atendido') === atendidos);
+  }
+  // El conteo para el aviso de "otras áreas" se toma DESPUÉS de tipo/estatus y
+  // ANTES del área: así el aviso habla solo de lo que el filtro de área escondió.
   const coincidenTodas = vs.length;
   if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volAreaDe(v) === volFiltroArea);
   const enOtrasAreas = coincidenTodas - vs.length;
@@ -12315,9 +12382,15 @@ function pintarVolantes() {
       ' en otras áreas. <button class="vol-btn" onclick="volSetArea(\'TODAS\')">Ver todas</button></div>'
     : '';
   if (!vs.length) {
-    lista.innerHTML = avisoOtras + '<div class="vol-vacio">' + (volCargados
-      ? (VOLANTES.length ? 'Ningún volante coincide con la búsqueda.' : 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.')
-      : 'Cargando volantes…') + '</div>';
+    // Con filtros puestos, "no hay nada" casi siempre significa "lo estás
+    // viendo por la rendija equivocada": se ofrece quitarlos de un botón.
+    const vacio = volCargados
+      ? (!VOLANTES.length ? 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.'
+        : volHayFiltros() ? 'Ningún volante coincide con los filtros' + (volBuscarTxt ? ' y la búsqueda' : '') +
+            '. <button class="vol-btn" onclick="volLimpiarFiltros()">Quitar filtros</button>'
+        : 'Ningún volante coincide con la búsqueda.')
+      : 'Cargando volantes…';
+    lista.innerHTML = avisoOtras + '<div class="vol-vacio">' + vacio + '</div>';
     return;
   }
   lista.innerHTML = avisoOtras + vs.map(v => {
