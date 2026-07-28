@@ -13017,6 +13017,14 @@ let volFiltroArea = null;   // null = aún sin decidir; se toma del área del us
 let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
 let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
 function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
+// ¿Este usuario solo puede ver volantes de SGOI? Los enlaces RESTRINGIDOS de
+// SGOI no ven SA ni SPAC (subdirectores, jefaturas, Staff y Director sí ven
+// todo). Excepción: Jacobo, que captura volantes de las tres áreas.
+function volSoloSgoi() {
+  if (!usuarioActual || !esEnlaceRestringido()) return false;
+  if (String(usuarioActual.subdireccion || '').toUpperCase() !== 'SGOI') return false;
+  return sinAcentos(usuarioActual.nombre || '').indexOf('jacobo') < 0;
+}
 function volSetArea(a) { volFiltroArea = a; volPintarFiltroArea(); pintarVolantes(); }
 function volSetTipo(t) { volFiltroTipo = t; volPintarFiltroTipo(); pintarVolantes(); }
 function volSetEstatus(e) { volFiltroEstatus = e; volPintarFiltroEstatus(); pintarVolantes(); }
@@ -13062,7 +13070,16 @@ function pintarVolantes() {
     volPintarFiltroTipo();      // ambos arrancan en "Todos"
     volPintarFiltroEstatus();
   }
+  // Enlace restringido de SGOI (salvo Jacobo): solo ve volantes de SGOI. Se le
+  // fija el área, se le esconde el grupo de botones Todas/SGOI/SA/SPAC y la
+  // lista se recorta ANTES de la búsqueda (así ni el aviso de "coinciden en
+  // otras áreas" le enseña lo que no le toca).
+  const soloSgoi = volSoloSgoi();
+  const cajaArea = document.getElementById('volFiltroAreaBox');
+  if (cajaArea && cajaArea.parentElement) cajaArea.parentElement.style.display = soloSgoi ? 'none' : '';
+  if (soloSgoi && volFiltroArea !== 'SGOI') { volFiltroArea = 'SGOI'; volPintarFiltroArea(); }
   let vs = VOLANTES.slice();
+  if (soloSgoi) vs = vs.filter(v => volAreaDe(v) === 'SGOI');
   // La BÚSQUEDA se aplica ANTES del filtro de área, a propósito: el No. de
   // volante es único en TODA la tabla, así que si buscas un número y no aparece
   // aquí, puede estar registrado en otra área. Antes se buscaba solo dentro del
@@ -13820,9 +13837,9 @@ function abrirFormVolante(v) {
   // enlaces de SGOI (Jacobo y Andrea), que son quienes asignan a las áreas.
   const subUsuario = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
   const areaForm = v ? volAreaDe(v) : (subUsuario === 'SA' || subUsuario === 'SPAC' ? subUsuario : 'SGOI');
-  const eligeArea = !!(usuarioActual && (usuarioActual.rol === 'Director' ||
+  const eligeArea = !!(usuarioActual && !volSoloSgoi() && (usuarioActual.rol === 'Director' ||
     (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI') ||
-    usuarioActual.subdireccion === 'ENLACE'));   // Staff de la Dirección (Tiffany): privilegios completos en volantes
+    usuarioActual.subdireccion === 'ENLACE'));   // Staff de la Dirección (Tiffany): privilegios completos en volantes; los enlaces restringidos de SGOI (salvo Jacobo) capturan fijo en SGOI
   document.getElementById('modal').innerHTML = `
     <div class="modal-header">
       <div class="modal-header-info">
