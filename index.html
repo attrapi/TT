@@ -6681,15 +6681,17 @@ function aplicarSesion() {
   actualizarBotonEnlaces();
 
   // ENLACE: panel mínimo. En el menú izquierdo: "Enlace" (su tablero) +
-  // "Historial" (sus tareas) + SOLO "Organigrama" dentro de Gestión.
-  // (Solo los enlaces RESTRINGIDOS; un enlace con acceso completo conserva el
-  // menú completo de subdirectora.)
+  // "Historial" (sus tareas) + "Organigrama" y "Bitácora" dentro de Gestión
+  // (la Bitácora le muestra solo los movimientos de SUS tareas, ver
+  // bitacoraVisible). (Solo los enlaces RESTRINGIDOS; un enlace con acceso
+  // completo conserva el menú completo de subdirectora.)
   if (esEnlaceRestringido()) {
-    // Muestra el grupo Gestión pero SOLO con el botón "Organigrama".
+    // Muestra el grupo Gestión solo con "Organigrama" y "Bitácora".
     if (grupoDir) {
       grupoDir.style.display = '';
       grupoDir.querySelectorAll('.sidebar-item').forEach(function (b) {
-        b.style.display = (b.id === 'sidebarOrganigrama') ? '' : 'none';
+        const dejar = (b.id === 'sidebarOrganigrama') || b.dataset.vista === 'bitacora';
+        b.style.display = dejar ? '' : 'none';
       });
     }
     if (grupoSubs) grupoSubs.style.display = '';
@@ -17622,6 +17624,11 @@ function bitacoraVisible(b) {
   if (usuarioActual.rol === 'Director') {
     // El Director no ve jefaturas. Las tareas eliminadas (sin match) sí se ven.
     return !(tarea && tarea.nivel === 'jefatura');
+  }
+  // El enlace restringido solo ve los movimientos de SUS tareas (mismo criterio
+  // que su tablero e Historial: responsable directo en su subdirección).
+  if (esEnlaceRestringido()) {
+    return !!tarea && tarea.subdireccion === usuarioActual.subdireccion && esResponsableDe(tarea, usuarioActual);
   }
   // El subdirector solo ve los movimientos de su subdirección.
   return !!tarea && tarea.subdireccion === usuarioActual.subdireccion;
