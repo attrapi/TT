@@ -16290,8 +16290,11 @@ function abrirNuevaTarea(tEdit) {
   const asignablesHTML = codigosAsignables.map(function (cod) {
     // El área propia del creador se marca y bloquea (siempre participa): el
     // subdirector/jefe como ejecutor, el Director (DPAC) como validador.
-    const fijo = !ed && cod === miAreaUser;
-    const marcado = ed ? (participantesEd.indexOf(cod) >= 0) : fijo;
+    // Andrea (esEnlaceVeSubs) captura para las tres subdirecciones sin meterse
+    // al proceso: su chip (SGOI) arranca marcado por comodidad pero NO va
+    // bloqueado — puede quitarlo si la tarea es de otra subdirección.
+    const fijo = !ed && cod === miAreaUser && !esEnlaceVeSubs();
+    const marcado = ed ? (participantesEd.indexOf(cod) >= 0) : (fijo || (!ed && cod === miAreaUser));
     return '<label class="area-chip" title="' + escapeHtml(cod) + '">' +
       '<input type="checkbox" value="' + cod + '"' + (marcado ? ' checked' : '') + (fijo ? ' disabled data-fijo="1"' : '') + '>' +
       escapeHtml(_nombreArea[cod] || cod) + '</label>';
@@ -16905,9 +16908,12 @@ function guardarNuevaTarea() {
   // El área propia del CREADOR siempre participa: el subdirector/jefe como
   // ejecutor/supervisor, y el Director (DPAC) como VALIDADOR de lo que él crea.
   // (Que DPAC participe no satura Staff: Staff cuenta por ejecutor, no por
-  // validador — ver tareaEnArea.)
+  // validador — ver tareaEnArea.) EXCEPCIÓN: Andrea (esEnlaceVeSubs) captura y
+  // edita tareas de las tres subdirecciones SIN meterse al proceso — su área
+  // (SGOI) NO se autoincluye: participan solo los chips marcados. (Editando
+  // SA-001/SPAC-009 se les colaba SGOI como área responsable.)
   const miAreaSave = areaDelUsuario(usuarioActual);
-  if (miAreaSave && participantes.indexOf(miAreaSave) < 0) participantes.push(miAreaSave);
+  if (miAreaSave && !esEnlaceVeSubs() && participantes.indexOf(miAreaSave) < 0) participantes.push(miAreaSave);
   participantes = participantes.filter((c, i) => participantes.indexOf(c) === i);   // únicos
   participantes.sort((a, b) => nivelDeArea(b) - nivelDeArea(a));                     // jefatura (ejecutora) primero
   // Área "principal" (ejecutora) → codigo/subdir/nivel/jefatura = la de menor jerarquía.
