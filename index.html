@@ -5659,17 +5659,18 @@
           <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
         </button>
-        <!-- Enlaces (subdirector/enlace con acceso completo de una subdirección
-             que tiene enlaces): vista con una columna por enlace. Sin ícono.
-             Las jefaturas NO van como items de menú: aparecen como columnas del
-             tablero al entrar a la subdirección (mismo flujo que SPAC/Mario). -->
-        <button class="sidebar-item sidebar-enlaces" id="sidebarEnlaces" data-vista="enlaces" onclick="cambiarVista('enlaces')" style="display:none;">
-          <span class="sidebar-label">Enlaces</span>
-        </button>
         <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
           <span class="sub-dot" style="background: var(--sub-sa)"></span>
           <span class="sidebar-label">Subdirección de Archivo</span>
           <span class="sidebar-conteo" id="contSA">0</span>
+        </button>
+        <!-- Enlaces (subdirector/enlace con acceso completo de una subdirección
+             que tiene enlaces): vista con una columna por enlace. Sin ícono.
+             Va DESPUÉS de Subdirección de Archivo, a pedido. Las jefaturas NO
+             van como items de menú: aparecen como columnas del tablero al
+             entrar a la subdirección (mismo flujo que SPAC/Mario). -->
+        <button class="sidebar-item sidebar-enlaces" id="sidebarEnlaces" data-vista="enlaces" onclick="cambiarVista('enlaces')" style="display:none;">
+          <span class="sidebar-label">Enlaces</span>
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="ENLACE" onclick="cambiarTab('ENLACE')">
           <span class="sub-dot" style="background: var(--sub-enlace)"></span>
