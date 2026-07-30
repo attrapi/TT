@@ -6612,13 +6612,18 @@ function aplicarSesion() {
     tabActiva = 'TODAS';
 
   } else {
-    // Capturista: solo su subdirección, sin Vista Consolidada.
+    // Capturista: solo su subdirección, sin Vista Consolidada. Excepción: el
+    // enlace de SGOI con acceso completo (Andrea) ve las TRES subdirecciones
+    // (SGOI, SPAC y SA) y puede abrir el tablero de cada una.
     subItems.forEach(b => {
       const sub = b.dataset.sub;
-      b.style.display = (sub === 'TODAS' || sub !== usuarioActual.subdireccion) ? 'none' : '';
+      const visible = esEnlaceVeSubs()
+        ? (sub === 'SGOI' || sub === 'SPAC' || sub === 'SA')
+        : (sub !== 'TODAS' && sub === usuarioActual.subdireccion);
+      b.style.display = visible ? '' : 'none';
     });
     // El grupo se llama "Subdirección" (singular) en el perfil del subdirector.
-    tituloSubs.textContent = 'Subdirección';
+    tituloSubs.textContent = esEnlaceVeSubs() ? 'Subdirecciones' : 'Subdirección';
 
     // Gestión completa también para el subdirector: Bitácora, Carga, Reportes
     // y Dashboard (cada vista ya acota los datos a su subdirección).
@@ -7593,8 +7598,12 @@ function obtenerTareasFiltradas() {
       lista = lista.filter(t => tareaEnArea(t, miArea));
     } else {
       // Subdirector: TODAS las de su subdirección (incl. sus jefaturas) + las de
-      // otras áreas donde su subdirección participe (multi-tablero).
-      lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion || tareaEnArea(t, miArea));
+      // otras áreas donde su subdirección participe (multi-tablero). Quien ve
+      // varias subdirecciones (esEnlaceVeSubs) filtra por el TAB activo: parada
+      // en SPAC/SA ve lo de ESA subdirección, igual que el Director en ese tab.
+      const subTab = subTableroActivo();
+      const areaTab = subTab === usuarioActual.subdireccion ? miArea : subTab;
+      lista = lista.filter(t => t.subdireccion === subTab || tareaEnArea(t, areaTab));
     }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica. El tab "ENLACE" representa la columna
@@ -7629,7 +7638,7 @@ function obtenerTareasFiltradas() {
   // una subdirección. No aplica en la vista Enlaces (ahí manda el filtro de enlace).
   if (jefaturaActiva && usuarioActual.rol === 'Capturista'
       && !esEnlaceRestringido() && !jefaturaCodigo(usuarioActual.jefatura) && vistaActiva !== 'enlaces') {
-    const sub = usuarioActual.subdireccion;
+    const sub = subTableroActivo();
     if (jefaturaActiva === sub) {
       // Filtro por la SUBDIRECCIÓN (clic en SPAC/SGOI): solo las tareas que caen
       // en la columna de la subdirección, es decir las de nivel subdirección, NO
@@ -7712,6 +7721,23 @@ function esEnlaceUser(u) {
 function esEnlaceRestringido(u) {
   u = u || usuarioActual;
   return esEnlaceUser(u) && !(u && u.acceso_completo);
+}
+// ¿Enlace de SGOI con ACCESO COMPLETO (Andrea)? Además de gestionar su
+// subdirección ve las OTRAS DOS (SA y SPAC) en el menú, abre sus tableros y
+// puede crearles tareas (todas las áreas y responsables al capturar, como el
+// Director y Mario). Mismo criterio que en Volantes: los enlaces de SGOI con
+// acceso completo son quienes asignan a las áreas.
+function esEnlaceVeSubs(u) {
+  u = u || usuarioActual;
+  return esEnlaceUser(u) && !!(u && u.acceso_completo)
+    && String((u && u.subdireccion) || '').toUpperCase() === 'SGOI';
+}
+// Subdirección "efectiva" del tablero: para quien ve varias subdirecciones
+// (esEnlaceVeSubs) es la del tab activo; para todos los demás, la suya. Tablero,
+// KPIs e Historial filtran con esta, así el tab de SA/SPAC enseña ESA área.
+function subTableroActivo() {
+  if (esEnlaceVeSubs() && ['SPAC', 'SGOI', 'SA'].indexOf(tabActiva) >= 0) return tabActiva;
+  return usuarioActual ? usuarioActual.subdireccion : '';
 }
 // ¿Hay enlaces (es_enlace) dados de alta en la subdirección `sub`?
 function hayEnlacesEnSub(sub) {
@@ -8017,7 +8043,7 @@ function actualizarKPIs() {
     if (esEnlace()) return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
     // Enlace SPAC: solo SU historial (donde es responsable directo).
     if (esEnlaceRestringido()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
-    return t.subdireccion === usuarioActual.subdireccion;
+    return t.subdireccion === subTableroActivo();
   });
   const archivadas = enHistorial.length;
   // "Listas para completar" = el trabajo ya está hecho, solo falta cerrar:
@@ -8102,7 +8128,7 @@ function actualizarKPIs() {
     // celdas se generan dinámicamente según las jefaturas del área (SPAC: JDPC/
     // JDIMA; SGOI: JDGA/JDGOI).
     const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
-    const jefsSub = jefaturasDeSub(usuarioActual.subdireccion);
+    const jefsSub = jefaturasDeSub(subTableroActivo());
     const tieneJef = usuarioActual.rol === 'Capturista' && jefsSub.length > 0
       && !codJefUser && !esEnlaceRestringido();
     if (jefCard) jefCard.style.display = tieneJef ? '' : 'none';
@@ -8111,7 +8137,7 @@ function actualizarKPIs() {
       const pendJef = areaCod => TAREAS.filter(t =>
           !t.eliminada && t.estatus !== 'Archivada' && tareaEnArea(t, areaCod)).length;
       if (filaJ) {
-        const sub = usuarioActual.subdireccion;   // SPAC / SGOI
+        const sub = subTableroActivo();   // SPAC / SGOI (el tab activo si ve varias)
         // Celda de la SUBDIRECCIÓN (filtra a sus tareas de nivel subdirección),
         // antes de las jefaturas, para poder filtrar también por SPAC/SGOI.
         const celdaSub = '<div class="kpi kpi-sub' + (jefaturaActiva === sub ? ' kpi-activa' : '') + '" data-jef="' + sub + '" style="cursor:pointer" '
@@ -8316,7 +8342,9 @@ function columnasPorRol() {
               color: 'morado',
               filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }];
   }
-  const sub = usuarioActual.subdireccion;
+  // La subdirección del TABLERO: para quien ve varias (esEnlaceVeSubs) es la del
+  // tab activo — parada en SPAC ve SPAC · JDPC · JDIMA, como el subdirector.
+  const sub = subTableroActivo();
   const codJefUser = jefaturaCodigo(usuarioActual.jefatura);
 
   // Catálogo de TODAS las columnas posibles de SPAC y SGOI (subdir + jefaturas).
@@ -9355,9 +9383,9 @@ function tareasPapelera() {
   if (esEnlace()) {
     return lista.filter(t => t.subdireccion === 'ENLACE' || t.subdireccion === 'DPAC');
   }
-  // Otros Capturistas: solo las de su subdirección. Si son Jefes (jefatura
-  // asignada), solo las de su jefatura.
-  lista = lista.filter(t => t.subdireccion === usuarioActual.subdireccion);
+  // Otros Capturistas: solo las de su subdirección (o la del tab activo si ve
+  // varias subdirecciones). Si son Jefes (jefatura asignada), solo su jefatura.
+  lista = lista.filter(t => t.subdireccion === subTableroActivo());
   const codJef = jefaturaCodigo(usuarioActual.jefatura);
   if (codJef) {
     lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
@@ -9383,8 +9411,9 @@ function columnasHistorial() {
   }
   // Subdirector (o enlace con acceso completo) de una subdirección CON enlaces:
   // en el HISTORIAL agrega una columna por enlace. Las tareas de un enlace van a
-  // SU columna (no a la de la subdirección).
-  const sub = String(usuarioActual.subdireccion || '').toUpperCase();
+  // SU columna (no a la de la subdirección). Quien ve varias subdirecciones usa
+  // la del tab activo (mismas columnas que su tablero).
+  const sub = String(subTableroActivo() || '').toUpperCase();
   const esSubConEnlaces = usuarioActual.rol === 'Capturista'
     && !jefaturaCodigo(usuarioActual.jefatura) && !esEnlaceRestringido()
     && hayEnlacesEnSub(sub);
@@ -16207,8 +16236,8 @@ function abrirNuevaTarea(tEdit) {
   ];
   // Filtra según el rol del usuario.
   let opcionesPermitidas;
-  if (usuarioActual.rol === 'Director' || esSubdirectorSPAC()) {
-    opcionesPermitidas = catalogoArea;   // Director y subdirector SPAC (Mario): todas las áreas
+  if (usuarioActual.rol === 'Director' || esSubdirectorSPAC() || esEnlaceVeSubs()) {
+    opcionesPermitidas = catalogoArea;   // Director, subdirector SPAC (Mario) y Andrea (enlace SGOI con acceso completo): todas las áreas
   } else {
     opcionesPermitidas = catalogoArea.filter(o => o.sub === usuarioActual.subdireccion);
     // Si la usuaria es Jefa (Jefatura asignada): SOLO su propia jefatura. No ve
@@ -16243,7 +16272,7 @@ function abrirNuevaTarea(tEdit) {
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
-  let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC())
+  let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC() || esEnlaceVeSubs())
     ? ['DPAC','SGOI','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // SGOI también puede asignarle tareas al Staff de la Dirección (Tiffany):
