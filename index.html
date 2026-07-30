@@ -16209,7 +16209,7 @@ function abrirNuevaTarea(tEdit) {
   const yoNombre = formatearNombre(usuarioActual.nombre || usuarioActual.email || '');
   const esCreadorTarea  = !ed || !ed.creado_por || ed.creado_por === yoNombre;
   const esSubdirDeTarea = usuarioActual.rol === 'Capturista'
-    && usuarioActual.subdireccion === ((ed && ed.subdireccion) || '')
+    && (usuarioActual.subdireccion === ((ed && ed.subdireccion) || '') || esEnlaceVeSubs())
     && !jefaturaCodigo(usuarioActual.jefatura)
     && !esEnlaceRestringido();
   const puedeCambiarFecha = !ed || esCreadorTarea
@@ -16552,6 +16552,9 @@ function usuarioPuedeEditar(t) {
   // tablero — por lo tanto puede editar cualquier tarjeta (Staff, subdirección
   // o jefatura). El subdirector solo edita las de su subdirección.
   if (usuarioActual.rol === 'Director') return true;
+  // Andrea (enlace SGOI con acceso completo): gestiona las TRES subdirecciones,
+  // así que también edita las tareas de SA y SPAC (no las de Staff/Dirección).
+  if (esEnlaceVeSubs() && ['SGOI', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0) return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
