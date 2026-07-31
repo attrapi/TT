@@ -58,8 +58,12 @@
        de subdirección con estado de tarea. */
     --sub-sa: #5D4037;          /* Café */
     --sub-sa-tenue: #EFEBE9;
-    --sub-sgoi: #166534;        /* Verde bosque */
+    --sub-sgoi: #166534;        /* Verde bosque — SGOIA (código interno SGOI) */
     --sub-sgoi-tenue: #D1FAE5;
+    --sub-sgoib: #0F766E;       /* Verde azulado — SGOIB */
+    --sub-sgoib-tenue: #CCFBF1;
+    --sub-sgoic: #4D7C0F;       /* Verde lima — SGOIC */
+    --sub-sgoic-tenue: #ECFCCB;
     --sub-spac: #1E3A8A;        /* Azul navy */
     --sub-spac-tenue: #DBEAFE;
     --sub-enlace: #6D28D9;      /* Morado — Enlace del Director */
@@ -452,21 +456,29 @@
      de cada columna del tablero. Así el panel izquierdo y el tablero se ven
      visualmente conectados (mismos colores para la misma subdirección). */
   .sidebar-sub[data-sub="SGOI"]   { background: #dbe6a3; color: #3f5713; }
+  .sidebar-sub[data-sub="SGOIB"]  { background: #ccfbf1; color: #115e59; }
+  .sidebar-sub[data-sub="SGOIC"]  { background: #ecfccb; color: #3f6212; }
   .sidebar-sub[data-sub="SPAC"]   { background: #dbeafe; color: #1e3a8a; }
   .sidebar-sub[data-sub="SA"]     { background: #ffedd5; color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] { background: #ede9fe; color: #5b21b6; }
   /* Los puntos de color (sub-dot) hacen match con el borde de su columna. */
   .sidebar-sub[data-sub="SGOI"]   .sub-dot { background: #6b8e23; }
+  .sidebar-sub[data-sub="SGOIB"]  .sub-dot { background: var(--sub-sgoib); }
+  .sidebar-sub[data-sub="SGOIC"]  .sub-dot { background: var(--sub-sgoic); }
   .sidebar-sub[data-sub="SPAC"]   .sub-dot { background: #1d4ed8; }
   .sidebar-sub[data-sub="SA"]     .sub-dot { background: #c2410c; }
   .sidebar-sub[data-sub="ENLACE"] .sub-dot { background: #7c3aed; }
   /* Estado ACTIVO: solo negrita (sin barra/borde izquierdo). */
   .sidebar-sub.activa[data-sub="SGOI"]   { font-weight: 700; }
+  .sidebar-sub.activa[data-sub="SGOIB"]  { font-weight: 700; }
+  .sidebar-sub.activa[data-sub="SGOIC"]  { font-weight: 700; }
   .sidebar-sub.activa[data-sub="SPAC"]   { font-weight: 700; }
   .sidebar-sub.activa[data-sub="SA"]     { font-weight: 700; }
   .sidebar-sub.activa[data-sub="ENLACE"] { font-weight: 700; }
   /* Contador con tono más oscuro del mismo color */
   .sidebar-sub[data-sub="SGOI"]   .sidebar-conteo { background: rgba(107,142,35,0.18); color: #3f5713; }
+  .sidebar-sub[data-sub="SGOIB"]  .sidebar-conteo { background: rgba(15,118,110,0.15); color: #115e59; }
+  .sidebar-sub[data-sub="SGOIC"]  .sidebar-conteo { background: rgba(77,124,15,0.15);  color: #3f6212; }
   .sidebar-sub[data-sub="SPAC"]   .sidebar-conteo { background: rgba(29,78,216,0.15);  color: #1e3a8a; }
   .sidebar-sub[data-sub="SA"]     .sidebar-conteo { background: rgba(194,65,12,0.15);  color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { background: rgba(124,58,237,0.15); color: #5b21b6; }
@@ -688,6 +700,8 @@
   .seg-area-titulo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 10px; }
   .seg-area-pill { color: #fff; padding: 2px 9px; border-radius: 999px; font-size: 11px; }
   .seg-area-pill[data-sub="SGOI"] { background: var(--sub-sgoi); }
+  .seg-area-pill[data-sub="SGOIB"] { background: var(--sub-sgoib); }
+  .seg-area-pill[data-sub="SGOIC"] { background: var(--sub-sgoic); }
   .seg-area-pill[data-sub="SPAC"] { background: var(--sub-spac); }
   .seg-area-pill[data-sub="SA"]   { background: var(--sub-sa); }
   .seg-area-pill[data-sub="STAFF"], .seg-area-pill[data-sub="DPAC"], .seg-area-pill[data-sub="ENLACE"] { background: var(--guinda); }
@@ -1153,6 +1167,8 @@
   }
   .bitacora-tarea[data-sub="SA"]     .bitacora-tarea-id { background: var(--sub-sa);     color: #fff; }
   .bitacora-tarea[data-sub="SGOI"]   .bitacora-tarea-id { background: var(--sub-sgoi);   color: #fff; }
+  .bitacora-tarea[data-sub="SGOIB"]  .bitacora-tarea-id { background: var(--sub-sgoib);  color: #fff; }
+  .bitacora-tarea[data-sub="SGOIC"]  .bitacora-tarea-id { background: var(--sub-sgoic);  color: #fff; }
   .bitacora-tarea[data-sub="SPAC"]   .bitacora-tarea-id { background: #1d4ed8;   color: #fff; }
   .bitacora-tarea[data-sub="ENLACE"] .bitacora-tarea-id { background: var(--sub-enlace); color: #fff; }
   .bitacora-tarea-titulo {
@@ -1928,6 +1944,10 @@
   .kpi-sub[data-sub="ENLACE"] .kpi-valor { border-color: var(--sub-enlace); color: var(--sub-enlace); background: linear-gradient(135deg, white 0%, var(--sub-enlace-tenue) 100%); box-shadow: 0 4px 14px rgba(109,40,217,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
   .kpi-sub[data-sub="SA"]     .kpi-clave { background: var(--sub-sa);   color: #fff; }
   .kpi-sub[data-sub="SGOI"]   .kpi-clave { background: var(--sub-sgoi);  color: #fff; }
+  .kpi-sub[data-sub="SGOIB"]  .kpi-valor { border-color: var(--sub-sgoib); color: var(--sub-sgoib); background: linear-gradient(135deg, white 0%, var(--sub-sgoib-tenue) 100%); box-shadow: 0 4px 14px rgba(15,118,110,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
+  .kpi-sub[data-sub="SGOIB"]  .kpi-clave { background: var(--sub-sgoib); color: #fff; }
+  .kpi-sub[data-sub="SGOIC"]  .kpi-valor { border-color: var(--sub-sgoic); color: var(--sub-sgoic); background: linear-gradient(135deg, white 0%, var(--sub-sgoic-tenue) 100%); box-shadow: 0 4px 14px rgba(77,124,15,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
+  .kpi-sub[data-sub="SGOIC"]  .kpi-clave { background: var(--sub-sgoic); color: #fff; }
   .kpi-sub[data-sub="SPAC"]   .kpi-clave { background: #1d4ed8;  color: #fff; }
   .kpi-sub[data-sub="ENLACE"] .kpi-clave { background: var(--sub-enlace); color: #fff; }
   /* Indicadores de jefatura (Pendientes por jefatura), color propio. */
@@ -2992,6 +3012,8 @@
   }
   .tarjeta[data-sub="SA"]     .tarjeta-id { background: var(--sub-sa);     color: #fff; }
   .tarjeta[data-sub="SGOI"]   .tarjeta-id { background: var(--sub-sgoi);   color: #fff; }
+  .tarjeta[data-sub="SGOIB"]  .tarjeta-id { background: var(--sub-sgoib);  color: #fff; }
+  .tarjeta[data-sub="SGOIC"]  .tarjeta-id { background: var(--sub-sgoic);  color: #fff; }
   .tarjeta[data-sub="SPAC"]   .tarjeta-id { background: #1d4ed8;   color: #fff; }
   .tarjeta[data-sub="ENLACE"] .tarjeta-id { background: var(--sub-enlace); color: #fff; }
   /* Staff (DPAC + Enlace) → IDs con color para que se vea el diseño igual que
@@ -3459,6 +3481,8 @@
   /* El ID del modal toma el color de su área (igual que las tarjetas). */
   .modal-id[data-sub="SA"]     { background: var(--sub-sa);     color: #fff; }
   .modal-id[data-sub="SGOI"]   { background: var(--sub-sgoi);   color: #fff; }
+  .modal-id[data-sub="SGOIB"]  { background: var(--sub-sgoib);  color: #fff; }
+  .modal-id[data-sub="SGOIC"]  { background: var(--sub-sgoic);  color: #fff; }
   .modal-id[data-sub="SPAC"]   { background: #1d4ed8;           color: #fff; }
   .modal-id[data-sub="ENLACE"] { background: var(--sub-enlace); color: #fff; }
   .modal-id[data-sub="DPAC"]   { background: var(--guinda);     color: #fff; }
@@ -4095,6 +4119,8 @@
   .cal-evento:hover { transform: translateX(2px); filter: brightness(0.95); }
   .cal-evento.sub-SA   { background: var(--sub-sa-tenue);   color: var(--sub-sa);   border-color: var(--sub-sa); }
   .cal-evento.sub-SGOI { background: var(--sub-sgoi-tenue); color: var(--sub-sgoi); border-color: var(--sub-sgoi); }
+  .cal-evento.sub-SGOIB { background: var(--sub-sgoib-tenue); color: var(--sub-sgoib); border-color: var(--sub-sgoib); }
+  .cal-evento.sub-SGOIC { background: var(--sub-sgoic-tenue); color: var(--sub-sgoic); border-color: var(--sub-sgoic); }
   .cal-evento.sub-SPAC { background: var(--sub-spac-tenue); color: var(--sub-spac); border-color: var(--sub-spac); }
   .cal-evento.vencida { font-weight: 700; }
   .cal-evento.vencida::before { content: '⚠ '; }
@@ -5571,8 +5597,8 @@
         <button class="acceso-rol" onclick="ingresar('cap_sgoi')">
           <div class="acceso-rol-icon" style="background: var(--sub-sgoi-tenue); color: var(--sub-sgoi);">SG</div>
           <div class="acceso-rol-info">
-            <div class="acceso-rol-nombre">SGOI</div>
-            <div class="acceso-rol-cargo">Subdirección de Gestión de Obras Inducidas</div>
+            <div class="acceso-rol-nombre">SGOIA</div>
+            <div class="acceso-rol-cargo">Subdirección de Gestión de Obras Inducidas A</div>
           </div>
         </button>
       </div>
@@ -5651,8 +5677,18 @@
              que las columnas del tablero del Director). -->
         <button class="sidebar-item sidebar-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')">
           <span class="sub-dot" style="background: var(--sub-sgoi)"></span>
-          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas</span>
+          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas A</span>
           <span class="sidebar-conteo" id="contSGOI">0</span>
+        </button>
+        <button class="sidebar-item sidebar-sub" data-sub="SGOIB" onclick="cambiarTab('SGOIB')">
+          <span class="sub-dot" style="background: var(--sub-sgoib)"></span>
+          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas B</span>
+          <span class="sidebar-conteo" id="contSGOIB">0</span>
+        </button>
+        <button class="sidebar-item sidebar-sub" data-sub="SGOIC" onclick="cambiarTab('SGOIC')">
+          <span class="sub-dot" style="background: var(--sub-sgoic)"></span>
+          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas C</span>
+          <span class="sidebar-conteo" id="contSGOIC">0</span>
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="SPAC" onclick="cambiarTab('SPAC')">
           <span class="sub-dot" style="background: var(--sub-spac)"></span>
@@ -5798,8 +5834,18 @@
       <div class="kpis-fila">
         <div class="kpi kpi-sub" data-sub="SGOI" onclick="filtrarPorSubdireccion('SGOI')">
           <div class="kpi-valor" id="kpiPendSGOI">0</div>
-          <div class="kpi-clave">SGOI</div>
-          <div class="kpi-label">Obras Inducidas</div>
+          <div class="kpi-clave">SGOIA</div>
+          <div class="kpi-label">Obras Inducidas A</div>
+        </div>
+        <div class="kpi kpi-sub" data-sub="SGOIB" onclick="filtrarPorSubdireccion('SGOIB')">
+          <div class="kpi-valor" id="kpiPendSGOIB">0</div>
+          <div class="kpi-clave">SGOIB</div>
+          <div class="kpi-label">Obras Inducidas B</div>
+        </div>
+        <div class="kpi kpi-sub" data-sub="SGOIC" onclick="filtrarPorSubdireccion('SGOIC')">
+          <div class="kpi-valor" id="kpiPendSGOIC">0</div>
+          <div class="kpi-clave">SGOIC</div>
+          <div class="kpi-label">Obras Inducidas C</div>
         </div>
         <div class="kpi kpi-sub" data-sub="SPAC" onclick="filtrarPorSubdireccion('SPAC')">
           <div class="kpi-valor" id="kpiPendSPAC">0</div>
@@ -5874,7 +5920,9 @@
       <div class="cal-titulo" id="calTitulo">Mayo 2026</div>
       <div class="cal-leyenda">
         <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-sa)"></span>SA</span>
-        <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-sgoi)"></span>SGOI</span>
+        <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-sgoi)"></span>SGOIA</span>
+        <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-sgoib)"></span>SGOIB</span>
+        <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-sgoic)"></span>SGOIC</span>
         <span class="cal-leyenda-item"><span class="cal-leyenda-punto" style="background:var(--sub-spac)"></span>SPAC</span>
       </div>
     </div>
@@ -5910,7 +5958,7 @@
         <span class="vol-fetq">Área</span>
         <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
           <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
-          <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI</button>
+          <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOIA</button>
           <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
           <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
         </div>
@@ -6583,7 +6631,9 @@ function aplicarSesion() {
   // "Enlace" y sin "Nueva Tarea" tras una sesión de enlace).
   const LBL_SUB_CANON = {
     'TODAS': 'Vista Consolidada',
-    'SGOI': 'Subdirección de Gestión de Obras Inducidas',
+    'SGOI': 'Subdirección de Gestión de Obras Inducidas A',
+    'SGOIB': 'Subdirección de Gestión de Obras Inducidas B',
+    'SGOIC': 'Subdirección de Gestión de Obras Inducidas C',
     'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
     'SA': 'Subdirección de Archivo',
     'ENLACE': 'Staff'
@@ -6839,7 +6889,7 @@ function cargarTarjetasLogin() {
 
 function estiloIconoLogin(u) {
   if (u.rol === 'Director' || u.subdireccion === 'TODAS') return 'background:var(--guinda-tenue);color:var(--guinda);';
-  const k = { SA: 'sa', SGOI: 'sgoi', SPAC: 'spac', ENLACE: 'enlace' }[u.subdireccion];
+  const k = { SA: 'sa', SGOI: 'sgoi', SGOIB: 'sgoib', SGOIC: 'sgoic', SPAC: 'spac', ENLACE: 'enlace' }[u.subdireccion];
   return k ? ('background:var(--sub-' + k + '-tenue);color:var(--sub-' + k + ');') : 'background:var(--guinda-tenue);color:var(--guinda);';
 }
 function cargoLogin(u) {
@@ -6856,7 +6906,9 @@ function cargoLogin(u) {
   }
   return ({
     SA: 'Subdirección de Archivo',
-    SGOI: 'Subdirección de Gestión de Obras Inducidas',
+    SGOI: 'Subdirección de Gestión de Obras Inducidas A',
+    SGOIB: 'Subdirección de Gestión de Obras Inducidas B',
+    SGOIC: 'Subdirección de Gestión de Obras Inducidas C',
     SPAC: 'Subdirección de Procesos Administrativos de Construcción',
     ENLACE: 'Staff del Director'
   })[u.subdireccion] || 'Subdirector';
@@ -7076,11 +7128,13 @@ function opcionesResponsableHTML(valSel) {
     html += '<option value="' + escapeHtml(valSel) + '" selected>' + escapeHtml(nombreNiceResp(valSel)) + '</option>';
   }
   // Agrupado por ÁREA (subdirección), en orden fijo. "Otros" cae lo que no tenga área.
-  const CONOCIDAS = ['DPAC', 'SPAC', 'SGOI', 'SA', 'ENLACE', 'STAFF'];
+  const CONOCIDAS = ['DPAC', 'SPAC', 'SGOI', 'SGOIB', 'SGOIC', 'SA', 'ENLACE', 'STAFF'];
   const GRUPOS = [
     { cod: 'DPAC',   label: 'Dirección (DPAC)' },
     { cod: 'SPAC',   label: 'SPAC' },
-    { cod: 'SGOI',   label: 'SGOI' },
+    { cod: 'SGOI',   label: 'SGOIA' },
+    { cod: 'SGOIB',  label: 'SGOIB' },
+    { cod: 'SGOIC',  label: 'SGOIC' },
     { cod: 'SA',     label: 'SA' },
     { cod: 'STAFF',  label: 'Staff' },
     { cod: '',       label: 'Otros' }
@@ -8116,6 +8170,8 @@ function actualizarKPIs() {
     const pend = sub => TAREAS.filter(t => activa(t) && (t.subdireccion === sub || tareaEnArea(t, sub))).length;
     document.getElementById('kpiPendSA').textContent = pend('SA');
     document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
+    document.getElementById('kpiPendSGOIB').textContent = pend('SGOIB');
+    document.getElementById('kpiPendSGOIC').textContent = pend('SGOIC');
     document.getElementById('kpiPendSPAC').textContent = pend('SPAC');
     // Staff suma DPAC + ENLACE como en la columna del tablero.
     document.getElementById('kpiPendENLACE').textContent = TAREAS.filter(t =>
@@ -8144,7 +8200,7 @@ function actualizarKPIs() {
         const celdaSub = '<div class="kpi kpi-sub' + (jefaturaActiva === sub ? ' kpi-activa' : '') + '" data-jef="' + sub + '" style="cursor:pointer" '
           + 'onclick="filtrarPorJefatura(\'' + sub + '\')">'
           + '<div class="kpi-valor">' + pendJef(sub) + '</div>'
-          + '<div class="kpi-clave">' + sub + '</div></div>';
+          + '<div class="kpi-clave">' + (sub === 'SGOI' ? 'SGOIA' : sub) + '</div></div>';
         filaJ.innerHTML = celdaSub + jefsSub.map(function (cod) {
           const acr = ACRONIMO_JEFATURA[cod] || cod;
           const act = (jefaturaActiva === cod) ? ' kpi-activa' : '';
@@ -8248,6 +8304,8 @@ function actualizarConteosTabs() {
     document.getElementById('contTODAS').textContent = '';
     document.getElementById('contSA').textContent     = subPropia === 'SA'     ? activas('SA')     : '';
     document.getElementById('contSGOI').textContent   = subPropia === 'SGOI'   ? activas('SGOI')   : '';
+    document.getElementById('contSGOIB').textContent  = subPropia === 'SGOIB'  ? activas('SGOIB')  : '';
+    document.getElementById('contSGOIC').textContent  = subPropia === 'SGOIC'  ? activas('SGOIC')  : '';
     document.getElementById('contSPAC').textContent   = subPropia === 'SPAC'   ? activas('SPAC')   : '';
     document.getElementById('contENLACE').textContent = subPropia === 'ENLACE' ? activas('ENLACE') : '';
     return;
@@ -8258,6 +8316,8 @@ function actualizarConteosTabs() {
   document.getElementById('contTODAS').textContent  = totalActivas;
   document.getElementById('contSA').textContent     = activas('SA');
   document.getElementById('contSGOI').textContent   = activas('SGOI');
+  document.getElementById('contSGOIB').textContent  = activas('SGOIB');
+  document.getElementById('contSGOIC').textContent  = activas('SGOIC');
   document.getElementById('contSPAC').textContent   = activas('SPAC');
   document.getElementById('contENLACE').textContent = activas('DPAC') + activas('ENLACE');
 }
@@ -8300,13 +8360,21 @@ function columnasPorRol() {
     }
     if (tabActiva === 'SGOI') {
       return [
-        { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+        { id: 'SGOI',  titulo: 'SGOIA', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
           color: 'olivo', filtro: t => tareaEnArea(t, 'SGOI') },
         { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
           color: 'verdeoscuro', filtro: t => tareaEnArea(t, 'JDGA') },
         { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
           color: 'cafe',  filtro: t => tareaEnArea(t, 'JDGOI') }
       ];
+    }
+    if (tabActiva === 'SGOIB') {
+      return [{ id: 'SGOIB', titulo: 'SGOIB', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+        color: 'verdeoscuro', filtro: t => tareaEnArea(t, 'SGOIB') }];
+    }
+    if (tabActiva === 'SGOIC') {
+      return [{ id: 'SGOIC', titulo: 'SGOIC', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+        color: 'olivo', filtro: t => tareaEnArea(t, 'SGOIC') }];
     }
     if (tabActiva === 'SA') {
       return [{ id: 'SA', titulo: 'SA', subtitulo: 'Subdirección de Archivo',
@@ -8320,9 +8388,15 @@ function columnasPorRol() {
     // su subdirección (incl. jefaturas) y además cualquier tarea donde esa área
     // participe (multi-tablero).
     return [
-      { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+      { id: 'SGOI', titulo: 'SGOIA', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
         color: 'olivo',
         filtro: t => t.subdireccion === 'SGOI' || tareaEnArea(t, 'SGOI') },
+      { id: 'SGOIB', titulo: 'SGOIB', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+        color: 'verdeoscuro',
+        filtro: t => t.subdireccion === 'SGOIB' || tareaEnArea(t, 'SGOIB') },
+      { id: 'SGOIC', titulo: 'SGOIC', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+        color: 'olivo',
+        filtro: t => t.subdireccion === 'SGOIC' || tareaEnArea(t, 'SGOIC') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul',
         filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
@@ -8362,7 +8436,7 @@ function columnasPorRol() {
       filtro: t => tareaEnArea(t, 'JDIMA') }
   ];
   const colsSGOI = [
-    { id: 'SGOI',  titulo: 'SGOI',  subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+    { id: 'SGOI',  titulo: 'SGOIA', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
       color: 'olivo', filtro: t => tareaEnArea(t, 'SGOI') },
     { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
       color: 'verdeoscuro', jefCod: 'GESTION_AMBIENTAL',
@@ -8784,7 +8858,7 @@ function crearTarjeta(t) {
   // Campos visibles en la tarjeta (las cosas largas como áreas involucradas,
   // acuerdos y checklist se ven al abrir el modal).
   const tema   = t.tema || t.titulo;
-  const areaResp = areaResponsable(t);                              // SPAC / JDPC / JDIMA / DPAC / ENLACE…
+  const areaResp = etiquetaArea(areaResponsable(t));                // SPAC / JDPC / JDIMA / DPAC / ENLACE…
   const respDirecto = (nombreNiceResp(t.responsable) || '').trim() || '—';
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
@@ -9400,8 +9474,12 @@ function columnasHistorial() {
   if (!usuarioActual) return [];
   if (usuarioActual.rol === 'Director') {
     return [
-      { id: 'SGOI', titulo: 'SGOI', subtitulo: 'Subdirección de Gestión de Obras Inducidas',
+      { id: 'SGOI', titulo: 'SGOIA', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
         color: 'olivo',  filtro: t => t.subdireccion === 'SGOI' },
+      { id: 'SGOIB', titulo: 'SGOIB', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+        color: 'verdeoscuro', filtro: t => t.subdireccion === 'SGOIB' },
+      { id: 'SGOIC', titulo: 'SGOIC', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+        color: 'olivo', filtro: t => t.subdireccion === 'SGOIC' },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul',   filtro: t => t.subdireccion === 'SPAC' },
       { id: 'SA',   titulo: 'SA',   subtitulo: 'Subdirección de Archivo',
@@ -9856,7 +9934,7 @@ function abrirDetalle(t) {
         ${temasDe(t).length ? `<dt>Tema de SGOI</dt>
         <dd><div class="seg-card-temas" style="margin:0">${temasDe(t).map(n => '<span>' + escapeHtml(n) + '</span>').join('')}</div></dd>` : ''}
         <dt>Área responsable</dt>
-        <dd>${escapeHtml(areaResponsable(t))}</dd>
+        <dd>${escapeHtml(etiquetaArea(areaResponsable(t)))}</dd>
         <dt>Responsable directo</dt>
         <dd>${escapeHtml(nombreNiceResp(t.responsable) || '—')}</dd>
         <dt>Fecha de atención</dt>
@@ -11819,7 +11897,9 @@ function poblarControlesDashboard() {
       ['DPAC',  'Dirección (DPAC)'],
       ['ENLACE','Enlace del Director'],
       ['SA',    NOMBRE_SUB['SA']   || 'SA'],
-      ['SGOI',  NOMBRE_SUB['SGOI'] || 'SGOI'],
+      ['SGOI',  NOMBRE_SUB['SGOI'] || 'SGOIA'],
+      ['SGOIB', NOMBRE_SUB['SGOIB'] || 'SGOIB'],
+      ['SGOIC', NOMBRE_SUB['SGOIC'] || 'SGOIC'],
       ['SPAC',  NOMBRE_SUB['SPAC'] || 'SPAC']
     ];
     selArea.innerHTML = areas.map(([v, l]) =>
@@ -12314,6 +12394,17 @@ function proyectosTodos() {
   return PROYECTOS_FASES.reduce((acc, g) => acc.concat(g.proyectos), []);
 }
 
+// Proyectos que le tocan a cada subdirección de Obras Inducidas: son los
+// FILTROS fijos que ofrece la Sesión de Seguimiento al elegir esa área
+// (aparecen siempre, tengan o no tareas). Las tareas con tema "Defensa"
+// también son de SGOIB: se acotan con su píldora de tema, no con proyecto.
+// Las demás áreas siguen ofreciendo solo los proyectos que sus tareas usan.
+const PROYECTOS_POR_SUB = {
+  SGOI:  ['Querétaro - Irapuato', 'Saltillo - Monterrey', 'Monterrey - Nuevo Laredo'],
+  SGOIB: ['México - Querétaro', 'AIFA - Pachuca'],
+  SGOIC: ['L12', 'Trolebús Chalco - Ixtapaluca', 'Observatorio', 'DC C Metrop']
+};
+
 // Los proyectos de una tarea (arreglo; vacío si no tiene). Antes cada tarea
 // llevaba UNO solo en la columna `proyecto`; las tareas viejas se leen de ahí.
 function proyectosDe(t) {
@@ -12351,7 +12442,7 @@ let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 // Áreas cuyas tareas se etiquetan con estos temas: SGOI (y sus dos jefaturas)
 // y la Dirección (DPAC), que da seguimiento a esos mismos trámites. Una sola
 // lista para que el formulario, el guardado y el filtro no se desincronicen.
-const AREAS_CON_TEMAS = ['SGOI', 'JDGA', 'JDGOI', 'DPAC'];
+const AREAS_CON_TEMAS = ['SGOI', 'SGOIB', 'SGOIC', 'JDGA', 'JDGOI', 'DPAC'];
 
 // ¿Alguna de estas áreas usa temas? (recibe códigos de área).
 function areasUsanTemas(cods) {
@@ -12453,7 +12544,9 @@ function segAreasDisponibles() {
   const u = usuarioActual;
   if (u && u.rol === 'Director') {
     return [
-      { id: 'SGOI',  titulo: 'SGOI',  sub: 'SGOI',  filtro: t => t.subdireccion === 'SGOI' || tareaEnArea(t, 'SGOI') },
+      { id: 'SGOI',  titulo: 'SGOIA', sub: 'SGOI',  filtro: t => t.subdireccion === 'SGOI' || tareaEnArea(t, 'SGOI') },
+      { id: 'SGOIB', titulo: 'SGOIB', sub: 'SGOIB', filtro: t => t.subdireccion === 'SGOIB' || tareaEnArea(t, 'SGOIB') },
+      { id: 'SGOIC', titulo: 'SGOIC', sub: 'SGOIC', filtro: t => t.subdireccion === 'SGOIC' || tareaEnArea(t, 'SGOIC') },
       { id: 'SPAC',  titulo: 'SPAC',  sub: 'SPAC',  filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
       { id: 'SA',    titulo: 'SA',    sub: 'SA',    filtro: t => t.subdireccion === 'SA'   || tareaEnArea(t, 'SA') },
       { id: 'STAFF', titulo: 'Staff', sub: 'STAFF', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }
@@ -12472,7 +12565,7 @@ function segAreaActual() {
 // ¿La columna elegida usa temas? SGOI y Staff (ahí caen las de DPAC, que es
 // la otra área que etiqueta con estos temas — ver AREAS_CON_TEMAS).
 function segAreaUsaTemas() {
-  return segArea === 'SGOI' || segArea === 'STAFF';
+  return segArea === 'SGOI' || segArea === 'SGOIB' || segArea === 'SGOIC' || segArea === 'STAFF';
 }
 
 // Tareas activas dentro del alcance del usuario (sin las archivadas/eliminadas).
@@ -12555,8 +12648,15 @@ function segRenderProyPills() {
   const area = segAreaActual();
   if (!area) { fila.style.display = 'none'; return; }
   const delArea = segTareasBase().filter(area.filtro);
-  const usados = proyectosTodos().filter(p => delArea.some(t => proyectosDe(t).indexOf(p) >= 0));
-  // Proyectos guardados que ya no están en la lista fija (por si cambia).
+  // Las subdirecciones de Obras Inducidas tienen sus proyectos ASIGNADOS
+  // (PROYECTOS_POR_SUB): sus píldoras salen siempre, tengan o no tareas. En
+  // las demás áreas solo se ofrecen los proyectos que sus tareas de verdad usan.
+  const fijos = PROYECTOS_POR_SUB[segArea] || null;
+  const usados = fijos
+    ? fijos.slice()
+    : proyectosTodos().filter(p => delArea.some(t => proyectosDe(t).indexOf(p) >= 0));
+  // Proyectos guardados que no están en la lista (por si el catálogo cambia o
+  // una tarea del área trae un proyecto de otra subdirección).
   delArea.forEach(t => {
     proyectosDe(t).forEach(p => { if (usados.indexOf(p) < 0) usados.push(p); });
   });
@@ -13175,7 +13275,7 @@ function pintarVolantes() {
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante (acciones, hilo y bitácora)">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
-        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + volAreaDe(v) + '</span>' +
+        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + etiquetaArea(volAreaDe(v)) + '</span>' +
         (v.urgente ? '<span class="vol-urg">Urgente</span>' : '') +
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
         (v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
@@ -13914,7 +14014,7 @@ function abrirFormVolante(v) {
           <div class="form-campo">
             <label>Área</label>
             <div class="vol-tipo-opciones">
-              <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOI</button>
+              <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOIA</button>
               <button type="button" class="vol-tipo-op ${areaForm === 'SA' ? 'activa' : ''}" onclick="volElegirArea(this, 'SA')">SA</button>
               <button type="button" class="vol-tipo-op ${areaForm === 'SPAC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SPAC')">SPAC</button>
             </div>
@@ -14341,9 +14441,11 @@ function renderizarReportes() {
 
   let cards = '';
   if (usuarioActual.rol === 'Director') {
-    cards += card("exportarPDF('TODAS')", '', icoGrid, 'Vista Consolidada', 'Todas las tareas de las tres subdirecciones, en una sola hoja imprimible.');
+    cards += card("exportarPDF('TODAS')", '', icoGrid, 'Vista Consolidada', 'Todas las tareas de todas las subdirecciones, en una sola hoja imprimible.');
     cards += card("exportarPDF('SA')",   estiloSub('SA'),   icoDoc, 'Subdirección de Archivo', 'Solo las tareas reportadas por la Subdirección de Archivo (SA).');
-    cards += card("exportarPDF('SGOI')", estiloSub('SGOI'), icoDoc, 'Gestión de Obras Inducidas', 'Solo las tareas de la Subdirección de Gestión de Obras Inducidas (SGOI).');
+    cards += card("exportarPDF('SGOI')", estiloSub('SGOI'), icoDoc, 'Gestión de Obras Inducidas A', 'Solo las tareas de la Subdirección de Gestión de Obras Inducidas A (SGOIA).');
+    cards += card("exportarPDF('SGOIB')", estiloSub('SGOIB'), icoDoc, 'Gestión de Obras Inducidas B', 'Solo las tareas de la Subdirección de Gestión de Obras Inducidas B (SGOIB).');
+    cards += card("exportarPDF('SGOIC')", estiloSub('SGOIC'), icoDoc, 'Gestión de Obras Inducidas C', 'Solo las tareas de la Subdirección de Gestión de Obras Inducidas C (SGOIC).');
     cards += card("exportarPDF('SPAC')", estiloSub('SPAC'), icoDoc, 'Procesos Adm. de Construcción', 'Solo las tareas de la Subdirección de Procesos Administrativos de Construcción (SPAC).');
     cards += card("exportarPDF('ENLACE')", estiloSub('ENLACE'), icoDoc, 'Enlace del Director', 'Tareas de seguimiento y coordinación del Enlace administrativo del Director.');
   } else {
@@ -14428,7 +14530,9 @@ function tituloNavCompleto() {
   if (usuarioActual.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
   const nombresSubs = {
     'SA': 'Subdirección de Archivo',
-    'SGOI': 'Subdirección de Gestión de Obras Inducidas',
+    'SGOI': 'Subdirección de Gestión de Obras Inducidas A',
+    'SGOIB': 'Subdirección de Gestión de Obras Inducidas B',
+    'SGOIC': 'Subdirección de Gestión de Obras Inducidas C',
     'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
     // Staff de la Dirección: el título grande muestra el nombre de la Dirección
     // (es personal de la Dirección). Su cargo/chip aparte ya dice "Staff".
@@ -14684,6 +14788,9 @@ const ACRONIMOS_AREA = {
   'Subdirección de Procesos Administrativos de Construcción': 'SPAC',
   'Subdirección de Archivo': 'SA',
   'Subdirección de Gestión de Obras Inducidas': 'SGOI',
+  'Subdirección de Gestión de Obras Inducidas A': 'SGOI',
+  'Subdirección de Gestión de Obras Inducidas B': 'SGOIB',
+  'Subdirección de Gestión de Obras Inducidas C': 'SGOIC',
   'Jefatura de Departamento de Procedimientos de Construcción': 'JDPC',
   'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
   'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
@@ -14749,6 +14856,13 @@ function obtenerChecklist(t) {
 // Si es jefatura, regresa el acrónimo de la jefatura (JDPC / JDIMA / JDGA /
 // JDGOI); si es subdirección, regresa el acrónimo de la subdirección
 // (DPAC / SPAC / SA / SGOI / ENLACE).
+// Cómo se MUESTRA un código de área. La SGOI original se presenta como "SGOIA"
+// (su código interno sigue siendo SGOI para no tocar tareas, perfiles ni IDs
+// ya guardados); los demás códigos se muestran tal cual.
+function etiquetaArea(cod) {
+  return String(cod || '').toUpperCase() === 'SGOI' ? 'SGOIA' : String(cod || '');
+}
+
 function areaResponsable(t) {
   if (!t) return '';
   if (t.nivel === 'jefatura') {
@@ -14952,7 +15066,7 @@ function participantesDe(t) {
   // el participante como respaldo (datos viejos con `nivel`/ID mal).
   const prefId = String(t.id || '').split('-')[0].toUpperCase();
   const jefPorId = PREFIJO_JEFATURA[prefId] ? prefId : '';
-  const esSubdirPorId = ['SPAC', 'SGOI', 'SA', 'DPAC', 'ENLACE'].indexOf(prefId) >= 0;
+  const esSubdirPorId = ['SPAC', 'SGOI', 'SGOIB', 'SGOIC', 'SA', 'DPAC', 'ENLACE'].indexOf(prefId) >= 0;
   const esJefatura = t.nivel === 'jefatura' || !!jefPorId || (!esSubdirPorId && parts.some(p => PREFIJO_JEFATURA[p]));
   if (esJefatura) {
     // Conserva DPAC/ENLACE si están EXPLÍCITAMENTE en los participantes elegidos
@@ -15086,7 +15200,7 @@ function puedeMarcarArea(t, cod) {
   // La columna de la SUBDIRECCIÓN (SPAC/SGOI/SA) la palomea SOLO el subdirector
   // (o un enlace con acceso completo). Un enlace RESTRINGIDO (p. ej. César en SPAC)
   // comparte el área pero NO valida la columna de la subdirección.
-  if (['SPAC', 'SGOI', 'SA'].indexOf(cod) >= 0 && esEnlaceRestringido()) return false;
+  if (['SPAC', 'SGOI', 'SGOIB', 'SGOIC', 'SA'].indexOf(cod) >= 0 && esEnlaceRestringido()) return false;
   return true;
 }
 
@@ -15612,7 +15726,7 @@ function etiquetaColumnaArea(cod) {
   if (cod.indexOf('ENL:') === 0) return cod.slice(4);   // columna de enlace → sus iniciales (CJC, NOR…)
   if (cod === 'DPAC')   return 'Director';
   if (cod === 'ENLACE') return 'Staff';
-  return cod;   // SPAC, SGOI, SA, JDPC, JDIMA, JDGA, JDGOI
+  return etiquetaArea(cod);   // SPAC, SGOIA, SA, JDPC, JDIMA, JDGA, JDGOI…
 }
 
 // ¿Ya hay un "Completada/Validada" de esta columna SIN cambios de acciones
@@ -16234,9 +16348,11 @@ function abrirNuevaTarea(tEdit) {
   const catalogoArea = [
     { v:'DPAC',   sub:'DPAC',   nivel:'subdireccion', jef:'',                  n:'DPAC · Dirección (mi tarea)' },
     { v:'ENLACE', sub:'ENLACE', nivel:'subdireccion', jef:'',                  n:'Staff · Dirección' },
-    { v:'SGOI',  sub:'SGOI', nivel:'subdireccion', jef:'',                     n:'SGOI · Subdirección de Gestión de Obras Inducidas' },
+    { v:'SGOI',  sub:'SGOI', nivel:'subdireccion', jef:'',                     n:'SGOIA · Subdirección de Gestión de Obras Inducidas A' },
     { v:'JDGA',  sub:'SGOI', nivel:'jefatura',     jef:'GESTION_AMBIENTAL',    n:'JDGA · Jefatura de Departamento de Gestión Ambiental' },
     { v:'JDGOI', sub:'SGOI', nivel:'jefatura',     jef:'GESTION_OBRAS',        n:'JDGOI · Jefatura de Departamento de Gestión de Obras Inducidas' },
+    { v:'SGOIB', sub:'SGOIB', nivel:'subdireccion', jef:'',                    n:'SGOIB · Subdirección de Gestión de Obras Inducidas B' },
+    { v:'SGOIC', sub:'SGOIC', nivel:'subdireccion', jef:'',                    n:'SGOIC · Subdirección de Gestión de Obras Inducidas C' },
     { v:'SPAC',  sub:'SPAC', nivel:'subdireccion', jef:'',                     n:'SPAC · Subdirección de Procesos Administrativos de Construcción' },
     { v:'JDPC',  sub:'SPAC', nivel:'jefatura',     jef:'PROCEDIMIENTOS',       n:'JDPC · Jefatura de Departamento de Procesos de Construcción' },
     { v:'JDIMA', sub:'SPAC', nivel:'jefatura',     jef:'MANUALES',             n:'JDIMA · Jefatura de Departamento de Implementación de Manuales Administrativos' },
@@ -16276,12 +16392,12 @@ function abrirNuevaTarea(tEdit) {
   // La tarea aparece en el tablero de cada área marcada y el checklist tiene una
   // columna por área. El área propia del usuario va marcada y bloqueada al crear
   // (siempre participa). Al editar se pre-marcan los participantes actuales.
-  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDPC:'JDPC', JDIMA:'JDIMA' };
+  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOIA', SGOIB:'SGOIB', SGOIC:'SGOIC', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDPC:'JDPC', JDIMA:'JDIMA' };
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
   let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC() || esEnlaceVeSubs())
-    ? ['DPAC','SGOI','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
+    ? ['DPAC','SGOI','SGOIB','SGOIC','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // SGOI también puede asignarle tareas al Staff de la Dirección (Tiffany):
   // se le suma el chip STAFF a su lista de áreas.
@@ -16899,6 +17015,8 @@ function guardarNuevaTarea() {
   // decodifica al modelo {sub, nivel, jefatura}.
   const _CAT = {
     'SGOI':  { sub:'SGOI',  nivel:'subdireccion', jef:'' },
+    'SGOIB': { sub:'SGOIB', nivel:'subdireccion', jef:'' },
+    'SGOIC': { sub:'SGOIC', nivel:'subdireccion', jef:'' },
     'JDGA':  { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_AMBIENTAL' },
     'JDGOI': { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_OBRAS' },
     'SPAC':  { sub:'SPAC',  nivel:'subdireccion', jef:'' },
@@ -17560,7 +17678,7 @@ function descargarPlantillaCSV() {
     'SA','Inventario expediente 2026','Levantamiento físico de cajas en bodega central','M. Hernández','Documento','Archivo institucional','Media','2026-06-15','Coordinar con resguardo'
   ];
   const ayuda = [
-    'SA | SGOI | SPAC','Texto libre','Texto libre','Nombre del responsable','Trámite | Documento | Reunión | Liberación | Otro','Saltillo–N. Laredo | Querétaro–Irapuato | Archivo institucional | Otro','Alta | Media | Baja','YYYY-MM-DD','Opcional'
+    'SA | SGOI | SGOIB | SGOIC | SPAC','Texto libre','Texto libre','Nombre del responsable','Trámite | Documento | Reunión | Liberación | Otro','Saltillo–N. Laredo | Querétaro–Irapuato | Archivo institucional | Otro','Alta | Media | Baja','YYYY-MM-DD','Opcional'
   ];
 
   const filas = [
@@ -17853,9 +17971,11 @@ function renderizarCarga() {
 // ============== VISTA: REPORTES ==============
 
 const NOMBRE_SUB = {
-  TODAS:  'Vista Consolidada · Tres Subdirecciones + Staff',
+  TODAS:  'Vista Consolidada · Subdirecciones + Staff',
   SA:     'Subdirección de Archivo',
-  SGOI:   'Subdirección de Gestión de Obras Inducidas',
+  SGOI:   'Subdirección de Gestión de Obras Inducidas A',
+  SGOIB:  'Subdirección de Gestión de Obras Inducidas B',
+  SGOIC:  'Subdirección de Gestión de Obras Inducidas C',
   SPAC:   'Subdirección de Procesos Administrativos de Construcción',
   ENLACE: 'Staff'
 };
@@ -17863,6 +17983,8 @@ const NOMBRE_SUB = {
 const COLOR_SUB = {
   SA:     { bg: '#EFEBE9', fg: '#5D4037' },
   SGOI:   { bg: '#D1FAE5', fg: '#166534' },
+  SGOIB:  { bg: '#CCFBF1', fg: '#0F766E' },
+  SGOIC:  { bg: '#ECFCCB', fg: '#4D7C0F' },
   SPAC:   { bg: '#DBEAFE', fg: '#1E3A8A' },
   ENLACE: { bg: '#EDE9FE', fg: '#6D28D9' }
 };
