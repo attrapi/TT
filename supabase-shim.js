@@ -369,7 +369,16 @@
       if (datos.proyecto) fila.proyecto = datos.proyecto;
       if (datos.tramo) fila.tramo = datos.tramo;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
-      // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
+      // Si a la base le falta UNA columna (no se ha corrido su SQL), el error
+      // dice cuál ("Could not find the 'proyectos' column…"): se quita SOLO esa
+      // y se reintenta, conservando el resto de los datos. Antes se descartaban
+      // TODAS las opcionales juntas y se perdían campos que sí existían.
+      var faltante;
+      while (r.error && (faltante = (/'(\w+)' column/.exec(r.error.message || '') || [])[1]) && fila[faltante] !== undefined) {
+        delete fila[faltante];
+        r = await sb.from('tareas').insert(fila).select('codigo').single();
+      }
+      // Respaldo (otro formato de mensaje): reintenta sin ninguna opcional.
       if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete fila.adjuntos; delete fila.participantes; delete fila.enlaces; delete fila.temas;
         delete fila.proyectos; delete fila.proyecto; delete fila.tramo;
@@ -411,12 +420,22 @@
         try { upd.checklist = JSON.parse(datos.checklist_json || '[]'); upd.checklist_iniciado = true; } catch (e) {}
       }
       var r = await sb.from('tareas').update(upd).eq('codigo', id);
+      // Si a la base le falta UNA columna (no se ha corrido su SQL), el error
+      // dice cuál ("Could not find the 'proyectos' column…"): se quita SOLO esa
+      // y se reintenta, conservando el resto. Antes se descartaban TODAS las
+      // opcionales juntas y se perdían cambios en campos que sí existían (p. ej.
+      // el proyecto elegido se perdía si faltaba la columna `proyectos`).
+      var faltante;
+      while (r.error && (faltante = (/'(\w+)' column/.exec(r.error.message || '') || [])[1]) && upd[faltante] !== undefined) {
+        delete upd[faltante];
+        r = await sb.from('tareas').update(upd).eq('codigo', id);
+      }
       // Columna nueva checklist_iniciado ausente (falta correr el SQL): reintenta sin ella.
       if (r.error && /checklist_iniciado/i.test(r.error.message || '')) {
         delete upd.checklist_iniciado;
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
-      // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
+      // Respaldo (otro formato de mensaje): reintenta sin ninguna opcional.
       if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete upd.adjuntos; delete upd.participantes; delete upd.enlaces; delete upd.temas;
         delete upd.proyectos; delete upd.proyecto; delete upd.tramo;

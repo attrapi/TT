@@ -6664,12 +6664,12 @@ function aplicarSesion() {
 
   } else {
     // Capturista: solo su subdirección, sin Vista Consolidada. Excepción: el
-    // enlace de SGOI con acceso completo (Andrea) ve las TRES subdirecciones
-    // (SGOI, SPAC y SA) y puede abrir el tablero de cada una.
+    // enlace de SGOI con acceso completo (Andrea) ve TODAS las subdirecciones
+    // (SGOIA, SGOIB, SGOIC, SPAC y SA) y puede abrir el tablero de cada una.
     subItems.forEach(b => {
       const sub = b.dataset.sub;
       const visible = esEnlaceVeSubs()
-        ? (sub === 'SGOI' || sub === 'SPAC' || sub === 'SA')
+        ? (sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC' || sub === 'SPAC' || sub === 'SA')
         : (sub !== 'TODAS' && sub === usuarioActual.subdireccion);
       b.style.display = visible ? '' : 'none';
     });
@@ -7791,7 +7791,7 @@ function esEnlaceVeSubs(u) {
 // (esEnlaceVeSubs) es la del tab activo; para todos los demás, la suya. Tablero,
 // KPIs e Historial filtran con esta, así el tab de SA/SPAC enseña ESA área.
 function subTableroActivo() {
-  if (esEnlaceVeSubs() && ['SPAC', 'SGOI', 'SA'].indexOf(tabActiva) >= 0) return tabActiva;
+  if (esEnlaceVeSubs() && ['SPAC', 'SGOI', 'SGOIB', 'SGOIC', 'SA'].indexOf(tabActiva) >= 0) return tabActiva;
   return usuarioActual ? usuarioActual.subdireccion : '';
 }
 // ¿Hay enlaces (es_enlace) dados de alta en la subdirección `sub`?
@@ -16681,7 +16681,7 @@ function usuarioPuedeEditar(t) {
   if (usuarioActual.rol === 'Director') return true;
   // Andrea (enlace SGOI con acceso completo): gestiona las TRES subdirecciones,
   // así que también edita las tareas de SA y SPAC (no las de Staff/Dirección).
-  if (esEnlaceVeSubs() && ['SGOI', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0) return true;
+  if (esEnlaceVeSubs() && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0) return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
