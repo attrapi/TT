@@ -18,7 +18,7 @@
    que el navegador limpie la caché vieja y tome la nueva.
    ========================================================================== */
 
-const CACHE_VERSION = 'tt-v1-20260730d';
+const CACHE_VERSION = 'tt-v1-20260731a';
 const CACHE_NAME = 'tt-cache-' + CACHE_VERSION;
 
 // Cascarón mínimo que se precachea al instalar. Rutas relativas para que
