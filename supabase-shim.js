@@ -239,7 +239,10 @@
       checklist: Array.isArray(r.checklist) ? r.checklist : [],
       checklist_iniciado: !!r.checklist_iniciado,   // ya se gestionó el checklist → no re-derivar del texto
       temas: Array.isArray(r.temas) ? r.temas : [],   // píldoras de tema (SGOI); ver supabase/temas.sql
-      proyecto: r.proyecto || '', tramo: r.tramo || '',   // tramo ferroviario; ver supabase/proyectos.sql
+      // Tramos ferroviarios (ver supabase/proyectos.sql). `proyectos` (varios) es
+      // la columna buena; `proyecto` (uno) queda para leer tareas viejas.
+      proyectos: Array.isArray(r.proyectos) ? r.proyectos : (r.proyecto ? [r.proyecto] : []),
+      proyecto: r.proyecto || '', tramo: r.tramo || '',
       seguimiento_en: r.seguimiento_en || '', seguimiento_por: r.seguimiento_por || '', seguimiento_acuerdo: r.seguimiento_acuerdo || '',
       observaciones_resp: r.observaciones_resp || '', observaciones_dir: r.observaciones_dir || '',
       observaciones_areas: (r.observaciones_areas && typeof r.observaciones_areas === 'object') ? r.observaciones_areas : {},
@@ -360,13 +363,14 @@
       if (Array.isArray(datos.adjuntos) && datos.adjuntos.length) fila.adjuntos = datos.adjuntos;
       if (datos.enlaces && ((Array.isArray(datos.enlaces.links) && datos.enlaces.links.length) || datos.enlaces.desc)) fila.enlaces = datos.enlaces;
       if (Array.isArray(datos.temas) && datos.temas.length) fila.temas = datos.temas;
+      if (Array.isArray(datos.proyectos) && datos.proyectos.length) fila.proyectos = datos.proyectos;
       if (datos.proyecto) fila.proyecto = datos.proyecto;
       if (datos.tramo) fila.tramo = datos.tramo;
       var r = await sb.from('tareas').insert(fila).select('codigo').single();
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
       if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete fila.adjuntos; delete fila.participantes; delete fila.enlaces; delete fila.temas;
-        delete fila.proyecto; delete fila.tramo;
+        delete fila.proyectos; delete fila.proyecto; delete fila.tramo;
         r = await sb.from('tareas').insert(fila).select('codigo').single();
       }
       if (r.error) return { ok: false, error: r.error.message };
@@ -394,6 +398,7 @@
       if (datos.adjuntos !== undefined) upd.adjuntos = Array.isArray(datos.adjuntos) ? datos.adjuntos : [];
       if (datos.enlaces !== undefined) upd.enlaces = (datos.enlaces && typeof datos.enlaces === 'object') ? datos.enlaces : { links: [], desc: '' };
       if (datos.temas !== undefined) upd.temas = Array.isArray(datos.temas) ? datos.temas : [];
+      if (datos.proyectos !== undefined) upd.proyectos = Array.isArray(datos.proyectos) ? datos.proyectos : [];
       if (datos.proyecto !== undefined) upd.proyecto = String(datos.proyecto || '');   // '' = quitar el proyecto
       if (datos.tramo !== undefined) upd.tramo = String(datos.tramo || '');
       // Checklist combinado desde el editor de Acciones (al editar). Sin esto, las
@@ -412,7 +417,7 @@
       // Si la base aún no tiene esas columnas, reintenta sin ellas (no rompe).
       if (r.error && /adjuntos|participantes|enlaces|temas|proyecto|tramo/i.test(r.error.message || '')) {
         delete upd.adjuntos; delete upd.participantes; delete upd.enlaces; delete upd.temas;
-        delete upd.proyecto; delete upd.tramo;
+        delete upd.proyectos; delete upd.proyecto; delete upd.tramo;
         r = await sb.from('tareas').update(upd).eq('codigo', id);
       }
       if (r.error) return { ok: false, error: r.error.message };

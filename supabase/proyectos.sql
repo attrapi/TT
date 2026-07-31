@@ -18,12 +18,23 @@
 alter table public.tareas add column if not exists proyecto text not null default '';
 alter table public.tareas add column if not exists tramo    text not null default '';
 
+-- Una tarea puede tocar VARIOS tramos (p. ej. "AIFA - Pachuca" y "México -
+-- Querétaro"): `proyectos` es la columna buena (arreglo JSON, igual que
+-- `temas`). `proyecto` se queda para leer tareas viejas de un solo tramo.
+alter table public.tareas add column if not exists proyectos jsonb not null default '[]'::jsonb;
+
+-- Migración: las tareas que ya tenían su único proyecto en `proyecto` lo
+-- pasan al arreglo. Idempotente: solo toca las que siguen con el arreglo vacío.
+update public.tareas
+   set proyectos = jsonb_build_array(proyecto)
+ where proyecto <> '' and proyectos = '[]'::jsonb;
+
 -- Para que filtrar por proyecto sea rápido cuando haya muchas tareas.
 create index if not exists tareas_proyecto_idx on public.tareas (proyecto) where proyecto <> '';
 
 -- Verificación
 select 'proyectos listo' as resultado,
-       count(*) filter (where proyecto <> '') as con_proyecto,
-       count(*) filter (where tramo    <> '') as con_tramo,
+       count(*) filter (where proyectos <> '[]'::jsonb) as con_proyecto,
+       count(*) filter (where tramo <> '') as con_tramo,
        count(*) as total
 from public.tareas;

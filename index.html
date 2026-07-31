@@ -9851,8 +9851,8 @@ function abrirDetalle(t) {
       <dl class="modal-campos">
         <dt>Tema</dt>
         <dd class="modal-campo-tema">${escapeHtml(tema)}</dd>
-        ${proyectoDe(t) ? `<dt>Proyecto</dt>
-        <dd><div class="seg-card-temas" style="margin:0"><span>${escapeHtml(proyectoDe(t))}</span>${faseVisibleDe(proyectoDe(t)) ? '<span class="pill-fase">' + escapeHtml(faseVisibleDe(proyectoDe(t))) + '</span>' : ''}</div></dd>` : ''}
+        ${proyectosDe(t).length ? `<dt>Proyecto${proyectosDe(t).length > 1 ? 's' : ''}</dt>
+        <dd><div class="seg-card-temas" style="margin:0">${proyectosDe(t).map(p => '<span>' + escapeHtml(p) + '</span>' + (faseVisibleDe(p) ? '<span class="pill-fase">' + escapeHtml(faseVisibleDe(p)) + '</span>' : '')).join('')}</div></dd>` : ''}
         ${temasDe(t).length ? `<dt>Tema de SGOI</dt>
         <dd><div class="seg-card-temas" style="margin:0">${temasDe(t).map(n => '<span>' + escapeHtml(n) + '</span>').join('')}</div></dd>` : ''}
         <dt>Área responsable</dt>
@@ -12284,6 +12284,7 @@ const PROYECTOS_FASES = [
       'México - Querétaro',
       'Querétaro - Irapuato',
       'Saltillo - Monterrey',
+      'Monterrey - Nuevo Laredo',
       'TIMT - Tren Interurbano México Toluca',
       'Trolebús Chalco - Ixtapaluca'
     ]
@@ -12293,7 +12294,6 @@ const PROYECTOS_FASES = [
     proyectos: [
       'Querétaro - San Luis Potosí',
       'San Luis Potosí - Saltillo',
-      'Monterrey - Nuevo Laredo',
       'Irapuato - Guadalajara'
     ]
   }
@@ -12304,8 +12304,12 @@ function proyectosTodos() {
   return PROYECTOS_FASES.reduce((acc, g) => acc.concat(g.proyectos), []);
 }
 
-// El proyecto de una tarea ('' si no tiene).
-function proyectoDe(t) { return (t && t.proyecto) ? String(t.proyecto) : ''; }
+// Los proyectos de una tarea (arreglo; vacío si no tiene). Antes cada tarea
+// llevaba UNO solo en la columna `proyecto`; las tareas viejas se leen de ahí.
+function proyectosDe(t) {
+  if (t && Array.isArray(t.proyectos) && t.proyectos.length) return t.proyectos.map(String);
+  return (t && t.proyecto) ? [String(t.proyecto)] : [];
+}
 
 // ¿A qué fase pertenece un proyecto? (para pintarlo con su etiqueta).
 function faseDeProyecto(nombre) {
@@ -12484,10 +12488,10 @@ function segTareasFiltradas() {
   let lista = segTareasBase().filter(area.filtro);
   if (segProyFiltro.length) {
     lista = lista.filter(function (t) {
-      const p = proyectoDe(t);
+      const ps = proyectosDe(t);
       // "Sin proyecto" agrupa las que todavía no se ubican en ningún tramo.
-      if (!p) return segProyFiltro.indexOf('__SIN__') >= 0;
-      return segProyFiltro.indexOf(p) >= 0;
+      if (!ps.length) return segProyFiltro.indexOf('__SIN__') >= 0;
+      return ps.some(p => segProyFiltro.indexOf(p) >= 0);
     });
   }
   if (segAreaUsaTemas() && segTemasFiltro.length) {
@@ -12541,19 +12545,18 @@ function segRenderProyPills() {
   const area = segAreaActual();
   if (!area) { fila.style.display = 'none'; return; }
   const delArea = segTareasBase().filter(area.filtro);
-  const usados = proyectosTodos().filter(p => delArea.some(t => proyectoDe(t) === p));
+  const usados = proyectosTodos().filter(p => delArea.some(t => proyectosDe(t).indexOf(p) >= 0));
   // Proyectos guardados que ya no están en la lista fija (por si cambia).
   delArea.forEach(t => {
-    const p = proyectoDe(t);
-    if (p && usados.indexOf(p) < 0) usados.push(p);
+    proyectosDe(t).forEach(p => { if (usados.indexOf(p) < 0) usados.push(p); });
   });
-  const sinProy = delArea.filter(t => !proyectoDe(t)).length;
+  const sinProy = delArea.filter(t => !proyectosDe(t).length).length;
   if (!usados.length && !sinProy) { fila.style.display = 'none'; return; }
   fila.style.display = '';
   let html = '<button type="button" class="tema-pill' + (segProyFiltro.length ? '' : ' on') +
     '" data-proy="__TODOS__">Todos <span class="seg-pill-num">' + delArea.length + '</span></button>';
   html += usados.map(function (p) {
-    const c = delArea.filter(t => proyectoDe(t) === p).length;
+    const c = delArea.filter(t => proyectosDe(t).indexOf(p) >= 0).length;
     const fase = faseVisibleDe(p);
     return '<button type="button" class="tema-pill' + (segProyFiltro.indexOf(p) >= 0 ? ' on' : '') +
       '" data-proy="' + escapeHtml(p) + '"' + (fase ? ' title="' + escapeHtml(fase) + '"' : '') + '>' +
@@ -12614,9 +12617,9 @@ function segRenderTemaPills() {
   let delArea = area ? segTareasBase().filter(area.filtro) : [];
   if (segProyFiltro.length) {
     delArea = delArea.filter(function (t) {
-      const p = proyectoDe(t);
-      if (!p) return segProyFiltro.indexOf('__SIN__') >= 0;
-      return segProyFiltro.indexOf(p) >= 0;
+      const ps = proyectosDe(t);
+      if (!ps.length) return segProyFiltro.indexOf('__SIN__') >= 0;
+      return ps.some(p => segProyFiltro.indexOf(p) >= 0);
     });
   }
   // Solo se ofrecen los temas que REALMENTE tiene alguna tarea del área: la
@@ -12778,14 +12781,13 @@ function segCardHTML(t) {
   }
   // Píldoras de tema de la tarea (solo lectura): en la junta se ve de un vistazo
   // si es de CONAGUA, INAH, etc.
-  // El proyecto va primero (píldora con su fase), luego los temas de SGOI.
-  const proy = proyectoDe(t);
+  // Los proyectos van primero (píldoras con su fase), luego los temas de SGOI.
   const chips = [];
-  if (proy) {
+  proyectosDe(t).forEach(function (proy) {
     const fase = faseVisibleDe(proy);
     chips.push('<span class="chip-proy">' + escapeHtml(proy) +
       (fase ? ' <em>' + escapeHtml(fase) + '</em>' : '') + '</span>');
-  }
+  });
   temasDe(t).forEach(n => chips.push('<span>' + escapeHtml(n) + '</span>'));
   const pillsHTML = chips.length
     ? '<div class="seg-card-temas">' + chips.join('') + '</div>'
@@ -16442,14 +16444,14 @@ function abrirNuevaTarea(tEdit) {
   const _asig = document.getElementById('nt_asignar');
   if (_asig) _asig.addEventListener('change', sincTemasVisibles);
   cargarTemasSgoi(sincTemasVisibles);
-  // Proyecto (Fase I / Fase II): aplica a todas las áreas, sin condición.
-  proyectoForm = ed ? proyectoDe(ed) : '';
+  // Proyectos (Fase I / Fase II): aplica a todas las áreas, sin condición.
+  proyectosForm = ed ? proyectosDe(ed) : [];
   renderProyectoForm();
 }
 
 // === Selector de proyecto (Fase I / Fase II) en el formulario ===
-// Proyecto elegido en el formulario abierto ('' = ninguno). Es UNO solo.
-let proyectoForm = '';
+// Proyectos elegidos en el formulario abierto (pueden ser varios; [] = ninguno).
+let proyectosForm = [];
 
 function renderProyectoForm() {
   const cont = document.getElementById('nt_proyecto');
@@ -16466,7 +16468,7 @@ function renderProyectoForm() {
       return '<div class="fase-col">' +
         '<div class="fase-col-titulo">' + escapeHtml(g.fase) + '</div>' +
         g.proyectos.map(function (p) {
-          return '<button type="button" class="fase-opt' + (proyectoForm === p ? ' on' : '') +
+          return '<button type="button" class="fase-opt' + (proyectosForm.indexOf(p) >= 0 ? ' on' : '') +
             '" data-proy="' + escapeHtml(p) + '">' + escapeHtml(p) + '</button>';
         }).join('') +
       '</div>';
@@ -16476,7 +16478,8 @@ function renderProyectoForm() {
     const b = ev.target.closest('[data-proy]');
     if (!b) return;
     const p = b.getAttribute('data-proy');
-    proyectoForm = (proyectoForm === p) ? '' : p;   // volver a tocarlo lo quita
+    const i = proyectosForm.indexOf(p);
+    if (i >= 0) proyectosForm.splice(i, 1); else proyectosForm.push(p);   // volver a tocarlo lo quita
     renderProyectoForm();
   };
 }
@@ -16988,7 +16991,10 @@ function guardarNuevaTarea() {
     // Píldoras de tema: solo tienen sentido si participa un área que las use
     // (SGOI, sus jefaturas o DPAC). Si se desmarcó, la tarea se guarda sin temas.
     temas: areasUsanTemas(participantes) ? temasForm.slice() : [],
-    proyecto: proyectoForm   // tramo ferroviario (Fase I / Fase II); '' = ninguno
+    // Tramos ferroviarios (Fase I / Fase II); pueden ser varios. `proyecto`
+    // conserva el primero por compatibilidad con las tareas viejas de un solo tramo.
+    proyectos: proyectosForm.slice(),
+    proyecto: proyectosForm[0] || ''
   };
   // Al EDITAR, el editor de Acciones cambia el texto, pero lo que se MUESTRA es el
   // `checklist`. Si no lo enviamos, las acciones agregadas/quitadas/editadas no se
@@ -17044,7 +17050,7 @@ function guardarNuevaTarea() {
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         fecha_atencion: fecha, fecha_limite: fecha, adjuntos: adjuntos, url: datos.url, enlaces: enlaces,
-        temas: datos.temas, proyecto: datos.proyecto
+        temas: datos.temas, proyectos: datos.proyectos, proyecto: datos.proyecto
       });
       tareaEditando.checklist = mergearChecklist(tareaEditando.checklist || [], accion);
       const idEd = tareaEditando.id; tareaEditando = null;
@@ -17056,7 +17062,7 @@ function guardarNuevaTarea() {
         responsable, titulo: tema, tema,
         areas_involucradas: areas, acuerdos_realizados: acuerdos, accion_a_tomar: accion,
         descripcion: acuerdos, observaciones: accion, enlaces: enlaces,
-        temas: datos.temas, proyecto: datos.proyecto,
+        temas: datos.temas, proyectos: datos.proyectos, proyecto: datos.proyecto,
         tipo: 'Otro', prioridad: 'Media',
         fecha_atencion: fecha, fecha_limite: fecha,
         fecha_creacion: ahoraStamp(),   // habilita la píldora "Nueva" (48 h) en demo

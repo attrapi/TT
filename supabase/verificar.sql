@@ -28,6 +28,10 @@ with revisiones as (
          exists (select 1 from information_schema.columns
                  where table_schema='public' and table_name='tareas' and column_name='proyecto'),
          'proyectos.sql' union all
+  select 'columna · tareas.proyectos',
+         exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='tareas' and column_name='proyectos'),
+         'proyectos.sql' union all
   select 'columna · tareas.tramo',
          exists (select 1 from information_schema.columns
                  where table_schema='public' and table_name='tareas' and column_name='tramo'),
