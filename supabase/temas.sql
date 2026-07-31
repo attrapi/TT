@@ -47,6 +47,7 @@ insert into public.temas_sgoi (nombre) values
   ('CFE'),
   ('PEMEX'),
   ('CENAGAS'),
+  ('Defensa'),
   ('PRIVADOS'),
   ('OTROS')
 on conflict (nombre) do nothing;

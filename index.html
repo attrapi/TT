@@ -3259,7 +3259,7 @@
   /* Selector de proyecto: dos columnas (Fase I / Fase II), se elige UNA opción
      de cualquiera de las dos. */
   .fases-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-  /* Cada columna puede llevar varios bloques apilados (der.: Fase II + DEFENSA). */
+  /* Cada columna puede llevar varios bloques apilados. */
   .fase-col-wrap { display: flex; flex-direction: column; gap: 14px; }
   .fase-col {
     border: 1px solid var(--linea); border-radius: 12px; padding: 12px;
@@ -12275,8 +12275,7 @@ document.addEventListener('click', function (ev) {
 // cuál le tocó a cada tarea (columna `proyecto`, ver supabase/proyectos.sql).
 // Más adelante se sumará el TRAMO dentro de cada proyecto.
 // `col` = en cuál de las dos columnas se dibuja el bloque. Fase I llena la
-// izquierda; Fase II y DEFENSA comparten la derecha (Fase II tiene menos
-// tramos, así que DEFENSA aprovecha el hueco que sobraba abajo).
+// izquierda; Fase II va en la derecha.
 const PROYECTOS_FASES = [
   {
     fase: 'Fase I', col: 0,
@@ -12294,15 +12293,9 @@ const PROYECTOS_FASES = [
     proyectos: [
       'Querétaro - San Luis Potosí',
       'San Luis Potosí - Saltillo',
+      'Monterrey - Nuevo Laredo',
       'Irapuato - Guadalajara'
     ]
-  },
-  {
-    // DEFENSA no pertenece a ninguna fase: es su propio bloque. Por ahora tiene
-    // una sola opción; si más adelante se abre en varios proyectos, se agregan
-    // aquí y el resto (formulario, filtros, chips) funciona igual.
-    fase: 'DEFENSA', col: 1,
-    proyectos: ['DEFENSA']
   }
 ];
 
@@ -12321,7 +12314,9 @@ function faseDeProyecto(nombre) {
 }
 
 // La fase para MOSTRAR junto al nombre del proyecto. Vacía cuando el bloque se
-// llama igual que su única opción (DEFENSA), para no pintar "DEFENSA DEFENSA".
+// llama igual que su única opción, para no pintar el nombre dos veces. También
+// queda vacía para proyectos que ya no están en el catálogo (p. ej. tareas
+// viejas etiquetadas DEFENSA): se muestra el nombre solo, sin etiqueta de fase.
 function faseVisibleDe(nombre) {
   const f = faseDeProyecto(nombre);
   return (f && f !== nombre) ? f : '';
@@ -12336,7 +12331,7 @@ function faseVisibleDe(nombre) {
 // El ORDEN de esta lista es el orden en que se pintan las píldoras (ver
 // ordenarTemas): el catálogo de la base viene alfabético, que no es como se
 // quieren leer.
-const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'PROFEPA', 'INAH - MMHH', 'INAH - ARQ', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'PRIVADOS', 'OTROS'];
+const TEMAS_SGOI_BASE = ['Semarnat - IA', 'Semarnat - CUSF', 'PROFEPA', 'INAH - MMHH', 'INAH - ARQ', 'CONAGUA', 'CFE', 'PEMEX', 'CENAGAS', 'Defensa', 'PRIVADOS', 'OTROS'];
 let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 
 // Áreas cuyas tareas se etiquetan con estos temas: SGOI (y sus dos jefaturas)
@@ -16459,8 +16454,7 @@ let proyectoForm = '';
 function renderProyectoForm() {
   const cont = document.getElementById('nt_proyecto');
   if (!cont) return;
-  // Se dibuja por COLUMNAS: cada columna puede llevar más de un bloque
-  // (la derecha lleva Fase II y abajo DEFENSA).
+  // Se dibuja por COLUMNAS: cada columna puede llevar más de un bloque.
   const columnas = [];
   PROYECTOS_FASES.forEach(function (g) {
     const i = g.col || 0;
