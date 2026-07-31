@@ -12275,7 +12275,7 @@ document.addEventListener('click', function (ev) {
 // cuál le tocó a cada tarea (columna `proyecto`, ver supabase/proyectos.sql).
 // Más adelante se sumará el TRAMO dentro de cada proyecto.
 // `col` = en cuál de las dos columnas se dibuja el bloque. Fase I llena la
-// izquierda; Fase II va en la derecha.
+// izquierda; Fase II y Otros comparten la derecha.
 const PROYECTOS_FASES = [
   {
     fase: 'Fase I', col: 0,
@@ -12295,6 +12295,16 @@ const PROYECTOS_FASES = [
       'Querétaro - San Luis Potosí',
       'San Luis Potosí - Saltillo',
       'Irapuato - Guadalajara'
+    ]
+  },
+  {
+    // OTROS: proyectos que no pertenecen a ninguna fase. Comparte la columna
+    // derecha con Fase II (que tiene menos tramos y deja hueco abajo).
+    fase: 'Otros', col: 1,
+    proyectos: [
+      'L12',
+      'Observatorio',
+      'DC C Metrop'
     ]
   }
 ];
