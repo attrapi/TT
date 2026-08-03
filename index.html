@@ -577,6 +577,52 @@
   .sidebar-papelera { margin-top: auto; }
   .sidebar-papelera svg { color: var(--rojo); }
 
+  /* === COLAPSAR SIDEBAR (solo escritorio) ===
+     Flechita pegada al borde derecho del menú: la das click y el menú se
+     oculta para que las columnas del tablero usen toda la pantalla; otro
+     click y el menú regresa. En móvil no aplica (ahí ya existe el cajón ☰). */
+  .sidebar-colapsar { display: none; }
+  @media (min-width: 861px) {
+    .sidebar-colapsar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      /* Centrada verticalmente en la zona visible bajo el header (76px). */
+      top: calc(50% + 38px);
+      left: 248px; /* mismo ancho que la columna del sidebar */
+      transform: translate(-50%, -50%);
+      z-index: 60;
+      width: 26px;
+      height: 52px;
+      padding: 0;
+      background: var(--guinda);
+      color: white;
+      border: 1px solid var(--guinda-oscuro);
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: left .2s ease, transform .2s ease, opacity .14s;
+    }
+    .sidebar-colapsar:hover { opacity: 0.88; }
+    .sidebar-colapsar svg {
+      width: 16px;
+      height: 16px;
+      transition: transform .2s ease;
+    }
+    /* Con el menú oculto: el tablero ocupa todo el ancho y la flecha se pega
+       al borde izquierdo apuntando hacia adentro (para restaurar). */
+    body.sidebar-colapsado .app-body { grid-template-columns: 1fr; }
+    body.sidebar-colapsado .sidebar { display: none; }
+    body.sidebar-colapsado .sidebar-colapsar {
+      left: 0;
+      transform: translate(0, -50%);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    body.sidebar-colapsado .sidebar-colapsar svg { transform: rotate(180deg); }
+  }
+
   /* === Asistencia (solo Mario): tardanzas de la semana === */
   #asistenciaWrap { display: none; }
   .app-main[data-vista="asistencia"] .kpis,
@@ -5778,6 +5824,12 @@
       </button>
 
     </aside>
+
+    <!-- Flechita para ocultar/mostrar el menú lateral (solo escritorio):
+         al ocultarlo, las columnas del tablero se ensanchan a toda la pantalla. -->
+    <button class="sidebar-colapsar" id="sidebarColapsar" onclick="toggleColapsoSidebar()" title="Ocultar menú" aria-label="Ocultar menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"/></svg>
+    </button>
 
     <main class="app-main" id="appMain" data-vista="tablero">
 
@@ -18299,6 +18351,28 @@ document.addEventListener('keydown', (e) => {
 // ===== Menú lateral en móvil (cajón ☰) =====
 function toggleSidebar() { document.body.classList.toggle('menu-abierto'); }
 function cerrarSidebar() { document.body.classList.remove('menu-abierto'); }
+
+// ===== Colapsar/restaurar el menú lateral en escritorio (flechita del borde) =====
+// Al ocultarlo las columnas del tablero se ensanchan; la preferencia se recuerda
+// entre sesiones para que cada quien trabaje como le acomode.
+function toggleColapsoSidebar() {
+  const colapsado = document.body.classList.toggle('sidebar-colapsado');
+  try { localStorage.setItem('tt_sidebar_colapsado', colapsado ? '1' : '0'); } catch (e) {}
+  const btn = document.getElementById('sidebarColapsar');
+  if (btn) {
+    const txt = colapsado ? 'Mostrar menú' : 'Ocultar menú';
+    btn.title = txt;
+    btn.setAttribute('aria-label', txt);
+  }
+}
+// Restaurar la preferencia guardada al cargar la página.
+try {
+  if (localStorage.getItem('tt_sidebar_colapsado') === '1') {
+    document.body.classList.add('sidebar-colapsado');
+    const btn = document.getElementById('sidebarColapsar');
+    if (btn) { btn.title = 'Mostrar menú'; btn.setAttribute('aria-label', 'Mostrar menú'); }
+  }
+} catch (e) {}
 
 // ===== Tiempo real: el puente llama esto cuando cambian las tareas en la base =====
 window.ttRefrescar = function () {
