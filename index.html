@@ -60,10 +60,12 @@
     --sub-sa-tenue: #EFEBE9;
     --sub-sgoi: #166534;        /* Verde bosque — SGOIA (código interno SGOI) */
     --sub-sgoi-tenue: #D1FAE5;
-    --sub-sgoib: #0F766E;       /* Verde azulado — SGOIB */
-    --sub-sgoib-tenue: #CCFBF1;
-    --sub-sgoic: #4D7C0F;       /* Verde lima — SGOIC */
-    --sub-sgoic-tenue: #ECFCCB;
+    /* Las tres letras de Obras Inducidas comparten el MISMO verde bosque de
+       SGOI-A (a pedido: tres verdes distintos se veían disparejos). */
+    --sub-sgoib: #166534;       /* Verde bosque — SGOI-B */
+    --sub-sgoib-tenue: #D1FAE5;
+    --sub-sgoic: #166534;       /* Verde bosque — SGOI-C */
+    --sub-sgoic-tenue: #D1FAE5;
     --sub-spac: #1E3A8A;        /* Azul navy */
     --sub-spac-tenue: #DBEAFE;
     --sub-enlace: #6D28D9;      /* Morado — Enlace del Director */
@@ -456,8 +458,8 @@
      de cada columna del tablero. Así el panel izquierdo y el tablero se ven
      visualmente conectados (mismos colores para la misma subdirección). */
   .sidebar-sub[data-sub="SGOI"]   { background: #dbe6a3; color: #3f5713; }
-  .sidebar-sub[data-sub="SGOIB"]  { background: #ccfbf1; color: #115e59; }
-  .sidebar-sub[data-sub="SGOIC"]  { background: #ecfccb; color: #3f6212; }
+  .sidebar-sub[data-sub="SGOIB"]  { background: #dbe6a3; color: #3f5713; }
+  .sidebar-sub[data-sub="SGOIC"]  { background: #dbe6a3; color: #3f5713; }
   .sidebar-sub[data-sub="SPAC"]   { background: #dbeafe; color: #1e3a8a; }
   .sidebar-sub[data-sub="SA"]     { background: #ffedd5; color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] { background: #ede9fe; color: #5b21b6; }
@@ -477,8 +479,8 @@
   .sidebar-sub.activa[data-sub="ENLACE"] { font-weight: 700; }
   /* Contador con tono más oscuro del mismo color */
   .sidebar-sub[data-sub="SGOI"]   .sidebar-conteo { background: rgba(107,142,35,0.18); color: #3f5713; }
-  .sidebar-sub[data-sub="SGOIB"]  .sidebar-conteo { background: rgba(15,118,110,0.15); color: #115e59; }
-  .sidebar-sub[data-sub="SGOIC"]  .sidebar-conteo { background: rgba(77,124,15,0.15);  color: #3f6212; }
+  .sidebar-sub[data-sub="SGOIB"]  .sidebar-conteo { background: rgba(107,142,35,0.18); color: #3f5713; }
+  .sidebar-sub[data-sub="SGOIC"]  .sidebar-conteo { background: rgba(107,142,35,0.18); color: #3f5713; }
   .sidebar-sub[data-sub="SPAC"]   .sidebar-conteo { background: rgba(29,78,216,0.15);  color: #1e3a8a; }
   .sidebar-sub[data-sub="SA"]     .sidebar-conteo { background: rgba(194,65,12,0.15);  color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { background: rgba(124,58,237,0.15); color: #5b21b6; }
@@ -1996,9 +1998,9 @@
   .kpi-sub[data-sub="ENLACE"] .kpi-valor { border-color: var(--sub-enlace); color: var(--sub-enlace); background: linear-gradient(135deg, white 0%, var(--sub-enlace-tenue) 100%); box-shadow: 0 4px 14px rgba(109,40,217,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
   .kpi-sub[data-sub="SA"]     .kpi-clave { background: var(--sub-sa);   color: #fff; }
   .kpi-sub[data-sub="SGOI"]   .kpi-clave { background: var(--sub-sgoi);  color: #fff; }
-  .kpi-sub[data-sub="SGOIB"]  .kpi-valor { border-color: var(--sub-sgoib); color: var(--sub-sgoib); background: linear-gradient(135deg, white 0%, var(--sub-sgoib-tenue) 100%); box-shadow: 0 4px 14px rgba(15,118,110,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
+  .kpi-sub[data-sub="SGOIB"]  .kpi-valor { border-color: var(--sub-sgoib); color: var(--sub-sgoib); background: linear-gradient(135deg, white 0%, var(--sub-sgoib-tenue) 100%); box-shadow: 0 4px 14px rgba(22,101,52,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
   .kpi-sub[data-sub="SGOIB"]  .kpi-clave { background: var(--sub-sgoib); color: #fff; }
-  .kpi-sub[data-sub="SGOIC"]  .kpi-valor { border-color: var(--sub-sgoic); color: var(--sub-sgoic); background: linear-gradient(135deg, white 0%, var(--sub-sgoic-tenue) 100%); box-shadow: 0 4px 14px rgba(77,124,15,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
+  .kpi-sub[data-sub="SGOIC"]  .kpi-valor { border-color: var(--sub-sgoic); color: var(--sub-sgoic); background: linear-gradient(135deg, white 0%, var(--sub-sgoic-tenue) 100%); box-shadow: 0 4px 14px rgba(22,101,52,0.18), inset 0 -3px 6px rgba(0,0,0,0.04); }
   .kpi-sub[data-sub="SGOIC"]  .kpi-clave { background: var(--sub-sgoic); color: #fff; }
   .kpi-sub[data-sub="SPAC"]   .kpi-clave { background: #1d4ed8;  color: #fff; }
   .kpi-sub[data-sub="ENLACE"] .kpi-clave { background: var(--sub-enlace); color: #fff; }
@@ -5727,19 +5729,21 @@
         </button>
         <!-- Orden de las subdirecciones: SGOI · SPAC · SA · Staff (mismo orden
              que las columnas del tablero del Director). -->
-        <button class="sidebar-item sidebar-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')">
+        <!-- Las tres letras de Obras Inducidas van con nombre corto (SGOI-A/B/C)
+             para no alargar el menú; el nombre completo sale en el tooltip. -->
+        <button class="sidebar-item sidebar-sub" data-sub="SGOI" onclick="cambiarTab('SGOI')" title="Subdirección de Gestión de Obras Inducidas A">
           <span class="sub-dot" style="background: var(--sub-sgoi)"></span>
-          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas A</span>
+          <span class="sidebar-label">SGOI-A</span>
           <span class="sidebar-conteo" id="contSGOI">0</span>
         </button>
-        <button class="sidebar-item sidebar-sub" data-sub="SGOIB" onclick="cambiarTab('SGOIB')">
+        <button class="sidebar-item sidebar-sub" data-sub="SGOIB" onclick="cambiarTab('SGOIB')" title="Subdirección de Gestión de Obras Inducidas B">
           <span class="sub-dot" style="background: var(--sub-sgoib)"></span>
-          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas B</span>
+          <span class="sidebar-label">SGOI-B</span>
           <span class="sidebar-conteo" id="contSGOIB">0</span>
         </button>
-        <button class="sidebar-item sidebar-sub" data-sub="SGOIC" onclick="cambiarTab('SGOIC')">
+        <button class="sidebar-item sidebar-sub" data-sub="SGOIC" onclick="cambiarTab('SGOIC')" title="Subdirección de Gestión de Obras Inducidas C">
           <span class="sub-dot" style="background: var(--sub-sgoic)"></span>
-          <span class="sidebar-label">Subdirección de Gestión de Obras Inducidas C</span>
+          <span class="sidebar-label">SGOI-C</span>
           <span class="sidebar-conteo" id="contSGOIC">0</span>
         </button>
         <button class="sidebar-item sidebar-sub" data-sub="SPAC" onclick="cambiarTab('SPAC')">
@@ -6689,9 +6693,9 @@ function aplicarSesion() {
   // "Enlace" y sin "Nueva Tarea" tras una sesión de enlace).
   const LBL_SUB_CANON = {
     'TODAS': 'Vista Consolidada',
-    'SGOI': 'Subdirección de Gestión de Obras Inducidas A',
-    'SGOIB': 'Subdirección de Gestión de Obras Inducidas B',
-    'SGOIC': 'Subdirección de Gestión de Obras Inducidas C',
+    'SGOI': 'SGOI-A',
+    'SGOIB': 'SGOI-B',
+    'SGOIC': 'SGOI-C',
     'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
     'SA': 'Subdirección de Archivo',
     'ENLACE': 'Staff'
@@ -8443,7 +8447,7 @@ function columnasPorRol() {
     }
     if (tabActiva === 'SGOIB') {
       return [{ id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'verdeoscuro', filtro: t => tareaEnObras(t, 'SGOIB') }];
+        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') }];
     }
     if (tabActiva === 'SGOIC') {
       return [{ id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
@@ -8465,7 +8469,7 @@ function columnasPorRol() {
         color: 'olivo',
         filtro: t => tareaEnObras(t, 'SGOI') },
       { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'verdeoscuro',
+        color: 'olivo',
         filtro: t => tareaEnObras(t, 'SGOIB') },
       { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
         color: 'olivo',
@@ -9558,7 +9562,7 @@ function columnasHistorial() {
       { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
         color: 'olivo',  filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOI') },
       { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'verdeoscuro', filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOIB') },
+        color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOIB') },
       { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
         color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOIC') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
@@ -18099,8 +18103,8 @@ const NOMBRE_SUB = {
 const COLOR_SUB = {
   SA:     { bg: '#EFEBE9', fg: '#5D4037' },
   SGOI:   { bg: '#D1FAE5', fg: '#166534' },
-  SGOIB:  { bg: '#CCFBF1', fg: '#0F766E' },
-  SGOIC:  { bg: '#ECFCCB', fg: '#4D7C0F' },
+  SGOIB:  { bg: '#D1FAE5', fg: '#166534' },
+  SGOIC:  { bg: '#D1FAE5', fg: '#166534' },
   SPAC:   { bg: '#DBEAFE', fg: '#1E3A8A' },
   ENLACE: { bg: '#EDE9FE', fg: '#6D28D9' }
 };
