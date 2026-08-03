@@ -5746,14 +5746,14 @@
           <span class="sidebar-label">SGOI-C</span>
           <span class="sidebar-conteo" id="contSGOIC">0</span>
         </button>
-        <button class="sidebar-item sidebar-sub" data-sub="SPAC" onclick="cambiarTab('SPAC')">
+        <button class="sidebar-item sidebar-sub" data-sub="SPAC" onclick="cambiarTab('SPAC')" title="Subdirección de Procesos Administrativos de Construcción">
           <span class="sub-dot" style="background: var(--sub-spac)"></span>
-          <span class="sidebar-label">Subdirección de Procesos Administrativos de Construcción</span>
+          <span class="sidebar-label">SPAC</span>
           <span class="sidebar-conteo" id="contSPAC">0</span>
         </button>
-        <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')">
+        <button class="sidebar-item sidebar-sub" data-sub="SA" onclick="cambiarTab('SA')" title="Subdirección de Archivo">
           <span class="sub-dot" style="background: var(--sub-sa)"></span>
-          <span class="sidebar-label">Subdirección de Archivo</span>
+          <span class="sidebar-label">SA</span>
           <span class="sidebar-conteo" id="contSA">0</span>
         </button>
         <!-- Enlaces (subdirector/enlace con acceso completo de una subdirección
@@ -6696,8 +6696,8 @@ function aplicarSesion() {
     'SGOI': 'SGOI-A',
     'SGOIB': 'SGOI-B',
     'SGOIC': 'SGOI-C',
-    'SPAC': 'Subdirección de Procesos Administrativos de Construcción',
-    'SA': 'Subdirección de Archivo',
+    'SPAC': 'SPAC',
+    'SA': 'SA',
     'ENLACE': 'Staff'
   };
   subItems.forEach(function (b) {
