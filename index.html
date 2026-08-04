@@ -6727,11 +6727,12 @@ function aplicarSesion() {
   } else {
     // Capturista: solo su subdirección, sin Vista Consolidada. Excepción: el
     // enlace de SGOI con acceso completo (Andrea) ve TODAS las subdirecciones
-    // (SGOIA, SGOIB, SGOIC, SPAC y SA) y puede abrir el tablero de cada una.
+    // (SGOI-A/B/C, SPAC y SA), su Vista Consolidada (sin Staff) y puede abrir
+    // el tablero de cada una.
     subItems.forEach(b => {
       const sub = b.dataset.sub;
       const visible = esEnlaceVeSubs()
-        ? (sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC' || sub === 'SPAC' || sub === 'SA')
+        ? (sub === 'TODAS' || sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC' || sub === 'SPAC' || sub === 'SA')
         : (sub !== 'TODAS' && sub === usuarioActual.subdireccion);
       b.style.display = visible ? '' : 'none';
     });
@@ -7713,6 +7714,11 @@ function obtenerTareasFiltradas() {
     } else if (codJef) {
       // Jefe: ve las tareas donde SU jefatura participa.
       lista = lista.filter(t => tareaEnArea(t, miArea));
+    } else if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
+      // Vista Consolidada de quien ve varias subdirecciones (Andrea): todo lo
+      // de sus cinco áreas (SGOI-A/B/C, SPAC y SA), sin Staff.
+      const SUYAS = ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'];
+      lista = lista.filter(t => SUYAS.indexOf(t.subdireccion) >= 0 || SUYAS.some(c => tareaEnArea(t, c)));
     } else {
       // Subdirector: TODAS las de su subdirección (incl. sus jefaturas) + las de
       // otras áreas donde su subdirección participe (multi-tablero). Quien ve
@@ -8167,6 +8173,11 @@ function actualizarKPIs() {
     if (esEnlace()) return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE';
     // Enlace SPAC: solo SU historial (donde es responsable directo).
     if (esEnlaceRestringido()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
+    // Vista Consolidada de quien ve varias subdirecciones (Andrea): el conteo
+    // de Validadas abarca sus cinco áreas, como el resto del Resumen.
+    if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
+      return ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0;
+    }
     return t.subdireccion === subTableroActivo();
   });
   const archivadas = enHistorial.length;
@@ -8377,6 +8388,21 @@ function actualizarConteosTabs() {
   if (contPap) contPap.textContent = tareasPapelera().length;
 
   if (usuarioActual.rol === 'Capturista') {
+    // Quien ve varias subdirecciones (Andrea) lleva conteo en sus cinco tabs y
+    // en su Vista Consolidada (tareas de esas cinco áreas, sin duplicar).
+    if (esEnlaceVeSubs()) {
+      const SUYAS = ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'];
+      document.getElementById('contTODAS').textContent = TAREAS.filter(t =>
+          !t.eliminada && t.estatus !== 'Archivada' &&
+          (SUYAS.indexOf(t.subdireccion) >= 0 || SUYAS.some(c => tareaEnArea(t, c)))).length;
+      document.getElementById('contSGOI').textContent   = activas('SGOI');
+      document.getElementById('contSGOIB').textContent  = activas('SGOIB');
+      document.getElementById('contSGOIC').textContent  = activas('SGOIC');
+      document.getElementById('contSPAC').textContent   = activas('SPAC');
+      document.getElementById('contSA').textContent     = activas('SA');
+      document.getElementById('contENLACE').textContent = '';
+      return;
+    }
     const subPropia = usuarioActual.subdireccion;
     document.getElementById('contTODAS').textContent = '';
     document.getElementById('contSA').textContent     = subPropia === 'SA'     ? activas('SA')     : '';
@@ -8494,6 +8520,23 @@ function columnasPorRol() {
               color: 'morado',
               filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }];
   }
+  // Vista Consolidada de quien ve varias subdirecciones (Andrea): las mismas
+  // columnas que la del Director pero sin Staff (su menú no incluye Staff).
+  if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
+    return [
+      { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
+        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOI') },
+      { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') },
+      { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIC') },
+      { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
+        color: 'azul', filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
+      { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
+        color: 'naranja', filtro: t => t.subdireccion === 'SA' || tareaEnArea(t, 'SA') }
+    ];
+  }
+
   // La subdirección del TABLERO: para quien ve varias (esEnlaceVeSubs) es la del
   // tab activo — parada en SPAC ve SPAC · JDPC · JDIMA, como el subdirector.
   const sub = subTableroActivo();
