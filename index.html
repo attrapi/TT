@@ -803,7 +803,7 @@
   .vol-tipo.conocimiento { background: rgba(29,78,216,0.12); color: #1e3a8a; }
   /* Filtro por área de la lista de volantes (Todas / SGOI / SA) y píldora
      del área en cada tarjeta — con los colores de cada subdirección. */
-  .vol-farea { display: flex; gap: 6px; align-items: center; }
+  .vol-farea { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .vol-farea-btn {
     padding: 6px 14px; border: 1px solid var(--linea); border-radius: 999px;
     background: #fff; cursor: pointer; font-size: 12.5px; font-weight: 600;
@@ -898,8 +898,8 @@
   .volchk-clip:hover { opacity: 1; }
   /* Tipo de atención en el formulario del volante: dos opciones visibles como
      botones (Atención / Conocimiento), sin desplegable flotante del navegador. */
-  .vol-tipo-opciones { display: flex; gap: 8px; }
-  .vol-tipo-op { flex: 1; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--tinta-suave); }
+  .vol-tipo-opciones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .vol-tipo-op { flex: 1; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-family: var(--sans); color: var(--tinta-suave); white-space: nowrap; }
   .vol-tipo-op:hover { border-color: var(--guinda); }
   .vol-tipo-op.activa { border-color: var(--guinda); background: var(--guinda-tenue); color: var(--guinda); font-weight: 700; }
   /* Los botones del formulario toman el mismo color que la píldora de cada tipo. */
