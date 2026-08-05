@@ -2308,6 +2308,62 @@
   .filtros-estatus.activo { background-color: var(--guinda-oscuro); }
   /* Las opciones del desplegable en blanco (legibles), no en guinda. */
   .filtros-estatus option { background: #fff; color: var(--tinta); font-weight: 500; }
+  /* === Desplegables de la barra (Proyecto / Estados / Fechas) ===
+     Píldoras guinda como el select de antes, pero el menú se abre con SOLO
+     pasar el mouse (:hover); en táctil (sin hover) se abre con tap (.abierto).
+     .cerrado apaga el menú justo al elegir una opción, aunque el mouse siga
+     encima; se limpia al salir el mouse para que el hover vuelva a funcionar. */
+  .fdrop { position: relative; }
+  .fdrop-btn { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fdrop-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 60;
+    padding-top: 6px;   /* puente invisible: el mouse baja del botón al menú sin que se cierre */
+  }
+  .fdrop:hover .fdrop-menu, .fdrop.abierto .fdrop-menu { display: block; }
+  .fdrop.cerrado .fdrop-menu { display: none; }
+  .fdrop-menu-inner {
+    background: #fff;
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 190px;
+    max-width: min(320px, calc(100vw - 40px));
+    max-height: 60vh;
+    overflow: auto;
+  }
+  .fdrop-item {
+    text-align: left;
+    border: none;
+    background: none;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tinta);
+    padding: 7px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .fdrop-item:hover { background: var(--guinda-tenue); color: var(--guinda); }
+  .fdrop-item.activo { background: var(--guinda); color: #fff; }
+  /* Encabezado de grupo dentro del menú de proyectos (Fase I / Fase II / Otros). */
+  .fdrop-fase {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tinta-tenue);
+    padding: 8px 10px 2px;
+  }
+  .fdrop-fase + .fdrop-item { margin-top: 0; }
   /* Toggle "No vistas" (colores invertidos): apagado = relleno guinda; encendido = contorno guinda. */
   .filtros-novistas {
     border: 1.5px solid var(--guinda); border-radius: 999px;
@@ -5949,19 +6005,32 @@
   <div class="filtros">
     <button class="btn-nuevo" id="btnNuevo" onclick="abrirNuevaTarea()">+ Nueva Tarea</button>
     <input type="search" class="filtros-buscar" id="filtroBuscar" placeholder="🔎 Buscar tema, responsable y fecha" oninput="filtrarBuscar(this.value)">
-    <select class="filtros-estatus" id="filtroEstatus" onchange="filtrarEstatusSelect(this.value)" title="Filtrar por estado">
-      <option value="">Todos los estados</option>
-      <option value="proceso">En Proceso</option>
-      <option value="validar">Para validar</option>
-      <option value="vencidas">Vencidas</option>
-    </select>
-    <select class="filtros-estatus filtros-fecha" id="filtroFecha" onchange="filtrarFechaSelect(this.value)" title="Filtrar por fecha">
-      <option value="">Todas las fechas</option>
-      <option value="hoy">Hoy</option>
-      <option value="semana">Esta semana</option>
-      <option value="mes">Este mes</option>
-      <option value="permanente">Permanentes</option>
-    </select>
+    <!-- Filtros desplegables de la barra: se abren al PASAR el mouse (hover);
+         en pantallas táctiles (sin hover) se abren con tap. Proyecto va
+         primero, antes del de estados. -->
+    <div class="fdrop" id="fdropProyecto">
+      <button type="button" class="filtros-estatus fdrop-btn" id="filtroProyectoBtn" title="Filtrar por proyecto" onclick="toggleFdrop(this)">Proyecto</button>
+      <div class="fdrop-menu"><div class="fdrop-menu-inner" id="menuProyectos"></div></div>
+    </div>
+    <div class="fdrop" id="fdropEstatus">
+      <button type="button" class="filtros-estatus fdrop-btn" id="filtroEstatusBtn" title="Filtrar por estado" onclick="toggleFdrop(this)">Todos los estados</button>
+      <div class="fdrop-menu"><div class="fdrop-menu-inner" id="menuEstatus">
+        <button type="button" class="fdrop-item activo" data-val="" onclick="elegirFdrop('estatus', '')">Todos los estados</button>
+        <button type="button" class="fdrop-item" data-val="proceso" onclick="elegirFdrop('estatus', 'proceso')">En Proceso</button>
+        <button type="button" class="fdrop-item" data-val="validar" onclick="elegirFdrop('estatus', 'validar')">Para validar</button>
+        <button type="button" class="fdrop-item" data-val="vencidas" onclick="elegirFdrop('estatus', 'vencidas')">Vencidas</button>
+      </div></div>
+    </div>
+    <div class="fdrop" id="fdropFecha">
+      <button type="button" class="filtros-estatus fdrop-btn" id="filtroFechaBtn" title="Filtrar por fecha" onclick="toggleFdrop(this)">Todas las fechas</button>
+      <div class="fdrop-menu"><div class="fdrop-menu-inner" id="menuFecha">
+        <button type="button" class="fdrop-item activo" data-val="" onclick="elegirFdrop('fecha', '')">Todas las fechas</button>
+        <button type="button" class="fdrop-item" data-val="hoy" onclick="elegirFdrop('fecha', 'hoy')">Hoy</button>
+        <button type="button" class="fdrop-item" data-val="semana" onclick="elegirFdrop('fecha', 'semana')">Esta semana</button>
+        <button type="button" class="fdrop-item" data-val="mes" onclick="elegirFdrop('fecha', 'mes')">Este mes</button>
+        <button type="button" class="fdrop-item" data-val="permanente" onclick="elegirFdrop('fecha', 'permanente')">Permanentes</button>
+      </div></div>
+    </div>
     <button class="filtros-novistas" id="filtroNoVistas" onclick="cambiarVista('seguimiento')" title="Abrir la sesión de seguimiento: repasar las tareas una por una en la junta">👁 Seguimiento</button>
     <span class="filtros-novistas-estado" id="noVistasEstado"></span>
     <div class="filtros-spacer"></div>
@@ -6628,6 +6697,7 @@ let jefaturaActiva = null;   // código de Jefatura SPAC activo (o null = Subdir
 let enlaceActivo = null;     // nombre completo del enlace seleccionado (card "Pendientes por enlace") o null
 let estatusFiltro = null;    // 'proceso' | 'validar' | 'vencidas' filtro por círculo del Resumen (solo tablero)
 let fechaFiltro = '';        // '' | 'hoy' | 'semana' | 'mes' | 'permanente' filtro por fecha (junto al de estados)
+let proyectoFiltro = '';     // nombre del proyecto elegido en la barra ('' = todos)
 let _tareaDestacada = null;  // id de la tarea recién editada: su tarjeta palpita al re-renderizar
 let verNoVistas = false;     // filtro "No vistas": solo tareas no abiertas en las últimas 24 h
 let prioridadActiva = 'TODAS';
@@ -8310,13 +8380,9 @@ function actualizarKPIs() {
     c.classList.toggle('kpi-activa', !!jefaturaActiva && c.dataset.jef === jefaturaActiva));
   document.querySelectorAll('.kpi[data-est]').forEach(c =>
     c.classList.toggle('kpi-activa', !!estatusFiltro && c.dataset.est === estatusFiltro));
-  // Mantiene el <select> de la barra en sintonía con el filtro activo (sea por
-  // el select o por clic en un círculo del KPI).
-  const selEst = document.getElementById('filtroEstatus');
-  if (selEst) {
-    selEst.value = (estatusFiltro === 'proceso' || estatusFiltro === 'validar' || estatusFiltro === 'vencidas') ? estatusFiltro : '';
-    selEst.classList.toggle('activo', !!selEst.value);
-  }
+  // Mantiene los desplegables de la barra en sintonía con el filtro activo
+  // (sea por el menú o por clic en un círculo del KPI).
+  sincronizarFiltrosBarra();
 }
 
 // Dibuja el donut del Resumen general (4 segmentos: En Proceso sin vencer,
@@ -8608,6 +8674,10 @@ function renderizarTablero() {
   // Filtro por FECHA (junto al de estados): acota las tarjetas del tablero.
   if (fechaFiltro) {
     lista = lista.filter(t => tareaEnRangoFecha(t, fechaFiltro));
+  }
+  // Filtro por PROYECTO (el primero de la barra): solo las tareas de ese tramo.
+  if (proyectoFiltro) {
+    lista = lista.filter(t => proyectosDe(t).includes(proyectoFiltro));
   }
   // Filtro "No vistas": solo las que NO has abierto en las últimas 24 h.
   if (verNoVistas) {
@@ -9181,6 +9251,69 @@ function filtrarFechaSelect(valor) {
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
+function filtrarProyectoSelect(valor) {
+  proyectoFiltro = valor || '';
+  renderizar();
+  if (vistaActiva === 'calendario') renderizarCalendario();
+}
+
+// === Desplegables de la barra (Proyecto / Estados / Fechas) ===
+// En escritorio se abren con solo pasar el mouse (CSS :hover); el tap (móvil,
+// sin hover) alterna .abierto. Al elegir una opción, .cerrado apaga el menú
+// aunque el mouse siga encima; se limpia cuando el mouse sale de la píldora.
+function toggleFdrop(btn) {
+  const caja = btn.closest('.fdrop');
+  if (!caja) return;
+  caja.classList.remove('cerrado');
+  const abrir = !caja.classList.contains('abierto');
+  document.querySelectorAll('.fdrop').forEach(f => f.classList.remove('abierto'));
+  if (abrir) caja.classList.add('abierto');
+}
+
+// Aplica la opción elegida en un menú de la barra y cierra el desplegable.
+function elegirFdrop(tipo, valor) {
+  if (tipo === 'estatus')       filtrarEstatusSelect(valor);
+  else if (tipo === 'fecha')    filtrarFechaSelect(valor);
+  else if (tipo === 'proyecto') filtrarProyectoSelect(valor);
+  document.querySelectorAll('.fdrop').forEach(f => {
+    f.classList.remove('abierto');
+    f.classList.add('cerrado');   // apaga el menú aunque el mouse siga encima
+  });
+  sincronizarFiltrosBarra();
+}
+
+// Pinta un desplegable: la etiqueta del botón, su resaltado cuando hay filtro
+// activo y la opción marcada dentro del menú.
+function _fdropPintar(btnId, menuId, valor, etiqueta) {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.textContent = etiqueta;
+    btn.classList.toggle('activo', !!valor);
+  }
+  const menu = document.getElementById(menuId);
+  if (menu) menu.querySelectorAll('.fdrop-item').forEach(i =>
+    i.classList.toggle('activo', (i.dataset.val || '') === (valor || '')));
+}
+
+// Sincroniza los TRES desplegables con los filtros activos (los círculos del
+// KPI también mueven estatusFiltro, por eso se repinta en cada render).
+function sincronizarFiltrosBarra() {
+  const est = (estatusFiltro === 'proceso' || estatusFiltro === 'validar' || estatusFiltro === 'vencidas') ? estatusFiltro : '';
+  const ETQ_EST   = { '': 'Todos los estados', proceso: 'En Proceso', validar: 'Para validar', vencidas: 'Vencidas' };
+  const ETQ_FECHA = { '': 'Todas las fechas', hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', permanente: 'Permanentes' };
+  _fdropPintar('filtroEstatusBtn', 'menuEstatus', est, ETQ_EST[est]);
+  _fdropPintar('filtroFechaBtn', 'menuFecha', fechaFiltro, ETQ_FECHA[fechaFiltro] || 'Todas las fechas');
+  _fdropPintar('filtroProyectoBtn', 'menuProyectos', proyectoFiltro, proyectoFiltro || 'Proyecto');
+}
+
+// Cierra los desplegables abiertos por tap al tocar fuera, y rearma el hover
+// (.cerrado) cuando el mouse sale de la píldora.
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.fdrop'))
+    document.querySelectorAll('.fdrop.abierto').forEach(f => f.classList.remove('abierto'));
+});
+document.querySelectorAll('.fdrop').forEach(f =>
+  f.addEventListener('mouseleave', function () { f.classList.remove('cerrado'); }));
 // === Filtro "No vistas" (por usuario, local a este equipo) ===
 // Registra cuándo abriste cada tarea; se considera "vista" si la abriste en las
 // últimas 24 h. El filtro muestra solo las NO vistas, así las revisas por día.
@@ -12527,6 +12660,36 @@ const PROYECTOS_FASES = [
 function proyectosTodos() {
   return PROYECTOS_FASES.reduce((acc, g) => acc.concat(g.proyectos), []);
 }
+
+// Llena el menú "Proyecto" de la barra de filtros: la opción "Todos" y luego
+// cada tramo agrupado bajo su fase (Fase I / Fase II / Otros), mismo catálogo
+// que el selector del formulario de tarea.
+(function () {
+  const menu = document.getElementById('menuProyectos');
+  if (!menu) return;
+  const todos = document.createElement('button');
+  todos.type = 'button';
+  todos.className = 'fdrop-item activo';
+  todos.dataset.val = '';
+  todos.textContent = 'Todos los proyectos';
+  todos.onclick = function () { elegirFdrop('proyecto', ''); };
+  menu.appendChild(todos);
+  PROYECTOS_FASES.forEach(g => {
+    const etq = document.createElement('div');
+    etq.className = 'fdrop-fase';
+    etq.textContent = g.fase;
+    menu.appendChild(etq);
+    g.proyectos.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fdrop-item';
+      b.dataset.val = p;
+      b.textContent = p;
+      b.onclick = function () { elegirFdrop('proyecto', p); };
+      menu.appendChild(b);
+    });
+  });
+})();
 
 // Proyectos que le tocan a cada subdirección de Obras Inducidas: son los
 // FILTROS fijos que ofrece la Sesión de Seguimiento al elegir esa área
