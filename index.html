@@ -811,7 +811,9 @@
   }
   .vol-farea-btn:hover { border-color: var(--guinda); }
   .vol-farea-btn.activa { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 700; }
-  .vol-farea-btn.activa[data-sub="SGOI"] { background: var(--sub-sgoi); border-color: var(--sub-sgoi); }
+  .vol-farea-btn.activa[data-sub="SGOI"]  { background: var(--sub-sgoi);  border-color: var(--sub-sgoi); }
+  .vol-farea-btn.activa[data-sub="SGOIB"] { background: var(--sub-sgoib); border-color: var(--sub-sgoib); }
+  .vol-farea-btn.activa[data-sub="SGOIC"] { background: var(--sub-sgoic); border-color: var(--sub-sgoic); }
   .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
   .vol-farea-btn.activa[data-sub="SPAC"] { background: var(--sub-spac); border-color: var(--sub-spac); }
   /* Filtros de tipo y estatus: cada uno toma el color de SU píldora, para que el
@@ -850,7 +852,9 @@
     font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
     color: #fff; letter-spacing: .04em;
   }
-  .vol-area[data-sub="SGOI"] { background: var(--sub-sgoi); }
+  .vol-area[data-sub="SGOI"]  { background: var(--sub-sgoi); }
+  .vol-area[data-sub="SGOIB"] { background: var(--sub-sgoib); }
+  .vol-area[data-sub="SGOIC"] { background: var(--sub-sgoic); }
   .vol-area[data-sub="SA"]   { background: var(--sub-sa); }
   .vol-area[data-sub="SPAC"] { background: var(--sub-spac); }
   /* Píldora URGENTE: roja y palpitando (en tarjeta y detalle). */
@@ -6021,6 +6025,8 @@
         <div class="vol-farea" id="volFiltroAreaBox" title="Filtrar los volantes por área">
           <button class="vol-farea-btn" data-sub="TODAS" onclick="volSetArea('TODAS')">Todas</button>
           <button class="vol-farea-btn" data-sub="SGOI" onclick="volSetArea('SGOI')">SGOI-A</button>
+          <button class="vol-farea-btn" data-sub="SGOIB" onclick="volSetArea('SGOIB')">SGOI-B</button>
+          <button class="vol-farea-btn" data-sub="SGOIC" onclick="volSetArea('SGOIC')">SGOI-C</button>
           <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
           <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
         </div>
@@ -13361,7 +13367,7 @@ function pintarVolantes() {
   // Primera vez: el filtro arranca en el área del usuario (Director ve Todas).
   if (!volFiltroArea) {
     const subU = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
-    volFiltroArea = (subU === 'SA' || subU === 'SGOI' || subU === 'SPAC') ? subU : 'TODAS';
+    volFiltroArea = (subU === 'SA' || subU === 'SGOI' || subU === 'SGOIB' || subU === 'SGOIC' || subU === 'SPAC') ? subU : 'TODAS';
     volPintarFiltroArea();
     volPintarFiltroTipo();      // ambos arrancan en "Todos"
     volPintarFiltroEstatus();
@@ -14129,10 +14135,12 @@ function abrirFormVolante(v) {
   }
   const val = k => escapeHtml((v && v[k]) || '');
   // Área del volante: al editar se conserva; al crear es la del usuario (SA→SA,
-  // SPAC→SPAC, resto→SGOI). Los botones para elegirla los ven el Director y los
-  // enlaces de SGOI (Jacobo y Andrea), que son quienes asignan a las áreas.
+  // SPAC→SPAC, SGOIB→SGOI-B, SGOIC→SGOI-C, resto→SGOI). Los botones para
+  // elegirla los ven el Director y los enlaces de SGOI (Jacobo y Andrea), que
+  // son quienes asignan a las áreas.
   const subUsuario = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
-  const areaForm = v ? volAreaDe(v) : (subUsuario === 'SA' || subUsuario === 'SPAC' ? subUsuario : 'SGOI');
+  const areaForm = v ? volAreaDe(v)
+    : (subUsuario === 'SA' || subUsuario === 'SPAC' || subUsuario === 'SGOIB' || subUsuario === 'SGOIC' ? subUsuario : 'SGOI');
   const eligeArea = !!(usuarioActual && !volSoloSgoi() && (usuarioActual.rol === 'Director' ||
     (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI') ||
     usuarioActual.subdireccion === 'ENLACE'));   // Staff de la Dirección (Tiffany): privilegios completos en volantes; los enlaces restringidos de SGOI (salvo Jacobo) capturan fijo en SGOI
@@ -14174,6 +14182,8 @@ function abrirFormVolante(v) {
             <label>Área</label>
             <div class="vol-tipo-opciones">
               <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOI-A</button>
+              <button type="button" class="vol-tipo-op ${areaForm === 'SGOIB' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOIB')">SGOI-B</button>
+              <button type="button" class="vol-tipo-op ${areaForm === 'SGOIC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOIC')">SGOI-C</button>
               <button type="button" class="vol-tipo-op ${areaForm === 'SA' ? 'activa' : ''}" onclick="volElegirArea(this, 'SA')">SA</button>
               <button type="button" class="vol-tipo-op ${areaForm === 'SPAC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SPAC')">SPAC</button>
             </div>
