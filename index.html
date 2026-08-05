@@ -9156,6 +9156,9 @@ function cambiarTab(sub) {
   jefaturaActiva = null;   // volver a una subdirección sale del modo Jefatura
   enlaceActivo = null;     // y limpia los filtros del Resumen general
   estatusFiltro = null;
+  // El filtro por proyecto es de Obras Inducidas: al pasar a un área que no lo
+  // usa se limpia, para que su tablero no quede filtrado con la píldora oculta.
+  if (!esSubObras(sub)) proyectoFiltro = '';
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.toggle('activa', b.dataset.sub === sub));
   document.querySelectorAll('.sidebar-jef').forEach(b => b.classList.remove('activa'));
 
@@ -9298,6 +9301,13 @@ function _fdropPintar(btnId, menuId, valor, etiqueta) {
 // Sincroniza los TRES desplegables con los filtros activos (los círculos del
 // KPI también mueven estatusFiltro, por eso se repinta en cada render).
 function sincronizarFiltrosBarra() {
+  // La píldora "Proyecto" solo aparece parado en Obras Inducidas (SGOI-A/B/C);
+  // en las demás áreas (SPAC, SA, Staff, Vista Consolidada) se oculta y su
+  // filtro se limpia por si llegó activo desde otro camino.
+  const cajaProy = document.getElementById('fdropProyecto');
+  const proyDisponible = esSubObras(tabActiva);
+  if (!proyDisponible && proyectoFiltro) proyectoFiltro = '';
+  if (cajaProy) cajaProy.style.display = proyDisponible ? '' : 'none';
   const est = (estatusFiltro === 'proceso' || estatusFiltro === 'validar' || estatusFiltro === 'vencidas') ? estatusFiltro : '';
   const ETQ_EST   = { '': 'Todos los estados', proceso: 'En Proceso', validar: 'Para validar', vencidas: 'Vencidas' };
   const ETQ_FECHA = { '': 'Todas las fechas', hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', permanente: 'Permanentes' };
