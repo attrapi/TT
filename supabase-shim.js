@@ -727,6 +727,23 @@
       if (r.error) return { ok: false, error: r.error.message };
       return { ok: true };
     },
+    // Mueve el volante al Historial ('archivado' | 'eliminado') o lo regresa a
+    // la lista ('restaurar'). El borrado definitivo sigue siendo eliminarVolante.
+    historialVolante: async function (token, id, accion) {
+      var upd = (accion === 'restaurar')
+        ? { hist: '', hist_por: '', hist_fecha: null }
+        : { hist: accion === 'archivar' ? 'archivado' : 'eliminado',
+            hist_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : '',
+            hist_fecha: new Date().toISOString() };
+      var r = await sb.from('volantes').update(upd).eq('id', id);
+      if (r.error) {
+        if (/\bhist\b/i.test(r.error.message || '')) {
+          return { ok: false, error: 'Falta la columna "hist" en la base: correr supabase/volantes.sql y volver a intentar.' };
+        }
+        return { ok: false, error: r.error.message };
+      }
+      return { ok: true };
+    },
     // Guarda SOLO la lista de adjuntos del volante (documento PDF, etc.).
     adjuntosVolante: async function (token, id, adjuntos) {
       var r = await sb.from('volantes').update({ adjuntos: Array.isArray(adjuntos) ? adjuntos : [] }).eq('id', id);

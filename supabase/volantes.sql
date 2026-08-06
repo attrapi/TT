@@ -39,6 +39,12 @@ alter table public.volantes add column if not exists adjuntos       jsonb not nu
 alter table public.volantes add column if not exists asignado_a     text not null default '';
 alter table public.volantes add column if not exists urgente        boolean not null default false;
 alter table public.volantes add column if not exists area           text not null default 'SGOI';
+-- Historial de volantes: '' = activo (en la lista), 'archivado' = atendido y
+-- enviado al Historial, 'eliminado' = mandado al Historial con el bote 🗑
+-- (soft-delete; "Eliminar definitivo" desde el Historial sí borra la fila).
+alter table public.volantes add column if not exists hist       text not null default '';
+alter table public.volantes add column if not exists hist_por   text not null default '';
+alter table public.volantes add column if not exists hist_fecha timestamptz;
 
 -- El HILO de comentarios y la BITÁCORA de cada volante viven en la tabla
 -- `bitacora` ya existente, con tarea_codigo = 'VOL:<uuid del volante>'.

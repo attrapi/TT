@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260731a"></script>
+<script src="supabase-shim.js?v=20260805a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -4637,6 +4637,30 @@
   .hist-chip:hover { background: var(--crema); }
   .hist-chip.is-on { background: var(--guinda); color: #fff; border-color: var(--guinda); }
 
+  /* === Historial: pestañas Tareas | Volantes === */
+  .hist-tabs { display: flex; gap: 8px; margin: 2px 0 10px; }
+  .hist-tab {
+    border: 1px solid var(--linea-fuerte); background: #fff; border-radius: 999px;
+    padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--sans); color: var(--tinta-suave);
+  }
+  .hist-tab:hover { border-color: var(--guinda); color: var(--guinda); }
+  .hist-tab.is-on { background: var(--guinda); border-color: var(--guinda); color: #fff; font-weight: 700; }
+  /* Tarjetas de volantes dentro del Historial: mismo look "apagado" (gris
+     oscuro con texto claro) que las tarjetas de tareas del Historial. */
+  #hvolLista .vol-card { background: #31353b; border-color: #3f444c; box-shadow: none; }
+  #hvolLista .vol-card:hover { border-color: #6b7280; filter: brightness(1.08); }
+  #hvolLista .vol-asunto, #hvolLista .vol-campo { color: #f3f4f6; }
+  #hvolLista .vol-pie { color: #9ca3af; }
+  #hvolLista .vol-vacio { background: transparent; }
+  /* Píldora del estado con que el volante entró al Historial. */
+  .vol-hist-pill {
+    font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .vol-hist-pill.archivado { background: #dcfce7; color: #166534; }
+  .vol-hist-pill.eliminado { background: #fee2e2; color: #991b1b; }
+
   /* === Historial: agrupación por mes (acordeón) dentro de cada columna === */
   /* Cuando el cuerpo está agrupado, las secciones de mes se APILAN (bloque),
      no en grid; el grid va dentro de cada mes. La doble clase gana en
@@ -6224,7 +6248,13 @@
       <h2>🗑️ HISTORIAL</h2>
       <span class="bitacora-meta" id="papeleraMeta">0 tareas</span>
     </div>
-    <div class="reportes-subtitulo">Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.</div>
+    <!-- Pestañas: el historial de TAREAS y el de VOLANTES viven separados,
+         cada uno con sus propios filtros. -->
+    <div class="hist-tabs" id="histTabs">
+      <button type="button" class="hist-tab is-on" data-tab="tareas" onclick="histSetTab('tareas')">📋 Tareas</button>
+      <button type="button" class="hist-tab" data-tab="volantes" onclick="histSetTab('volantes')">📨 Volantes</button>
+    </div>
+    <div class="reportes-subtitulo" id="histSubtitulo">Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.</div>
     <div class="historial-toolbar" id="historialToolbar">
       <input type="search" class="filtros-buscar" id="histBuscar" placeholder="🔎 Buscar tema, código o responsable…" oninput="histSetBuscar(this.value)">
       <select class="dash-select" id="histAnio" onchange="histSetAnio(this.value)"></select>
@@ -6236,6 +6266,28 @@
       </div>
     </div>
     <div class="historial-cols" id="papeleraGrid"></div>
+    <!-- Pestaña VOLANTES del Historial: atendidos que se archivaron y
+         eliminados (soft-delete). La lista se llena en JS. -->
+    <div id="histVolantesWrap" style="display:none">
+      <div class="historial-toolbar">
+        <input type="search" class="filtros-buscar" id="hvolBuscar" placeholder="🔎 Buscar número, asunto, remitente…" oninput="hvolSetBuscar(this.value)">
+        <select class="dash-select" id="hvolAnio" onchange="hvolSetAnio(this.value)"></select>
+        <select class="dash-select" id="hvolArea" onchange="hvolSetArea(this.value)">
+          <option value="">Todas las áreas</option>
+          <option value="SGOI">SGOI-A</option>
+          <option value="SGOIB">SGOI-B</option>
+          <option value="SGOIC">SGOI-C</option>
+          <option value="SA">SA</option>
+          <option value="SPAC">SPAC</option>
+        </select>
+        <div class="hist-chips" id="hvolChips">
+          <button type="button" class="hist-chip is-on" data-est="" onclick="hvolSetEstado('')">Todos</button>
+          <button type="button" class="hist-chip" data-est="archivado" onclick="hvolSetEstado('archivado')">Atendidos</button>
+          <button type="button" class="hist-chip" data-est="eliminado" onclick="hvolSetEstado('eliminado')">Eliminados</button>
+        </div>
+      </div>
+      <div class="volantes-lista" id="hvolLista"></div>
+    </div>
   </div>
 
     </main>
@@ -9809,6 +9861,120 @@ function histSetArea(v)    { HIST_AREA    = v || ''; renderizarPapelera(); }
 function histSetEstatus(v) { HIST_ESTATUS = v || ''; renderizarPapelera(); }
 function histToggleMes(key){ if (HIST_ABIERTOS.has(key)) HIST_ABIERTOS.delete(key); else HIST_ABIERTOS.add(key); renderizarPapelera(); }
 
+// ---- Historial: pestañas (Tareas | Volantes) y filtros del tab de volantes ----
+var HIST_TAB = 'tareas';        // 'tareas' | 'volantes'
+var HVOL_BUSCAR = '', HVOL_ANIO = '', HVOL_AREA = '', HVOL_ESTADO = '';
+
+function histSetTab(t) {
+  HIST_TAB = (t === 'volantes') ? 'volantes' : 'tareas';
+  renderizarPapelera();
+}
+function hvolSetBuscar(v) { HVOL_BUSCAR = v || ''; renderizarHistVolantes(); }
+function hvolSetAnio(v)   { HVOL_ANIO   = v || ''; renderizarHistVolantes(); }
+function hvolSetArea(v)   { HVOL_AREA   = v || ''; renderizarHistVolantes(); }
+function hvolSetEstado(v) { HVOL_ESTADO = v || ''; renderizarHistVolantes(); }
+
+// Enciende la pestaña activa, muestra el bloque que toca y ajusta el subtítulo.
+function histPintarTabs() {
+  var tabs = document.getElementById('histTabs');
+  if (tabs) Array.prototype.forEach.call(tabs.querySelectorAll('.hist-tab'), function (b) {
+    b.classList.toggle('is-on', (b.getAttribute('data-tab') || '') === HIST_TAB);
+  });
+  var esVol = HIST_TAB === 'volantes';
+  var tb = document.getElementById('historialToolbar'); if (tb) tb.style.display = esVol ? 'none' : '';
+  var gr = document.getElementById('papeleraGrid');     if (gr) gr.style.display = esVol ? 'none' : '';
+  var vw = document.getElementById('histVolantesWrap'); if (vw) vw.style.display = esVol ? '' : 'none';
+  var st = document.getElementById('histSubtitulo');
+  if (st) st.innerHTML = esVol
+    ? 'Volantes <strong>atendidos</strong> que se mandaron al historial y volantes <strong>eliminados</strong>. Solo Andrea puede restaurarlos o eliminarlos definitivo.'
+    : 'Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.';
+}
+
+// Año con el que el volante entró al Historial (si no, recepción o registro).
+function hvolAnioDe(v) {
+  var f = histParseFecha(v.hist_fecha || v.fecha_recepcion || v.created_at);
+  return f ? f.anio : null;
+}
+function hvolPoblarAnios(vs) {
+  var sel = document.getElementById('hvolAnio'); if (!sel) return;
+  var set = {};
+  vs.forEach(function (v) { var a = hvolAnioDe(v); if (a) set[a] = 1; });
+  var anios = Object.keys(set).sort(function (a, b) { return b - a; });
+  var opts = '<option value="">Todos los años</option>' +
+    anios.map(function (a) { return '<option value="' + a + '">' + a + '</option>'; }).join('');
+  if (sel.innerHTML !== opts) sel.innerHTML = opts;
+  sel.value = HVOL_ANIO;
+}
+function hvolMarcarChips() {
+  var cont = document.getElementById('hvolChips'); if (!cont) return;
+  Array.prototype.forEach.call(cont.querySelectorAll('.hist-chip'), function (b) {
+    b.classList.toggle('is-on', (b.getAttribute('data-est') || '') === HVOL_ESTADO);
+  });
+}
+
+// Pinta la pestaña "Volantes" del Historial: archivados y eliminados, con
+// buscador + año + área + estado. Las tarjetas reusan el look de Volantes pero
+// apagadas; Restaurar / Eliminar definitivo solo los ve Andrea.
+function renderizarHistVolantes() {
+  var lista = document.getElementById('hvolLista');
+  if (!lista) return;
+  // Los volantes se cargan hasta que alguien abre esta pestaña (igual que la
+  // vista Volantes); al llegar, cargarVolantes vuelve a pintar esto.
+  if (!volCargados) cargarVolantes();
+  var meta = document.getElementById('papeleraMeta');
+  var vs = VOLANTES.filter(volEnHistorial);
+  // Enlace restringido de SGOI: aquí tampoco ve otras áreas (mismo criterio
+  // que la lista de Volantes).
+  var soloSgoi = volSoloSgoi();
+  if (soloSgoi) vs = vs.filter(function (v) { return volAreaDe(v) === 'SGOI'; });
+  hvolPoblarAnios(vs);
+  hvolMarcarChips();
+  var selArea = document.getElementById('hvolArea');
+  if (selArea) { selArea.style.display = soloSgoi ? 'none' : ''; selArea.value = soloSgoi ? '' : HVOL_AREA; }
+  if (HVOL_ESTADO) vs = vs.filter(function (v) { return (v.hist || '') === HVOL_ESTADO; });
+  if (HVOL_ANIO)   vs = vs.filter(function (v) { return String(hvolAnioDe(v) || '') === HVOL_ANIO; });
+  if (!soloSgoi && HVOL_AREA) vs = vs.filter(function (v) { return volAreaDe(v) === HVOL_AREA; });
+  if (HVOL_BUSCAR.trim()) {
+    var q = sinAcentos(HVOL_BUSCAR).toLowerCase();
+    vs = vs.filter(function (v) {
+      return sinAcentos([v.numero, v.asunto, v.remitente, v.turnado_a, v.asignado_a, v.referencia, v.creado_por, v.hist_por]
+        .join(' ')).toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  // Los que entraron al Historial más recientemente, primero.
+  vs.sort(function (a, b) {
+    return String(b.hist_fecha || b.created_at || '').localeCompare(String(a.hist_fecha || a.created_at || ''));
+  });
+  if (meta) meta.textContent = vs.length + (vs.length === 1 ? ' volante' : ' volantes');
+  if (!vs.length) {
+    lista.innerHTML = '<div class="vol-vacio">' + (volCargados
+      ? 'No hay volantes en el historial' + ((HVOL_ESTADO || HVOL_ANIO || HVOL_AREA || HVOL_BUSCAR) ? ' que coincidan con los filtros.' : ' todavía.')
+      : 'Cargando volantes…') + '</div>';
+    return;
+  }
+  var puede = volPuedeHistorial();
+  lista.innerHTML = vs.map(function (v) {
+    var elim = (v.hist || '') === 'eliminado';
+    // hist_fecha es timestamptz; formatearFechaCorta espera solo 'YYYY-MM-DD'.
+    var cuando = v.hist_fecha ? formatearFechaCorta(String(v.hist_fecha).slice(0, 10)) : '';
+    var botones = puede
+      ? '<button class="vol-btn" onclick="event.stopPropagation(); volRestaurarHistorial(\'' + v.id + '\')" title="Regresar el volante a la lista de Volantes">↩ Restaurar</button>' +
+        '<button class="vol-btn borrar" onclick="event.stopPropagation(); volEliminarDefinitivo(\'' + v.id + '\')" title="Borrarlo para siempre (no se puede deshacer)">🗑 Eliminar definitivo</button>'
+      : '';
+    return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante">' +
+      '<div class="vol-cab">' +
+        '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
+        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + etiquetaArea(volAreaDe(v)) + '</span>' +
+        '<span class="vol-hist-pill ' + (elim ? 'eliminado' : 'archivado') + '">' + (elim ? 'Eliminado' : 'Atendido') + '</span>' +
+        '<span class="vol-cab-spacer"></span>' + botones +
+      '</div>' +
+      (v.asunto ? '<div class="vol-asunto">' + escapeHtml(v.asunto) + '</div>' : '') +
+      '<div class="vol-pie">' + escapeHtml((elim ? 'Eliminado' : 'Enviado al historial') +
+        (v.hist_por ? ' por ' + v.hist_por : '') + (cuando ? ' · ' + cuando : '')) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 // Parsea 'YYYY-MM-DD' o 'DD/MM/AAAA …' → {anio, mes (0-11)}. null si no puede.
 function histParseFecha(s) {
   s = String(s || '').trim(); if (!s) return null;
@@ -9940,6 +10106,14 @@ function renderizarPapelera() {
   actualizarVistaDirPill();   // muestra el switch "Ver como Dirección" si aplica
 
   const base = tareasPapelera();          // todo el historial del usuario (sin filtros)
+  const cont = document.getElementById('sidebarConteoPapelera');
+  if (cont) cont.textContent = base.length;   // el contador del sidebar muestra el total real
+
+  // Pestañas Tareas | Volantes: si está abierta la de volantes, se pinta esa
+  // y aquí ya no hay nada que hacer (el grid de tareas queda escondido).
+  histPintarTabs();
+  if (HIST_TAB === 'volantes') { renderizarHistVolantes(); return; }
+
   const cols = columnasHistorial();
   histPoblarAnios(base);
   histPoblarAreas(cols);
@@ -9948,8 +10122,6 @@ function renderizarPapelera() {
   // Recientes primero + filtros de buscador/año/estatus aplicados.
   const lista = ordenarPorFecha(histAplicarFiltros(base)).reverse();
   if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
-  const cont = document.getElementById('sidebarConteoPapelera');
-  if (cont) cont.textContent = base.length;   // el contador del sidebar muestra el total real
 
   grid.innerHTML = '';
   if (!base.length) {
@@ -13463,7 +13635,7 @@ let guardandoVolante = false;  // candado anti-doble-envío (igual que creandoTa
 
 // Lo llama el realtime del shim cuando alguien registra/edita un volante.
 window.ttRefrescarVolantes = function () {
-  if (vistaActiva === 'volantes') cargarVolantes();
+  if (vistaActiva === 'volantes' || (vistaActiva === 'papelera' && HIST_TAB === 'volantes')) cargarVolantes();
   else volCargados = false;    // al entrar a la vista se vuelven a pedir
 };
 
@@ -13473,6 +13645,7 @@ function cargarVolantes() {
     VOLANTES = res.volantes || [];
     volCargados = true;
     pintarVolantes();
+    if (vistaActiva === 'papelera' && HIST_TAB === 'volantes') renderizarHistVolantes();
     // Un volante recién registrado se abre en detalle de una vez, para que se
     // vean sus Acciones, Hilo y Bitácora desde el primer momento.
     if (volAbrirTrasCargar) { const _id = volAbrirTrasCargar; volAbrirTrasCargar = null; abrirDetalleVolante(_id); }
@@ -13492,6 +13665,12 @@ let volFiltroArea = null;   // null = aún sin decidir; se toma del área del us
 let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
 let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
 function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
+// ¿El volante ya está en el Historial? ('archivado' cuando se mandó ya atendido,
+// 'eliminado' cuando se quitó con el bote 🗑).
+function volEnHistorial(v) { return !!(v && v.hist); }
+// Mandar al Historial, restaurar y eliminar definitivo: SOLO Andrea (enlace de
+// SGOI con acceso completo), por instrucción de la Dirección.
+function volPuedeHistorial() { return esEnlaceVeSubs(); }
 // ¿Este usuario solo puede ver volantes de SGOI? Los enlaces RESTRINGIDOS de
 // SGOI no ven SA ni SPAC (subdirectores, jefaturas, Staff y Director sí ven
 // todo). Excepción: Jacobo, que captura volantes de las tres áreas.
@@ -13553,7 +13732,9 @@ function pintarVolantes() {
   const cajaArea = document.getElementById('volFiltroAreaBox');
   if (cajaArea && cajaArea.parentElement) cajaArea.parentElement.style.display = soloSgoi ? 'none' : '';
   if (soloSgoi && volFiltroArea !== 'SGOI') { volFiltroArea = 'SGOI'; volPintarFiltroArea(); }
-  let vs = VOLANTES.slice();
+  // Los volantes que ya están en el Historial (archivados o eliminados) no
+  // salen en esta lista: viven en Historial → pestaña Volantes.
+  let vs = VOLANTES.filter(v => !volEnHistorial(v));
   if (soloSgoi) vs = vs.filter(v => volAreaDe(v) === 'SGOI');
   // La BÚSQUEDA se aplica ANTES del filtro de área, a propósito: el No. de
   // volante es único en TODA la tabla, así que si buscas un número y no aparece
@@ -13592,7 +13773,7 @@ function pintarVolantes() {
     // Con filtros puestos, "no hay nada" casi siempre significa "lo estás
     // viendo por la rendija equivocada": se ofrece quitarlos de un botón.
     const vacio = volCargados
-      ? (!VOLANTES.length ? 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.'
+      ? (!VOLANTES.some(v => !volEnHistorial(v)) ? 'Aún no hay volantes. Usa “+ Nuevo Volante” para registrar el primero.'
         : volHayFiltros() ? 'Ningún volante coincide con los filtros' + (volBuscarTxt ? ' y la búsqueda' : '') +
             '. <button class="vol-btn" onclick="volLimpiarFiltros()">Quitar filtros</button>'
         : 'Ningún volante coincide con la búsqueda.')
@@ -13684,13 +13865,24 @@ function pintarDetalleVolante() {
     ['Registrado por', v.creado_por || '—']
   ];
   if (atendido && v.atendido_por) campos.push(['Atendido por', v.atendido_por]);
+  // Volante que ya está en el Historial: se ve completo, pero no se edita ni se
+  // le cambia el estatus; Andrea puede regresarlo a la lista con Restaurar.
+  const enHist = volEnHistorial(v);
+  if (enHist && v.hist_por) campos.push([v.hist === 'eliminado' ? 'Eliminado por' : 'Enviado al historial por', v.hist_por]);
+  let botonesPie = '';
+  if (enHist) {
+    if (volPuedeHistorial()) botonesPie = `<button class="btn-modal" onclick="volRestaurarHistorial('${v.id}')" title="Regresar el volante a la lista de Volantes">↩ Restaurar</button>`;
+  } else {
+    botonesPie = `<button class="btn-modal ${atendido ? '' : 'btn-modal-primario'}" onclick="volCambiarEstatus()">${atendido ? '↺ Reabrir' : '✓ Marcar atendido'}</button>`;
+    if (atendido && volPuedeHistorial()) botonesPie += `<button class="btn-modal btn-modal-primario" onclick="volMandarHistorial()" title="Archivar el volante atendido en Historial → Volantes">📥 Mandar a historial</button>`;
+  }
   document.getElementById('modal').innerHTML = `
     <div class="modal-header vol-header">
       <div class="vol-header-top">
         <div class="modal-id" data-sub="${volAreaDe(v)}">${escapeHtml(v.numero || 'VOLANTE')}</div>
         <span class="vol-header-sep"></span>
         <div class="modal-header-acciones">
-          <button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>
+          ${enHist ? '' : `<button class="modal-editar-header" onclick="abrirEditarVolante('${v.id}')" title="Editar el volante">✏️ Editar</button>`}
           <button class="modal-cerrar" onclick="cerrarModal()">×</button>
         </div>
       </div>
@@ -13698,6 +13890,7 @@ function pintarDetalleVolante() {
       <div class="modal-meta">
         ${v.urgente ? '<span class="vol-urg">Urgente</span>' : ''}
         <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
+        ${enHist ? '<span class="vol-hist-pill ' + v.hist + '">' + (v.hist === 'eliminado' ? 'Eliminado' : 'En historial') + '</span>' : ''}
         ${v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : ''}
       </div>
     </div>
@@ -13738,7 +13931,7 @@ function pintarDetalleVolante() {
       </div>
     </div>
     <div class="modal-acciones">
-      <button class="btn-modal ${atendido ? '' : 'btn-modal-primario'}" onclick="volCambiarEstatus()">${atendido ? '↺ Reabrir' : '✓ Marcar atendido'}</button>
+      ${botonesPie}
       <button class="btn-modal" onclick="cerrarModal()">Cerrar</button>
     </div>`;
 }
@@ -13994,6 +14187,8 @@ function volEtiquetaAccion(b) {
   const k = (b && b.accion || '').toLowerCase();
   return ({
     crear: 'Registrado', editar: 'Editado', atendido: 'Atendido', reabierto: 'Reabierto',
+    hist_enviado: 'Enviado al Historial', hist_eliminado: 'Eliminado (al Historial)',
+    hist_restaurado: 'Restaurado del Historial',
     accion_add: 'Acción agregada', accion_del: 'Acción quitada',
     accion_ok: 'Acción completada', accion_undo: 'Acción desmarcada',
     adjunto_add: 'Documento adjuntado', adjunto_del: 'Documento quitado',
@@ -14030,6 +14225,54 @@ function volCambiarEstatus() {
     pintarVolantes();
     volRegistrarBita(v.id, nuevo === 'Atendido' ? 'atendido' : 'reabierto', '', function () { cargarBitacoraVolante(v.id); });
   }).estatusVolante(SESION_TOKEN, v.id, nuevo);
+}
+
+// "📥 Mandar a historial" (en el detalle, solo con el volante YA atendido y solo
+// Andrea): lo archiva en Historial → Volantes. Es reversible con Restaurar.
+function volMandarHistorial() {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  if (!v || !volPuedeHistorial() || volEnHistorial(v)) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo mandar al historial', 'error'); return; }
+    v.hist = 'archivado';
+    v.hist_por = usuarioActual ? usuarioActual.nombre : '';
+    v.hist_fecha = new Date().toISOString();
+    toast('Volante enviado al Historial', 'ok');
+    volRegistrarBita(v.id, 'hist_enviado', '');
+    cerrarModal();
+    pintarVolantes();
+  }).historialVolante(SESION_TOKEN, v.id, 'archivar');
+}
+
+// "↩ Restaurar" (desde Historial → Volantes o desde el detalle): regresa el
+// volante a la lista, quede como haya estado (Atendido o En proceso).
+function volRestaurarHistorial(id) {
+  const v = VOLANTES.find(x => String(x.id) === String(id));
+  if (!v || !volPuedeHistorial()) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo restaurar el volante', 'error'); return; }
+    v.hist = ''; v.hist_por = ''; v.hist_fecha = null;
+    toast('Volante restaurado: ya está de vuelta en Volantes', 'ok');
+    volRegistrarBita(v.id, 'hist_restaurado', '');
+    cerrarModal();
+    pintarVolantes();
+    if (vistaActiva === 'papelera') renderizarPapelera();
+  }).historialVolante(SESION_TOKEN, id, 'restaurar');
+}
+
+// "🗑 Eliminar definitivo" (solo Andrea, desde Historial → Volantes): borra la
+// fila con su hilo y bitácora. Este SÍ es irreversible.
+function volEliminarDefinitivo(id) {
+  const v = VOLANTES.find(x => String(x.id) === String(id));
+  if (!v || !volPuedeHistorial()) return;
+  if (!confirm('¿Eliminar DEFINITIVO el volante ' + (v.numero || '') + '? Se borra con su hilo y bitácora; esta acción no se puede deshacer.')) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar el volante', 'error'); return; }
+    VOLANTES = VOLANTES.filter(x => String(x.id) !== String(id));
+    toast('Volante eliminado definitivamente', 'ok');
+    pintarVolantes();
+    if (vistaActiva === 'papelera') renderizarPapelera();
+  }).eliminarVolante(SESION_TOKEN, id);
 }
 
 // Nombres para las listas de Remitente / Turnado a / Asignado a: los equipos
@@ -14613,15 +14856,22 @@ function guardarVolante() {
   });
 }
 
+// El bote 🗑 de la lista ya NO borra para siempre: manda el volante al
+// Historial (pestaña Volantes) marcado como "Eliminado". De ahí solo Andrea
+// puede restaurarlo o eliminarlo definitivo.
 function borrarVolante(id) {
   const v = VOLANTES.find(x => String(x.id) === String(id));
   if (!v) return;
-  if (!confirm('¿Eliminar el volante ' + (v.numero || '') + '? Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Eliminar el volante ' + (v.numero || '') + '? Se enviará al Historial (pestaña Volantes), de donde se puede restaurar.')) return;
   google.script.run.withSuccessHandler(function (res) {
     if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar el volante', 'error'); return; }
-    toast('Volante eliminado', 'ok');
-    cargarVolantes();
-  }).eliminarVolante(SESION_TOKEN, id);
+    v.hist = 'eliminado';
+    v.hist_por = usuarioActual ? usuarioActual.nombre : '';
+    v.hist_fecha = new Date().toISOString();
+    toast('Volante enviado al Historial', 'ok');
+    volRegistrarBita(v.id, 'hist_eliminado', '');
+    pintarVolantes();
+  }).historialVolante(SESION_TOKEN, id, 'eliminar');
 }
 
 // ===================== ASISTENCIA (solo Mario) =====================
