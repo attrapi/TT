@@ -955,6 +955,35 @@
     cursor: pointer; color: var(--tinta);
   }
   .vol-sugiere-op:hover, .vol-sugiere-op.activa { background: var(--guinda-tenue); color: var(--guinda); }
+  /* "Asignado a" con VARIOS nombres: caja tipo input donde cada nombre queda
+     encapsulado como ficha con su × (Enter o elegirlo del menú lo agrega). */
+  .vol-chips-box {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    padding: 6px 8px; border: 1px solid var(--linea); border-radius: 8px;
+    background: #fff; cursor: text;
+  }
+  .vol-chips-box:focus-within { border-color: var(--guinda); }
+  .vol-chips { display: contents; }   /* las fichas participan directo en el flex */
+  .vol-chips-box input, .vol-chips-box input:focus {
+    flex: 1; width: auto; min-width: 150px; border: none; outline: none;
+    padding: 4px 2px; background: transparent; box-shadow: none;
+  }
+  .vol-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--guinda-tenue); color: var(--guinda); border-radius: 999px;
+    padding: 3px 6px 3px 10px; font-size: 12.5px; font-weight: 600;
+  }
+  .vol-chip button {
+    border: none; background: none; cursor: pointer; color: inherit;
+    font-size: 14px; line-height: 1; padding: 0 2px;
+  }
+  .vol-chip button:hover { color: var(--rojo); }
+  /* Los nombres asignados en el DETALLE del volante, como pildoritas. */
+  .vol-asig-pill {
+    display: inline-block; background: var(--guinda-tenue); color: var(--guinda);
+    border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600;
+    margin: 0 4px 3px 0;
+  }
   /* Formulario del volante en DOS PARTES bien delimitadas: cada una en su
      tarjeta con número, título y descripción. 1 = datos del volante (lo que
      trae el documento); 2 = seguimiento (cómo se va a atender). */
@@ -13665,6 +13694,11 @@ let volFiltroArea = null;   // null = aún sin decidir; se toma del área del us
 let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
 let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
 function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
+// "Asignado a" acepta VARIOS nombres: se guardan en la misma columna de texto
+// separados con "; " (sin cambio de esquema). Volantes viejos = un solo nombre.
+function volAsignadosDe(v) {
+  return String((v && v.asignado_a) || '').split(';').map(s => s.trim()).filter(Boolean);
+}
 // ¿El volante ya está en el Historial? ('archivado' cuando se mandó ya atendido,
 // 'eliminado' cuando se quitó con el bote 🗑).
 function volEnHistorial(v) { return !!(v && v.hist); }
@@ -13791,7 +13825,7 @@ function pintarVolantes() {
       ['Fecha del documento', v.fecha_documento ? formatearFechaCorta(v.fecha_documento) : '—'],
       ['Remitente', v.remitente || '—'],
       ['Turnado a', v.turnado_a || '—'],
-      ['Asignado a', v.asignado_a || '—'],
+      ['Asignado a', volAsignadosDe(v).join(', ') || '—'],
       ['Referencia', v.referencia || '—']
     ].map(c => '<div class="vol-campo"><span class="vol-etq">' + c[0] + '</span>' + escapeHtml(c[1]) + '</div>').join('');
     const atendido = (v.estatus || '') === 'Atendido';
@@ -13914,7 +13948,9 @@ function pintarDetalleVolante() {
       <div class="modal-seccion modal-seccion-ancha vol-det-adj" style="margin-top:16px;">
         <div class="modal-seccion-titulo">Asignación y respuesta</div>
         <dl class="modal-campos vol-campos" style="margin-bottom:10px;">
-          <dt>Asignado a</dt><dd>${escapeHtml(v.asignado_a || '—')}</dd>
+          <dt>Asignado a</dt><dd>${volAsignadosDe(v).length
+            ? volAsignadosDe(v).map(n => '<span class="vol-asig-pill">' + escapeHtml(n) + '</span>').join('')
+            : '—'}</dd>
         </dl>
         <div id="volDetAdjBoxResp">${volDetAdjHTML(v, true)}</div>
         <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(true)">📎 Adjuntar respuesta (PDF)</button>
@@ -14300,7 +14336,7 @@ function volGenteSgoi() {
     if (sub !== 'SGOI' && sub !== 'SA' && sub !== 'SPAC') return;
     agregar(((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || ''));
   });
-  (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); agregar(v.asignado_a); });
+  (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); volAsignadosDe(v).forEach(agregar); });
   return lista.sort((a, b) => a.localeCompare(b, 'es'));
 }
 
@@ -14324,9 +14360,60 @@ function volSugFiltrar(inp) {
 }
 
 function volSugElegir(id, op) {
+  // En "Asignado a" elegir del menú encapsula el nombre como ficha (hay varios).
+  if (id === 'vol_asignado') { volAsigAgregar(op.textContent); return; }
   const inp = document.getElementById(id);
   if (inp) inp.value = op.textContent;
   volSugCerrar(id);
+}
+
+// ---- "Asignado a" con VARIOS nombres (fichas) en el formulario del volante ----
+// Cada nombre se encapsula como ficha al presionar Enter o elegirlo del menú;
+// la × de la ficha (o Backspace con el campo vacío) lo quita.
+let volAsignados = [];   // nombres ya encapsulados
+
+function volAsigChipsHTML() {
+  return volAsignados.map((n, i) =>
+    '<span class="vol-chip">' + escapeHtml(n) +
+    '<button type="button" title="Quitar este nombre" onclick="volAsigQuitar(' + i + ')">×</button></span>'
+  ).join('');
+}
+function volAsigPintar() {
+  const box = document.getElementById('vol_asignado_chips');
+  if (box) box.innerHTML = volAsigChipsHTML();
+}
+function volAsigAgregar(nombre) {
+  nombre = String(nombre || '').trim();
+  const inp = document.getElementById('vol_asignado');
+  if (nombre) {
+    const k = sinAcentos(nombre);
+    if (!volAsignados.some(n => sinAcentos(n) === k)) { volAsignados.push(nombre); volAsigPintar(); }
+  }
+  if (inp) inp.value = '';
+  volSugCerrar('vol_asignado');
+}
+function volAsigQuitar(i) {
+  volAsignados.splice(i, 1);
+  volAsigPintar();
+  const inp = document.getElementById('vol_asignado');
+  if (inp) inp.focus();
+}
+// Enter encapsula (la opción resaltada del menú, o lo escrito); Backspace con
+// el campo vacío quita la última ficha; el resto lo maneja volSugTeclas.
+function volAsigTeclas(inp, ev) {
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    const box = document.getElementById('vol_asignado_sug');
+    const ops = (box && box.classList.contains('abierta')) ? box.querySelectorAll('.vol-sugiere-op') : [];
+    if (volSugIdx >= 0 && ops[volSugIdx]) volAsigAgregar(ops[volSugIdx].textContent);
+    else volAsigAgregar(inp.value);
+    return;
+  }
+  if (ev.key === 'Backspace' && !inp.value && volAsignados.length) {
+    volAsigQuitar(volAsignados.length - 1);
+    return;
+  }
+  volSugTeclas(inp, ev);
 }
 
 function volSugCerrar(id) {
@@ -14547,6 +14634,7 @@ function abrirFormVolante(v) {
   volFormAdjuntosNuevos = [];
   volFormAdjuntosQuitar = [];
   volFormAdjuntosDirty = false;
+  volAsignados = volAsignadosDe(v);   // fichas de "Asignado a" (al crear, vacío)
   // Al editar, el hilo es EN VIVO (el volante ya existe): se usa el mismo
   // visor del detalle, cargando su bitácora si no venimos de él.
   if (v) {
@@ -14670,9 +14758,13 @@ function abrirFormVolante(v) {
             <div class="form-campo full">
               <label>Asignado a</label>
               <div class="vol-sugiere-box">
-                <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" value="${val('asignado_a')}" placeholder="Elige de la lista o escribe otro nombre" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volSugTeclas(this, event)" onblur="volSugCerrar(this.id)">
+                <div class="vol-chips-box" onclick="const i = document.getElementById('vol_asignado'); if (i) i.focus();">
+                  <span class="vol-chips" id="vol_asignado_chips">${volAsigChipsHTML()}</span>
+                  <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" placeholder="Elige de la lista o escribe y presiona Enter" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volAsigTeclas(this, event)" onblur="volSugCerrar(this.id)">
+                </div>
                 <div class="vol-sugiere" id="vol_asignado_sug"></div>
               </div>
+              <div class="form-hint">Puede haber varios: cada nombre queda encapsulado al presionar Enter (o al elegirlo de la lista); la × lo quita.</div>
             </div>
             <div class="form-campo full">
               <label>Respuesta (PDF)</label>
@@ -14745,13 +14837,17 @@ function guardarVolante() {
   // volante que el propio usuario acababa de crear sin darse cuenta.
   // (Deshabilitar el botón NO alcanza: no frena el submit por Enter.)
   if (guardandoVolante) return;
+  // Nombre a medio escribir en "Asignado a": se encapsula solo (como la acción
+  // a medio escribir), así quien teclea un nombre sin dar Enter no lo pierde.
+  const asigInp = document.getElementById('vol_asignado');
+  if (asigInp && (asigInp.value || '').trim()) volAsigAgregar(asigInp.value);
   const datos = {
     numero: (document.getElementById('vol_numero').value || '').trim().toUpperCase(),
     fecha_recepcion: document.getElementById('vol_fecha_recepcion').value || '',
     fecha_documento: document.getElementById('vol_fecha_documento').value || '',
     remitente: (document.getElementById('vol_remitente').value || '').trim(),
     turnado_a: (document.getElementById('vol_turnado').value || '').trim(),
-    asignado_a: (document.getElementById('vol_asignado').value || '').trim(),
+    asignado_a: volAsignados.join('; '),
     referencia: (document.getElementById('vol_referencia').value || '').trim(),
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
     asunto: (document.getElementById('vol_asunto').value || '').trim(),
