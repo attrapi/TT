@@ -9886,7 +9886,7 @@ function histPintarTabs() {
   var vw = document.getElementById('histVolantesWrap'); if (vw) vw.style.display = esVol ? '' : 'none';
   var st = document.getElementById('histSubtitulo');
   if (st) st.innerHTML = esVol
-    ? 'Volantes <strong>atendidos</strong> que se mandaron al historial y volantes <strong>eliminados</strong>. Solo Andrea puede restaurarlos o eliminarlos definitivo.'
+    ? 'Volantes <strong>atendidos</strong> que se mandaron al historial y volantes <strong>eliminados</strong>. Solo Andrea y el director pueden restaurarlos o eliminarlos definitivo.'
     : 'Tareas <strong>completadas</strong> o <strong>eliminadas</strong>. Solo las subdirectoras y el director pueden restaurarlas o eliminarlas definitivo.';
 }
 
@@ -9914,7 +9914,7 @@ function hvolMarcarChips() {
 
 // Pinta la pestaña "Volantes" del Historial: archivados y eliminados, con
 // buscador + año + área + estado. Las tarjetas reusan el look de Volantes pero
-// apagadas; Restaurar / Eliminar definitivo solo los ve Andrea.
+// apagadas; Restaurar / Eliminar definitivo solo los ven Andrea y el Director.
 function renderizarHistVolantes() {
   var lista = document.getElementById('hvolLista');
   if (!lista) return;
@@ -13669,8 +13669,12 @@ function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
 // 'eliminado' cuando se quitó con el bote 🗑).
 function volEnHistorial(v) { return !!(v && v.hist); }
 // Mandar al Historial, restaurar y eliminar definitivo: SOLO Andrea (enlace de
-// SGOI con acceso completo), por instrucción de la Dirección.
-function volPuedeHistorial() { return esEnlaceVeSubs(); }
+// SGOI con acceso completo) y el Director (Adrián), por instrucción de la
+// Dirección. En "Ver como Dirección" (solo lectura) NO: el rol ahí es prestado.
+function volPuedeHistorial() {
+  if (SOLO_LECTURA) return false;
+  return esEnlaceVeSubs() || !!(usuarioActual && usuarioActual.rol === 'Director');
+}
 // ¿Este usuario solo puede ver volantes de SGOI? Los enlaces RESTRINGIDOS de
 // SGOI no ven SA ni SPAC (subdirectores, jefaturas, Staff y Director sí ven
 // todo). Excepción: Jacobo, que captura volantes de las tres áreas.
@@ -13866,7 +13870,7 @@ function pintarDetalleVolante() {
   ];
   if (atendido && v.atendido_por) campos.push(['Atendido por', v.atendido_por]);
   // Volante que ya está en el Historial: se ve completo, pero no se edita ni se
-  // le cambia el estatus; Andrea puede regresarlo a la lista con Restaurar.
+  // le cambia el estatus; Andrea o el Director pueden regresarlo con Restaurar.
   const enHist = volEnHistorial(v);
   if (enHist && v.hist_por) campos.push([v.hist === 'eliminado' ? 'Eliminado por' : 'Enviado al historial por', v.hist_por]);
   let botonesPie = '';
@@ -14228,7 +14232,7 @@ function volCambiarEstatus() {
 }
 
 // "📥 Mandar a historial" (en el detalle, solo con el volante YA atendido y solo
-// Andrea): lo archiva en Historial → Volantes. Es reversible con Restaurar.
+// Andrea o el Director): lo archiva en Historial → Volantes. Reversible con Restaurar.
 function volMandarHistorial() {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
   if (!v || !volPuedeHistorial() || volEnHistorial(v)) return;
@@ -14260,8 +14264,8 @@ function volRestaurarHistorial(id) {
   }).historialVolante(SESION_TOKEN, id, 'restaurar');
 }
 
-// "🗑 Eliminar definitivo" (solo Andrea, desde Historial → Volantes): borra la
-// fila con su hilo y bitácora. Este SÍ es irreversible.
+// "🗑 Eliminar definitivo" (solo Andrea o el Director, desde Historial →
+// Volantes): borra la fila con su hilo y bitácora. Este SÍ es irreversible.
 function volEliminarDefinitivo(id) {
   const v = VOLANTES.find(x => String(x.id) === String(id));
   if (!v || !volPuedeHistorial()) return;
@@ -14858,7 +14862,7 @@ function guardarVolante() {
 
 // El bote 🗑 de la lista ya NO borra para siempre: manda el volante al
 // Historial (pestaña Volantes) marcado como "Eliminado". De ahí solo Andrea
-// puede restaurarlo o eliminarlo definitivo.
+// y el Director pueden restaurarlo o eliminarlo definitivo.
 function borrarVolante(id) {
   const v = VOLANTES.find(x => String(x.id) === String(id));
   if (!v) return;
