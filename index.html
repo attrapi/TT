@@ -15891,6 +15891,10 @@ function puedeMarcarArea(t, cod) {
   if (cod.indexOf('ENL:') === 0) {
     return esEnlaceUser() && colEnlaceCode(usuarioActual.nombre).toUpperCase() === cod;
   }
+  // SGOI-B y SGOI-C no tienen equipo propio: sus columnas las gestionan Andrea
+  // (enlace SGOI con acceso completo) y el Director — palomear, agregar
+  // acciones y adjuntar. Sin esto, NADIE podía tocar el checklist de esas tareas.
+  if ((cod === 'SGOIB' || cod === 'SGOIC') && (esEnlaceVeSubs() || usuarioActual.rol === 'Director')) return true;
   if (usuarioActual.rol === 'Director') return cod === 'DPAC' || cod === 'ENLACE';
   if (areaDelUsuario(usuarioActual) !== cod) return false;
   // La columna de la SUBDIRECCIÓN (SPAC/SGOI/SA) la palomea SOLO el subdirector
