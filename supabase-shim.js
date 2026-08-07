@@ -173,6 +173,7 @@
     'Jefatura de Departamento de Procedimientos de Construcción',
     'Jefatura de Departamento de Implementación de Manuales Administrativos',
     'Jefatura de Departamento de Gestión Ambiental',
+    'Jefatura de Departamento de Gestión Ambiental B',
     'Jefatura de Departamento de Gestión de Obras Inducidas',
     'Staff'
   ];
@@ -198,7 +199,10 @@
   }
   function areaDeDatos(d) {
     if (d.nivel === 'jefatura') {
-      return ({ PROCEDIMIENTOS: 'JDPC', MANUALES: 'JDIMA', GESTION_AMBIENTAL: 'JDGA', GESTION_OBRAS: 'JDGOI' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
+      // OJO: este mapa define el PREFIJO del código de la tarea (area → JDGAB-001).
+      // Si falta una jefatura aquí, sus tareas nacen con el prefijo equivocado.
+      return ({ PROCEDIMIENTOS: 'JDPC', MANUALES: 'JDIMA', GESTION_AMBIENTAL: 'JDGA',
+                GESTION_AMBIENTAL_B: 'JDGAB', GESTION_OBRAS: 'JDGOI' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
     }
     return String(d.subdireccion || '').toUpperCase();
   }

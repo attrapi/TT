@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260805a"></script>
+<script src="supabase-shim.js?v=20260807b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -2685,6 +2685,16 @@
   .col-color-verdeoscuro .col-subtitulo,
   .col-color-verdeoscuro .col-conteo  { color: #065f46; }
 
+  /* JDGA-B — turquesa (jefatura ambiental de SGOI-B; se distingue del verde
+     oscuro de la JDGA de SGOI-A, que es otra jefatura). */
+  .col-color-turquesa .col-header {
+    background: #ccfbf1; border-bottom-color: #0f766e;
+  }
+  .col-color-turquesa .col-marca  { background: #0f766e; }
+  .col-color-turquesa .col-titulo,
+  .col-color-turquesa .col-subtitulo,
+  .col-color-turquesa .col-conteo  { color: #115e59; }
+
   /* JDGOI — café (jefatura de obras inducidas de SGOI) */
   .col-color-cafe .col-header {
     background: #f5e6d3; border-bottom-color: #78350f;
@@ -3174,6 +3184,7 @@
   /* Jefaturas con color propio (coincide con su indicador de Pendientes). */
   .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
   .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
+  .tarjeta[data-pre="JDGAB"]  .tarjeta-id { background: #0f766e;          color: #fff; }
 
   .tarjeta-titulo {
     font-size: 14px;
@@ -3631,6 +3642,7 @@
   .modal-id[data-sub="DPAC"]   { background: var(--guinda);     color: #fff; }
   .modal-id[data-pre="JDPC"]   { background: var(--jef-jdpc);   color: #fff; }
   .modal-id[data-pre="JDIMA"]  { background: var(--jef-jdima);  color: #fff; }
+  .modal-id[data-pre="JDGAB"]  { background: #0f766e;           color: #fff; }
 
   .modal-titulo {
     font-family: var(--serif);
@@ -6442,6 +6454,12 @@ const JEFATURAS_POR_SUB = {
   SGOI: {
     GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental',
     GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas'
+  },
+  // SGOI-B tiene su propia Jefatura de Gestión Ambiental (JDGA-B). Es una
+  // jefatura DISTINTA de la de SGOI-A: código propio, prefijo de ID propio
+  // (JDGAB-###) y columna propia. No comparte nada con GESTION_AMBIENTAL.
+  SGOIB: {
+    GESTION_AMBIENTAL_B: 'Jefatura de Departamento de Gestión Ambiental B'
   }
 };
 // Compatibilidad: las dos Jefaturas de SPAC (usado en Reportes).
@@ -7886,7 +7904,7 @@ function obtenerTareasFiltradas() {
       // Parada en una letra de Obras Inducidas, manda el PROYECTO de la tarea
       // (tareaEnObras), igual que las columnas del tablero.
       lista = lista.filter(t => esSubObras(subTab)
-        ? tareaEnObras(t, subTab)
+        ? tareaEnTableroObras(t, subTab)
         : (t.subdireccion === subTab || tareaEnArea(t, areaTab)));
     }
   } else if (tabActiva !== 'TODAS') {
@@ -7895,8 +7913,9 @@ function obtenerTareasFiltradas() {
     if (tabActiva === 'ENLACE') {
       lista = lista.filter(t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF'));
     } else if (esSubObras(tabActiva)) {
-      // Tabs SGOI-A / SGOI-B / SGOI-C: manda el PROYECTO de la tarea.
-      lista = lista.filter(t => tareaEnObras(t, tabActiva));
+      // Tabs SGOI-A / SGOI-B / SGOI-C: manda el PROYECTO de la tarea (y las de
+      // sus jefaturas propias, que pertenecen a la letra por jerarquía).
+      lista = lista.filter(t => tareaEnTableroObras(t, tabActiva));
     } else {
       lista = lista.filter(t => t.subdireccion === tabActiva || tareaEnArea(t, tabActiva));
     }
@@ -8407,7 +8426,7 @@ function actualizarKPIs() {
     // Las letras de Obras Inducidas se cuentan por PROYECTO (tareaEnObras),
     // igual que sus columnas de la vista consolidada.
     const pend = sub => TAREAS.filter(t => activa(t) && ((sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC')
-        ? tareaEnObras(t, sub)
+        ? tareaEnTableroObras(t, sub)
         : (t.subdireccion === sub || tareaEnArea(t, sub)))).length;
     document.getElementById('kpiPendSA').textContent = pend('SA');
     document.getElementById('kpiPendSGOI').textContent = pend('SGOI');
@@ -8448,7 +8467,7 @@ function actualizarKPIs() {
           return '<div class="kpi kpi-sub' + act + '" data-jef="' + cod + '" style="cursor:pointer" '
             + 'onclick="filtrarPorJefatura(\'' + cod + '\')">'
             + '<div class="kpi-valor">' + pendJef(acr) + '</div>'
-            + '<div class="kpi-clave">' + acr + '</div></div>';
+            + '<div class="kpi-clave">' + etiquetaArea(acr) + '</div></div>';
         }).join('');
       }
     }
@@ -8527,7 +8546,7 @@ function actualizarConteosTabs() {
   // proyectos que las columnas del tablero (tareaEnObras), para que coincidan.
   const activas = sub => TAREAS.filter(t =>
       !t.eliminada && t.estatus !== 'Archivada' && ((sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC')
-        ? tareaEnObras(t, sub)
+        ? tareaEnTableroObras(t, sub)
         : (t.subdireccion === sub || tareaEnArea(t, sub)))).length;
   const totalActivas = TAREAS.filter(t => !t.eliminada && t.estatus !== 'Archivada').length;
 
@@ -8625,8 +8644,12 @@ function columnasPorRol() {
       ];
     }
     if (tabActiva === 'SGOIB') {
-      return [{ id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') }];
+      return [
+        { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+          color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') },
+        { id: 'JDGAB', titulo: 'JDGA-B', subtitulo: 'Jefatura de Departamento de Gestión Ambiental B',
+          color: 'turquesa', filtro: t => tareaEnArea(t, 'JDGAB') }
+      ];
     }
     if (tabActiva === 'SGOIC') {
       return [{ id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
@@ -8646,13 +8669,13 @@ function columnasPorRol() {
     return [
       { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
         color: 'olivo',
-        filtro: t => tareaEnObras(t, 'SGOI') },
+        filtro: t => tareaEnTableroObras(t, 'SGOI') },
       { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
         color: 'olivo',
-        filtro: t => tareaEnObras(t, 'SGOIB') },
+        filtro: t => tareaEnTableroObras(t, 'SGOIB') },
       { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
         color: 'olivo',
-        filtro: t => tareaEnObras(t, 'SGOIC') },
+        filtro: t => tareaEnTableroObras(t, 'SGOIC') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul',
         filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
@@ -8678,11 +8701,11 @@ function columnasPorRol() {
   if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
     return [
       { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
-        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOI') },
+        color: 'olivo', filtro: t => tareaEnTableroObras(t, 'SGOI') },
       { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') },
+        color: 'olivo', filtro: t => tareaEnTableroObras(t, 'SGOIB') },
       { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
-        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIC') },
+        color: 'olivo', filtro: t => tareaEnTableroObras(t, 'SGOIC') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul', filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
       { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
@@ -8719,6 +8742,15 @@ function columnasPorRol() {
       filtro: t => tareaEnArea(t, 'JDGOI') }
   ];
 
+  // SGOI-B: la subdirección + su jefatura ambiental propia (JDGA-B).
+  const colsSGOIB = [
+    { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
+      color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIB') },
+    { id: 'JDGAB', titulo: 'JDGA-B', subtitulo: 'Jefatura de Departamento de Gestión Ambiental B',
+      color: 'turquesa', jefCod: 'GESTION_AMBIENTAL_B',
+      filtro: t => tareaEnArea(t, 'JDGAB') }
+  ];
+
   if (sub === 'SPAC') {
     if (codJefUser) return colsSPAC.filter(c => c.jefCod === codJefUser);
     return colsSPAC;
@@ -8727,11 +8759,15 @@ function columnasPorRol() {
     if (codJefUser) return colsSGOI.filter(c => c.jefCod === codJefUser);
     return colsSGOI;
   }
+  if (sub === 'SGOIB') {
+    if (codJefUser) return colsSGOIB.filter(c => c.jefCod === codJefUser);
+    return colsSGOIB;
+  }
   // Default: una sola columna con todo lo del perfil. Para las letras de Obras
   // Inducidas (Andrea parada en SGOI-B o SGOI-C) manda el proyecto de la tarea.
   return [{ id: sub, titulo: etiquetaArea(sub), subtitulo: '', color: 'olivo',
             filtro: t => (sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC')
-              ? tareaEnObras(t, sub)
+              ? tareaEnTableroObras(t, sub)
               : (t.subdireccion === sub || tareaEnArea(t, sub)) }];
 }
 
@@ -8988,14 +9024,16 @@ function moverTarea(idTarea, nuevoEstatus) {
   }
 }
 
-// ¿El usuario es subdirector de SPAC o SGOI (Capturista, SIN jefatura asignada)?
+// ¿El usuario es subdirector de un área CON jefaturas (Capturista, SIN jefatura
+// asignada)? Hoy SPAC, SGOI-A y SGOI-B; sale del catálogo JEFATURAS_POR_SUB, así
+// que una subdirección nueva con jefaturas queda cubierta sola.
 // Solo ellos pueden arrastrar tareas entre sus columnas (subdirección ↔ jefaturas)
 // para repartirlas y palomear automáticamente el "área involucrada".
 function esSubdirectorConJefaturas() {
   return !SOLO_LECTURA
     && !!usuarioActual
     && usuarioActual.rol === 'Capturista'
-    && (usuarioActual.subdireccion === 'SPAC' || usuarioActual.subdireccion === 'SGOI')
+    && jefaturasDeSub(usuarioActual.subdireccion).length > 0
     && !jefaturaCodigo(usuarioActual.jefatura)
     && !esEnlaceRestringido();   // un enlace restringido no arrastra; con acceso completo sí
 }
@@ -9818,7 +9856,7 @@ function tareasPapelera() {
   // su jefatura. Los demás siguen la regla de proyectos en las letras de Obras.
   const codJef = jefaturaCodigo(usuarioActual.jefatura);
   lista = lista.filter(t => (esSubObras(subTableroActivo()) && !codJef)
-    ? (esSubObras(t.subdireccion) && tareaEnObras(t, subTableroActivo()))
+    ? (esSubObras(t.subdireccion) && tareaEnTableroObras(t, subTableroActivo()))
     : t.subdireccion === subTableroActivo());
   if (codJef) {
     lista = lista.filter(t => t.nivel === 'jefatura' && String(t.jefatura || '').toUpperCase() === codJef);
@@ -9833,11 +9871,11 @@ function columnasHistorial() {
   if (usuarioActual.rol === 'Director') {
     return [
       { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
-        color: 'olivo',  filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOI') },
+        color: 'olivo',  filtro: t => esSubObras(t.subdireccion) && tareaEnTableroObras(t, 'SGOI') },
       { id: 'SGOIB', titulo: 'SGOI-B', subtitulo: 'Subdirección de Gestión de Obras Inducidas B',
-        color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOIB') },
+        color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnTableroObras(t, 'SGOIB') },
       { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
-        color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnObras(t, 'SGOIC') },
+        color: 'olivo', filtro: t => esSubObras(t.subdireccion) && tareaEnTableroObras(t, 'SGOIC') },
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul',   filtro: t => t.subdireccion === 'SPAC' },
       { id: 'SA',   titulo: 'SA',   subtitulo: 'Subdirección de Archivo',
@@ -12951,6 +12989,18 @@ function tareaEnObras(t, cod) {
   return letras.length ? letras.indexOf(cod) >= 0 : cod === 'SGOI';
 }
 
+// ¿La tarea entra al TABLERO de esta letra de Obras Inducidas?
+// Regla: una tarea de JEFATURA pertenece a la letra de SU subdirección madre
+// por JERARQUÍA, no por proyecto. Sin esto, una tarea de JDGA-B sin proyecto
+// (o con un proyecto de otra letra) caía en el default "sin proyecto → SGOI-A"
+// de tareaEnObras y desaparecía del tablero de SGOI-B, que es su casa.
+// Las tareas que NO son de jefatura siguen repartiéndose por proyecto.
+function tareaEnTableroObras(t, cod) {
+  const jefAcr = (t && t.nivel === 'jefatura') ? (ACRONIMO_JEFATURA[t.jefatura] || '') : '';
+  if (jefAcr) return subdireccionDeJefatura(jefAcr) === String(cod || '').toUpperCase();
+  return tareaEnObras(t, cod);
+}
+
 // ¿A qué fase pertenece un proyecto? (para pintarlo con su etiqueta).
 function faseDeProyecto(nombre) {
   const g = PROYECTOS_FASES.find(x => x.proyectos.indexOf(nombre) >= 0);
@@ -12981,7 +13031,7 @@ let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 // Áreas cuyas tareas se etiquetan con estos temas: SGOI (y sus dos jefaturas)
 // y la Dirección (DPAC), que da seguimiento a esos mismos trámites. Una sola
 // lista para que el formulario, el guardado y el filtro no se desincronicen.
-const AREAS_CON_TEMAS = ['SGOI', 'SGOIB', 'SGOIC', 'JDGA', 'JDGOI', 'DPAC'];
+const AREAS_CON_TEMAS = ['SGOI', 'SGOIB', 'SGOIC', 'JDGA', 'JDGAB', 'JDGOI', 'DPAC'];
 
 // ¿Alguna de estas áreas usa temas? (recibe códigos de área).
 function areasUsanTemas(cods) {
@@ -13083,9 +13133,9 @@ function segAreasDisponibles() {
   const u = usuarioActual;
   if (u && u.rol === 'Director') {
     return [
-      { id: 'SGOI',  titulo: 'SGOI-A', sub: 'SGOI',  filtro: t => tareaEnObras(t, 'SGOI') },
-      { id: 'SGOIB', titulo: 'SGOI-B', sub: 'SGOIB', filtro: t => tareaEnObras(t, 'SGOIB') },
-      { id: 'SGOIC', titulo: 'SGOI-C', sub: 'SGOIC', filtro: t => tareaEnObras(t, 'SGOIC') },
+      { id: 'SGOI',  titulo: 'SGOI-A', sub: 'SGOI',  filtro: t => tareaEnTableroObras(t, 'SGOI') },
+      { id: 'SGOIB', titulo: 'SGOI-B', sub: 'SGOIB', filtro: t => tareaEnTableroObras(t, 'SGOIB') },
+      { id: 'SGOIC', titulo: 'SGOI-C', sub: 'SGOIC', filtro: t => tareaEnTableroObras(t, 'SGOIC') },
       { id: 'SPAC',  titulo: 'SPAC',  sub: 'SPAC',  filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
       { id: 'SA',    titulo: 'SA',    sub: 'SA',    filtro: t => t.subdireccion === 'SA'   || tareaEnArea(t, 'SA') },
       { id: 'STAFF', titulo: 'Staff', sub: 'STAFF', filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }
@@ -15467,6 +15517,7 @@ let AREAS = [
   'Jefatura de Departamento de Procedimientos de Construcción',
   'Jefatura de Departamento de Implementación de Manuales Administrativos',
   'Jefatura de Departamento de Gestión Ambiental',
+  'Jefatura de Departamento de Gestión Ambiental B',
   'Jefatura de Departamento de Gestión de Obras Inducidas',
   'Staff'
 ];
@@ -15486,6 +15537,7 @@ const ACRONIMOS_AREA = {
   'Jefatura de Departamento de Procedimientos de Construcción': 'JDPC',
   'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
   'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
+  'Jefatura de Departamento de Gestión Ambiental B': 'JDGAB',
   'Jefatura de Departamento de Gestión de Obras Inducidas': 'JDGOI',
   'Staff': 'STAFF',
   // Legacy: tareas viejas pueden tener el nombre anterior; lo mapeamos al
@@ -15504,6 +15556,7 @@ function etiquetaChip(area) {
   if (!area) return '';
   const map = {
     'Jefatura de Departamento de Gestión Ambiental':                        'JDGA',
+    'Jefatura de Departamento de Gestión Ambiental B':                      'JDGA-B',
     'Jefatura de Departamento de Gestión de Obras Inducidas':               'JDGOI',
     'Jefatura de Departamento de Procedimientos de Construcción':           'JDPC',
     'Jefatura de Departamento de Implementación de Manuales Administrativos':'JDIMA'
@@ -15556,6 +15609,7 @@ function etiquetaArea(cod) {
   if (c === 'SGOI')  return 'SGOI-A';
   if (c === 'SGOIB') return 'SGOI-B';
   if (c === 'SGOIC') return 'SGOI-C';
+  if (c === 'JDGAB') return 'JDGA-B';   // jefatura ambiental de SGOI-B
   return String(cod || '');
 }
 
@@ -15564,6 +15618,7 @@ function areaResponsable(t) {
   if (t.nivel === 'jefatura') {
     if (t.jefatura === 'PROCEDIMIENTOS')      return 'JDPC';
     if (t.jefatura === 'MANUALES')            return 'JDIMA';
+    if (t.jefatura === 'GESTION_AMBIENTAL_B') return 'JDGAB';
     if (t.jefatura === 'GESTION_AMBIENTAL')   return 'JDGA';
     if (t.jefatura === 'GESTION_OBRAS')       return 'JDGOI';
   }
@@ -15660,6 +15715,10 @@ function jefaturaCodigo(raw) {
   const n = String(raw).toLowerCase().replace(/\s+/g, ' ');
   if (n.indexOf('procedimiento') >= 0) return 'PROCEDIMIENTOS';
   if (n.indexOf('manual') >= 0)        return 'MANUALES';
+  // La Gestión Ambiental de SGOI-B se prueba ANTES que la genérica: tanto su
+  // nombre ("… Gestión Ambiental B") como su código ("GESTION_AMBIENTAL_B")
+  // contienen "ambient" y si no, caerían en la jefatura de SGOI-A.
+  if (/ambient/.test(n) && /(_b|\bb)\s*$/.test(n)) return 'GESTION_AMBIENTAL_B';
   if (n.indexOf('ambient') >= 0)       return 'GESTION_AMBIENTAL';
   if (n.indexOf('obras inducid') >= 0) return 'GESTION_OBRAS';
   return String(raw).toUpperCase().trim();
@@ -15670,12 +15729,13 @@ const PREFIJO_JEFATURA = {
   JDPC:  'PROCEDIMIENTOS',
   JDIMA: 'MANUALES',
   JDGA:  'GESTION_AMBIENTAL',
-  JDGOI: 'GESTION_OBRAS'
+  JDGOI: 'GESTION_OBRAS',
+  JDGAB: 'GESTION_AMBIENTAL_B'   // Jefatura de Gestión Ambiental de SGOI-B
 };
 
 // Código de jefatura (PROCEDIMIENTOS…) → acrónimo de área (JDPC…). Inverso de
 // PREFIJO_JEFATURA, para traducir la jefatura del usuario a un código de área.
-const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMBIENTAL:'JDGA', GESTION_OBRAS:'JDGOI' };
+const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMBIENTAL:'JDGA', GESTION_OBRAS:'JDGOI', GESTION_AMBIENTAL_B:'JDGAB' };
 
 // =====================================================================
 // Modelo de PARTICIPANTES y niveles de jerarquía
@@ -16991,7 +17051,7 @@ function abrirNuevaTarea(tEdit) {
   // Para un JEFE, su "área fija" es su propia jefatura (JDPC/JDIMA/JDGA/JDGOI),
   // NO su subdirección: así su único destino y su valor por defecto es su
   // jefatura (no puede asignar a la subdirección ni a nadie más).
-  const _jefVcode = {'PROCEDIMIENTOS':'JDPC','MANUALES':'JDIMA','GESTION_AMBIENTAL':'JDGA','GESTION_OBRAS':'JDGOI'};
+  const _jefVcode = ACRONIMO_JEFATURA;   // PROCEDIMIENTOS→JDPC, …, GESTION_AMBIENTAL_B→JDGAB
   const _miJefTop = esCapturista ? jefaturaCodigo(usuarioActual.jefatura) : '';
   const subFija = esCapturista
     ? (_miJefTop ? (_jefVcode[_miJefTop] || usuarioActual.subdireccion) : usuarioActual.subdireccion)
@@ -17006,8 +17066,7 @@ function abrirNuevaTarea(tEdit) {
   const _codigoEd = function (t) {
     if (!t) return '';
     if (t.nivel === 'jefatura') {
-      const m = {'PROCEDIMIENTOS':'JDPC','MANUALES':'JDIMA','GESTION_AMBIENTAL':'JDGA','GESTION_OBRAS':'JDGOI'};
-      return m[t.jefatura] || t.subdireccion;
+      return ACRONIMO_JEFATURA[t.jefatura] || t.subdireccion;
     }
     return t.subdireccion;
   };
@@ -17063,6 +17122,7 @@ function abrirNuevaTarea(tEdit) {
     { v:'JDGA',  sub:'SGOI', nivel:'jefatura',     jef:'GESTION_AMBIENTAL',    n:'JDGA · Jefatura de Departamento de Gestión Ambiental' },
     { v:'JDGOI', sub:'SGOI', nivel:'jefatura',     jef:'GESTION_OBRAS',        n:'JDGOI · Jefatura de Departamento de Gestión de Obras Inducidas' },
     { v:'SGOIB', sub:'SGOIB', nivel:'subdireccion', jef:'',                    n:'SGOI-B · Subdirección de Gestión de Obras Inducidas B' },
+    { v:'JDGAB', sub:'SGOIB', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_B', n:'JDGA-B · Jefatura de Departamento de Gestión Ambiental B' },
     { v:'SGOIC', sub:'SGOIC', nivel:'subdireccion', jef:'',                    n:'SGOI-C · Subdirección de Gestión de Obras Inducidas C' },
     { v:'SPAC',  sub:'SPAC', nivel:'subdireccion', jef:'',                     n:'SPAC · Subdirección de Procesos Administrativos de Construcción' },
     { v:'JDPC',  sub:'SPAC', nivel:'jefatura',     jef:'PROCEDIMIENTOS',       n:'JDPC · Jefatura de Departamento de Procesos de Construcción' },
@@ -17103,12 +17163,12 @@ function abrirNuevaTarea(tEdit) {
   // La tarea aparece en el tablero de cada área marcada y el checklist tiene una
   // columna por área. El área propia del usuario va marcada y bloqueada al crear
   // (siempre participa). Al editar se pre-marcan los participantes actuales.
-  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI-A', SGOIB:'SGOI-B', SGOIC:'SGOI-C', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDPC:'JDPC', JDIMA:'JDIMA' };
+  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI-A', SGOIB:'SGOI-B', SGOIC:'SGOI-C', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDGAB:'JDGA-B', JDPC:'JDPC', JDIMA:'JDIMA' };
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
   let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC() || esEnlaceVeSubs())
-    ? ['DPAC','SGOI','SGOIB','SGOIC','SPAC','SA','JDGOI','JDGA','JDPC','JDIMA','ENLACE']
+    ? ['DPAC','SGOI','SGOIB','SGOIC','SPAC','SA','JDGOI','JDGA','JDGAB','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // SGOI también puede asignarle tareas al Staff de la Dirección (Tiffany):
   // se le suma el chip STAFF a su lista de áreas.
@@ -17730,6 +17790,7 @@ function guardarNuevaTarea() {
     'SGOIC': { sub:'SGOIC', nivel:'subdireccion', jef:'' },
     'JDGA':  { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_AMBIENTAL' },
     'JDGOI': { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_OBRAS' },
+    'JDGAB': { sub:'SGOIB', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_B' },
     'SPAC':  { sub:'SPAC',  nivel:'subdireccion', jef:'' },
     'JDPC':  { sub:'SPAC',  nivel:'jefatura',     jef:'PROCEDIMIENTOS' },
     'JDIMA': { sub:'SPAC',  nivel:'jefatura',     jef:'MANUALES' },
