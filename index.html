@@ -15908,6 +15908,17 @@ function puedeMarcarArea(t, cod) {
 // columna, agregar/quitar acciones, adjuntar)?
 function puedeChecklist(t) {
   if (!usuarioActual || !t) return false;
+  if (SOLO_LECTURA) return false;   // vista de Dirección = solo lectura
+  // El Director y Andrea (enlace SGOI con acceso completo) ya EDITAN la tarea
+  // entera de las subdirecciones que gestionan (ver usuarioPuedeEditar), pero el
+  // checklist se les cerraba: en una tarea de SA la única columna es SA y
+  // ninguno de los dos es dueño de esa área, así que no podían agregar acciones
+  // ni adjuntar evidencia. Aquí se les abre esa GESTIÓN (agregar/editar/borrar
+  // acciones, reordenar, adjuntar y quitar adjuntos). El PALOMEO no cambia: la
+  // casilla de cada columna la sigue firmando su área dueña (puedeMarcarArea).
+  if (usuarioActual.rol === 'Director') return true;
+  if (esEnlaceVeSubs()
+    && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(String(t.subdireccion || '').toUpperCase()) >= 0) return true;
   return columnasChecklist(t).some(cod => puedeMarcarArea(t, cod));
 }
 
