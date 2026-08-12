@@ -973,6 +973,9 @@
     background: var(--guinda-tenue); color: var(--guinda); border-radius: 999px;
     padding: 3px 6px 3px 10px; font-size: 12.5px; font-weight: 600;
   }
+  /* Nombre que NO está en el catálogo de personal (volantes viejos capturados
+     a mano, o gente de fuera de la Dirección): ámbar, para que se note. */
+  .vol-chip.fuera { background: #fef3c7; color: #92400e; }
   .vol-chip button {
     border: none; background: none; cursor: pointer; color: inherit;
     font-size: 14px; line-height: 1; padding: 0 2px;
@@ -14402,13 +14405,43 @@ function volGenteSgoi() {
     if (vistos.has(k)) return;
     vistos.add(k); lista.push(n);
   };
-  (RESPONSABLES || []).forEach(r => {
-    const sub = String((r && r.subdireccion) || '').toUpperCase();
-    if (sub !== 'SGOI' && sub !== 'SA' && sub !== 'SPAC') return;
-    agregar(((r.nombre_corto || '').trim()) || formatearNombre(r.nombreCompleto || ''));
-  });
+  (RESPONSABLES || []).forEach(r => agregar(volNombreDe(r)));
   (VOLANTES || []).forEach(v => { agregar(v.remitente); agregar(v.turnado_a); volAsignadosDe(v).forEach(agregar); });
   return lista.sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+// Cómo se llama esta persona en los campos del volante (el corto si lo tiene).
+function volNombreDe(r) {
+  return (((r && r.nombre_corto) || '').trim()) || formatearNombre((r && r.nombreCompleto) || '');
+}
+// Personal al que se le puede ASIGNAR un volante. Sale SOLO del catálogo de
+// perfiles activos (RESPONSABLES), nunca de lo ya capturado: "Asignado a" no
+// acepta texto libre. Antes sí, y se colaban nombres sueltos a medias
+// ("estela"), que además se volvían sugerencia para todos los demás.
+function volPersonalAsignable() {
+  const vistos = new Set();
+  const lista = [];
+  (RESPONSABLES || []).forEach(r => {
+    const n = volNombreDe(r);
+    if (!n) return;
+    const k = sinAcentos(n).toLowerCase();
+    if (vistos.has(k)) return;
+    vistos.add(k); lista.push(n);
+  });
+  return lista.sort((a, b) => a.localeCompare(b, 'es'));
+}
+// ¿Este texto corresponde a alguien del catálogo? Devuelve el nombre TAL CUAL
+// está ahí (así lo tecleado a medias entra completo y parejo). Vale el nombre
+// exacto o una coincidencia ÚNICA: "estela" → "Estela Alejandra Pérez Rivera";
+// si lo escrito empata con varios, se obliga a elegir del menú.
+function volResolverAsignado(txt) {
+  const k = sinAcentos(String(txt || '').trim()).toLowerCase();
+  if (!k) return '';
+  const gente = volPersonalAsignable();
+  const exacto = gente.find(n => sinAcentos(n).toLowerCase() === k);
+  if (exacto) return exacto;
+  const parecidos = gente.filter(n => sinAcentos(n).toLowerCase().indexOf(k) >= 0);
+  return parecidos.length === 1 ? parecidos[0] : '';
 }
 
 // ---- Menú de sugerencias propio (Remitente / Turnado a / Asignado a) ----
@@ -14420,7 +14453,11 @@ function volSugFiltrar(inp) {
   const box = document.getElementById(inp.id + '_sug');
   if (!box) return;
   const q = sinAcentos(inp.value || '').toLowerCase().trim();
-  const nombres = volGenteSgoi().filter(n => !q || sinAcentos(n).toLowerCase().indexOf(q) >= 0);
+  // "Asignado a" solo ofrece (y solo acepta) gente del catálogo. Remitente y
+  // "Turnado a" siguen abiertos: ahí va quien manda el documento, que casi
+  // nunca es alguien de la Dirección.
+  const fuente = (inp.id === 'vol_asignado') ? volPersonalAsignable() : volGenteSgoi();
+  const nombres = fuente.filter(n => !q || sinAcentos(n).toLowerCase().indexOf(q) >= 0);
   volSugIdx = -1;
   if (!nombres.length) { volSugCerrar(inp.id); return; }
   // mousedown (no click): se elige ANTES de que el blur del input cierre el menú.
@@ -14444,24 +14481,53 @@ function volSugElegir(id, op) {
 let volAsignados = [];   // nombres ya encapsulados
 
 function volAsigChipsHTML() {
-  return volAsignados.map((n, i) =>
-    '<span class="vol-chip">' + escapeHtml(n) +
-    '<button type="button" title="Quitar este nombre" onclick="volAsigQuitar(' + i + ')">×</button></span>'
-  ).join('');
+  return volAsignados.map((n, i) => {
+    // Ficha marcada en ámbar: el nombre no está en el catálogo de personal.
+    // Pasa con volantes viejos (se capturaban a mano) y con gente de fuera.
+    const fuera = !volEnCatalogo(n);
+    return '<span class="vol-chip' + (fuera ? ' fuera' : '') + '"' +
+      (fuera ? ' title="Este nombre no está en el personal dado de alta"' : '') + '>' +
+      escapeHtml(n) +
+      '<button type="button" title="Quitar este nombre" onclick="volAsigQuitar(' + i + ')">×</button></span>';
+  }).join('');
+}
+// ¿El nombre es EXACTAMENTE alguien del catálogo?
+function volEnCatalogo(nombre) {
+  const k = sinAcentos(String(nombre || '').trim()).toLowerCase();
+  return !!k && volPersonalAsignable().some(n => sinAcentos(n).toLowerCase() === k);
 }
 function volAsigPintar() {
   const box = document.getElementById('vol_asignado_chips');
   if (box) box.innerHTML = volAsigChipsHTML();
 }
+// Encapsula un nombre como ficha. Devuelve false y NO lo encapsula si el nombre
+// no pasa el filtro; el texto se queda en el campo para poder corregirlo.
+//
+// REGLA: nunca un nombre suelto ("estela"). Primero se busca en el catálogo de
+// personal y, si empata, entra COMPLETO ("Estela Alejandra Pérez Rivera"). Si no
+// está en el catálogo (gente de fuera de la Dirección) se acepta, pero tiene que
+// traer POR LO MENOS un apellido: nombre + apellido, dos palabras mínimo.
 function volAsigAgregar(nombre) {
-  nombre = String(nombre || '').trim();
+  nombre = String(nombre || '').trim().replace(/\s+/g, ' ');
   const inp = document.getElementById('vol_asignado');
   if (nombre) {
-    const k = sinAcentos(nombre);
-    if (!volAsignados.some(n => sinAcentos(n) === k)) { volAsignados.push(nombre); volAsigPintar(); }
+    const oficial = volResolverAsignado(nombre);
+    if (!oficial) {
+      if (nombre.split(' ').length < 2) {
+        toast('Falta el apellido: escribe el nombre completo o elígelo de la lista', 'error');
+        if (inp) { inp.value = nombre; inp.focus(); }
+        return false;
+      }
+      // Dos palabras o más pero fuera del catálogo: entra tal cual, con la
+      // ficha marcada en ámbar (ver volAsigChipsHTML).
+    }
+    const bueno = oficial || nombre;
+    const k = sinAcentos(bueno);
+    if (!volAsignados.some(n => sinAcentos(n) === k)) { volAsignados.push(bueno); volAsigPintar(); }
   }
   if (inp) inp.value = '';
   volSugCerrar('vol_asignado');
+  return true;
 }
 function volAsigQuitar(i) {
   volAsignados.splice(i, 1);
@@ -14845,11 +14911,11 @@ function abrirFormVolante(v) {
               <div class="vol-sugiere-box">
                 <div class="vol-chips-box" onclick="const i = document.getElementById('vol_asignado'); if (i) i.focus();">
                   <span class="vol-chips" id="vol_asignado_chips">${volAsigChipsHTML()}</span>
-                  <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" placeholder="Elige de la lista o escribe y presiona Enter" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volAsigTeclas(this, event)" onblur="volSugCerrar(this.id)">
+                  <input type="text" id="vol_asignado" maxlength="200" autocomplete="off" placeholder="Elige a la persona de la lista" oninput="volSugFiltrar(this)" onfocus="volSugFiltrar(this)" onkeydown="volAsigTeclas(this, event)" onblur="volSugCerrar(this.id)">
                 </div>
                 <div class="vol-sugiere" id="vol_asignado_sug"></div>
               </div>
-              <div class="form-hint">Puede haber varios: cada nombre queda encapsulado al presionar Enter (o al elegirlo de la lista); la × lo quita.</div>
+              <div class="form-hint">Puede haber varios: cada nombre queda encapsulado al elegirlo de la lista o al presionar Enter; la × lo quita. Debe ir el nombre completo — con nombre de pila suelto no lo acepta.</div>
             </div>
             <div class="form-campo full">
               <label>Respuesta (PDF)</label>
@@ -14925,7 +14991,7 @@ function guardarVolante() {
   // Nombre a medio escribir en "Asignado a": se encapsula solo (como la acción
   // a medio escribir), así quien teclea un nombre sin dar Enter no lo pierde.
   const asigInp = document.getElementById('vol_asignado');
-  if (asigInp && (asigInp.value || '').trim()) volAsigAgregar(asigInp.value);
+  if (asigInp && (asigInp.value || '').trim() && !volAsigAgregar(asigInp.value)) return;
   const datos = {
     numero: (document.getElementById('vol_numero').value || '').trim().toUpperCase(),
     fecha_recepcion: document.getElementById('vol_fecha_recepcion').value || '',
