@@ -38,6 +38,10 @@ alter table public.volantes add column if not exists checklist      jsonb not nu
 alter table public.volantes add column if not exists adjuntos       jsonb not null default '[]';
 alter table public.volantes add column if not exists asignado_a     text not null default '';
 alter table public.volantes add column if not exists urgente        boolean not null default false;
+-- `area` admite VARIAS áreas separadas con "; " (ej. 'SGOIB; SA'), igual que
+-- `asignado_a` con los nombres: un volante que llega a dos áreas se captura UNA
+-- vez y sale en la lista de las dos (el número es único en toda la tabla, así
+-- que duplicar el registro no era opción). Filas viejas = una sola área.
 alter table public.volantes add column if not exists area           text not null default 'SGOI';
 -- Historial de volantes: '' = activo (en la lista), 'archivado' = atendido y
 -- enviado al Historial, 'eliminado' = mandado al Historial con el bote 🗑

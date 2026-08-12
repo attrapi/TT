@@ -9993,14 +9993,14 @@ function renderizarHistVolantes() {
   // Enlace restringido de SGOI: aquí tampoco ve otras áreas (mismo criterio
   // que la lista de Volantes).
   var soloSgoi = volSoloSgoi();
-  if (soloSgoi) vs = vs.filter(function (v) { return volAreaDe(v) === 'SGOI'; });
+  if (soloSgoi) vs = vs.filter(function (v) { return volEsDeArea(v, 'SGOI'); });
   hvolPoblarAnios(vs);
   hvolMarcarChips();
   var selArea = document.getElementById('hvolArea');
   if (selArea) { selArea.style.display = soloSgoi ? 'none' : ''; selArea.value = soloSgoi ? '' : HVOL_AREA; }
   if (HVOL_ESTADO) vs = vs.filter(function (v) { return (v.hist || '') === HVOL_ESTADO; });
   if (HVOL_ANIO)   vs = vs.filter(function (v) { return String(hvolAnioDe(v) || '') === HVOL_ANIO; });
-  if (!soloSgoi && HVOL_AREA) vs = vs.filter(function (v) { return volAreaDe(v) === HVOL_AREA; });
+  if (!soloSgoi && HVOL_AREA) vs = vs.filter(function (v) { return volEsDeArea(v, HVOL_AREA); });
   if (HVOL_BUSCAR.trim()) {
     var q = sinAcentos(HVOL_BUSCAR).toLowerCase();
     vs = vs.filter(function (v) {
@@ -10031,7 +10031,7 @@ function renderizarHistVolantes() {
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
-        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + etiquetaArea(volAreaDe(v)) + '</span>' +
+        volAreasHTML(v) +
         '<span class="vol-hist-pill ' + (elim ? 'eliminado' : 'archivado') + '">' + (elim ? 'Eliminado' : 'Atendido') + '</span>' +
         '<span class="vol-cab-spacer"></span>' + botones +
       '</div>' +
@@ -13743,7 +13743,27 @@ function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVola
 let volFiltroArea = null;   // null = aún sin decidir; se toma del área del usuario al pintar
 let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
 let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
-function volAreaDe(v) { return String((v && v.area) || 'SGOI').toUpperCase(); }
+// Un volante puede tocar VARIAS áreas (ej. llega a SGOI-B y también a SA): se
+// guardan en la MISMA columna de texto separadas con "; ", igual que "Asignado
+// a" (sin cambio de esquema). Volantes viejos = un área; sin área = SGOI.
+function volAreasDe(v) {
+  const as = String((v && v.area) || '').split(';')
+    .map(s => s.trim().toUpperCase()).filter(Boolean);
+  return as.length ? as.filter((a, i) => as.indexOf(a) === i) : ['SGOI'];
+}
+// Área PRINCIPAL (la primera): la que da color al encabezado del detalle.
+function volAreaDe(v) { return volAreasDe(v)[0]; }
+// ¿El volante toca esta área? (Con varias, entra en la lista de cada una.)
+function volEsDeArea(v, area) {
+  return volAreasDe(v).indexOf(String(area || '').toUpperCase()) >= 0;
+}
+// Píldoras de área para la tarjeta y el detalle: una por área marcada.
+function volAreasHTML(v) {
+  return volAreasDe(v).map(a =>
+    '<span class="vol-area" data-sub="' + a + '">' + etiquetaArea(a) + '</span>').join('');
+}
+// Texto de varias áreas → "SGOI; SA" (mayúsculas, sin repetidos, nunca vacío).
+function volNormalizarAreas(txt) { return volAreasDe({ area: txt }).join('; '); }
 // "Asignado a" acepta VARIOS nombres: se guardan en la misma columna de texto
 // separados con "; " (sin cambio de esquema). Volantes viejos = un solo nombre.
 function volAsignadosDe(v) {
@@ -13823,7 +13843,7 @@ function pintarVolantes() {
   // Los volantes que ya están en el Historial (archivados o eliminados) no
   // salen en esta lista: viven en Historial → pestaña Volantes.
   let vs = VOLANTES.filter(v => !volEnHistorial(v));
-  if (soloSgoi) vs = vs.filter(v => volAreaDe(v) === 'SGOI');
+  if (soloSgoi) vs = vs.filter(v => volEsDeArea(v, 'SGOI'));
   // La BÚSQUEDA se aplica ANTES del filtro de área, a propósito: el No. de
   // volante es único en TODA la tabla, así que si buscas un número y no aparece
   // aquí, puede estar registrado en otra área. Antes se buscaba solo dentro del
@@ -13847,7 +13867,7 @@ function pintarVolantes() {
   // El conteo para el aviso de "otras áreas" se toma DESPUÉS de tipo/estatus y
   // ANTES del área: así el aviso habla solo de lo que el filtro de área escondió.
   const coincidenTodas = vs.length;
-  if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volAreaDe(v) === volFiltroArea);
+  if (volFiltroArea !== 'TODAS') vs = vs.filter(v => volEsDeArea(v, volFiltroArea));
   const enOtrasAreas = coincidenTodas - vs.length;
   const meta = document.getElementById('volantesMeta');
   if (meta) meta.textContent = vs.length + (vs.length === 1 ? ' volante' : ' volantes');
@@ -13882,7 +13902,7 @@ function pintarVolantes() {
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante (acciones, hilo y bitácora)">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
-        '<span class="vol-area" data-sub="' + volAreaDe(v) + '">' + etiquetaArea(volAreaDe(v)) + '</span>' +
+        volAreasHTML(v) +
         (v.urgente ? '<span class="vol-urg">Urgente</span>' : '') +
         '<span class="vol-est ' + (atendido ? 'atendido' : 'proceso') + '">' + (atendido ? 'Atendido' : 'En proceso') + '</span>' +
         (v.tipo_atencion ? '<span class="vol-tipo ' + volTipoClase(v.tipo_atencion) + '">' + escapeHtml(v.tipo_atencion) + '</span>' : '') +
@@ -13976,6 +13996,7 @@ function pintarDetalleVolante() {
       </div>
       <div class="modal-titulo">${escapeHtml(v.asunto || 'Volante')}</div>
       <div class="modal-meta">
+        ${volAreasHTML(v)}
         ${v.urgente ? '<span class="vol-urg">Urgente</span>' : ''}
         <span class="vol-est ${atendido ? 'atendido' : 'proceso'}">${atendido ? 'Atendido' : 'En proceso'}</span>
         ${enHist ? '<span class="vol-hist-pill ' + v.hist + '">' + (v.hist === 'eliminado' ? 'Eliminado' : 'En historial') + '</span>' : ''}
@@ -14500,12 +14521,27 @@ function volElegirTipo(btn, valor) {
   if (!yaEstaba) btn.classList.add('activa');
 }
 
-// Área del volante en el formulario (solo el Director ve los botones).
-function volElegirArea(btn, valor) {
+// Área(s) del volante en el formulario. Se pueden marcar VARIAS: un volante que
+// llega a dos áreas sale en la lista de las dos, sin capturarlo dos veces (el
+// No. de volante es único en toda la tabla, así que duplicarlo no era opción).
+// Nunca queda en cero: el clic que apagaría la última marcada se ignora.
+function volElegirArea(btn) {
+  const caja = document.getElementById('vol_areaBox');
   const inp = document.getElementById('vol_area');
-  if (inp) inp.value = valor;
-  btn.parentElement.querySelectorAll('.vol-tipo-op').forEach(b => b.classList.remove('activa'));
-  btn.classList.add('activa');
+  if (!caja || !inp) return;
+  const marcadas = () => Array.from(caja.querySelectorAll('.vol-tipo-op.activa'))
+    .map(b => b.getAttribute('data-area'));
+  if (btn.classList.contains('activa') && marcadas().length === 1) {
+    toast('El volante debe quedar en al menos un área', 'error');
+    return;
+  }
+  btn.classList.toggle('activa');
+  const areas = marcadas();
+  inp.value = areas.join('; ');
+  // El color del encabezado sigue al área PRINCIPAL (la primera marcada, de
+  // izquierda a derecha), igual que en la tarjeta y el detalle.
+  const cab = document.querySelector('#modal .modal-id');
+  if (cab) cab.setAttribute('data-sub', areas[0] || 'SGOI');
 }
 
 function abrirNuevoVolante() { abrirFormVolante(null); }
@@ -14692,13 +14728,14 @@ function abrirFormVolante(v) {
     cargarBitacoraVolante(v.id);
   }
   const val = k => escapeHtml((v && v[k]) || '');
-  // Área del volante: al editar se conserva; al crear es la del usuario (SA→SA,
-  // SPAC→SPAC, SGOIB→SGOI-B, SGOIC→SGOI-C, resto→SGOI). Los botones para
-  // elegirla los ven el Director y los enlaces de SGOI (Jacobo y Andrea), que
-  // son quienes asignan a las áreas.
+  // Área(s) del volante: al editar se conservan; al crear arranca con la del
+  // usuario (SA→SA, SPAC→SPAC, SGOIB→SGOI-B, SGOIC→SGOI-C, resto→SGOI) y se
+  // pueden marcar más. Los botones para elegirlas los ven el Director y los
+  // enlaces de SGOI (Jacobo y Andrea), que son quienes asignan a las áreas.
   const subUsuario = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
-  const areaForm = v ? volAreaDe(v)
-    : (subUsuario === 'SA' || subUsuario === 'SPAC' || subUsuario === 'SGOIB' || subUsuario === 'SGOIC' ? subUsuario : 'SGOI');
+  const areasForm = v ? volAreasDe(v)
+    : [(subUsuario === 'SA' || subUsuario === 'SPAC' || subUsuario === 'SGOIB' || subUsuario === 'SGOIC') ? subUsuario : 'SGOI'];
+  const areaForm = areasForm[0];   // principal: da color al encabezado
   const eligeArea = !!(usuarioActual && !volSoloSgoi() && (usuarioActual.rol === 'Director' ||
     (usuarioActual.es_enlace && usuarioActual.subdireccion === 'SGOI') ||
     usuarioActual.subdireccion === 'ENLACE'));   // Staff de la Dirección (Tiffany): privilegios completos en volantes; los enlaces restringidos de SGOI (salvo Jacobo) capturan fijo en SGOI
@@ -14737,16 +14774,14 @@ function abrirFormVolante(v) {
           </div>
           ${eligeArea ? `
           <div class="form-campo">
-            <label>Área</label>
-            <div class="vol-tipo-opciones">
-              <button type="button" class="vol-tipo-op ${areaForm === 'SGOI' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOI')">SGOI-A</button>
-              <button type="button" class="vol-tipo-op ${areaForm === 'SGOIB' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOIB')">SGOI-B</button>
-              <button type="button" class="vol-tipo-op ${areaForm === 'SGOIC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SGOIC')">SGOI-C</button>
-              <button type="button" class="vol-tipo-op ${areaForm === 'SA' ? 'activa' : ''}" onclick="volElegirArea(this, 'SA')">SA</button>
-              <button type="button" class="vol-tipo-op ${areaForm === 'SPAC' ? 'activa' : ''}" onclick="volElegirArea(this, 'SPAC')">SPAC</button>
+            <label>Área(s)</label>
+            <div class="vol-tipo-opciones" id="vol_areaBox">
+              ${['SGOI', 'SGOIB', 'SGOIC', 'SA', 'SPAC'].map(a =>
+                `<button type="button" class="vol-tipo-op ${areasForm.indexOf(a) >= 0 ? 'activa' : ''}" data-area="${a}" onclick="volElegirArea(this)">${etiquetaArea(a)}</button>`).join('')}
             </div>
+            <div class="form-hint">Se pueden marcar varias: con UN solo registro el volante sale en la lista de cada área marcada.</div>
           </div>` : ''}
-          <input type="hidden" id="vol_area" value="${areaForm}">
+          <input type="hidden" id="vol_area" value="${areasForm.join('; ')}">
           <div class="form-campo">
             <label>Fecha de recepción</label>
             <input type="date" id="vol_fecha_recepcion" value="${(v && v.fecha_recepcion) || ''}" onclick="try{this.showPicker()}catch(e){}">
@@ -14902,7 +14937,8 @@ function guardarVolante() {
     tipo_atencion: (document.getElementById('vol_tipo').value || '').trim(),
     asunto: (document.getElementById('vol_asunto').value || '').trim(),
     urgente: !!(document.getElementById('vol_urgente') && document.getElementById('vol_urgente').checked),
-    area: ((document.getElementById('vol_area') || {}).value || 'SGOI').toUpperCase()
+    // Una o varias áreas, separadas con "; " (ver volAreasDe).
+    area: volNormalizarAreas((document.getElementById('vol_area') || {}).value)
   };
   // Acción a medio escribir en el input: se suma sola (como en Nueva Tarea no
   // se pierde lo que quedó en el renglón sin presionar +).

@@ -125,7 +125,9 @@
     var m = 'Ya existe ' + (esOtro ? 'otro volante' : 'un volante') + ' con el número ' + numero;
     if (fila) {
       var det = [];
-      if (fila.area) det.push('área ' + fila.area);
+      // El área puede traer varias separadas con "; " (un volante que toca a
+      // dos áreas), así que el texto se ajusta al singular/plural.
+      if (fila.area) det.push((fila.area.indexOf(';') >= 0 ? 'áreas ' : 'área ') + fila.area);
       if (fila.creado_por) det.push('registrado por ' + fila.creado_por);
       if (fila.created_at) {
         var d = new Date(fila.created_at);
