@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260813c"></script>
+<script src="supabase-shim.js?v=20260813d"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -10775,6 +10775,16 @@ function adjuntoMuyPesado(f) {
   return '"' + (f && f.name ? f.name : 'El archivo') + '" pesa ' + mb.toFixed(1) + ' MB y el máximo es ' +
          MAX_MB_ADJUNTO + ' MB. Comprímelo o divídelo en partes y súbelas por separado.';
 }
+// Aviso del tope de peso para las PANTALLAS (debajo de cada zona de adjuntos).
+// Sale del mismo MAX_MB_ADJUNTO que valida la subida, para que lo que dice la
+// pantalla y lo que de verdad acepta el sistema no se desfasen nunca.
+// `conLink` es para las tareas, que sí tienen la opción de pegar un link de Drive;
+// en volantes todavía no existe, así que ahí solo se puede sugerir comprimir.
+function hintPesoMax(conLink) {
+  return ' Máximo <strong>' + MAX_MB_ADJUNTO + ' MB</strong> por archivo' +
+    (conLink ? ' (si pesa más, súbelo a Drive y pega el link aquí abajo).'
+             : ' (si pesa más, comprímelo antes de subirlo).');
+}
 // Aviso de "subiendo": con un archivo pesado la subida tarda MINUTOS, y el aviso
 // normal de 3 segundos dejaba a la persona sin ninguna señal de vida — pensaba que
 // se trabó y cerraba la página a media subida, perdiéndolo todo.
@@ -14064,7 +14074,7 @@ function pintarDetalleVolante() {
           <div id="volDetAdjBox">${volDetAdjHTML(v, false)}</div>
           <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(false)">📎 Adjuntar PDF</button>
           <input type="file" id="volDet_file" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, false)">
-          <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.</div>
+          <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.${hintPesoMax(false)}</div>
         </div>
       </div>
       <div class="modal-seccion modal-seccion-ancha vol-det-adj" style="margin-top:16px;">
@@ -14077,7 +14087,7 @@ function pintarDetalleVolante() {
         <div id="volDetAdjBoxResp">${volDetAdjHTML(v, true)}</div>
         <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(true)">📎 Adjuntar respuesta (PDF)</button>
         <input type="file" id="volDet_file_resp" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, true)">
-        <div class="form-hint">El PDF de la respuesta que se dio al volante.</div>
+        <div class="form-hint">El PDF de la respuesta que se dio al volante.${hintPesoMax(false)}</div>
       </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Acciones</div>
@@ -14944,7 +14954,7 @@ function abrirFormVolante(v) {
             <div id="volf_adjuntos">${volFormAdjuntosHTML(false)}</div>
             <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file').click()">📎 Elegir archivos…</button>
             <input type="file" id="volf_file" multiple style="display:none" onchange="volFormArchivos(this.files)">
-            <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.</div>
+            <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.${hintPesoMax(false)}</div>
           </div>
         </div>
         </div>
@@ -14973,7 +14983,7 @@ function abrirFormVolante(v) {
               <div id="volf_adjuntos_resp">${volFormAdjuntosHTML(true)}</div>
               <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file_resp').click()">📎 Elegir archivos…</button>
               <input type="file" id="volf_file_resp" multiple style="display:none" onchange="volFormArchivos(this.files, true)">
-              <div class="form-hint">El PDF de la respuesta al volante. También se puede subir después, desde el detalle.</div>
+              <div class="form-hint">El PDF de la respuesta al volante. También se puede subir después, desde el detalle.${hintPesoMax(false)}</div>
             </div>
           </div>
         </div>
@@ -17455,7 +17465,7 @@ function abrirNuevaTarea(tEdit) {
               <button type="button" class="acciones-agregar-btn" onclick="agregarLinkAdjunto()">+ Link</button>
             </div>
             <div id="nt_adjuntos_lista" class="adjuntos-lista"></div>
-            <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.</div>
+            <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.${hintPesoMax(true)}</div>
           </div>
 
           ${ed ? '' : `
