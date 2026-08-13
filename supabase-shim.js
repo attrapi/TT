@@ -70,7 +70,19 @@
           signal: ctrl ? ctrl.signal : undefined
         });
         if (reloj) clearTimeout(reloj);
-        if (!resp.ok) { ultimo = 'El servidor de archivos respondió con el error ' + resp.status + '.'; continue; }
+        if (!resp.ok) {
+          // Un 4xx es un "no" definitivo: reintentar es regalarle otros varios
+          // minutos de espera a la persona para acabar en lo mismo. El 400 con un
+          // envío grande es siempre lo mismo: Google no acepta cuerpos de más de
+          // ~50 MB, así que lo decimos con todas sus letras.
+          if (resp.status >= 400 && resp.status < 500) {
+            return { ok: false, red: true, error: (resp.status === 400 && json.length > 40 * 1024 * 1024)
+              ? 'El archivo es demasiado pesado para subirlo por aquí. Comprímelo, divídelo, o súbelo a Drive a mano y pega el enlace.'
+              : 'El servidor de archivos rechazó la petición (error ' + resp.status + ').' };
+          }
+          ultimo = 'El servidor de archivos respondió con el error ' + resp.status + '.';
+          continue;
+        }
         // Si algo salió mal del lado de Google, la respuesta es una página HTML y
         // no un JSON: lo detectamos aquí en vez de dejar que truene el parseo.
         var texto = await resp.text();

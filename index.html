@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260813b"></script>
+<script src="supabase-shim.js?v=20260813c"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -10759,14 +10759,15 @@ function toast(mensaje, tipo, ms) {
 
 // ===== Tope de peso de los adjuntos =====
 // El archivo no viaja tal cual: se convierte a base64 (pesa ~33% más) y se manda
-// dentro de un JSON al Apps Script que lo guarda en Drive. O sea que un PDF de
-// 50 MB viaja como ~67 MB, y encima Apps Script tiene su propio tope de 50 MB por
-// archivo: estamos justo en el borde de lo que este camino aguanta. Una subida así
-// tarda varios minutos y hay que tener paciencia (por eso el límite de tiempo del
-// shim se calcula según el peso, en vez de ser fijo).
-// Para algo más pesado que esto, la ruta buena es subirlo a Drive a mano y pegar
-// el enlace, no empujarlo por aquí.
-const MAX_MB_ADJUNTO = 50;
+// dentro de un JSON al Apps Script que lo guarda en Drive. El tope NO lo pone el
+// archivo, lo pone ese envío: medido contra el Apps Script, un cuerpo de 45 MB
+// pasa y uno de 55 MB lo rechaza Google con un HTTP 400 (el límite documentado es
+// 50 MB). Como el base64 infla un tercio, el archivo más grande que cabe ronda los
+// 37 MB; nos quedamos en 33 para no jugar en el filo, que es el peso más grande
+// que verificamos que sí llega completo.
+// Para algo más pesado NO hay manera por este camino: hay que comprimir el PDF, o
+// subirlo a Drive a mano y pegar el enlace.
+const MAX_MB_ADJUNTO = 33;
 // Devuelve '' si el archivo se puede subir, o el motivo si está muy pesado.
 function adjuntoMuyPesado(f) {
   const mb = (f && f.size ? f.size : 0) / (1024 * 1024);
