@@ -43,8 +43,17 @@
   // molesto pero mucho menos que perder la subida completa.
   async function postDrive(cuerpo, opciones) {
     opciones = opciones || {};
-    var intentos = opciones.intentos || 3;
-    var msLimite = opciones.timeout || 180000;     // 3 min por intento
+    var json = JSON.stringify(cuerpo);
+    // Reintentar es barato con archivos chicos, pero con uno de 50 MB cada intento
+    // son varios minutos: tres intentos serían media hora de espera para nada. Con
+    // los pesados nos conformamos con dos.
+    var intentos = opciones.intentos || (json.length > 30 * 1024 * 1024 ? 2 : 3);
+    // El límite de tiempo NO puede ser fijo: un archivo de 50 MB viaja como ~67 MB
+    // (base64) y en una conexión de oficina normal eso son varios minutos. Con un
+    // tope fijo de 3 min lo cancelábamos nosotros mismos a media subida. Se calcula
+    // suponiendo una subida lenta (~150 KB/s), con piso de 3 min y techo de 20.
+    var msLimite = opciones.timeout ||
+      Math.min(1200000, Math.max(180000, Math.round(json.length / 150000) * 1000));
     var ultimo = 'No se pudo conectar con el servidor de archivos.';
     for (var i = 1; i <= intentos; i++) {
       if (i > 1) {
@@ -57,7 +66,7 @@
         var resp = await fetch(DRIVE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(cuerpo),
+          body: json,
           signal: ctrl ? ctrl.signal : undefined
         });
         if (reloj) clearTimeout(reloj);

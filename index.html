@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260813a"></script>
+<script src="supabase-shim.js?v=20260813b"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -10746,26 +10746,42 @@ function formatearFechaLarga(f) {
   return d.getDate() + ' de ' + MESES_LARGOS[d.getMonth()] + ' de ' + d.getFullYear();
 }
 
-function toast(mensaje, tipo) {
+// `ms` permite dejar el aviso más tiempo en pantalla (subidas pesadas). Se limpia
+// el temporizador anterior: si no, un aviso nuevo se lo llevaba el reloj del
+// aviso viejo y desaparecía casi al instante.
+function toast(mensaje, tipo, ms) {
   const el = document.getElementById('toast');
   el.textContent = mensaje;
   el.className = 'toast ' + (tipo === 'error' ? 'error' : '') + ' mostrar';
-  setTimeout(() => el.classList.remove('mostrar'), 3000);
+  clearTimeout(toast._reloj);
+  toast._reloj = setTimeout(() => el.classList.remove('mostrar'), ms || 3000);
 }
 
 // ===== Tope de peso de los adjuntos =====
 // El archivo no viaja tal cual: se convierte a base64 (pesa ~33% más) y se manda
-// dentro de un JSON al Apps Script que lo guarda en Drive. Probado contra ese
-// Apps Script, hasta 25 MB entra bien; de ahí para arriba la subida se corta sola
-// en cualquier red normal y el usuario solo veía un error críptico. Mejor avisarle
-// ANTES de que se espere en balde tres minutos.
-const MAX_MB_ADJUNTO = 25;
+// dentro de un JSON al Apps Script que lo guarda en Drive. O sea que un PDF de
+// 50 MB viaja como ~67 MB, y encima Apps Script tiene su propio tope de 50 MB por
+// archivo: estamos justo en el borde de lo que este camino aguanta. Una subida así
+// tarda varios minutos y hay que tener paciencia (por eso el límite de tiempo del
+// shim se calcula según el peso, en vez de ser fijo).
+// Para algo más pesado que esto, la ruta buena es subirlo a Drive a mano y pegar
+// el enlace, no empujarlo por aquí.
+const MAX_MB_ADJUNTO = 50;
 // Devuelve '' si el archivo se puede subir, o el motivo si está muy pesado.
 function adjuntoMuyPesado(f) {
   const mb = (f && f.size ? f.size : 0) / (1024 * 1024);
   if (mb <= MAX_MB_ADJUNTO) return '';
   return '"' + (f && f.name ? f.name : 'El archivo') + '" pesa ' + mb.toFixed(1) + ' MB y el máximo es ' +
          MAX_MB_ADJUNTO + ' MB. Comprímelo o divídelo en partes y súbelas por separado.';
+}
+// Aviso de "subiendo": con un archivo pesado la subida tarda MINUTOS, y el aviso
+// normal de 3 segundos dejaba a la persona sin ninguna señal de vida — pensaba que
+// se trabó y cerraba la página a media subida, perdiéndolo todo.
+function avisarSubiendo(f) {
+  const mb = (f && f.size ? f.size : 0) / (1024 * 1024);
+  const nom = (f && f.name) || 'el archivo';
+  if (mb >= 8) toast('Subiendo ' + nom + ' (' + mb.toFixed(0) + ' MB). Tarda varios minutos: NO cierres esta página.', 'ok', 20000);
+  else toast('Subiendo ' + nom + '…', 'ok');
 }
 // Filtra una lista de archivos: deja pasar los que sí caben y avisa de los que no.
 function adjuntosQueCaben(lista) {
@@ -14119,7 +14135,7 @@ function volChkArchivoElegido(files) {
   if (!it) return;
   const pesado = adjuntoMuyPesado(f);
   if (pesado) { toast(pesado, 'error'); return; }
-  toast('Subiendo ' + f.name + '…', 'ok');
+  avisarSubiendo(f);
   const reader = new FileReader();
   reader.onload = function () {
     const base64 = String(reader.result).split(',')[1] || '';
@@ -14242,7 +14258,7 @@ function volDetArchivoElegido(files, esResp) {
   const siguiente = function () {
     const f = lista.shift();
     if (!f) return;
-    toast('Subiendo ' + f.name + '…', 'ok');
+    avisarSubiendo(f);
     const reader = new FileReader();
     reader.onload = function () {
       const base64 = String(reader.result).split(',')[1] || '';
@@ -14785,6 +14801,7 @@ function volSubirAdjuntosPendientes(cb) {
   const siguiente = function () {
     const f = cola.shift();
     if (!f) { cb(subidos); return; }
+    avisarSubiendo(f);
     const reader = new FileReader();
     reader.onload = function () {
       const base64 = String(reader.result).split(',')[1] || '';
@@ -17104,7 +17121,7 @@ function adjuntarItemChecklist(idTarea, idx, file) {
   if (!items[idx]) return;
   const pesado = adjuntoMuyPesado(file);
   if (pesado) { toast(pesado, 'error'); return; }
-  toast('Subiendo "' + file.name + '"…', 'ok');
+  avisarSubiendo(file);
   const reader = new FileReader();
   reader.onload = function () {
     const base64 = String(reader.result).split(',')[1] || '';
