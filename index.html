@@ -816,6 +816,8 @@
   .vol-farea-btn.activa[data-sub="SGOIC"] { background: var(--sub-sgoic); border-color: var(--sub-sgoic); }
   .vol-farea-btn.activa[data-sub="SA"]   { background: var(--sub-sa);   border-color: var(--sub-sa); }
   .vol-farea-btn.activa[data-sub="SPAC"] { background: var(--sub-spac); border-color: var(--sub-spac); }
+  /* DPAC (Dirección) en guinda, el color institucional del Director. */
+  .vol-farea-btn.activa[data-sub="DPAC"] { background: var(--guinda);   border-color: var(--guinda); }
   /* Filtros de tipo y estatus: cada uno toma el color de SU píldora, para que el
      botón encendido y la píldora de la tarjeta se lean como lo mismo. */
   .vol-farea-btn.activa[data-tipo="ATENCION"]     { background: #4f611f; border-color: #4f611f; }
@@ -857,6 +859,7 @@
   .vol-area[data-sub="SGOIC"] { background: var(--sub-sgoic); }
   .vol-area[data-sub="SA"]   { background: var(--sub-sa); }
   .vol-area[data-sub="SPAC"] { background: var(--sub-spac); }
+  .vol-area[data-sub="DPAC"] { background: var(--guinda); }
   /* Píldora URGENTE: roja y palpitando (en tarjeta y detalle). */
   .vol-urg {
     background: #dc2626; color: #fff; font-size: 11px; font-weight: 800;
@@ -6166,6 +6169,7 @@
           <button class="vol-farea-btn" data-sub="SGOIC" onclick="volSetArea('SGOIC')">SGOI-C</button>
           <button class="vol-farea-btn" data-sub="SA" onclick="volSetArea('SA')">SA</button>
           <button class="vol-farea-btn" data-sub="SPAC" onclick="volSetArea('SPAC')">SPAC</button>
+          <button class="vol-farea-btn" data-sub="DPAC" onclick="volSetArea('DPAC')">DPAC</button>
         </div>
       </div>
       <div class="vol-fgrupo">
@@ -6323,6 +6327,7 @@
           <option value="SGOIC">SGOI-C</option>
           <option value="SA">SA</option>
           <option value="SPAC">SPAC</option>
+          <option value="DPAC">DPAC</option>
         </select>
         <div class="hist-chips" id="hvolChips">
           <button type="button" class="hist-chip is-on" data-est="" onclick="hvolSetEstado('')">Todos</button>
@@ -14842,7 +14847,7 @@ function abrirFormVolante(v) {
           <div class="form-campo">
             <label>Área(s)</label>
             <div class="vol-tipo-opciones" id="vol_areaBox">
-              ${['SGOI', 'SGOIB', 'SGOIC', 'SA', 'SPAC'].map(a =>
+              ${['SGOI', 'SGOIB', 'SGOIC', 'SA', 'SPAC', 'DPAC'].map(a =>
                 `<button type="button" class="vol-tipo-op ${areasForm.indexOf(a) >= 0 ? 'activa' : ''}" data-area="${a}" onclick="volElegirArea(this)">${etiquetaArea(a)}</button>`).join('')}
             </div>
             <div class="form-hint">Se pueden marcar varias: con UN solo registro el volante sale en la lista de cada área marcada.</div>
