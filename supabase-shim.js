@@ -27,6 +27,62 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   var USUARIO_ACTUAL = null;   // perfil del usuario logueado (para creado_por, etc.)
 
+  // ---------- POST AL APPS SCRIPT DE DRIVE (con reintentos) ----------
+  // El archivo viaja en base64 dentro de un JSON, así que por la red va ~33% más
+  // pesado que el PDF original. En una conexión lenta o intermitente el navegador
+  // corta el envío a la mitad y el fetch truena con un error crudo ("TypeError:
+  // load failed" en Safari, "Failed to fetch" en Chrome), que es lo que la gente
+  // veía en pantalla sin entender nada. El Apps Script aguanta bien archivos
+  // grandes (probado hasta 25 MB), o sea que el problema no es Drive: es el
+  // camino. Por eso aquí reintentamos con esperas crecientes y, si de plano no se
+  // logró, devolvemos un mensaje en español que sí dice qué pasó.
+  //
+  // OJO con el reintento de 'subir': si el archivo SÍ llegó a Drive pero la
+  // respuesta se perdió en el camino, el reintento sube una segunda copia y la
+  // primera queda huérfana en la carpeta (el volante apunta a la segunda). Es
+  // molesto pero mucho menos que perder la subida completa.
+  async function postDrive(cuerpo, opciones) {
+    opciones = opciones || {};
+    var intentos = opciones.intentos || 3;
+    var msLimite = opciones.timeout || 180000;     // 3 min por intento
+    var ultimo = 'No se pudo conectar con el servidor de archivos.';
+    for (var i = 1; i <= intentos; i++) {
+      if (i > 1) {
+        avisar('Se cortó la conexión al ' + (opciones.que || 'subir') + '. Reintentando (' + i + ' de ' + intentos + ')…');
+        await new Promise(function (r) { setTimeout(r, 1500 * (i - 1)); });
+      }
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var reloj = ctrl ? setTimeout(function () { ctrl.abort(); }, msLimite) : null;
+      try {
+        var resp = await fetch(DRIVE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(cuerpo),
+          signal: ctrl ? ctrl.signal : undefined
+        });
+        if (reloj) clearTimeout(reloj);
+        if (!resp.ok) { ultimo = 'El servidor de archivos respondió con el error ' + resp.status + '.'; continue; }
+        // Si algo salió mal del lado de Google, la respuesta es una página HTML y
+        // no un JSON: lo detectamos aquí en vez de dejar que truene el parseo.
+        var texto = await resp.text();
+        try { return JSON.parse(texto); }
+        catch (e) { ultimo = 'El servidor de archivos contestó algo inesperado.'; continue; }
+      } catch (e) {
+        if (reloj) clearTimeout(reloj);
+        ultimo = (e && e.name === 'AbortError')
+          ? 'La subida tardó demasiado (más de ' + Math.round(msLimite / 60000) + ' min) y se canceló.'
+          : 'Se cortó la conexión durante el envío.';
+      }
+    }
+    return { ok: false, red: true,
+      error: ultimo + ' Revisa tu internet (si estás en datos móviles, conéctate a wifi) e inténtalo otra vez.' };
+  }
+
+  // Avisito de "reintentando" reusando el toast de la app, si existe.
+  function avisar(msg) {
+    try { if (typeof window.toast === 'function') window.toast(msg, 'error'); } catch (e) {}
+  }
+
   // ---------- GUARDIÁN DE SESIÓN ----------
   // Supabase maneja SU PROPIA sesión (token) aparte del "recuerdo" de la app
   // (tt_token). Si esa sesión se vence o se cierra sola (pestaña abierta muchas
@@ -857,18 +913,11 @@
 
     // ---- ADJUNTOS (Google Drive vía mini Apps Script) ----
     subirArchivo: async function (token, nombre, mime, base64, destino) {
-      try {
-        var resp = await fetch(DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ accion: 'subir', nombre: nombre, mime: mime, base64: base64, destino: destino || '' }) });
-        return await resp.json();
-      } catch (e) { return { ok: false, error: String(e) }; }
+      return await postDrive({ accion: 'subir', nombre: nombre, mime: mime, base64: base64, destino: destino || '' },
+        { que: 'subir "' + (nombre || 'el archivo') + '"' });
     },
     borrarArchivoDrive: async function (token, url) {
-      try {
-        var resp = await fetch(DRIVE_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ accion: 'borrar', url: url }) });
-        return await resp.json();
-      } catch (e) { return { ok: false, error: String(e) }; }
+      return await postDrive({ accion: 'borrar', url: url }, { que: 'borrar el archivo', intentos: 2 });
     },
 
     // ---- CORREO (aviso al crear tarea, vía el MISMO mini Apps Script de Drive) ----

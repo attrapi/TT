@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20260807b"></script>
+<script src="supabase-shim.js?v=20260813a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -10753,6 +10753,32 @@ function toast(mensaje, tipo) {
   setTimeout(() => el.classList.remove('mostrar'), 3000);
 }
 
+// ===== Tope de peso de los adjuntos =====
+// El archivo no viaja tal cual: se convierte a base64 (pesa ~33% más) y se manda
+// dentro de un JSON al Apps Script que lo guarda en Drive. Probado contra ese
+// Apps Script, hasta 25 MB entra bien; de ahí para arriba la subida se corta sola
+// en cualquier red normal y el usuario solo veía un error críptico. Mejor avisarle
+// ANTES de que se espere en balde tres minutos.
+const MAX_MB_ADJUNTO = 25;
+// Devuelve '' si el archivo se puede subir, o el motivo si está muy pesado.
+function adjuntoMuyPesado(f) {
+  const mb = (f && f.size ? f.size : 0) / (1024 * 1024);
+  if (mb <= MAX_MB_ADJUNTO) return '';
+  return '"' + (f && f.name ? f.name : 'El archivo') + '" pesa ' + mb.toFixed(1) + ' MB y el máximo es ' +
+         MAX_MB_ADJUNTO + ' MB. Comprímelo o divídelo en partes y súbelas por separado.';
+}
+// Filtra una lista de archivos: deja pasar los que sí caben y avisa de los que no.
+function adjuntosQueCaben(lista) {
+  const pesados = [];
+  const ok = Array.from(lista || []).filter(f => {
+    const motivo = adjuntoMuyPesado(f);
+    if (motivo) { pesados.push(motivo); return false; }
+    return true;
+  });
+  if (pesados.length) toast(pesados[0], 'error');
+  return ok;
+}
+
 // ===== Confeti sutil (estilo Trello) =====
 // Pequeño estallido de papelitos para celebrar cuando se completa/valida una
 // tarea o se palomea TODA una columna. Sin librerías: un canvas temporal a
@@ -14091,6 +14117,8 @@ function volChkArchivoElegido(files) {
   if (!f || !v || !uid) return;
   const it = (v.checklist || []).find(x => x.uid === uid);
   if (!it) return;
+  const pesado = adjuntoMuyPesado(f);
+  if (pesado) { toast(pesado, 'error'); return; }
   toast('Subiendo ' + f.name + '…', 'ok');
   const reader = new FileReader();
   reader.onload = function () {
@@ -14207,7 +14235,7 @@ function volDetAdjuntar(esResp) {
 }
 function volDetArchivoElegido(files, esResp) {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
-  const lista = Array.from(files || []);
+  const lista = adjuntosQueCaben(files);
   const inp = document.getElementById(esResp ? 'volDet_file_resp' : 'volDet_file');
   if (inp) inp.value = '';
   if (!v || !lista.length) return;
@@ -14729,7 +14757,7 @@ function volFormRepintarAdjuntos() {
   if (boxR) boxR.innerHTML = volFormAdjuntosHTML(true);
 }
 function volFormArchivos(files, esResp) {
-  Array.from(files || []).forEach(f => { if (esResp) f._esRespuesta = true; volFormAdjuntosNuevos.push(f); });
+  adjuntosQueCaben(files).forEach(f => { if (esResp) f._esRespuesta = true; volFormAdjuntosNuevos.push(f); });
   const inp = document.getElementById(esResp ? 'volf_file_resp' : 'volf_file');
   if (inp) inp.value = '';
   volFormAdjuntosDirty = true;
@@ -17074,6 +17102,8 @@ function adjuntarItemChecklist(idTarea, idx, file) {
   }
   const items = obtenerChecklist(t);
   if (!items[idx]) return;
+  const pesado = adjuntoMuyPesado(file);
+  if (pesado) { toast(pesado, 'error'); return; }
   toast('Subiendo "' + file.name + '"…', 'ok');
   const reader = new FileReader();
   reader.onload = function () {
@@ -17693,7 +17723,7 @@ function dzFile(files) {
     toast('Subir archivos requiere la versión con login. Por ahora pega un link de Drive.', 'error');
     return;
   }
-  Array.from(files).forEach(f => adjuntosForm.push({ tipo: 'archivo', nombre: f.name, file: f }));
+  adjuntosQueCaben(files).forEach(f => adjuntosForm.push({ tipo: 'archivo', nombre: f.name, file: f }));
   const inp = document.getElementById('nt_file'); if (inp) inp.value = '';   // permite re-elegir el mismo archivo
   renderAdjuntosForm();
 }
@@ -18460,6 +18490,8 @@ function subirAdjuntosDeAcciones(idTarea, lista) {
   const pendientes = [];
   lista.forEach(function (a) {
     if (!a || !a.file) return;
+    const pesado = adjuntoMuyPesado(a.file);
+    if (pesado) { toast(pesado, 'error'); return; }
     const idx = items.findIndex(function (it, i) {
       return !usados.has(i) && String(it.texto || '').trim() === String(a.texto || '').trim();
     });
