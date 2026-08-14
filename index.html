@@ -485,6 +485,20 @@
   .sidebar-sub[data-sub="SA"]     .sidebar-conteo { background: rgba(194,65,12,0.15);  color: #9a3412; }
   .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { background: rgba(124,58,237,0.15); color: #5b21b6; }
 
+  /* "Enlaces" (la vista con una columna por enlace) vive entre los tabs de
+     subdirección pero es un item de VISTA, no un tab: se quedaba en blanco
+     mientras sus vecinos van de color, y en el menú de Andrea se veía como un
+     hueco. Le toca turquesa: es el que queda libre — olivo es SGOI, azul SPAC,
+     naranja SA y morado Staff.
+     Va con la especificidad de dos clases (.sidebar-item.sidebar-enlaces) a
+     propósito, para empatarle a .sidebar-item.activa y .sidebar-item:hover: así
+     conserva su color al seleccionarlo y al pasar el mouse, igual que hacen los
+     tabs de subdirección de arriba. */
+  .sidebar-item.sidebar-enlaces { background: #ccfbf1; color: #115e59; }
+  .sidebar-item.sidebar-enlaces:hover { background: #99f6e4; color: #115e59; border-color: var(--guinda); }
+  /* Activo: solo negrita, como los demás tabs de color. */
+  .sidebar-enlaces.activa { font-weight: 700; }
+
   /* === CONTROL DE VISIBILIDAD POR VISTA ===
      Cada vista alterna oculta/muestra los bloques que le corresponden. */
   .app-main[data-vista="tablero"]   #calendarioWrap,
