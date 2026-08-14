@@ -6910,12 +6910,12 @@ function aplicarSesion() {
   } else {
     // Capturista: solo su subdirección, sin Vista Consolidada. Excepción: el
     // enlace de SGOI con acceso completo (Andrea) ve TODAS las subdirecciones
-    // (SGOI-A/B/C, SPAC y SA), su Vista Consolidada (sin Staff) y puede abrir
-    // el tablero de cada una.
+    // (SGOI-A/B/C, SPAC, SA y Staff), su Vista Consolidada y puede abrir el
+    // tablero de cada una. Qué áreas son, en SUBS_VE_SUBS.
     subItems.forEach(b => {
       const sub = b.dataset.sub;
       const visible = esEnlaceVeSubs()
-        ? (sub === 'TODAS' || sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC' || sub === 'SPAC' || sub === 'SA')
+        ? (sub === 'TODAS' || SUBS_VE_SUBS.indexOf(sub) >= 0)
         : (sub !== 'TODAS' && sub === usuarioActual.subdireccion);
       b.style.display = visible ? '' : 'none';
     });
@@ -7899,9 +7899,8 @@ function obtenerTareasFiltradas() {
       lista = lista.filter(t => tareaEnArea(t, miArea));
     } else if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
       // Vista Consolidada de quien ve varias subdirecciones (Andrea): todo lo
-      // de sus cinco áreas (SGOI-A/B/C, SPAC y SA), sin Staff.
-      const SUYAS = ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'];
-      lista = lista.filter(t => SUYAS.indexOf(t.subdireccion) >= 0 || SUYAS.some(c => tareaEnArea(t, c)));
+      // de sus áreas (SGOI-A/B/C, SPAC, SA y Staff).
+      lista = lista.filter(tareaEnSubsVeSubs);
     } else {
       // Subdirector: TODAS las de su subdirección (incl. sus jefaturas) + las de
       // otras áreas donde su subdirección participe (multi-tablero). Quien ve
@@ -7910,10 +7909,13 @@ function obtenerTareasFiltradas() {
       const subTab = subTableroActivo();
       const areaTab = subTab === usuarioActual.subdireccion ? miArea : subTab;
       // Parada en una letra de Obras Inducidas, manda el PROYECTO de la tarea
-      // (tareaEnObras), igual que las columnas del tablero.
-      lista = lista.filter(t => esSubObras(subTab)
-        ? tareaEnTableroObras(t, subTab)
-        : (t.subdireccion === subTab || tareaEnArea(t, areaTab)));
+      // (tareaEnObras), igual que las columnas del tablero. Parada en Staff, la
+      // comparación normal por subdirección no sirve: Staff agrupa DPAC+Enlace.
+      lista = lista.filter(t => subTab === 'ENLACE'
+        ? tareaEnStaff(t)
+        : (esSubObras(subTab)
+            ? tareaEnTableroObras(t, subTab)
+            : (t.subdireccion === subTab || tareaEnArea(t, areaTab))));
     }
   } else if (tabActiva !== 'TODAS') {
     // Director con tab específica. El tab "ENLACE" representa la columna
@@ -8046,11 +8048,32 @@ function esEnlaceVeSubs(u) {
   return esEnlaceUser(u) && !!(u && u.acceso_completo)
     && String((u && u.subdireccion) || '').toUpperCase() === 'SGOI';
 }
+// Las áreas que gestiona quien ve varias subdirecciones (Andrea), en UN solo
+// lugar. Esta lista estaba copiada tal cual en el menú, los conteos, el filtro
+// del tablero y el del Historial: agregar un área obligaba a acordarse de los
+// seis sitios, y basta olvidar uno para que el tab exista pero salga vacío.
+// 'ENLACE' es el Staff (Dirección + Enlace); ojo con el nombre: el tab se llama
+// ENLACE pero la columna del tablero se llama STAFF.
+const SUBS_VE_SUBS = ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA', 'ENLACE'];
+// Las de Andrea que SÍ son subdirecciones normales (Staff se filtra aparte, ver
+// tareaEnStaff: no basta con comparar t.subdireccion).
+const SUBS_VE_SUBS_NORMALES = SUBS_VE_SUBS.filter(c => c !== 'ENLACE');
+// ¿La tarea cae en la columna Staff? Staff no es una subdirección como las demás:
+// agrupa DPAC + Enlace. Mismo criterio que la columna Staff del Director.
+function tareaEnStaff(t) {
+  return t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF');
+}
+// ¿La tarea entra en alguna de las áreas de Andrea (incluida Staff)?
+function tareaEnSubsVeSubs(t) {
+  return tareaEnStaff(t)
+    || SUBS_VE_SUBS_NORMALES.indexOf(t.subdireccion) >= 0
+    || SUBS_VE_SUBS_NORMALES.some(c => tareaEnArea(t, c));
+}
 // Subdirección "efectiva" del tablero: para quien ve varias subdirecciones
 // (esEnlaceVeSubs) es la del tab activo; para todos los demás, la suya. Tablero,
 // KPIs e Historial filtran con esta, así el tab de SA/SPAC enseña ESA área.
 function subTableroActivo() {
-  if (esEnlaceVeSubs() && ['SPAC', 'SGOI', 'SGOIB', 'SGOIC', 'SA'].indexOf(tabActiva) >= 0) return tabActiva;
+  if (esEnlaceVeSubs() && SUBS_VE_SUBS.indexOf(tabActiva) >= 0) return tabActiva;
   return usuarioActual ? usuarioActual.subdireccion : '';
 }
 // ¿Hay enlaces (es_enlace) dados de alta en la subdirección `sub`?
@@ -8358,10 +8381,12 @@ function actualizarKPIs() {
     // Enlace SPAC: solo SU historial (donde es responsable directo).
     if (esEnlaceRestringido()) return t.subdireccion === usuarioActual.subdireccion && esResponsableDe(t, usuarioActual);
     // Vista Consolidada de quien ve varias subdirecciones (Andrea): el conteo
-    // de Validadas abarca sus cinco áreas, como el resto del Resumen.
+    // de Validadas abarca todas sus áreas, como el resto del Resumen.
     if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
-      return ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0;
+      return tareaEnStaff(t) || SUBS_VE_SUBS_NORMALES.indexOf(t.subdireccion) >= 0;
     }
+    // Parada en el tab Staff: DPAC + Enlace, no una subdirección suelta.
+    if (subTableroActivo() === 'ENLACE') return tareaEnStaff(t);
     return t.subdireccion === subTableroActivo();
   });
   const archivadas = enHistorial.length;
@@ -8568,19 +8593,19 @@ function actualizarConteosTabs() {
   if (contPap) contPap.textContent = tareasPapelera().length;
 
   if (usuarioActual.rol === 'Capturista') {
-    // Quien ve varias subdirecciones (Andrea) lleva conteo en sus cinco tabs y
-    // en su Vista Consolidada (tareas de esas cinco áreas, sin duplicar).
+    // Quien ve varias subdirecciones (Andrea) lleva conteo en TODOS sus tabs y
+    // en su Vista Consolidada (tareas de esas áreas, sin duplicar).
     if (esEnlaceVeSubs()) {
-      const SUYAS = ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'];
       document.getElementById('contTODAS').textContent = TAREAS.filter(t =>
-          !t.eliminada && t.estatus !== 'Archivada' &&
-          (SUYAS.indexOf(t.subdireccion) >= 0 || SUYAS.some(c => tareaEnArea(t, c)))).length;
+          !t.eliminada && t.estatus !== 'Archivada' && tareaEnSubsVeSubs(t)).length;
       document.getElementById('contSGOI').textContent   = activas('SGOI');
       document.getElementById('contSGOIB').textContent  = activas('SGOIB');
       document.getElementById('contSGOIC').textContent  = activas('SGOIC');
       document.getElementById('contSPAC').textContent   = activas('SPAC');
       document.getElementById('contSA').textContent     = activas('SA');
-      document.getElementById('contENLACE').textContent = '';
+      // Staff suma DPAC + Enlace (mismo criterio que su columna del tablero).
+      document.getElementById('contENLACE').textContent = TAREAS.filter(t =>
+          !t.eliminada && t.estatus !== 'Archivada' && tareaEnStaff(t)).length;
       return;
     }
     const subPropia = usuarioActual.subdireccion;
@@ -8705,7 +8730,7 @@ function columnasPorRol() {
               filtro: t => t.subdireccion === 'DPAC' || t.subdireccion === 'ENLACE' || tareaEnArea(t, 'STAFF') }];
   }
   // Vista Consolidada de quien ve varias subdirecciones (Andrea): las mismas
-  // columnas que la del Director pero sin Staff (su menú no incluye Staff).
+  // columnas que la del Director, Staff incluido.
   if (esEnlaceVeSubs() && tabActiva === 'TODAS') {
     return [
       { id: 'SGOI', titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
@@ -8717,7 +8742,9 @@ function columnasPorRol() {
       { id: 'SPAC', titulo: 'SPAC', subtitulo: 'Subdirección de Procesos Administrativos de Construcción',
         color: 'azul', filtro: t => t.subdireccion === 'SPAC' || tareaEnArea(t, 'SPAC') },
       { id: 'SA',   titulo: 'SA', subtitulo: 'Subdirección de Archivo',
-        color: 'naranja', filtro: t => t.subdireccion === 'SA' || tareaEnArea(t, 'SA') }
+        color: 'naranja', filtro: t => t.subdireccion === 'SA' || tareaEnArea(t, 'SA') },
+      { id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
+        color: 'morado', filtro: tareaEnStaff }
     ];
   }
 
@@ -8770,6 +8797,13 @@ function columnasPorRol() {
   if (sub === 'SGOIB') {
     if (codJefUser) return colsSGOIB.filter(c => c.jefCod === codJefUser);
     return colsSGOIB;
+  }
+  // Tab Staff (Andrea parada ahí): una sola columna que agrupa DPAC + Enlace,
+  // igual que la del Director. Sin este caso caería al default de abajo, que
+  // compara por subdirección y dejaría fuera las tareas de DPAC.
+  if (sub === 'ENLACE') {
+    return [{ id: 'STAFF', titulo: 'Staff', subtitulo: 'Dirección + Enlace',
+              color: 'morado', filtro: tareaEnStaff }];
   }
   // Default: una sola columna con todo lo del perfil. Para las letras de Obras
   // Inducidas (Andrea parada en SGOI-B o SGOI-C) manda el proyecto de la tarea.
@@ -10777,13 +10811,12 @@ function adjuntoMuyPesado(f) {
 }
 // Aviso del tope de peso para las PANTALLAS (debajo de cada zona de adjuntos).
 // Sale del mismo MAX_MB_ADJUNTO que valida la subida, para que lo que dice la
-// pantalla y lo que de verdad acepta el sistema no se desfasen nunca.
-// `conLink` es para las tareas, que sí tienen la opción de pegar un link de Drive;
-// en volantes todavía no existe, así que ahí solo se puede sugerir comprimir.
-function hintPesoMax(conLink) {
-  return ' Máximo <strong>' + MAX_MB_ADJUNTO + ' MB</strong> por archivo' +
-    (conLink ? ' (si pesa más, súbelo a Drive y pega el link aquí abajo).'
-             : ' (si pesa más, comprímelo antes de subirlo).');
+// pantalla y lo que de verdad acepta el sistema no se desfasen nunca. Todas las
+// zonas de adjuntos (tareas y volantes) tienen ya su fila de "+ Link", así que
+// la salida para un archivo pesado es siempre la misma.
+function hintPesoMax() {
+  return ' Máximo <strong>' + MAX_MB_ADJUNTO + ' MB</strong> por archivo: ' +
+         'si pesa más, súbelo a Drive y pega aquí su enlace.';
 }
 // Aviso de "subiendo": con un archivo pesado la subida tarda MINUTOS, y el aviso
 // normal de 3 segundos dejaba a la persona sin ninguna señal de vida — pensaba que
@@ -14074,7 +14107,11 @@ function pintarDetalleVolante() {
           <div id="volDetAdjBox">${volDetAdjHTML(v, false)}</div>
           <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(false)">📎 Adjuntar PDF</button>
           <input type="file" id="volDet_file" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, false)">
-          <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.${hintPesoMax(false)}</div>
+          <div class="adjuntos-link-fila">
+            <input type="url" id="volDet_url" maxlength="500" placeholder="o pega un link de Drive y presiona + Link" onkeydown="if(event.key==='Enter'){event.preventDefault();volDetLink(false);}">
+            <button type="button" class="acciones-agregar-btn" onclick="volDetLink(false)">+ Link</button>
+          </div>
+          <div class="form-hint">Se guarda en la carpeta de Volantes en Drive.${hintPesoMax()}</div>
         </div>
       </div>
       <div class="modal-seccion modal-seccion-ancha vol-det-adj" style="margin-top:16px;">
@@ -14087,7 +14124,11 @@ function pintarDetalleVolante() {
         <div id="volDetAdjBoxResp">${volDetAdjHTML(v, true)}</div>
         <button type="button" class="acciones-agregar-btn" onclick="volDetAdjuntar(true)">📎 Adjuntar respuesta (PDF)</button>
         <input type="file" id="volDet_file_resp" accept=".pdf,application/pdf,image/*" multiple style="display:none" onchange="volDetArchivoElegido(this.files, true)">
-        <div class="form-hint">El PDF de la respuesta que se dio al volante.${hintPesoMax(false)}</div>
+        <div class="adjuntos-link-fila">
+          <input type="url" id="volDet_url_resp" maxlength="500" placeholder="o pega un link de Drive y presiona + Link" onkeydown="if(event.key==='Enter'){event.preventDefault();volDetLink(true);}">
+          <button type="button" class="acciones-agregar-btn" onclick="volDetLink(true)">+ Link</button>
+        </div>
+        <div class="form-hint">El PDF de la respuesta que se dio al volante.${hintPesoMax()}</div>
       </div>
       <div class="modal-seccion modal-seccion-ancha">
         <div class="modal-seccion-titulo">Acciones</div>
@@ -14242,9 +14283,9 @@ function volDetAdjHTML(v, esResp) {
   adjs.forEach((a, i) => {
     if (!!a.respuesta !== esResp) return;   // i = índice REAL en la lista completa
     filas.push('<div class="volchk-item">' +
-      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener" title="Abrir ' + escapeHtml(a.nombre || 'documento') + '">📎 ' + escapeHtml(a.nombre || 'Documento') + '</a>' +
+      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener" title="Abrir ' + escapeHtml(a.nombre || 'documento') + '">' + (a.enlace ? '🔗 ' : '📎 ') + escapeHtml(a.nombre || 'Documento') + '</a>' +
       '<span class="volchk-texto"></span>' +
-      '<button type="button" class="volchk-x" title="Quitar el documento (se borra de Drive)" onclick="volDetQuitarAdjunto(' + i + ')">×</button>' +
+      '<button type="button" class="volchk-x" title="' + (a.enlace ? 'Quitar el enlace (el archivo NO se borra de Drive)' : 'Quitar el documento (se borra de Drive)') + '" onclick="volDetQuitarAdjunto(' + i + ')">×</button>' +
     '</div>');
   });
   if (!filas.length) return '<div class="conv-vacio">— sin ' + (esResp ? 'respuesta' : 'documento') + ' todavía —</div>';
@@ -14259,6 +14300,25 @@ function volDetRepintarAdj(v) {
 function volDetAdjuntar(esResp) {
   const inp = document.getElementById(esResp ? 'volDet_file_resp' : 'volDet_file');
   if (inp) inp.click();
+}
+// Enlace de Drive pegado desde el DETALLE: se guarda de una vez (aquí no hay
+// botón de "Guardar" como en el formulario).
+function volDetLink(esResp) {
+  const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
+  const inp = document.getElementById(esResp ? 'volDet_url_resp' : 'volDet_url');
+  if (!v) return;
+  const item = pedirEnlaceDrive(inp ? inp.value : '');
+  if (!item) return;
+  if (esResp) item.respuesta = true;
+  const nuevos = (Array.isArray(v.adjuntos) ? v.adjuntos : []).concat([item]);
+  google.script.run.withSuccessHandler(function (res) {
+    if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar el enlace', 'error'); return; }
+    if (inp) inp.value = '';
+    v.adjuntos = nuevos;
+    volDetRepintarAdj(v);
+    toast(esResp ? 'Enlace de la respuesta agregado' : 'Enlace agregado', 'ok');
+    volRegistrarBita(v.id, 'adjunto_add', (esResp ? 'Respuesta — ' : '') + item.nombre, function () { cargarBitacoraVolante(v.id); });
+  }).adjuntosVolante(SESION_TOKEN, v.id, nuevos);
 }
 function volDetArchivoElegido(files, esResp) {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
@@ -14299,11 +14359,15 @@ function volDetQuitarAdjunto(i) {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
   if (!v || !Array.isArray(v.adjuntos) || !v.adjuntos[i]) return;
   const a = v.adjuntos[i];
-  if (!confirm('¿Quitar el documento "' + (a.nombre || '') + '"? El archivo se borrará de Drive.')) return;
+  // Los enlaces pegados solo se despegan: el archivo es de otra carpeta y no nos
+  // toca mandarlo a la papelera.
+  if (!confirm(a.enlace
+    ? '¿Quitar el enlace "' + (a.nombre || '') + '"? El archivo NO se borra de Drive.'
+    : '¿Quitar el documento "' + (a.nombre || '') + '"? El archivo se borrará de Drive.')) return;
   const nuevos = v.adjuntos.slice(); nuevos.splice(i, 1);
   google.script.run.withSuccessHandler(function (res) {
     if (!res || !res.ok) { toast((res && res.error) || 'No se pudo quitar el documento', 'error'); return; }
-    google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, a.url);
+    if (!a.enlace) google.script.run.withFailureHandler(function () {}).borrarArchivoDrive(SESION_TOKEN, a.url);
     v.adjuntos = nuevos;
     volDetRepintarAdj(v);
     volRegistrarBita(v.id, 'adjunto_del', a.nombre || '', function () { cargarBitacoraVolante(v.id); });
@@ -14753,6 +14817,24 @@ function volFormQuitarComentario(i) {
 }
 
 // ---- Adjuntos del volante en el FORMULARIO (se suben a Drive al guardar) ----
+// ---- Enlace de Drive pegado a mano ----
+// Un archivo de más de MAX_MB_ADJUNTO no se puede subir por la app: el POST al
+// Apps Script topa en ~50 MB y el base64 infla el archivo un tercio. La salida es
+// subirlo a Drive a mano y pegar aquí su enlace — el volante queda igual de
+// completo, el PDF nomás no pasó por nosotros. Se marca `enlace: true` porque
+// estos NO se borran de Drive al quitarlos: el archivo no es nuestro, lo puso
+// alguien en su carpeta y puede estar usándose en otro lado.
+// Devuelve {url, nombre, enlace:true}, o null si se canceló o no es una dirección.
+function pedirEnlaceDrive(url) {
+  url = String(url || '').trim();
+  if (!url) return null;
+  if (!/^https?:\/\//i.test(url)) {
+    toast('Pega la dirección completa del archivo (tiene que empezar con https://).', 'error');
+    return null;
+  }
+  const nombre = (prompt('Nombre para este enlace (opcional):', 'Enlace de Drive') || '').trim() || 'Enlace de Drive';
+  return { url: url, nombre: nombre, enlace: true };
+}
 // Hay DOS espacios: el PDF del volante (bloque 1) y el PDF de la RESPUESTA
 // (bloque 2). Viven en la misma lista `adjuntos`; la respuesta se distingue
 // con la marca respuesta:true (y en archivos pendientes, f._esRespuesta).
@@ -14762,9 +14844,9 @@ function volFormAdjuntosHTML(esResp) {
   volFormAdjuntos.forEach((a, i) => {
     if (!!a.respuesta !== esResp) return;   // i = índice REAL en la lista completa
     filas.push('<div class="volchk-item">' +
-      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">📎 ' + escapeHtml(a.nombre || 'Adjunto') + '</a>' +
+      '<a class="volchk-adj" href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">' + (a.enlace ? '🔗 ' : '📎 ') + escapeHtml(a.nombre || 'Adjunto') + '</a>' +
       '<span class="volchk-texto"></span>' +
-      '<button type="button" class="volchk-x" title="Quitar el adjunto (se borra de Drive al guardar)" onclick="volFormQuitarAdjunto(' + i + ')">×</button>' +
+      '<button type="button" class="volchk-x" title="' + (a.enlace ? 'Quitar el enlace (el archivo NO se borra de Drive)' : 'Quitar el adjunto (se borra de Drive al guardar)') + '" onclick="volFormQuitarAdjunto(' + i + ')">×</button>' +
     '</div>');
   });
   volFormAdjuntosNuevos.forEach((f, i) => {
@@ -14790,11 +14872,27 @@ function volFormArchivos(files, esResp) {
   volFormAdjuntosDirty = true;
   volFormRepintarAdjuntos();
 }
+// Enlace de Drive pegado en el FORMULARIO. Entra a volFormAdjuntos (los que ya
+// tienen url), no a los pendientes de subir: no hay nada que subir.
+function volFormLink(esResp) {
+  const inp = document.getElementById(esResp ? 'volf_url_resp' : 'volf_url');
+  const item = pedirEnlaceDrive(inp ? inp.value : '');
+  if (!item) return;
+  if (esResp) item.respuesta = true;
+  volFormAdjuntos.push(item);
+  if (inp) inp.value = '';
+  volFormAdjuntosDirty = true;
+  volFormRepintarAdjuntos();
+}
 function volFormQuitarAdjunto(i) {
   const a = volFormAdjuntos[i];
   if (!a) return;
-  if (!confirm('¿Quitar el adjunto "' + (a.nombre || '') + '"? Se borrará de Drive al guardar.')) return;
-  volFormAdjuntosQuitar.push(a.url);
+  // Un enlace pegado solo se despega: el archivo vive en la carpeta de alguien
+  // más y mandarlo a la papelera por quitarlo de aquí sería pasarse.
+  if (!confirm(a.enlace
+    ? '¿Quitar el enlace "' + (a.nombre || '') + '"? El archivo NO se borra de Drive.'
+    : '¿Quitar el adjunto "' + (a.nombre || '') + '"? Se borrará de Drive al guardar.')) return;
+  if (!a.enlace) volFormAdjuntosQuitar.push(a.url);
   volFormAdjuntos.splice(i, 1);
   volFormAdjuntosDirty = true;
   volFormRepintarAdjuntos();
@@ -14954,7 +15052,11 @@ function abrirFormVolante(v) {
             <div id="volf_adjuntos">${volFormAdjuntosHTML(false)}</div>
             <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file').click()">📎 Elegir archivos…</button>
             <input type="file" id="volf_file" multiple style="display:none" onchange="volFormArchivos(this.files)">
-            <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.${hintPesoMax(false)}</div>
+            <div class="adjuntos-link-fila">
+              <input type="url" id="volf_url" maxlength="500" placeholder="o pega un link de Drive y presiona + Link" onkeydown="if(event.key==='Enter'){event.preventDefault();volFormLink(false);}">
+              <button type="button" class="acciones-agregar-btn" onclick="volFormLink(false)">+ Link</button>
+            </div>
+            <div class="form-hint">El documento del volante (escaneo, oficio…). Se sube a la carpeta de Volantes en Drive al guardar.${hintPesoMax()}</div>
           </div>
         </div>
         </div>
@@ -14983,7 +15085,11 @@ function abrirFormVolante(v) {
               <div id="volf_adjuntos_resp">${volFormAdjuntosHTML(true)}</div>
               <button type="button" class="acciones-agregar-btn" onclick="document.getElementById('volf_file_resp').click()">📎 Elegir archivos…</button>
               <input type="file" id="volf_file_resp" multiple style="display:none" onchange="volFormArchivos(this.files, true)">
-              <div class="form-hint">El PDF de la respuesta al volante. También se puede subir después, desde el detalle.${hintPesoMax(false)}</div>
+              <div class="adjuntos-link-fila">
+                <input type="url" id="volf_url_resp" maxlength="500" placeholder="o pega un link de Drive y presiona + Link" onkeydown="if(event.key==='Enter'){event.preventDefault();volFormLink(true);}">
+                <button type="button" class="acciones-agregar-btn" onclick="volFormLink(true)">+ Link</button>
+              </div>
+              <div class="form-hint">El PDF de la respuesta al volante. También se puede subir después, desde el detalle.${hintPesoMax()}</div>
             </div>
           </div>
         </div>
@@ -16140,6 +16246,10 @@ function puedeChecklist(t) {
   // acciones, reordenar, adjuntar y quitar adjuntos). El PALOMEO no cambia: la
   // casilla de cada columna la sigue firmando su área dueña (puedeMarcarArea).
   if (usuarioActual.rol === 'Director') return true;
+  // OJO: lista literal a propósito, NO SUBS_VE_SUBS. Andrea VE el tablero de
+  // Staff, pero gestionar el checklist de una tarea de la Dirección es otra cosa
+  // y sigue cerrado. Si algún día se le abre, se agrega 'ENLACE'/'DPAC' aquí a
+  // mano — que sea una decisión, no un efecto secundario de ampliar la vista.
   if (esEnlaceVeSubs()
     && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(String(t.subdireccion || '').toUpperCase()) >= 0) return true;
   return columnasChecklist(t).some(cod => puedeMarcarArea(t, cod));
@@ -17465,7 +17575,7 @@ function abrirNuevaTarea(tEdit) {
               <button type="button" class="acciones-agregar-btn" onclick="agregarLinkAdjunto()">+ Link</button>
             </div>
             <div id="nt_adjuntos_lista" class="adjuntos-lista"></div>
-            <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.${hintPesoMax(true)}</div>
+            <div class="form-hint">Los archivos se suben a Drive al crear/guardar la tarea. Agrega los que necesites y quítalos con la ✕.${hintPesoMax()}</div>
           </div>
 
           ${ed ? '' : `
@@ -17615,8 +17725,10 @@ function usuarioPuedeEditar(t) {
   // tablero — por lo tanto puede editar cualquier tarjeta (Staff, subdirección
   // o jefatura). El subdirector solo edita las de su subdirección.
   if (usuarioActual.rol === 'Director') return true;
-  // Andrea (enlace SGOI con acceso completo): gestiona las TRES subdirecciones,
-  // así que también edita las tareas de SA y SPAC (no las de Staff/Dirección).
+  // Andrea (enlace SGOI con acceso completo): gestiona las subdirecciones, así
+  // que también edita las tareas de SA y SPAC. Las de Staff/Dirección NO: desde
+  // ahora las VE en su tablero, pero verlas no es editarlas. Lista literal a
+  // propósito (no SUBS_VE_SUBS), para que ampliar la vista no amplíe permisos.
   if (esEnlaceVeSubs() && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0) return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
