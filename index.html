@@ -8083,6 +8083,15 @@ function tareaEnSubsVeSubs(t) {
     || SUBS_VE_SUBS_NORMALES.indexOf(t.subdireccion) >= 0
     || SUBS_VE_SUBS_NORMALES.some(c => tareaEnArea(t, c));
 }
+// ¿La tarea es DE un área que gestiona Andrea? Es la versión estricta de la de
+// arriba: manda la subdirección DUEÑA de la tarea, no que su área ande de
+// participante. Con esta se decide EDITAR la tarea y GESTIONAR su checklist, así
+// que las dos puertas abren con la misma llave y no se pueden desincronizar.
+// Staff va incluido: Andrea también edita y gestiona las tareas de la Dirección.
+function tareaGestionaVeSubs(t) {
+  return tareaEnStaff(t)
+    || SUBS_VE_SUBS_NORMALES.indexOf(String((t && t.subdireccion) || '').toUpperCase()) >= 0;
+}
 // Subdirección "efectiva" del tablero: para quien ve varias subdirecciones
 // (esEnlaceVeSubs) es la del tab activo; para todos los demás, la suya. Tablero,
 // KPIs e Historial filtran con esta, así el tab de SA/SPAC enseña ESA área.
@@ -16260,12 +16269,8 @@ function puedeChecklist(t) {
   // acciones, reordenar, adjuntar y quitar adjuntos). El PALOMEO no cambia: la
   // casilla de cada columna la sigue firmando su área dueña (puedeMarcarArea).
   if (usuarioActual.rol === 'Director') return true;
-  // OJO: lista literal a propósito, NO SUBS_VE_SUBS. Andrea VE el tablero de
-  // Staff, pero gestionar el checklist de una tarea de la Dirección es otra cosa
-  // y sigue cerrado. Si algún día se le abre, se agrega 'ENLACE'/'DPAC' aquí a
-  // mano — que sea una decisión, no un efecto secundario de ampliar la vista.
-  if (esEnlaceVeSubs()
-    && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(String(t.subdireccion || '').toUpperCase()) >= 0) return true;
+  // Andrea gestiona el checklist de TODAS sus áreas, Staff/Dirección incluida.
+  if (esEnlaceVeSubs() && tareaGestionaVeSubs(t)) return true;
   return columnasChecklist(t).some(cod => puedeMarcarArea(t, cod));
 }
 
@@ -17739,11 +17744,9 @@ function usuarioPuedeEditar(t) {
   // tablero — por lo tanto puede editar cualquier tarjeta (Staff, subdirección
   // o jefatura). El subdirector solo edita las de su subdirección.
   if (usuarioActual.rol === 'Director') return true;
-  // Andrea (enlace SGOI con acceso completo): gestiona las subdirecciones, así
-  // que también edita las tareas de SA y SPAC. Las de Staff/Dirección NO: desde
-  // ahora las VE en su tablero, pero verlas no es editarlas. Lista literal a
-  // propósito (no SUBS_VE_SUBS), para que ampliar la vista no amplíe permisos.
-  if (esEnlaceVeSubs() && ['SGOI', 'SGOIB', 'SGOIC', 'SPAC', 'SA'].indexOf(t.subdireccion) >= 0) return true;
+  // Andrea (enlace SGOI con acceso completo): gestiona todas sus áreas, así que
+  // edita las tareas de SA, SPAC y también las de Staff/Dirección.
+  if (esEnlaceVeSubs() && tareaGestionaVeSubs(t)) return true;
   return usuarioActual.rol === 'Capturista' && usuarioActual.subdireccion === t.subdireccion;
 }
 
