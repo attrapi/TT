@@ -838,6 +838,7 @@
   .vol-farea-btn.activa[data-tipo="CONOCIMIENTO"] { background: #1e3a8a; border-color: #1e3a8a; }
   .vol-farea-btn.activa[data-est="PROCESO"]       { background: #b45309; border-color: #b45309; }
   .vol-farea-btn.activa[data-est="ATENDIDO"]      { background: #166534; border-color: #166534; }
+  .vol-farea-btn.activa[data-urg="URGENTES"]      { background: #dc2626; border-color: #dc2626; }
   /* Filtros de volantes: UN RENGLÓN POR FILTRO, siempre. Con los tres en la
      misma fila (10 botones seguidos) no se distinguía dónde acababa uno y
      empezaba el otro. Apilados, y con la etiqueta en una columna del mismo
@@ -6200,6 +6201,13 @@
           <button class="vol-farea-btn" data-est="TODOS" onclick="volSetEstatus('TODOS')">Todos</button>
           <button class="vol-farea-btn" data-est="PROCESO" onclick="volSetEstatus('PROCESO')">En proceso</button>
           <button class="vol-farea-btn" data-est="ATENDIDO" onclick="volSetEstatus('ATENDIDO')">Atendido</button>
+        </div>
+      </div>
+      <div class="vol-fgrupo">
+        <span class="vol-fetq">Urgencia</span>
+        <div class="vol-farea" id="volFiltroUrgBox" title="Ver solo los volantes marcados como urgentes">
+          <button class="vol-farea-btn" data-urg="TODOS" onclick="volSetUrgente('TODOS')">Todos</button>
+          <button class="vol-farea-btn" data-urg="URGENTES" onclick="volSetUrgente('URGENTES')">🔴 Urgentes</button>
         </div>
       </div>
     </div>
@@ -13860,6 +13868,7 @@ function volSetBuscar(txt) { volBuscarTxt = String(txt || '').trim(); pintarVola
 let volFiltroArea = null;   // null = aún sin decidir; se toma del área del usuario al pintar
 let volFiltroTipo = 'TODOS';      // 'TODOS' | 'ATENCION' | 'CONOCIMIENTO'
 let volFiltroEstatus = 'TODOS';   // 'TODOS' | 'PROCESO'  | 'ATENDIDO'
+let volFiltroUrgente = 'TODOS';   // 'TODOS' | 'URGENTES' (los marcados urgentes)
 // Un volante puede tocar VARIAS áreas (ej. llega a SGOI-B y también a SA): se
 // guardan en la MISMA columna de texto separadas con "; ", igual que "Asignado
 // a" (sin cambio de esquema). Volantes viejos = un área; sin área = SGOI.
@@ -13907,6 +13916,7 @@ function volSoloSgoi() {
 function volSetArea(a) { volFiltroArea = a; volPintarFiltroArea(); pintarVolantes(); }
 function volSetTipo(t) { volFiltroTipo = t; volPintarFiltroTipo(); pintarVolantes(); }
 function volSetEstatus(e) { volFiltroEstatus = e; volPintarFiltroEstatus(); pintarVolantes(); }
+function volSetUrgente(u) { volFiltroUrgente = u; volPintarFiltroUrgente(); pintarVolantes(); }
 
 // Enciende el botón que corresponde dentro de un grupo de filtros.
 function volPintarGrupo(idCaja, attr, valor) {
@@ -13916,18 +13926,22 @@ function volPintarGrupo(idCaja, attr, valor) {
 function volPintarFiltroArea() { volPintarGrupo('volFiltroAreaBox', 'data-sub', volFiltroArea); }
 function volPintarFiltroTipo() { volPintarGrupo('volFiltroTipoBox', 'data-tipo', volFiltroTipo); }
 function volPintarFiltroEstatus() { volPintarGrupo('volFiltroEstBox', 'data-est', volFiltroEstatus); }
+function volPintarFiltroUrgente() { volPintarGrupo('volFiltroUrgBox', 'data-urg', volFiltroUrgente); }
 
 // ¿Hay algún filtro puesto? (para ofrecer quitarlos cuando no sale nada)
 function volHayFiltros() {
   return (volFiltroArea && volFiltroArea !== 'TODAS')
       || (volFiltroTipo && volFiltroTipo !== 'TODOS')
-      || (volFiltroEstatus && volFiltroEstatus !== 'TODOS');
+      || (volFiltroEstatus && volFiltroEstatus !== 'TODOS')
+      || (volFiltroUrgente && volFiltroUrgente !== 'TODOS');
 }
-// Deja los tres filtros en "todos". NO borra la búsqueda: casi siempre lo que
+// Deja los cuatro filtros en "todos". NO borra la búsqueda: casi siempre lo que
 // se quiere es ver dónde cayó lo que se está buscando.
 function volLimpiarFiltros() {
   volFiltroArea = 'TODAS'; volFiltroTipo = 'TODOS'; volFiltroEstatus = 'TODOS';
+  volFiltroUrgente = 'TODOS';
   volPintarFiltroArea(); volPintarFiltroTipo(); volPintarFiltroEstatus();
+  volPintarFiltroUrgente();
   pintarVolantes();
 }
 
@@ -13946,8 +13960,9 @@ function pintarVolantes() {
     const subU = usuarioActual ? String(usuarioActual.subdireccion || '').toUpperCase() : '';
     volFiltroArea = (subU === 'SA' || subU === 'SGOI' || subU === 'SGOIB' || subU === 'SGOIC' || subU === 'SPAC') ? subU : 'TODAS';
     volPintarFiltroArea();
-    volPintarFiltroTipo();      // ambos arrancan en "Todos"
+    volPintarFiltroTipo();      // los demás arrancan en "Todos"
     volPintarFiltroEstatus();
+    volPintarFiltroUrgente();
   }
   // Enlace restringido de SGOI (salvo Jacobo): solo ve volantes de SGOI. Se le
   // fija el área, se le esconde el grupo de botones Todas/SGOI/SA/SPAC y la
@@ -13981,6 +13996,9 @@ function pintarVolantes() {
     const atendidos = volFiltroEstatus === 'ATENDIDO';
     vs = vs.filter(v => ((v.estatus || '') === 'Atendido') === atendidos);
   }
+  // Urgencia: el interruptor "Urgente" del formulario (v.urgente), el mismo que
+  // pinta la píldora roja de la tarjeta.
+  if (volFiltroUrgente === 'URGENTES') vs = vs.filter(v => !!v.urgente);
   // El conteo para el aviso de "otras áreas" se toma DESPUÉS de tipo/estatus y
   // ANTES del área: así el aviso habla solo de lo que el filtro de área escondió.
   const coincidenTodas = vs.length;
