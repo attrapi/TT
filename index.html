@@ -10055,7 +10055,8 @@ function hvolMarcarChips() {
 
 // Pinta la pestaña "Volantes" del Historial: archivados y eliminados, con
 // buscador + año + área + estado. Las tarjetas reusan el look de Volantes pero
-// apagadas; Restaurar / Eliminar definitivo solo los ven Andrea y el Director.
+// apagadas; Restaurar lo ven Andrea, el Director y Jacobo, y Eliminar definitivo
+// solo Andrea y el Director (es irreversible).
 function renderizarHistVolantes() {
   var lista = document.getElementById('hvolLista');
   if (!lista) return;
@@ -10094,14 +10095,14 @@ function renderizarHistVolantes() {
     return;
   }
   var puede = volPuedeHistorial();
+  var puedeBorrar = volPuedeBorrarDefinitivo();
   lista.innerHTML = vs.map(function (v) {
     var elim = (v.hist || '') === 'eliminado';
     // hist_fecha es timestamptz; formatearFechaCorta espera solo 'YYYY-MM-DD'.
     var cuando = v.hist_fecha ? formatearFechaCorta(String(v.hist_fecha).slice(0, 10)) : '';
-    var botones = puede
-      ? '<button class="vol-btn" onclick="event.stopPropagation(); volRestaurarHistorial(\'' + v.id + '\')" title="Regresar el volante a la lista de Volantes">↩ Restaurar</button>' +
-        '<button class="vol-btn borrar" onclick="event.stopPropagation(); volEliminarDefinitivo(\'' + v.id + '\')" title="Borrarlo para siempre (no se puede deshacer)">🗑 Eliminar definitivo</button>'
-      : '';
+    var botones =
+      (puede ? '<button class="vol-btn" onclick="event.stopPropagation(); volRestaurarHistorial(\'' + v.id + '\')" title="Regresar el volante a la lista de Volantes">↩ Restaurar</button>' : '') +
+      (puedeBorrar ? '<button class="vol-btn borrar" onclick="event.stopPropagation(); volEliminarDefinitivo(\'' + v.id + '\')" title="Borrarlo para siempre (no se puede deshacer)">🗑 Eliminar definitivo</button>' : '');
     return '<div class="vol-card" onclick="abrirDetalleVolante(\'' + v.id + '\')" title="Ver el detalle del volante">' +
       '<div class="vol-cab">' +
         '<span class="vol-num">' + escapeHtml(v.numero || '—') + '</span>' +
@@ -13899,10 +13900,23 @@ function volAsignadosDe(v) {
 // ¿El volante ya está en el Historial? ('archivado' cuando se mandó ya atendido,
 // 'eliminado' cuando se quitó con el bote 🗑).
 function volEnHistorial(v) { return !!(v && v.hist); }
-// Mandar al Historial, restaurar y eliminar definitivo: SOLO Andrea (enlace de
-// SGOI con acceso completo) y el Director (Adrián), por instrucción de la
-// Dirección. En "Ver como Dirección" (solo lectura) NO: el rol ahí es prestado.
+// Jacobo: enlace de SGOI que, aunque es restringido, en VOLANTES trabaja las
+// tres áreas (captura, edita y manda al Historial). Se reconoce por nombre
+// porque su perfil no lleva acceso_completo (eso le abriría también las tareas).
+function esJacobo(u) {
+  u = u || usuarioActual;
+  return !!u && sinAcentos(u.nombre || '').indexOf('jacobo') >= 0;
+}
+// Mandar al Historial y restaurar: Andrea (enlace de SGOI con acceso completo),
+// el Director (Adrián) y Jacobo, por instrucción de la Dirección. En "Ver como
+// Dirección" (solo lectura) NO: el rol ahí es prestado.
 function volPuedeHistorial() {
+  if (SOLO_LECTURA) return false;
+  return esEnlaceVeSubs() || esJacobo() || !!(usuarioActual && usuarioActual.rol === 'Director');
+}
+// Eliminar definitivo NO va con los anteriores: borra la fila con su hilo y no
+// se puede deshacer, así que se queda solo con Andrea y el Director.
+function volPuedeBorrarDefinitivo() {
   if (SOLO_LECTURA) return false;
   return esEnlaceVeSubs() || !!(usuarioActual && usuarioActual.rol === 'Director');
 }
@@ -13912,7 +13926,7 @@ function volPuedeHistorial() {
 function volSoloSgoi() {
   if (!usuarioActual || !esEnlaceRestringido()) return false;
   if (String(usuarioActual.subdireccion || '').toUpperCase() !== 'SGOI') return false;
-  return sinAcentos(usuarioActual.nombre || '').indexOf('jacobo') < 0;
+  return !esJacobo();
 }
 function volSetArea(a) { volFiltroArea = a; volPintarFiltroArea(); pintarVolantes(); }
 function volSetTipo(t) { volFiltroTipo = t; volPintarFiltroTipo(); pintarVolantes(); }
@@ -14121,7 +14135,7 @@ function pintarDetalleVolante() {
   ];
   if (atendido && v.atendido_por) campos.push(['Atendido por', v.atendido_por]);
   // Volante que ya está en el Historial: se ve completo, pero no se edita ni se
-  // le cambia el estatus; Andrea o el Director pueden regresarlo con Restaurar.
+  // le cambia el estatus; Andrea, el Director o Jacobo lo regresan con Restaurar.
   const enHist = volEnHistorial(v);
   if (enHist && v.hist_por) campos.push([v.hist === 'eliminado' ? 'Eliminado por' : 'Enviado al historial por', v.hist_por]);
   let botonesPie = '';
@@ -14519,7 +14533,8 @@ function volCambiarEstatus() {
 }
 
 // "📥 Mandar a historial" (en el detalle, solo con el volante YA atendido y solo
-// Andrea o el Director): lo archiva en Historial → Volantes. Reversible con Restaurar.
+// Andrea, el Director o Jacobo): lo archiva en Historial → Volantes. Reversible
+// con Restaurar.
 function volMandarHistorial() {
   const v = VOLANTES.find(x => String(x.id) === String(volanteAbierto));
   if (!v || !volPuedeHistorial() || volEnHistorial(v)) return;
@@ -14555,7 +14570,7 @@ function volRestaurarHistorial(id) {
 // Volantes): borra la fila con su hilo y bitácora. Este SÍ es irreversible.
 function volEliminarDefinitivo(id) {
   const v = VOLANTES.find(x => String(x.id) === String(id));
-  if (!v || !volPuedeHistorial()) return;
+  if (!v || !volPuedeBorrarDefinitivo()) return;
   if (!confirm('¿Eliminar DEFINITIVO el volante ' + (v.numero || '') + '? Se borra con su hilo y bitácora; esta acción no se puede deshacer.')) return;
   google.script.run.withSuccessHandler(function (res) {
     if (!res || !res.ok) { toast((res && res.error) || 'No se pudo eliminar el volante', 'error'); return; }
