@@ -281,7 +281,8 @@
       // OJO: este mapa define el PREFIJO del código de la tarea (area → JDGAB-001).
       // Si falta una jefatura aquí, sus tareas nacen con el prefijo equivocado.
       return ({ PROCEDIMIENTOS: 'JDPC', MANUALES: 'JDIMA', GESTION_AMBIENTAL: 'JDGA',
-                GESTION_AMBIENTAL_B: 'JDGAB', GESTION_OBRAS: 'JDGOI' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
+                GESTION_AMBIENTAL_B: 'JDGAB', GESTION_AMBIENTAL_C: 'JDGAC',
+                GESTION_OBRAS: 'JDGOI' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
     }
     return String(d.subdireccion || '').toUpperCase();
   }
