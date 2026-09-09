@@ -9250,7 +9250,7 @@ function crearTarjeta(t) {
   // Campos visibles en la tarjeta (las cosas largas como áreas involucradas,
   // acuerdos y checklist se ven al abrir el modal).
   const tema   = t.tema || t.titulo;
-  const areaResp = etiquetaArea(areaResponsable(t));                // SPAC / JDPC / JDIMA / DPAC / ENLACE…
+  const areaResp = etiquetaAreasResponsables(t);                    // SGOI-A · SGOI-C / SPAC / JDPC…
   const respDirecto = (nombreNiceResp(t.responsable) || '').trim() || '—';
   const fechaAt = t.fecha_atencion || t.fecha_limite;
   const fechaTxt = formatearFecha(fechaAt);
@@ -10525,7 +10525,7 @@ function abrirDetalle(t) {
         ${temasDe(t).length ? `<dt>Tema de SGOI</dt>
         <dd><div class="seg-card-temas" style="margin:0">${temasDe(t).map(n => '<span>' + escapeHtml(n) + '</span>').join('')}</div></dd>` : ''}
         <dt>Área responsable</dt>
-        <dd>${escapeHtml(etiquetaArea(areaResponsable(t)))}</dd>
+        <dd>${escapeHtml(etiquetaAreasResponsables(t))}</dd>
         <dt>Responsable directo</dt>
         <dd>${escapeHtml(nombreNiceResp(t.responsable) || '—')}</dd>
         <dt>Fecha de atención</dt>
@@ -15948,6 +15948,16 @@ function etiquetaArea(cod) {
   if (c === 'SGOIC') return 'SGOI-C';
   if (c === 'JDGAB') return 'JDGA-B';   // jefatura ambiental de SGOI-B
   return String(cod || '');
+}
+
+// TODAS las áreas responsables de la tarea (sus participantes), ya con la
+// etiqueta visible: "SGOI-A · SGOI-C". Es lo que se ve en la tarjeta y en el
+// modal; antes solo salía la primera, así que una tarea de SGOI-A y SGOI-C se
+// veía como si fuera nada más de SGOI-A hasta que la abrías.
+function etiquetaAreasResponsables(t) {
+  const parts = participantesDe(t).filter(Boolean);
+  if (!parts.length) return etiquetaArea(areaResponsable(t));
+  return parts.map(function (c) { return etiquetaArea(c); }).join(' · ');
 }
 
 function areaResponsable(t) {
