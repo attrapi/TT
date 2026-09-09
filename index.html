@@ -5965,7 +5965,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span class="sidebar-label">Seguimiento</span>
         </button>
-        <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace), en prueba. -->
+        <!-- Juego "Reta a la Ley" (estudiar la LOPSRM). Solo Daniel de la Garza (enlace) e Imelda, en prueba. -->
         <button class="sidebar-item" id="sidebarJuegoLopsrm" style="display:none" onclick="abrirJuegoLopsrm()" title="Reta a la Ley — quiz para aprender la LOPSRM">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>
           <span class="sidebar-label">Reta a la Ley</span>
@@ -7055,9 +7055,9 @@ function aplicarSesion() {
     brandDpac.title = esDirBrand ? 'Abrir el portal DPAC (nueva pestaña)' : '';
   }
 
-  // Juego "Reta a la Ley": por ahora SOLO Daniel de la Garza (enlace), para probarlo.
+  // Juego "Reta a la Ley": por ahora solo Daniel de la Garza (enlace) e Imelda.
   const juegoBtn = document.getElementById('sidebarJuegoLopsrm');
-  if (juegoBtn) juegoBtn.style.display = esDanielDeLaGarza() ? '' : 'none';
+  if (juegoBtn) juegoBtn.style.display = puedeJugarRetaALaLey() ? '' : 'none';
   // Ajustes del correo de aviso (plantilla): SOLO el Director (Adrián) la edita.
   const ajustesCorreoBtn = document.getElementById('sidebarAjustesCorreo');
   if (ajustesCorreoBtn) ajustesCorreoBtn.style.display = (usuarioActual.rol === 'Director') ? '' : 'none';
@@ -10949,15 +10949,18 @@ let _confetiColEstado = {};
 
 // ===================== JUEGO: RETA A LA LEY (LOPSRM) =====================
 // Quiz para estudiar la LOPSRM. Banco basado en el TEXTO VIGENTE (DOF 14-11-2025);
-// cada pregunta cita su artículo. Por ahora SOLO para Daniel de la Garza (enlace).
+// cada pregunta cita su artículo. Por ahora solo para Daniel de la Garza (enlace) e Imelda.
 const JUEGO_PDF_URL = 'https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf';
 const JUEGO_VIDAS = 3;
 const JUEGO_TIEMPO = 25;   // segundos por pregunta
 const JUEGO_LARGO = 10;    // preguntas en "Reto rápido" / "Reto diario"
 
-function esDanielDeLaGarza() {
+// Quien puede abrir el juego. Por ahora Daniel de la Garza (enlace) e Imelda.
+const JUEGO_PERSONAS = ['daniel de la garza', 'imelda'];
+function puedeJugarRetaALaLey() {
   if (!usuarioActual) return false;
-  return sinAcentos(usuarioActual.nombre || '').indexOf('daniel de la garza') >= 0;
+  const n = sinAcentos(usuarioActual.nombre || '');
+  return JUEGO_PERSONAS.some(function (p) { return n.indexOf(p) >= 0; });
 }
 
 const LOPSRM_PREGUNTAS = [
@@ -11935,7 +11938,7 @@ function _juegoAciertosDe(leyId) { return _juegoLeerLey(leyId).totalAciertos || 
 function juegoLeyDesbloqueada() { return true; }
 
 function abrirJuegoLopsrm() {
-  if (!esDanielDeLaGarza()) return;
+  if (!puedeJugarRetaALaLey()) return;
   document.getElementById('juegoLopsrm').classList.add('abierto');
   renderJuegoInicio();
   // Trae el avance guardado en la cuenta (otro dispositivo, caché borrada) y
