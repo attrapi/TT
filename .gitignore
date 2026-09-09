@@ -6,6 +6,5 @@ Comparativo-TT-vs-Monday.*
 Credenciales-TT.*
 *credenciales*
 *contrasenas*
-# Copias LOCALES de scripts con correos/datos reales del personal.
-# El repo es publico: la version del repo lleva placeholders.
+# Copias de trabajo de scripts SQL (borradores locales, no van al repo)
 *.local.sql
