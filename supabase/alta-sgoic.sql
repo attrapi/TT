@@ -20,6 +20,8 @@
 --
 --  Los correos de abajo son PLACEHOLDERS: el repo es público y aquí no se
 --  guardan datos reales del personal. Sustitúyelos antes de correr.
+--  La copia con los correos reales vive fuera del repo, como
+--  alta-sgoic-correos.local.sql (*.local.sql está en .gitignore).
 --
 --  Pegar en: Supabase → SQL Editor → New query → Run.
 -- =====================================================================
