@@ -6963,6 +6963,21 @@ function aplicarSesion() {
     // El grupo se llama "Subdirección" (singular) en el perfil del subdirector.
     tituloSubs.textContent = esEnlaceVeSubs() ? 'Subdirecciones' : 'Subdirección';
 
+    // JEFE/JEFA de departamento: su único item del menú es el de su subdirección
+    // madre, pero se ETIQUETA con su jefatura (JDGA-C, JDPC…). Antes decía el
+    // nombre de la madre ("SGOI-C"), que no es el área en la que trabaja ni la
+    // columna que ve en el tablero.
+    const codJefMenu = esEnlaceVeSubs() ? '' : jefaturaCodigo(usuarioActual.jefatura);
+    if (codJefMenu) {
+      const subMadreMenu = String(usuarioActual.subdireccion || '').toUpperCase();
+      const btnJefMenu = document.querySelector('.sidebar-sub[data-sub="' + subMadreMenu + '"]');
+      const lblJefMenu = btnJefMenu && btnJefMenu.querySelector('.sidebar-label');
+      const nombreJefMenu = (JEFATURAS_POR_SUB[subMadreMenu] || {})[codJefMenu] || '';
+      if (lblJefMenu) lblJefMenu.textContent = etiquetaArea(ACRONIMO_JEFATURA[codJefMenu] || codJefMenu);
+      if (btnJefMenu && nombreJefMenu) btnJefMenu.title = nombreJefMenu;
+      tituloSubs.textContent = 'Jefatura';
+    }
+
     // Gestión completa también para el subdirector: Bitácora, Carga, Reportes
     // y Dashboard (cada vista ya acota los datos a su subdirección).
     grupoDir.style.display = '';
@@ -15660,8 +15675,10 @@ function tituloNavCompleto() {
   const nombresJef = {
     'PROCEDIMIENTOS':   'Jefatura de Departamento de Procesos de Construcción',
     'MANUALES':         'Jefatura de Departamento de Implementación de Manuales Administrativos',
-    'GESTION_AMBIENTAL':'Jefatura de Departamento de Gestión Ambiental',
-    'GESTION_OBRAS':    'Jefatura de Departamento de Gestión de Obras Inducidas'
+    'GESTION_AMBIENTAL':  'Jefatura de Departamento de Gestión Ambiental',
+    'GESTION_AMBIENTAL_B':'Jefatura de Departamento de Gestión Ambiental B',
+    'GESTION_AMBIENTAL_C':'Jefatura de Departamento de Gestión Ambiental C',
+    'GESTION_OBRAS':      'Jefatura de Departamento de Gestión de Obras Inducidas'
   };
   const codJef = jefaturaCodigo(usuarioActual.jefatura);
   return codJef
