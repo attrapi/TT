@@ -2721,6 +2721,17 @@
   .col-color-turquesa .col-subtitulo,
   .col-color-turquesa .col-conteo  { color: #115e59; }
 
+  /* JDGA-C — lima (jefatura ambiental de SGOI-C; misma familia verde de su
+     madre olivo, pero más clara/amarilla que el verde oscuro de JDGA y que el
+     turquesa de JDGA-B). */
+  .col-color-lima .col-header {
+    background: #ecfccb; border-bottom-color: #4d7c0f;
+  }
+  .col-color-lima .col-marca  { background: #4d7c0f; }
+  .col-color-lima .col-titulo,
+  .col-color-lima .col-subtitulo,
+  .col-color-lima .col-conteo  { color: #3f6212; }
+
   /* JDGOI — café (jefatura de obras inducidas de SGOI) */
   .col-color-cafe .col-header {
     background: #f5e6d3; border-bottom-color: #78350f;
@@ -3211,6 +3222,7 @@
   .tarjeta[data-pre="JDPC"]   .tarjeta-id { background: var(--jef-jdpc);  color: #fff; }
   .tarjeta[data-pre="JDIMA"]  .tarjeta-id { background: var(--jef-jdima); color: #fff; }
   .tarjeta[data-pre="JDGAB"]  .tarjeta-id { background: #0f766e;          color: #fff; }
+  .tarjeta[data-pre="JDGAC"]  .tarjeta-id { background: #4d7c0f;          color: #fff; }
 
   .tarjeta-titulo {
     font-size: 14px;
@@ -3669,6 +3681,7 @@
   .modal-id[data-pre="JDPC"]   { background: var(--jef-jdpc);   color: #fff; }
   .modal-id[data-pre="JDIMA"]  { background: var(--jef-jdima);  color: #fff; }
   .modal-id[data-pre="JDGAB"]  { background: #0f766e;           color: #fff; }
+  .modal-id[data-pre="JDGAC"]  { background: #4d7c0f;           color: #fff; }
 
   .modal-titulo {
     font-family: var(--serif);
@@ -6491,6 +6504,11 @@ const JEFATURAS_POR_SUB = {
   // (JDGAB-###) y columna propia. No comparte nada con GESTION_AMBIENTAL.
   SGOIB: {
     GESTION_AMBIENTAL_B: 'Jefatura de Departamento de Gestión Ambiental B'
+  },
+  // Igual que SGOI-B: SGOI-C tiene su PROPIA Jefatura de Gestión Ambiental
+  // (JDGA-C), con código, prefijo de ID (JDGAC-###) y columna propios.
+  SGOIC: {
+    GESTION_AMBIENTAL_C: 'Jefatura de Departamento de Gestión Ambiental C'
   }
 };
 // Compatibilidad: las dos Jefaturas de SPAC (usado en Reportes).
@@ -7169,8 +7187,10 @@ function cargoLogin(u) {
     return ({
       PROCEDIMIENTOS:    'Jefatura de Departamento de Procesos de Construcción',
       MANUALES:          'Jefatura de Departamento de Implementación de Manuales Administrativos',
-      GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental',
-      GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas'
+      GESTION_AMBIENTAL:   'Jefatura de Departamento de Gestión Ambiental',
+      GESTION_AMBIENTAL_B: 'Jefatura de Departamento de Gestión Ambiental B',
+      GESTION_AMBIENTAL_C: 'Jefatura de Departamento de Gestión Ambiental C',
+      GESTION_OBRAS:       'Jefatura de Departamento de Gestión de Obras Inducidas'
     })[codJef] || 'Jefatura';
   }
   return ({
@@ -8717,8 +8737,12 @@ function columnasPorRol() {
       ];
     }
     if (tabActiva === 'SGOIC') {
-      return [{ id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
-        color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIC') }];
+      return [
+        { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+          color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIC') },
+        { id: 'JDGAC', titulo: 'JDGA-C', subtitulo: 'Jefatura de Departamento de Gestión Ambiental C',
+          color: 'lima', filtro: t => tareaEnArea(t, 'JDGAC') }
+      ];
     }
     if (tabActiva === 'SA') {
       return [{ id: 'SA', titulo: 'SA', subtitulo: 'Subdirección de Archivo',
@@ -8818,6 +8842,15 @@ function columnasPorRol() {
       filtro: t => tareaEnArea(t, 'JDGAB') }
   ];
 
+  // SGOI-C: la subdirección + su jefatura ambiental propia (JDGA-C).
+  const colsSGOIC = [
+    { id: 'SGOIC', titulo: 'SGOI-C', subtitulo: 'Subdirección de Gestión de Obras Inducidas C',
+      color: 'olivo', filtro: t => tareaEnObras(t, 'SGOIC') },
+    { id: 'JDGAC', titulo: 'JDGA-C', subtitulo: 'Jefatura de Departamento de Gestión Ambiental C',
+      color: 'lima', jefCod: 'GESTION_AMBIENTAL_C',
+      filtro: t => tareaEnArea(t, 'JDGAC') }
+  ];
+
   if (sub === 'SPAC') {
     if (codJefUser) return colsSPAC.filter(c => c.jefCod === codJefUser);
     return colsSPAC;
@@ -8829,6 +8862,10 @@ function columnasPorRol() {
   if (sub === 'SGOIB') {
     if (codJefUser) return colsSGOIB.filter(c => c.jefCod === codJefUser);
     return colsSGOIB;
+  }
+  if (sub === 'SGOIC') {
+    if (codJefUser) return colsSGOIC.filter(c => c.jefCod === codJefUser);
+    return colsSGOIC;
   }
   // Tab Staff (Andrea parada ahí): una sola columna que agrupa DPAC + Enlace,
   // igual que la del Director. Sin este caso caería al default de abajo, que
@@ -13161,7 +13198,7 @@ let TEMAS_SGOI = TEMAS_SGOI_BASE.slice();
 // Áreas cuyas tareas se etiquetan con estos temas: SGOI (y sus dos jefaturas)
 // y la Dirección (DPAC), que da seguimiento a esos mismos trámites. Una sola
 // lista para que el formulario, el guardado y el filtro no se desincronicen.
-const AREAS_CON_TEMAS = ['SGOI', 'SGOIB', 'SGOIC', 'JDGA', 'JDGAB', 'JDGOI', 'DPAC'];
+const AREAS_CON_TEMAS = ['SGOI', 'SGOIB', 'SGOIC', 'JDGA', 'JDGAB', 'JDGAC', 'JDGOI', 'DPAC'];
 
 // ¿Alguna de estas áreas usa temas? (recibe códigos de área).
 function areasUsanTemas(cods) {
@@ -15878,6 +15915,7 @@ const ACRONIMOS_AREA = {
   'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
   'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
   'Jefatura de Departamento de Gestión Ambiental B': 'JDGAB',
+  'Jefatura de Departamento de Gestión Ambiental C': 'JDGAC',
   'Jefatura de Departamento de Gestión de Obras Inducidas': 'JDGOI',
   'Staff': 'STAFF',
   // Legacy: tareas viejas pueden tener el nombre anterior; lo mapeamos al
@@ -15950,6 +15988,7 @@ function etiquetaArea(cod) {
   if (c === 'SGOIB') return 'SGOI-B';
   if (c === 'SGOIC') return 'SGOI-C';
   if (c === 'JDGAB') return 'JDGA-B';   // jefatura ambiental de SGOI-B
+  if (c === 'JDGAC') return 'JDGA-C';   // jefatura ambiental de SGOI-C
   return String(cod || '');
 }
 
@@ -15969,6 +16008,7 @@ function areaResponsable(t) {
     if (t.jefatura === 'PROCEDIMIENTOS')      return 'JDPC';
     if (t.jefatura === 'MANUALES')            return 'JDIMA';
     if (t.jefatura === 'GESTION_AMBIENTAL_B') return 'JDGAB';
+    if (t.jefatura === 'GESTION_AMBIENTAL_C') return 'JDGAC';
     if (t.jefatura === 'GESTION_AMBIENTAL')   return 'JDGA';
     if (t.jefatura === 'GESTION_OBRAS')       return 'JDGOI';
   }
@@ -16065,10 +16105,12 @@ function jefaturaCodigo(raw) {
   const n = String(raw).toLowerCase().replace(/\s+/g, ' ');
   if (n.indexOf('procedimiento') >= 0) return 'PROCEDIMIENTOS';
   if (n.indexOf('manual') >= 0)        return 'MANUALES';
-  // La Gestión Ambiental de SGOI-B se prueba ANTES que la genérica: tanto su
-  // nombre ("… Gestión Ambiental B") como su código ("GESTION_AMBIENTAL_B")
-  // contienen "ambient" y si no, caerían en la jefatura de SGOI-A.
+  // Las de Gestión Ambiental de SGOI-B y SGOI-C se prueban ANTES que la
+  // genérica: tanto su nombre ("… Gestión Ambiental B/C") como su código
+  // ("GESTION_AMBIENTAL_B/C") contienen "ambient" y si no, caerían en la
+  // jefatura de SGOI-A.
   if (/ambient/.test(n) && /(_b|\bb)\s*$/.test(n)) return 'GESTION_AMBIENTAL_B';
+  if (/ambient/.test(n) && /(_c|\bc)\s*$/.test(n)) return 'GESTION_AMBIENTAL_C';
   if (n.indexOf('ambient') >= 0)       return 'GESTION_AMBIENTAL';
   if (n.indexOf('obras inducid') >= 0) return 'GESTION_OBRAS';
   return String(raw).toUpperCase().trim();
@@ -16080,12 +16122,13 @@ const PREFIJO_JEFATURA = {
   JDIMA: 'MANUALES',
   JDGA:  'GESTION_AMBIENTAL',
   JDGOI: 'GESTION_OBRAS',
-  JDGAB: 'GESTION_AMBIENTAL_B'   // Jefatura de Gestión Ambiental de SGOI-B
+  JDGAB: 'GESTION_AMBIENTAL_B',  // Jefatura de Gestión Ambiental de SGOI-B
+  JDGAC: 'GESTION_AMBIENTAL_C'   // Jefatura de Gestión Ambiental de SGOI-C
 };
 
 // Código de jefatura (PROCEDIMIENTOS…) → acrónimo de área (JDPC…). Inverso de
 // PREFIJO_JEFATURA, para traducir la jefatura del usuario a un código de área.
-const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMBIENTAL:'JDGA', GESTION_OBRAS:'JDGOI', GESTION_AMBIENTAL_B:'JDGAB' };
+const ACRONIMO_JEFATURA = { PROCEDIMIENTOS:'JDPC', MANUALES:'JDIMA', GESTION_AMBIENTAL:'JDGA', GESTION_OBRAS:'JDGOI', GESTION_AMBIENTAL_B:'JDGAB', GESTION_AMBIENTAL_C:'JDGAC' };
 
 // =====================================================================
 // Modelo de PARTICIPANTES y niveles de jerarquía
@@ -17476,6 +17519,7 @@ function abrirNuevaTarea(tEdit) {
     { v:'SGOIB', sub:'SGOIB', nivel:'subdireccion', jef:'',                    n:'SGOI-B · Subdirección de Gestión de Obras Inducidas B' },
     { v:'JDGAB', sub:'SGOIB', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_B', n:'JDGA-B · Jefatura de Departamento de Gestión Ambiental B' },
     { v:'SGOIC', sub:'SGOIC', nivel:'subdireccion', jef:'',                    n:'SGOI-C · Subdirección de Gestión de Obras Inducidas C' },
+    { v:'JDGAC', sub:'SGOIC', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_C', n:'JDGA-C · Jefatura de Departamento de Gestión Ambiental C' },
     { v:'SPAC',  sub:'SPAC', nivel:'subdireccion', jef:'',                     n:'SPAC · Subdirección de Procesos Administrativos de Construcción' },
     { v:'JDPC',  sub:'SPAC', nivel:'jefatura',     jef:'PROCEDIMIENTOS',       n:'JDPC · Jefatura de Departamento de Procesos de Construcción' },
     { v:'JDIMA', sub:'SPAC', nivel:'jefatura',     jef:'MANUALES',             n:'JDIMA · Jefatura de Departamento de Implementación de Manuales Administrativos' },
@@ -17515,12 +17559,12 @@ function abrirNuevaTarea(tEdit) {
   // La tarea aparece en el tablero de cada área marcada y el checklist tiene una
   // columna por área. El área propia del usuario va marcada y bloqueada al crear
   // (siempre participa). Al editar se pre-marcan los participantes actuales.
-  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI-A', SGOIB:'SGOI-B', SGOIC:'SGOI-C', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDGAB:'JDGA-B', JDPC:'JDPC', JDIMA:'JDIMA' };
+  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI-A', SGOIB:'SGOI-B', SGOIC:'SGOI-C', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDGAB:'JDGA-B', JDGAC:'JDGA-C', JDPC:'JDPC', JDIMA:'JDIMA' };
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
   let codigosAsignables = (usuarioActual.rol === 'Director' || esSubdirectorSPAC() || esEnlaceVeSubs())
-    ? ['DPAC','SGOI','SGOIB','SGOIC','SPAC','SA','JDGOI','JDGA','JDGAB','JDPC','JDIMA','ENLACE']
+    ? ['DPAC','SGOI','SGOIB','SGOIC','SPAC','SA','JDGOI','JDGA','JDGAB','JDGAC','JDPC','JDIMA','ENLACE']
     : opcionesPermitidas.map(o => o.v);
   // SGOI también puede asignarle tareas al Staff de la Dirección (Tiffany):
   // se le suma el chip STAFF a su lista de áreas.
@@ -18143,6 +18187,7 @@ function guardarNuevaTarea() {
     'JDGA':  { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_AMBIENTAL' },
     'JDGOI': { sub:'SGOI',  nivel:'jefatura',     jef:'GESTION_OBRAS' },
     'JDGAB': { sub:'SGOIB', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_B' },
+    'JDGAC': { sub:'SGOIC', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_C' },
     'SPAC':  { sub:'SPAC',  nivel:'subdireccion', jef:'' },
     'JDPC':  { sub:'SPAC',  nivel:'jefatura',     jef:'PROCEDIMIENTOS' },
     'JDIMA': { sub:'SPAC',  nivel:'jefatura',     jef:'MANUALES' },

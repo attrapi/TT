@@ -13,7 +13,7 @@ create table if not exists public.perfiles (
   nombre        text not null default '',
   rol           text not null default 'Capturista',   -- 'Director' | 'Capturista'
   subdireccion  text not null default '',              -- SPAC | SGOI | SA | DPAC | ENLACE
-  jefatura      text not null default '',              -- '' | PROCEDIMIENTOS | MANUALES | GESTION_AMBIENTAL | GESTION_OBRAS
+  jefatura      text not null default '',              -- '' | PROCEDIMIENTOS | MANUALES | GESTION_AMBIENTAL | GESTION_AMBIENTAL_B | GESTION_AMBIENTAL_C | GESTION_OBRAS
   telefono      text not null default '',
   activo        boolean not null default true,
   es_enlace     boolean not null default false,      -- ENLACE: capturista que solo ve/atiende SUS tareas
