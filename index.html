@@ -29,8 +29,12 @@
 <script>
   (function () {
     try {
-      var t = localStorage.getItem('tt_tema');
-      if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'oscuro';
+      // El claro es el modo por omisión: solo se arranca en oscuro si la
+      // persona lo eligió con el botón. (Antes se miraba el ajuste del sistema
+      // operativo, y a quien tuviera Windows en oscuro le abría en negro sin
+      // haberlo pedido.) La llave vieja se limpia por si quedó guardada así.
+      localStorage.removeItem('tt_tema');
+      var t = localStorage.getItem('tt_tema_elegido');
       if (t === 'oscuro') {
         document.documentElement.setAttribute('data-tema', 'oscuro');
         var m = document.querySelector('meta[name="theme-color"]');
@@ -7670,16 +7674,21 @@ function ingresar(rol) {
 // así que no va a la base. La primera vez se respeta lo que tenga configurado
 // el sistema operativo. Todo el CSS del tema vive en el bloque de estilos
 // con id "temaOscuro" (se arma con herramientas/modo-oscuro/build_tema.py).
-const TEMA_LS = 'tt_tema';
+// Se guarda SOLO cuando la persona toca el botón: por eso la llave se llama
+// "elegido". Si se guardara también al abrir, el arranque quedaría grabado como
+// si hubiera sido una decisión suya.
+const TEMA_LS = 'tt_tema_elegido';
 
 function temaActual() {
   return document.documentElement.getAttribute('data-tema') === 'oscuro' ? 'oscuro' : 'claro';
 }
 
-function aplicarTema(t) {
+function aplicarTema(t, guardar) {
   const oscuro = (t === 'oscuro');
   document.documentElement.setAttribute('data-tema', oscuro ? 'oscuro' : 'claro');
-  try { localStorage.setItem(TEMA_LS, oscuro ? 'oscuro' : 'claro'); } catch (e) {}
+  if (guardar) {
+    try { localStorage.setItem(TEMA_LS, oscuro ? 'oscuro' : 'claro'); } catch (e) {}
+  }
   // Barra del navegador en el celular (PWA)
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', oscuro ? '#4A1424' : '#691C32');
@@ -7698,7 +7707,7 @@ function alternarTema(ev) {
   const nuevo = temaActual() === 'oscuro' ? 'claro' : 'oscuro';
   const btn = (ev && ev.currentTarget) || document.getElementById('btnTema');
   const quietito = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!btn || quietito) { aplicarTema(nuevo); return; }
+  if (!btn || quietito) { aplicarTema(nuevo, true); return; }
 
   // El aro que sale del propio botón
   btn.classList.remove('pulsa');
@@ -7720,14 +7729,14 @@ function alternarTema(ev) {
   document.body.appendChild(b);
   requestAnimationFrame(function () { b.classList.add('crece'); });
 
-  setTimeout(function () { aplicarTema(nuevo); }, 460);   // ya tapó: se cambia debajo
+  setTimeout(function () { aplicarTema(nuevo, true); }, 460);   // ya tapó: se cambia debajo
   setTimeout(function () { b.classList.add('fuera'); }, 490);
   setTimeout(function () { if (b.parentNode) b.remove(); }, 1000);
 }
 
 // Al abrir: el <head> ya puso data-tema para que no parpadee, pero la etiqueta
 // y el título del botón se ponen al día aquí (el botón todavía no existía).
-document.addEventListener('DOMContentLoaded', function () { aplicarTema(temaActual()); });
+document.addEventListener('DOMContentLoaded', function () { aplicarTema(temaActual(), false); });
 
 // Aplica la sesión ya cargada en usuarioActual (sea de demo o de login real)
 // y arma la vista según el rol.
