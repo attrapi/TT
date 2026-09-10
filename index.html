@@ -2080,7 +2080,6 @@
   .kpi-sub[data-jef="MANUALES"]       .kpi-valor { border-color: var(--jef-jdima); color: var(--jef-jdima); }
   .kpi-sub[data-jef="PROCEDIMIENTOS"] .kpi-clave { background: var(--jef-jdpc);  color: #fff; }
   .kpi-sub[data-jef="MANUALES"]       .kpi-clave { background: var(--jef-jdima); color: #fff; }
-  .kpi-sub .kpi-label { font-size: 11px; color: var(--tinta-suave); font-weight: 600; }
 
   /* === TABS SUBDIRECCIONES (PÍLDORAS) === */
   .tabs-wrap {
@@ -6102,35 +6101,29 @@
       <div class="kpis-grupo-titulo">Pendientes por subdirección</div>
       <!-- Orden: SGOI · SPAC · SA · Staff (mismo que las columnas del tablero). -->
       <div class="kpis-fila">
-        <div class="kpi kpi-sub" data-sub="SGOI" onclick="filtrarPorSubdireccion('SGOI')">
+        <div class="kpi kpi-sub" data-sub="SGOI" title="Subdirección de Gestión de Obras Inducidas A" onclick="filtrarPorSubdireccion('SGOI')">
           <div class="kpi-valor" id="kpiPendSGOI">0</div>
           <div class="kpi-clave">SGOI-A</div>
-          <div class="kpi-label">Obras Inducidas&nbsp;A</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SGOIB" onclick="filtrarPorSubdireccion('SGOIB')">
+        <div class="kpi kpi-sub" data-sub="SGOIB" title="Subdirección de Gestión de Obras Inducidas B" onclick="filtrarPorSubdireccion('SGOIB')">
           <div class="kpi-valor" id="kpiPendSGOIB">0</div>
           <div class="kpi-clave">SGOI-B</div>
-          <div class="kpi-label">Obras Inducidas&nbsp;B</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SGOIC" onclick="filtrarPorSubdireccion('SGOIC')">
+        <div class="kpi kpi-sub" data-sub="SGOIC" title="Subdirección de Gestión de Obras Inducidas C" onclick="filtrarPorSubdireccion('SGOIC')">
           <div class="kpi-valor" id="kpiPendSGOIC">0</div>
           <div class="kpi-clave">SGOI-C</div>
-          <div class="kpi-label">Obras Inducidas&nbsp;C</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SPAC" onclick="filtrarPorSubdireccion('SPAC')">
+        <div class="kpi kpi-sub" data-sub="SPAC" title="Subdirección de Procesos Administrativos de Construcción" onclick="filtrarPorSubdireccion('SPAC')">
           <div class="kpi-valor" id="kpiPendSPAC">0</div>
           <div class="kpi-clave">SPAC</div>
-          <div class="kpi-label">Procesos Construcción</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="SA" onclick="filtrarPorSubdireccion('SA')">
+        <div class="kpi kpi-sub" data-sub="SA" title="Subdirección de Archivo" onclick="filtrarPorSubdireccion('SA')">
           <div class="kpi-valor" id="kpiPendSA">0</div>
           <div class="kpi-clave">SA</div>
-          <div class="kpi-label">Archivo</div>
         </div>
-        <div class="kpi kpi-sub" data-sub="ENLACE" onclick="filtrarPorSubdireccion('ENLACE')">
+        <div class="kpi kpi-sub" data-sub="ENLACE" title="Dirección + Staff" onclick="filtrarPorSubdireccion('ENLACE')">
           <div class="kpi-valor" id="kpiPendENLACE">0</div>
           <div class="kpi-clave">STAFF</div>
-          <div class="kpi-label">Dirección</div>
         </div>
       </div>
     </div>
