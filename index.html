@@ -5609,6 +5609,9 @@
   .juego-dato-link a:hover { text-decoration: underline; }
 
   .juego-modos-tit { font-weight: 800; color: var(--tinta); font-size: 16px; margin-bottom: 2px; font-family: 'Baloo 2', var(--sans); }
+  /* Explica de una vez con cuál se avanza, que era la duda de siempre. */
+  .juego-modos-hint { font-size: 12px; color: var(--tinta-suave); line-height: 1.4; margin: 2px 0 10px; }
+  .juego-modos-hint b { color: var(--tinta); }
   /* En el home los modos van en UNA columna (icono + texto + flecha). */
   .juego-home-grid .juego-modos { grid-template-columns: 1fr; gap: 11px; }
   .juego-home-grid .juego-modo {
@@ -11896,7 +11899,7 @@ let _confetiColEstado = {};
 const JUEGO_PDF_URL = 'https://www.diputados.gob.mx/LeyesBiblio/pdf/LOPSRM.pdf';
 const JUEGO_VIDAS = 3;
 const JUEGO_TIEMPO = 25;   // segundos por pregunta
-const JUEGO_LARGO = 10;    // preguntas en "Reto rápido" / "Reto diario"
+const JUEGO_LARGO = 10;    // preguntas en "Reto diario" / "Ronda libre"
 
 // Quien puede abrir el juego. Por ahora Daniel de la Garza (enlace) e Imelda.
 const JUEGO_PERSONAS = ['daniel de la garza', 'imelda'];
@@ -13002,26 +13005,27 @@ function renderJuegoInicio() {
   const subMeta = res.metaHecha
     ? '¡Ya cumpliste tu meta de hoy! 🎉'
     : 'Te faltan ' + faltanMeta + ' aciertos para tu meta de hoy';
-  let ctaAccion, ctaTxt, ctaSub;
+  let ctaAccion, ctaSub;
   if (sp) {
+    // Lo que dejaste a medias manda: es justo lo que se pidió, un botón que
+    // retoma el reto donde se quedó.
     ctaAccion = 'juegoContinuar()';
-    ctaTxt = '▶ Continuar donde te quedaste';
-    ctaSub = escapeHtml(_juegoNombreModo(sp.modo, sp.tema)) + ' · pregunta '
+    ctaSub = 'Sigues en ' + escapeHtml(_juegoNombreModo(sp.modo, sp.tema)) + ' · pregunta '
       + Math.min((sp.idx || 0) + 1, sp.preguntas.length) + ' de ' + sp.preguntas.length
       + ' · ' + (sp.puntos || 0) + ' pts';
+  } else if (!retoHoy) {
+    // El reto del día va ANTES que el repaso: es el que sostiene la racha.
+    ctaAccion = "juegoIniciar('diario')";
+    ctaSub = 'Reto de hoy · ' + JUEGO_LARGO + ' preguntas · ' + subMeta;
   } else if (res.pendientes) {
     ctaAccion = "juegoIniciar('repaso')";
-    ctaTxt = '🔁 Repasar ' + res.pendientes + (res.pendientes === 1 ? ' pregunta' : ' preguntas');
-    ctaSub = subMeta;
-  } else if (!retoHoy) {
-    ctaAccion = "juegoIniciar('diario')";
-    ctaTxt = '📅 Jugar el reto de hoy';
-    ctaSub = subMeta;
+    ctaSub = 'Reto de hoy ✓ · toca repasar ' + res.pendientes
+      + (res.pendientes === 1 ? ' pregunta' : ' preguntas');
   } else {
-    ctaAccion = "juegoIniciar('rapido')";
-    ctaTxt = '⚡ Una ronda rápida';
-    ctaSub = res.metaHecha ? 'Reto de hoy ✓ · suma aciertos para tu nivel' : subMeta;
+    ctaAccion = "juegoIniciar('libre')";
+    ctaSub = 'Reto de hoy ✓ · ronda libre para seguir sumando aciertos';
   }
+  const ctaTxt = '▶ Jugar';
   const cta =
     '<div class="juego-cta-wrap">'
     + '<button class="juego-cta" onclick="' + ctaAccion + '">'
@@ -13121,10 +13125,12 @@ function renderJuegoInicio() {
     +     '<div class="juego-leyes">' + selLeyes + '</div>'
     +   '</div>'
     +   '<div class="juego-col">'
-    +     '<div class="juego-modos-tit">🎮 Elige cómo jugar</div>'
+    +     '<div class="juego-modos-tit">🎮 O elige tú</div>'
+    +     '<div class="juego-modos-hint">Los tres suman aciertos y nivel. El <b>reto diario</b> es además'
+    +       ' el que mantiene tu racha 🔥, y con el botón <b>Jugar</b> de arriba nunca tienes que elegir:'
+    +       ' te pone justo el que te toca.</div>'
     +     '<div class="juego-modos">'
-    +       modo('rapido', '⚡', 'Reto rápido', '10 preguntas al azar contrarreloj. Ideal para un repaso veloz.', '#B45309')
-    +       modo('diario', '📅', 'Reto diario', (retoHoy ? '✓ Hecho hoy. Mañana hay uno nuevo: vuelve por tu racha 🔥.' : 'El reto de hoy: complétalo diario y colecciona medallas ☀️.'), '#691C32')
+    +       modo('diario', '📅', 'Reto diario', (retoHoy ? '✓ Hecho hoy. Mañana hay uno nuevo: vuelve por tu racha 🔥.' : 'Las ' + JUEGO_LARGO + ' preguntas de hoy. Es el que sostiene tu racha.'), '#691C32')
     +       modo('repaso', '🔁', 'Repaso', (porRepasar ? 'Hoy te tocan ' + porRepasar + ' preguntas: las que peor te salen, primero.' : 'Nada pendiente hoy. ¡Vas al corriente! 🎉'), '#15803D')
     +       modo('temaToggle', '📚', 'Por tema', 'Estudia un bloque específico de la ley.', '#1565C0')
     +     '</div>'
@@ -13161,7 +13167,10 @@ function _juegoBarajarSemilla(a, semilla) {
 }
 
 function _juegoNombreModo(m, t) {
-  if (m === 'rapido') return 'Reto rápido';
+  if (m === 'libre')  return 'Ronda libre';
+  // 'rapido' ya no se ofrece, pero puede venir en una partida a medias que
+  // alguien dejó guardada antes del cambio: hay que saber nombrarla.
+  if (m === 'rapido') return 'Ronda libre';
   if (m === 'diario') return 'Reto diario';
   if (m === 'repaso') return 'Repaso';
   if (m === 'tema')   return 'Tema: ' + (t || '');
@@ -13181,9 +13190,12 @@ function juegoIniciar(modo, tema) {
     lista = pool.slice(0, 12);
   } else if (modo === 'diario') {
     lista = _juegoBarajarSemilla(pool, _juegoSemilla(juegoLeyActual + '|' + _juegoHoy())).slice(0, JUEGO_LARGO);
-  } else if (modo === 'rapido') {
-    // Mezcla útil: hasta 5 que toca repasar + hasta 5 que nunca has visto, y si
-    // con eso no se llegó a 10, se completa con las demás.
+  } else if (modo === 'libre') {
+    // Ronda libre: la ofrece el botón Jugar cuando ya hiciste el reto de hoy y
+    // no hay nada que repasar. Mezcla útil: hasta 5 que toca repasar + hasta 5
+    // que nunca has visto, y si no se llegó a 10, se completa con las demás.
+    // (Es lo que hacía el viejo "Reto rápido", que se quitó del menú por
+    // confuso: eran dos botones que hacían casi lo mismo.)
     const tomar = (arr, n) => _juegoBarajar(arr).slice(0, n);
     let sel = tomar(_juegoPendientes(pool, p0), 5)
       .concat(tomar(pool.filter(q => !p0.preg[_juegoKey(q)]), 5));
