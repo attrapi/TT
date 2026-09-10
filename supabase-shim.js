@@ -282,7 +282,8 @@
       // Si falta una jefatura aquí, sus tareas nacen con el prefijo equivocado.
       return ({ PROCEDIMIENTOS: 'JDPC', MANUALES: 'JDIMA', GESTION_AMBIENTAL: 'JDGA',
                 GESTION_AMBIENTAL_B: 'JDGAB', GESTION_AMBIENTAL_C: 'JDGAC',
-                GESTION_OBRAS: 'JDGOI' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
+                GESTION_OBRAS: 'JDGOI', GESTION_OBRAS_B: 'JDGOIB',
+                GESTION_OBRAS_C: 'JDGOIC' })[String(d.jefatura || '').toUpperCase()] || 'JDPC';
     }
     return String(d.subdireccion || '').toUpperCase();
   }
