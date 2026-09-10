@@ -8,3 +8,7 @@ Credenciales-TT.*
 *contrasenas*
 # Copias de trabajo de scripts SQL (borradores locales, no van al repo)
 *.local.sql
+
+# Cache de Python de las herramientas
+__pycache__/
+*.pyc

@@ -1,0 +1,66 @@
+  /* ---------------------------------------------------------------
+     1) LA PALETA. Todo lo demás sale de aquí.
+
+     Ojo con dos familias que NO se aclaran: `--guinda` y los colores de
+     área (`--sub-*`, `--rojo`, `--verde`…). Son fondo de ~100 botones y
+     píldoras que llevan texto BLANCO encima; si se aclararan, el blanco
+     dejaría de leerse. Para cuando esos mismos colores se usan como TEXTO
+     o BORDE sobre fondo oscuro existe su gemelo `-txt`, que sí es claro.
+     --------------------------------------------------------------- */
+  html[data-tema="oscuro"] {
+    color-scheme: dark;                /* scrollbars y controles del sistema */
+
+    /* Superficies: papel = tarjetas/modales; papel-2 = zonas hundidas */
+    --papel:   #1B1817;
+    --papel-2: #232020;
+    --crema:   #131110;                /* fondo de la página */
+
+    /* Texto */
+    --tinta:       #EDE7E3;
+    --tinta-suave: #BCB3AD;
+    --tinta-tenue: #9C938C;   /* medido: con #8B827C el texto chico quedaba en 4.2:1 */
+
+    /* Líneas */
+    --linea:        #332E2C;
+    --linea-fuerte: #4C4441;
+
+    /* Guinda institucional: se mantiene oscura (es fondo con texto blanco) */
+    --guinda:        #6E2033;
+    --guinda-oscuro: #4A1424;
+    --guinda-claro:  #8B2942;
+    --guinda-tenue:  #2C1A20;
+    --acento:        #E792A6;          /* la guinda cuando es TEXTO */
+    --acento-claro:  #F3B1C1;
+
+    /* Estados */
+    --azul:   #1D5FB0;  --azul-tenue:   #16243A;  --azul-txt:   #82B4FF;
+    --ambar:  #9A4A08;  --ambar-tenue:  #382A12;  --ambar-txt:  #F5B44A;
+    --verde:  #15723A;  --verde-tenue:  #143024;  --verde-txt:  #63D998;
+    --rojo:   #A81A1A;                            --rojo-txt:   #FF8F87;
+    --grafito:#3C4450;  --grafito-tenue:#242121;  --grafito-txt:#B6BDC7;
+
+    /* Áreas */
+    --sub-sa:     #6B4A3B;  --sub-sa-tenue:     #2C211C;  --sub-sa-txt:     #D5A48E;
+    --sub-sgoi:   #175B32;  --sub-sgoi-tenue:   #143024;  --sub-sgoi-txt:   #6ED996;
+    --sub-sgoib:  #175B32;  --sub-sgoib-tenue:  #143024;  --sub-sgoib-txt:  #6ED996;
+    --sub-sgoic:  #175B32;  --sub-sgoic-tenue:  #143024;  --sub-sgoic-txt:  #6ED996;
+    --sub-spac:   #1E3A8A;  --sub-spac-tenue:   #182339;  --sub-spac-txt:   #90B4FF;
+    --sub-enlace: #5B22C4;  --sub-enlace-tenue: #201A38;  --sub-enlace-txt: #C3A8FF;
+    --jef-jdpc:   #4338CA;  --jef-jdpc-txt:   #A9A3F7;
+    --jef-jdima:  #A2570A;  --jef-jdima-txt:  #F5B65E;
+  }
+
+  /* En claro, los gemelos `-txt` son el color de siempre: así el CSS generado
+     se puede leer sin pensar en dos mundos distintos. */
+  :root {
+    --papel: #fff;  --papel-2: #FAF9F7;
+    --acento: var(--guinda);  --acento-claro: var(--guinda-claro);
+    --azul-txt: var(--azul);  --ambar-txt: var(--ambar);  --verde-txt: var(--verde);
+    --rojo-txt: var(--rojo);  --grafito-txt: var(--grafito);
+    --sub-sa-txt: var(--sub-sa);      --sub-sgoi-txt: var(--sub-sgoi);
+    --sub-sgoib-txt: var(--sub-sgoib); --sub-sgoic-txt: var(--sub-sgoic);
+    --sub-spac-txt: var(--sub-spac);  --sub-enlace-txt: var(--sub-enlace);
+    --jef-jdpc-txt: var(--jef-jdpc);  --jef-jdima-txt: var(--jef-jdima);
+  }
+
+  html[data-tema="oscuro"] body { background: var(--crema); color: var(--tinta); }

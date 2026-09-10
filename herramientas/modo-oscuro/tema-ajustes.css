@@ -1,0 +1,165 @@
+  /* ---------------------------------------------------------------
+     3) AJUSTES A MANO. Van al final: ganan sobre lo generado.
+     --------------------------------------------------------------- */
+
+  /* Sombras: en claro son guindas y suaves; sobre oscuro no se ven, así que
+     se cambian por sombra negra de verdad. */
+  html[data-tema="oscuro"] .kpi-card,
+  html[data-tema="oscuro"] .columna,
+  html[data-tema="oscuro"] .modal,
+  html[data-tema="oscuro"] .tarjeta,
+  html[data-tema="oscuro"] .sidebar,
+  html[data-tema="oscuro"] .acceso-card {
+    box-shadow: 0 2px 14px rgba(0,0,0,0.45);
+  }
+
+  /* Barras de scroll. OJO: hay que declarar TAMBIEN ::-webkit-scrollbar (el
+     ancho); sin esa regla Chrome no entra en modo "scrollbar a la medida" e
+     ignora track y thumb — se quedaba el pulgar casi blanco sobre el modal. */
+  html[data-tema="oscuro"] ::-webkit-scrollbar { width: 11px; height: 11px; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-corner { background: #171514; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-track { background: #171514; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-thumb { background: #3C3532; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-thumb:hover { background: #4E4643; }
+
+  /* Campos: el texto que escribe el usuario y el placeholder */
+  html[data-tema="oscuro"] input,
+  html[data-tema="oscuro"] textarea,
+  html[data-tema="oscuro"] select {
+    background: var(--papel-2);
+    color: var(--tinta);
+    border-color: var(--linea);
+  }
+  html[data-tema="oscuro"] ::placeholder { color: var(--tinta-tenue); opacity: 1; }
+  /* Los selectores de fecha/hora nativos vienen en blanco: se invierten */
+  html[data-tema="oscuro"] input[type="date"]::-webkit-calendar-picker-indicator,
+  html[data-tema="oscuro"] input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+  }
+
+  /* El header se mantiene guinda (es la marca), solo se asienta un poco */
+  html[data-tema="oscuro"] .nav {
+    background: linear-gradient(180deg, #5E1A2B 0%, #4A1424 100%);
+    border-bottom-color: #35101C;
+  }
+
+  /* Tarjetas por urgencia: el generado ya las oscurece, pero estas cuatro son
+     LA señal del tablero, así que se afinan a mano — mismo semáforo, en oscuro,
+     con el borde izquierdo grueso que las hace legibles de un vistazo. */
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-pendiente {
+    background: #3A2411; border-color: #8A4A12; border-left-color: #C2740F;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-progreso {
+    background: #3A3315; border-color: #8A7A1E; border-left-color: #C2A81A;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-avanzada {
+    background: #14301F; border-color: #1E7A45; border-left-color: #2FA85E;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-completada {
+    background: #16281E; border-color: #2A6A45; border-left-color: #3E9A63;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-vencida,
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-vencida {
+    background: #3A1616; border-color: #9A2020; border-left-color: #D63333;
+  }
+
+  /* Píldora "Vencida" y demás avisos rojos: fondo oscuro, letra clara */
+  html[data-tema="oscuro"] .tarjeta-vencida-pill,
+  html[data-tema="oscuro"] .pill-vencida {
+    background: #7A1A1A; color: #FFD9D6;
+  }
+
+  /* El texto dentro de la tarjeta hereda --tinta, pero las etiquetas chicas
+     ("TEMA", "ÁREA RESPONSABLE"…) van en tinta-tenue: se suben un punto para
+     que no se pierdan sobre el fondo de color. */
+  html[data-tema="oscuro"] .tarjeta-campo-label { color: #A79C95; }
+
+  /* El logo TT se pinta con currentColor, asi que seguia al color de TEXTO y
+     salia rosa. Es la marca: se queda guinda, un punto mas clara para que no se
+     hunda en el fondo (las letras van en blanco encima). */
+  html[data-tema="oscuro"] .acceso-logo-mark { color: #9C3049; }
+
+  /* Menú lateral: el item activo se marca con la guinda clara, no con blanco */
+  html[data-tema="oscuro"] .sidebar { background: #171413; border-right-color: var(--linea); }
+  html[data-tema="oscuro"] .sidebar-item:hover { background: #262221; }
+  html[data-tema="oscuro"] .sidebar-item.activa { background: var(--guinda); color: #fff; }
+
+  /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
+  html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
+
+  /* Toast (avisos flotantes) */
+  html[data-tema="oscuro"] .toast { background: #2A2523; color: var(--tinta); border-color: var(--linea); }
+
+  /* ---------------------------------------------------------------
+     4) EL BOTÓN DE TEMA y su burbuja.
+     --------------------------------------------------------------- */
+  .nav-tema {
+    position: relative;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    overflow: visible;
+  }
+  .nav-tema:hover { background: white; color: var(--guinda); }
+  .nav-tema svg { width: 15px; height: 15px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
+  /* Sol y luna ocupan el mismo lugar: se cruzan girando */
+  .nav-tema .ico-wrap { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-tema .ico-wrap svg { position: absolute; inset: 0; }
+  .nav-tema .ico-luna { opacity: 1; transform: rotate(0deg) scale(1); }
+  .nav-tema .ico-sol  { opacity: 0; transform: rotate(-90deg) scale(0.4); }
+  html[data-tema="oscuro"] .nav-tema .ico-luna { opacity: 0; transform: rotate(90deg) scale(0.4); }
+  html[data-tema="oscuro"] .nav-tema .ico-sol  { opacity: 1; transform: rotate(0deg) scale(1); }
+
+  /* La ONDA: un aro que sale del propio botón al presionarlo */
+  .nav-tema-onda {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 10px; height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .nav-tema.pulsa .nav-tema-onda { animation: tema-onda 0.6s ease-out; }
+  @keyframes tema-onda {
+    0%   { opacity: 0.85; transform: scale(1); }
+    100% { opacity: 0;    transform: scale(9); }
+  }
+
+  /* La BURBUJA: el círculo que crece desde el botón y descubre el tema nuevo */
+  .tema-burbuja {
+    position: fixed;
+    left: var(--bx); top: var(--by);
+    width: 0; height: 0;
+    margin: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 99999;
+    pointer-events: none;
+    will-change: width, height, opacity;
+    /* 0.42s de crecida: el JS cambia el tema en 460 ms, o sea con la burbuja
+       YA tapando todo; si tardara mas, se alcanzarian a ver las esquinas
+       cambiando antes de tiempo. */
+    transition: width 0.42s cubic-bezier(.4,0,.2,1),
+                height 0.42s cubic-bezier(.4,0,.2,1),
+                opacity 0.3s ease;
+  }
+  .tema-burbuja.crece { width: var(--d); height: var(--d); }
+  .tema-burbuja.fuera { opacity: 0; }
+
+  /* Quien prefiera menos movimiento, no ve la animación (solo el cambio) */
+  @media (prefers-reduced-motion: reduce) {
+    .tema-burbuja { transition: none; display: none; }
+    .nav-tema.pulsa .nav-tema-onda { animation: none; }
+    .nav-tema svg { transition: none; }
+  }

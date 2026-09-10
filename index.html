@@ -24,6 +24,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TT">
 <link rel="apple-touch-icon" href="icon.svg">
+<!-- El tema guardado se aplica ANTES de pintar: si esto corriera después,
+     al abrir en modo oscuro se vería un destello blanco. -->
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('tt_tema');
+      if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'oscuro';
+      if (t === 'oscuro') {
+        document.documentElement.setAttribute('data-tema', 'oscuro');
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', '#4A1424');
+      }
+    } catch (e) {}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -5775,6 +5790,727 @@
     .btn-arriba { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
   }
 </style>
+<style id="temaOscuro">
+/* ===== INICIO MODO OSCURO (armado por build_tema.py) ===== */
+  /* Modo oscuro. El modo claro NO se toca: todo lo de aquí vive bajo
+     html[data-tema="oscuro"], que solo existe cuando se prende.
+     El bloque 2 lo genera herramientas/modo-oscuro/gen_oscuro.py leyendo el CSS
+     y volteando cada superficie clara; por eso son tantas reglas y por
+     eso no hay que mantenerlas a mano. */
+
+  /* ---------------------------------------------------------------
+     1) LA PALETA. Todo lo demás sale de aquí.
+
+     Ojo con dos familias que NO se aclaran: `--guinda` y los colores de
+     área (`--sub-*`, `--rojo`, `--verde`…). Son fondo de ~100 botones y
+     píldoras que llevan texto BLANCO encima; si se aclararan, el blanco
+     dejaría de leerse. Para cuando esos mismos colores se usan como TEXTO
+     o BORDE sobre fondo oscuro existe su gemelo `-txt`, que sí es claro.
+     --------------------------------------------------------------- */
+  html[data-tema="oscuro"] {
+    color-scheme: dark;                /* scrollbars y controles del sistema */
+
+    /* Superficies: papel = tarjetas/modales; papel-2 = zonas hundidas */
+    --papel:   #1B1817;
+    --papel-2: #232020;
+    --crema:   #131110;                /* fondo de la página */
+
+    /* Texto */
+    --tinta:       #EDE7E3;
+    --tinta-suave: #BCB3AD;
+    --tinta-tenue: #9C938C;   /* medido: con #8B827C el texto chico quedaba en 4.2:1 */
+
+    /* Líneas */
+    --linea:        #332E2C;
+    --linea-fuerte: #4C4441;
+
+    /* Guinda institucional: se mantiene oscura (es fondo con texto blanco) */
+    --guinda:        #6E2033;
+    --guinda-oscuro: #4A1424;
+    --guinda-claro:  #8B2942;
+    --guinda-tenue:  #2C1A20;
+    --acento:        #E792A6;          /* la guinda cuando es TEXTO */
+    --acento-claro:  #F3B1C1;
+
+    /* Estados */
+    --azul:   #1D5FB0;  --azul-tenue:   #16243A;  --azul-txt:   #82B4FF;
+    --ambar:  #9A4A08;  --ambar-tenue:  #382A12;  --ambar-txt:  #F5B44A;
+    --verde:  #15723A;  --verde-tenue:  #143024;  --verde-txt:  #63D998;
+    --rojo:   #A81A1A;                            --rojo-txt:   #FF8F87;
+    --grafito:#3C4450;  --grafito-tenue:#242121;  --grafito-txt:#B6BDC7;
+
+    /* Áreas */
+    --sub-sa:     #6B4A3B;  --sub-sa-tenue:     #2C211C;  --sub-sa-txt:     #D5A48E;
+    --sub-sgoi:   #175B32;  --sub-sgoi-tenue:   #143024;  --sub-sgoi-txt:   #6ED996;
+    --sub-sgoib:  #175B32;  --sub-sgoib-tenue:  #143024;  --sub-sgoib-txt:  #6ED996;
+    --sub-sgoic:  #175B32;  --sub-sgoic-tenue:  #143024;  --sub-sgoic-txt:  #6ED996;
+    --sub-spac:   #1E3A8A;  --sub-spac-tenue:   #182339;  --sub-spac-txt:   #90B4FF;
+    --sub-enlace: #5B22C4;  --sub-enlace-tenue: #201A38;  --sub-enlace-txt: #C3A8FF;
+    --jef-jdpc:   #4338CA;  --jef-jdpc-txt:   #A9A3F7;
+    --jef-jdima:  #A2570A;  --jef-jdima-txt:  #F5B65E;
+  }
+
+  /* En claro, los gemelos `-txt` son el color de siempre: así el CSS generado
+     se puede leer sin pensar en dos mundos distintos. */
+  :root {
+    --papel: #fff;  --papel-2: #FAF9F7;
+    --acento: var(--guinda);  --acento-claro: var(--guinda-claro);
+    --azul-txt: var(--azul);  --ambar-txt: var(--ambar);  --verde-txt: var(--verde);
+    --rojo-txt: var(--rojo);  --grafito-txt: var(--grafito);
+    --sub-sa-txt: var(--sub-sa);      --sub-sgoi-txt: var(--sub-sgoi);
+    --sub-sgoib-txt: var(--sub-sgoib); --sub-sgoic-txt: var(--sub-sgoic);
+    --sub-spac-txt: var(--sub-spac);  --sub-enlace-txt: var(--sub-enlace);
+    --jef-jdpc-txt: var(--jef-jdpc);  --jef-jdima-txt: var(--jef-jdima);
+  }
+
+  html[data-tema="oscuro"] body { background: var(--crema); color: var(--tinta); }
+
+  /* ---------------------------------------------------------------
+     2) GENERADO: 438 reglas volteadas de las 1578 del CSS.
+     --------------------------------------------------------------- */
+  html[data-tema="oscuro"] .acceso-card { background: var(--papel); }
+  html[data-tema="oscuro"] .acceso-brand { background: linear-gradient(180deg, var(--papel) 0%, #292217 100%); }
+  html[data-tema="oscuro"] .acceso-logo-mark { color: var(--acento); }
+  html[data-tema="oscuro"] .acceso-logo { color: var(--acento); }
+  html[data-tema="oscuro"] .acceso-marca { color: var(--acento); }
+  html[data-tema="oscuro"] .acceso-rol { background: var(--papel); }
+  html[data-tema="oscuro"] .acceso-rol:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .acceso-rol-icon { color: var(--acento); }
+  html[data-tema="oscuro"] .sidebar-item { background: var(--papel); }
+  html[data-tema="oscuro"] .sidebar-item:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .sidebar-item.activa { color: var(--acento); border-color: var(--acento); }
+  html[data-tema="oscuro"] .sidebar-item.activa .sidebar-conteo { color: var(--acento); }
+  html[data-tema="oscuro"] #sidebarGrupoDirector .sidebar-item:hover,
+  html[data-tema="oscuro"] #sidebarGrupoDirector .sidebar-item.activa { border-color: var(--acento); }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOI"] { background: #3c4122; color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIB"] { background: #3c4122; color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIC"] { background: #3c4122; color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SPAC"] { background: #152233; color: #a3b6eb; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SA"] { background: #342715; color: #efb39f; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="ENLACE"] { background: #19132f; color: #bea0ee; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOI"] .sidebar-conteo { color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIB"] .sidebar-conteo { color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIC"] .sidebar-conteo { color: #d1eba3; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SPAC"] .sidebar-conteo { color: #a3b6eb; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SA"] .sidebar-conteo { color: #efb39f; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="ENLACE"] .sidebar-conteo { color: #bea0ee; }
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces { background: #173730; color: #a0eee9; }
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces:hover { background: #1c453d; color: #a0eee9; border-color: var(--acento); }
+  html[data-tema="oscuro"] .sidebar-papelera svg { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .seg-panel { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-btn:hover { background: var(--papel); color: var(--acento); border-color: var(--linea); }
+  html[data-tema="oscuro"] .seg-btn.activa { background: var(--papel); border-color: var(--linea); color: var(--acento); }
+  html[data-tema="oscuro"] .seg-barra { background: #2d2924; }
+  html[data-tema="oscuro"] .seg-card { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-card.hecha { background: #262a1a; border-color: #4a552f; }
+  html[data-tema="oscuro"] .seg-card-acuerdo textarea:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .seg-hecha-info { color: #d4e4aa; }
+  html[data-tema="oscuro"] .seg-deshacer { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-abrir { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .vol-card { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-card:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .vol-tipo { color: #a3b6eb; }
+  html[data-tema="oscuro"] .vol-tipo.atencion { color: #d4e4aa; }
+  html[data-tema="oscuro"] .vol-tipo.conocimiento { color: #a3b6eb; }
+  html[data-tema="oscuro"] .vol-farea-btn { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-farea-btn:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .vol-btn { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-btn:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .vol-btn.borrar:hover { border-color: var(--rojo-txt); color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .vol-vacio { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-est.proceso { background: #383117; color: #efbd9f; }
+  html[data-tema="oscuro"] .vol-est.atendido { background: #15331f; color: #a3ebbe; }
+  html[data-tema="oscuro"] .volchk-item { background: var(--papel); }
+  html[data-tema="oscuro"] .volchk-x:hover { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .volchk-adj { color: var(--acento); }
+  html[data-tema="oscuro"] .vol-tipo-op { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-tipo-op:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .vol-tipo-op.activa { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .vol-tipo-op.op-atencion.activa { color: #d4e4aa; }
+  html[data-tema="oscuro"] .vol-tipo-op.op-conocimiento.activa { color: #a3b6eb; }
+  html[data-tema="oscuro"] .vol-sw { background: #1f1d1c; }
+  html[data-tema="oscuro"] .vol-sw::before { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-urgente input:checked ~ .vol-urgente-txt { color: #ef9f9f; }
+  html[data-tema="oscuro"] .vol-sugiere { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-sugiere-op:hover,
+  html[data-tema="oscuro"] .vol-sugiere-op.activa { color: var(--acento); }
+  html[data-tema="oscuro"] .vol-chips-box { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-chips-box:focus-within { border-color: var(--acento); }
+  html[data-tema="oscuro"] .vol-chip { color: var(--acento); }
+  html[data-tema="oscuro"] .vol-chip.fuera { background: #383117; color: #efbd9f; }
+  html[data-tema="oscuro"] .vol-chip button:hover { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .vol-asig-pill { color: var(--acento); }
+  html[data-tema="oscuro"] .vol-parte { background: var(--papel); }
+  html[data-tema="oscuro"] .vol-det-adj { background: #251a1d; }
+  html[data-tema="oscuro"] .vol-det-adj .volchk-item { background: var(--papel); }
+  html[data-tema="oscuro"] .asis-titulo { color: var(--acento); }
+  html[data-tema="oscuro"] .asis-card { background: var(--papel); }
+  html[data-tema="oscuro"] .asis-tabla td { border-top: 1px solid #4d3840; }
+  html[data-tema="oscuro"] .asis-tabla tbody tr:hover { background: #251a1d; }
+  html[data-tema="oscuro"] .asis-dia { background: var(--papel); }
+  html[data-tema="oscuro"] .asis-dia:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .asis-pill { background: var(--papel-2); }
+  html[data-tema="oscuro"] .asis-pill.lider { background: #311414; color: #eea0a0; }
+  html[data-tema="oscuro"] .asis-btn-reset { background: var(--papel); color: var(--acento); border: 1.5px solid var(--acento); }
+  html[data-tema="oscuro"] .asis-ganador-card { background: var(--papel); border: 2px solid var(--rojo-txt); }
+  html[data-tema="oscuro"] .asis-perdedor { background: #311414; color: #eea0a0; }
+  html[data-tema="oscuro"] .dash-controles { background: var(--papel); }
+  html[data-tema="oscuro"] .dash-select { background: var(--papel); }
+  html[data-tema="oscuro"] .dash-select:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .dash-resumen-chip { color: var(--acento); }
+  html[data-tema="oscuro"] .dash-card { background: var(--papel); }
+  html[data-tema="oscuro"] .validadas-vacio { color: var(--texto-suave, var(--tinta)); }
+  html[data-tema="oscuro"] .bitacora-card { background: var(--papel); }
+  html[data-tema="oscuro"] .bitacora-accion.validar { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.completar_col { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.liberar { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.devolver { background: #311414; color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.crear { color: var(--azul-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.archivar { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.atender { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.desarchivar { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.reabrir { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.desvalidar,
+  html[data-tema="oscuro"] .bitacora-accion.descompletar { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.reprogramar { background: #342715; color: #efb69f; }
+  html[data-tema="oscuro"] .bitacora-accion.comentario { background: #173730; color: #9fefe9; }
+  html[data-tema="oscuro"] .bitacora-accion.observacion { background: #142632; color: #9fd3ef; }
+  html[data-tema="oscuro"] .bitacora-accion.mover { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.enviar { color: var(--azul-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.accion_add,
+  html[data-tema="oscuro"] .bitacora-accion.accion_del,
+  html[data-tema="oscuro"] .bitacora-accion.accion_edit { background: #19132f; color: #bea0ee; }
+  html[data-tema="oscuro"] .bitacora-accion.eliminar { background: #311414; color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.restaurar { color: var(--azul-txt); }
+  html[data-tema="oscuro"] .bitacora-accion.completar { background: #313821; color: #d1eba3; }
+  html[data-tema="oscuro"] .bitacora-accion.seguimiento { background: #1f242c; color: #aec2e0; }
+  html[data-tema="oscuro"] .bitacora-comentario { color: #efb39f; }
+  html[data-tema="oscuro"] .carga-card { background: var(--papel); }
+  html[data-tema="oscuro"] .carga-card[data-sub="SA"] { border-top: 3px solid var(--sub-sa-txt); }
+  html[data-tema="oscuro"] .carga-card[data-sub="SGOI"] { border-top: 3px solid var(--sub-sgoi-txt); }
+  html[data-tema="oscuro"] .carga-card[data-sub="SPAC"] { border-top: 3px solid var(--sub-spac-txt); }
+  html[data-tema="oscuro"] .carga-card[data-sub="ENLACE"] { border-top: 3px solid var(--sub-enlace-txt); }
+  html[data-tema="oscuro"] .carga-detalle-vencidas .carga-detalle-val { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .reportes-subtitulo em { color: var(--acento); }
+  html[data-tema="oscuro"] .reporte-card { background: var(--papel); }
+  html[data-tema="oscuro"] .reporte-card:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .reporte-icon { color: var(--acento); }
+  html[data-tema="oscuro"] .subheader { background: var(--papel); }
+  html[data-tema="oscuro"] .kpi-card { background: var(--papel); }
+  html[data-tema="oscuro"] .kpis-grupo-titulo { color: var(--acento); }
+  html[data-tema="oscuro"] .kpi-vencidas-chip { background: #311414; color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .kpi-pie::before { background: var(--papel); }
+  html[data-tema="oscuro"] .kpi-valor { background: var(--papel); border: 3px solid var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .kpi-azul .kpi-valor { border-color: var(--azul-txt); color: var(--azul-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--azul-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-ambar .kpi-valor { border-color: var(--ambar-txt); color: var(--ambar-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--ambar-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-verde .kpi-valor { border-color: var(--verde-txt); color: var(--verde-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--verde-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-grafito .kpi-valor { border-color: var(--grafito-txt); color: var(--grafito-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--grafito-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-rojo .kpi-valor { border-color: var(--rojo-txt); color: var(--rojo-txt); background: linear-gradient(135deg, var(--papel) 0%, #311414 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="SA"] .kpi-valor { border-color: var(--sub-sa-txt); color: var(--sub-sa-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-sa-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="SGOI"] .kpi-valor { border-color: var(--sub-sgoi-txt); color: var(--sub-sgoi-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-sgoi-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="SPAC"] .kpi-valor { border-color: var(--sub-spac-txt); color: var(--sub-spac-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-spac-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="ENLACE"] .kpi-valor { border-color: var(--sub-enlace-txt); color: var(--sub-enlace-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-enlace-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="SGOIB"] .kpi-valor { border-color: var(--sub-sgoib-txt); color: var(--sub-sgoib-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-sgoib-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-sub="SGOIC"] .kpi-valor { border-color: var(--sub-sgoic-txt); color: var(--sub-sgoic-txt); background: linear-gradient(135deg, var(--papel) 0%, var(--sub-sgoic-tenue) 100%); }
+  html[data-tema="oscuro"] .kpi-sub[data-jef="PROCEDIMIENTOS"] .kpi-valor { border-color: var(--jef-jdpc-txt); color: var(--jef-jdpc-txt); }
+  html[data-tema="oscuro"] .kpi-sub[data-jef="MANUALES"] .kpi-valor { border-color: var(--jef-jdima-txt); color: var(--jef-jdima-txt); }
+  html[data-tema="oscuro"] .tab { background: var(--papel); }
+  html[data-tema="oscuro"] .tab[data-sub="TODAS"] { color: var(--acento); }
+  html[data-tema="oscuro"] .tab[data-sub="TODAS"] .tab-icon { color: var(--acento); }
+  html[data-tema="oscuro"] .tab[data-sub="TODAS"]:hover { border-color: var(--acento); background: #2f1e22; }
+  html[data-tema="oscuro"] .tab[data-sub="SA"] { color: var(--sub-sa-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SA"] .tab-clave { color: var(--sub-sa-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SA"]:hover { border-color: var(--sub-sa-txt); background: #322c2a; }
+  html[data-tema="oscuro"] .tab[data-sub="SGOI"] { color: var(--sub-sgoi-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SGOI"] .tab-clave { color: var(--sub-sgoi-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SGOI"]:hover { border-color: var(--sub-sgoi-txt); background: #1b4230; }
+  html[data-tema="oscuro"] .tab[data-sub="SPAC"] { color: var(--sub-spac-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SPAC"] .tab-clave { color: var(--sub-spac-txt); }
+  html[data-tema="oscuro"] .tab[data-sub="SPAC"]:hover { border-color: var(--sub-spac-txt); background: #18273a; }
+  html[data-tema="oscuro"] .chip { background: var(--papel); }
+  html[data-tema="oscuro"] .chip:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .btn-actualizar { background: var(--papel); color: var(--acento); border: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .filtros-buscar { border: 1.5px solid var(--acento); background: var(--papel); }
+  html[data-tema="oscuro"] .filtros-buscar:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .filtros-estatus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='var(--papel)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
+  html[data-tema="oscuro"] .filtros-estatus option { background: var(--papel); }
+  html[data-tema="oscuro"] .fdrop-menu-inner { background: var(--papel); }
+  html[data-tema="oscuro"] .fdrop-item:hover { color: var(--acento); }
+  html[data-tema="oscuro"] .filtros-novistas-estado.on { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .vista-dir-pill { background: var(--papel); }
+  html[data-tema="oscuro"] .vista-dir-pill:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .vista-dir-knob::after { background: var(--papel); }
+  html[data-tema="oscuro"] .vista-dir-pill.activo { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] body.solo-lectura .app-main::before { color: var(--acento); border-bottom: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .columna { background: var(--papel); }
+  html[data-tema="oscuro"] .col-conteo { background: var(--papel); }
+  html[data-tema="oscuro"] .col-procesos .col-header { border-bottom-color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .col-procesos .col-titulo { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .col-procesos .col-conteo { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .col-atendida .col-header { border-bottom-color: var(--verde-txt); }
+  html[data-tema="oscuro"] .col-atendida .col-titulo { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .col-atendida .col-conteo { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .col-color-morado .col-header { background: #19132f; }
+  html[data-tema="oscuro"] .col-color-morado .col-titulo,
+  html[data-tema="oscuro"] .col-color-morado .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-morado .col-conteo { color: #bea0ee; }
+  html[data-tema="oscuro"] .col-color-olivo .col-header { background: #3c4122; }
+  html[data-tema="oscuro"] .col-color-olivo .col-titulo,
+  html[data-tema="oscuro"] .col-color-olivo .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-olivo .col-conteo { color: #d1eba3; }
+  html[data-tema="oscuro"] .col-color-azul .col-header { background: #152233; }
+  html[data-tema="oscuro"] .col-color-azul .col-titulo,
+  html[data-tema="oscuro"] .col-color-azul .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-azul .col-conteo { color: #a3b6eb; }
+  html[data-tema="oscuro"] .col-color-naranja .col-header { background: #342715; }
+  html[data-tema="oscuro"] .col-color-naranja .col-titulo,
+  html[data-tema="oscuro"] .col-color-naranja .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-naranja .col-conteo { color: #efb39f; }
+  html[data-tema="oscuro"] .col-color-indigo .col-header { background: #141b31; }
+  html[data-tema="oscuro"] .col-color-indigo .col-titulo,
+  html[data-tema="oscuro"] .col-color-indigo .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-indigo .col-conteo { color: #aca8e5; }
+  html[data-tema="oscuro"] .col-color-ambar .col-header { background: #383117; }
+  html[data-tema="oscuro"] .col-color-ambar .col-titulo,
+  html[data-tema="oscuro"] .col-color-ambar .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-ambar .col-conteo { color: #efbd9f; }
+  html[data-tema="oscuro"] .col-color-verdeoscuro .col-header { background: #163626; }
+  html[data-tema="oscuro"] .col-color-verdeoscuro .col-titulo,
+  html[data-tema="oscuro"] .col-color-verdeoscuro .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-verdeoscuro .col-conteo { color: #9fefd9; }
+  html[data-tema="oscuro"] .col-color-turquesa .col-header { background: #173730; }
+  html[data-tema="oscuro"] .col-color-turquesa .col-titulo,
+  html[data-tema="oscuro"] .col-color-turquesa .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-turquesa .col-conteo { color: #a0eee9; }
+  html[data-tema="oscuro"] .col-color-lima .col-header { background: #2d3717; }
+  html[data-tema="oscuro"] .col-color-lima .col-titulo,
+  html[data-tema="oscuro"] .col-color-lima .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-lima .col-conteo { color: #cceea0; }
+  html[data-tema="oscuro"] .col-color-cafe .col-header { background: #342819; }
+  html[data-tema="oscuro"] .col-color-cafe .col-titulo,
+  html[data-tema="oscuro"] .col-color-cafe .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-cafe .col-conteo { color: #efbc9f; }
+  html[data-tema="oscuro"] .col-color-terracota .col-header { background: #342015; }
+  html[data-tema="oscuro"] .col-color-terracota .col-titulo,
+  html[data-tema="oscuro"] .col-color-terracota .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-terracota .col-conteo { color: #efb39f; }
+  html[data-tema="oscuro"] .col-color-bronce .col-header { background: #352d18; }
+  html[data-tema="oscuro"] .col-color-bronce .col-titulo,
+  html[data-tema="oscuro"] .col-color-bronce .col-subtitulo,
+  html[data-tema="oscuro"] .col-color-bronce .col-conteo { color: #efc99f; }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-pendiente { background: #3d2b19; }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-progreso { background: #423b1b; }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-vencida { background: #371616; }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-olivo { background: #313821; }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-concluida { background: #313821; }
+  html[data-tema="oscuro"] .col-archivada .col-header { border-bottom-color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .col-archivada .col-titulo { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .col-archivada .col-conteo { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .col-cuerpo { background: #25221a; }
+  html[data-tema="oscuro"] .tarjeta { background: var(--papel); }
+  html[data-tema="oscuro"] .tarjeta-eliminar { background: var(--papel); }
+  html[data-tema="oscuro"] .tarjeta-eliminar:hover { background: #311414; border-color: var(--rojo-txt); color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .tarjeta.estatus-identificadas { border-left-color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .tarjeta.estatus-validar { border-left-color: var(--verde-txt); }
+  html[data-tema="oscuro"] .tarjeta.estatus-validadas { border-left-color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .tarjeta.es-vencida { border-left-color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .col-cuerpo.drop-activo { outline: 2px dashed var(--acento); }
+  html[data-tema="oscuro"] .tarjeta-vistos .vto-acron { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .tarjeta-vistos .vto-acron.vto-creador { color: var(--acento); }
+  html[data-tema="oscuro"] .tarjeta-campos dd.campo-fecha-vencida { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .tarjeta-adjunto { color: var(--acento); border: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .modal-adjunto-link { color: var(--acento); border: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .modal-adjunto-x { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .modal-adjunto-x:hover { background: #311414; }
+  html[data-tema="oscuro"] .adjunto-chip { border: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .adjunto-chip-nombre { color: var(--acento); }
+  html[data-tema="oscuro"] .adjunto-chip-x { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .responsable-row-x { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .responsable-row-x:hover { background: #311414; }
+  html[data-tema="oscuro"] .enlace-row-x { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .enlace-row-x:hover { background: #311414; }
+  html[data-tema="oscuro"] .modal-enlace-link { color: var(--acento); border: 1px solid var(--acento); }
+  html[data-tema="oscuro"] .modal-enlace-quitar { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .modal-enlace-add input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .tarjeta-origen-hist { background: var(--papel-2); }
+  html[data-tema="oscuro"] .tarjeta-fecha-vencida { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .prioridad-alta { background: #311414; color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .prioridad-media { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .prioridad-baja { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .tarjeta-permanente { background: #13192e; color: #aca8e5; border: 1px solid #28325d; }
+  html[data-tema="oscuro"] .tarjeta-validada-info { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .tarjeta-devuelta-info { background: #2e2213; border: 1px solid #5d4428; color: #efb39f; }
+  html[data-tema="oscuro"] .btn-pildora-devolver { background: #2e2213; color: #efb39f; border: 1px solid #5d4428; }
+  html[data-tema="oscuro"] .btn-pildora-devolver:hover { background: #342715; }
+  html[data-tema="oscuro"] .btn-pildora-finalizada { background: var(--papel-2); border: 1px solid #3d4147; }
+  html[data-tema="oscuro"] .dropzone:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .dz-activo { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .area-chip { background: var(--papel); }
+  html[data-tema="oscuro"] .area-chip:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .area-chip:has(input:checked) { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .tema-pill { background: var(--papel); }
+  html[data-tema="oscuro"] .tema-pill:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .fase-opt { background: var(--papel); }
+  html[data-tema="oscuro"] .fase-opt:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .seg-card-temas span { color: var(--acento); }
+  html[data-tema="oscuro"] .pill-fase { color: var(--grafito-txt) !important; }
+  html[data-tema="oscuro"] .seg-bloc.activo { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-bloc-x:hover { color: var(--acento); }
+  html[data-tema="oscuro"] .seg-bloc-tool { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-bloc-tool:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .modal { background: var(--papel); border-top: 4px solid var(--acento); }
+  html[data-tema="oscuro"] .modal-header { background: var(--papel); }
+  html[data-tema="oscuro"] .modal-vistos .vto-acron { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .modal-vistos .vto-acron.vto-creador { color: var(--acento); }
+  html[data-tema="oscuro"] .notif-panel { background: var(--papel); }
+  html[data-tema="oscuro"] .notif-leer { color: var(--acento); }
+  html[data-tema="oscuro"] .notif-item { background: var(--papel); }
+  html[data-tema="oscuro"] .notif-item.nueva { background: #302814; }
+  html[data-tema="oscuro"] .notif-item.nueva:hover { background: #362d16; }
+  html[data-tema="oscuro"] .arroba-menu { background: var(--papel); }
+  html[data-tema="oscuro"] .arroba-item:hover { color: var(--acento); }
+  html[data-tema="oscuro"] .arroba-mention { color: var(--acento); }
+  html[data-tema="oscuro"] .conv-msg { background: var(--papel); border-left: 3px solid var(--acento); }
+  html[data-tema="oscuro"] .conv-acron { color: var(--acento); }
+  html[data-tema="oscuro"] .conv-textarea:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .conv-btn:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .conv-btn.conv-btn-del:hover { background: #311414; border-color: var(--rojo-txt); color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .modal-editar-header { background: var(--papel); border: 2px solid var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .modal-cerrar { background: var(--papel); border: 2px solid var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .modal-campos dd.modal-campo-fecha-vencida { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .modal-fecha-input { background: var(--papel); }
+  html[data-tema="oscuro"] .modal-fecha-input:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .modal-fecha-input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .modal-campo-fecha-vencida .modal-fecha-input { color: var(--rojo-txt); border-color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .modal-estatus-proceso { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .modal-estatus-atendida { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .modal-estatus-archivada { color: var(--grafito-txt); }
+  html[data-tema="oscuro"] .modal-seccion-titulo { color: var(--acento); }
+  html[data-tema="oscuro"] .modal-comentarios { border-left: 3px solid var(--acento); }
+  html[data-tema="oscuro"] .modal-bitacora .bitacora-item { background: var(--papel); }
+  html[data-tema="oscuro"] .modal-comentar:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .btn-modal { border: 1.5px solid var(--acento); background: var(--papel); color: var(--acento); }
+  html[data-tema="oscuro"] .toast { border-left: 3px solid var(--verde-txt); }
+  html[data-tema="oscuro"] .toast.error { border-left-color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .banner-demo { background: linear-gradient(90deg, var(--ambar-tenue), #312714); border-bottom: 1px solid var(--ambar-txt); color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .vista-toggle { background: var(--papel); }
+  html[data-tema="oscuro"] .cal-header { background: var(--papel); }
+  html[data-tema="oscuro"] .cal-nav-btn { background: var(--papel); }
+  html[data-tema="oscuro"] .cal-nav-btn:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .cal-hoy-btn { background: var(--papel); }
+  html[data-tema="oscuro"] .cal-hoy-btn:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .cal-celda { background: var(--papel); }
+  html[data-tema="oscuro"] .cal-celda.otro-mes { background: #282219; }
+  html[data-tema="oscuro"] .cal-celda.hoy { background: linear-gradient(180deg, rgba(105,28,50,0.05), var(--papel)); }
+  html[data-tema="oscuro"] .cal-evento.sub-SA { color: var(--sub-sa-txt); border-color: var(--sub-sa-txt); }
+  html[data-tema="oscuro"] .cal-evento.sub-SGOI { color: var(--sub-sgoi-txt); border-color: var(--sub-sgoi-txt); }
+  html[data-tema="oscuro"] .cal-evento.sub-SGOIB { color: var(--sub-sgoib-txt); border-color: var(--sub-sgoib-txt); }
+  html[data-tema="oscuro"] .cal-evento.sub-SGOIC { color: var(--sub-sgoic-txt); border-color: var(--sub-sgoic-txt); }
+  html[data-tema="oscuro"] .cal-evento.sub-SPAC { color: var(--sub-spac-txt); border-color: var(--sub-spac-txt); }
+  html[data-tema="oscuro"] .cal-mas:hover { color: var(--acento); }
+  html[data-tema="oscuro"] .form-campo { border: 1.5px solid var(--acento); background: #2a141b; }
+  html[data-tema="oscuro"] .form-campo label { color: var(--acento); }
+  html[data-tema="oscuro"] .form-campo label .req { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .form-campo input:not([type="checkbox"]):not([type="radio"]),
+  html[data-tema="oscuro"] .form-campo select,
+  html[data-tema="oscuro"] .form-campo textarea { background: var(--papel); }
+  html[data-tema="oscuro"] .form-campo input:focus,
+  html[data-tema="oscuro"] .form-campo select:focus,
+  html[data-tema="oscuro"] .form-campo textarea:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .btn-plantilla { background: var(--papel); border: 1.5px solid var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .excel-zona { background: var(--papel); }
+  html[data-tema="oscuro"] .excel-zona:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .excel-zona.con-archivo { border-color: var(--verde-txt); }
+  html[data-tema="oscuro"] .btn-ics { background: var(--papel); }
+  html[data-tema="oscuro"] .btn-ics:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .btn-ics.btn-wa { color: #a3ebbe; }
+  html[data-tema="oscuro"] .btn-ics.btn-mail { color: #9fb4ef; }
+  html[data-tema="oscuro"] .btn-secundario { background: var(--papel); color: var(--acento); border: 1.5px solid var(--acento); }
+  html[data-tema="oscuro"] .acceso-login input { background: var(--papel); }
+  html[data-tema="oscuro"] .acceso-login input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .login-ojo:hover { color: var(--acento); }
+  html[data-tema="oscuro"] .acceso-login-error { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .login-volver { color: var(--acento); }
+  html[data-tema="oscuro"] .historial-col { background: var(--papel); }
+  html[data-tema="oscuro"] .historial-col-body { background: var(--papel-2); }
+  html[data-tema="oscuro"] .hist-chip { background: var(--papel); }
+  html[data-tema="oscuro"] .hist-tab { background: var(--papel); }
+  html[data-tema="oscuro"] .hist-tab:hover { border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .vol-hist-pill.archivado { background: #15331f; color: #a3ebbe; }
+  html[data-tema="oscuro"] .vol-hist-pill.eliminado { background: #311414; color: #eea0a0; }
+  html[data-tema="oscuro"] .hist-mes-head { background: var(--papel-2); color: #aec3e0; }
+  html[data-tema="oscuro"] .hist-mes-head:hover { background: #292b2f; }
+  html[data-tema="oscuro"] .accion-item { background: var(--papel); }
+  html[data-tema="oscuro"] .accion-item-del { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .accion-item-del:hover { background: #311414; }
+  html[data-tema="oscuro"] .accion-item-adj { color: var(--acento); }
+  html[data-tema="oscuro"] .accion-adj-x { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .acciones-agregar input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .refresh-spinner { border-top-color: var(--linea); }
+  html[data-tema="oscuro"] .checklist-tabla { border: 2px solid var(--acento); background: var(--papel); }
+  html[data-tema="oscuro"] .checklist-adj-cell { border: 1.5px dashed var(--acento); color: var(--acento); background: var(--papel); }
+  html[data-tema="oscuro"] .checklist-adj-cell.dz-activo-item { border-color: var(--acento); }
+  html[data-tema="oscuro"] .checklist-adj-cell:has(.checklist-adj-link) { border: 2px solid var(--acento); }
+  html[data-tema="oscuro"] .checklist-adj-link { color: var(--acento); }
+  html[data-tema="oscuro"] .checklist-adj-quitar { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .checklist-cab { color: var(--acento); }
+  html[data-tema="oscuro"] .checklist-fila.completa { background: #132e1b; }
+  html[data-tema="oscuro"] .checklist-chk { border: 2px solid var(--acento); background: var(--papel); }
+  html[data-tema="oscuro"] .checklist-chk:checked::after { border: solid var(--linea); }
+  html[data-tema="oscuro"] .checklist-editar { color: var(--acento); }
+  html[data-tema="oscuro"] .checklist-borrar { color: var(--rojo, #ef9f9f); }
+  html[data-tema="oscuro"] .chk-asa:active { color: var(--acento); }
+  html[data-tema="oscuro"] .checklist-edit-input { border: 1.5px solid var(--acento); background: var(--papel); }
+  html[data-tema="oscuro"] .checklist-agregar input { background: var(--papel); }
+  html[data-tema="oscuro"] .checklist-agregar input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .leyenda-director { background: #2f2913; }
+  html[data-tema="oscuro"] .leyenda-capturista { background: #2a141b; border-left: 3px solid var(--acento); }
+  html[data-tema="oscuro"] .obs-col { background: var(--papel-2); }
+  html[data-tema="oscuro"] .tarjeta-progreso { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-card { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-cerrar { background: var(--papel-2); color: var(--tinta); }
+  html[data-tema="oscuro"] .juego-cerrar:hover { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-titulo { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-stat { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-stat-num { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-nivel-barra { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-modo { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-modo:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-tema-chip { background: var(--papel); color: var(--acento); }
+  html[data-tema="oscuro"] .juego-tema-chip:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-regresar { background: var(--papel-2); color: var(--tinta); }
+  html[data-tema="oscuro"] .juego-regresar:hover { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-racha { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .juego-puntos { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-prog { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-timer { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-opcion { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-opcion:hover:not(:disabled) { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-opcion.correcta { border-color: var(--verde-txt); background: #132f1f; color: #a3ebbe; }
+  html[data-tema="oscuro"] .juego-opcion.incorrecta { border-color: var(--rojo-txt); background: #2d1212; color: #eea0a0; }
+  html[data-tema="oscuro"] .juego-feedback.ok .juego-feedback-tit { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .juego-feedback.mal .juego-feedback-tit { color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .juego-feedback a { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-simple { background: #2e2213; border: 1px dashed var(--ambar-txt); color: #efb39f; }
+  html[data-tema="oscuro"] .juego-simple-tit { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .juego-final-tit { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-xp-fill { background: linear-gradient(90deg, #615128, #2f624f); }
+  html[data-tema="oscuro"] .juego-cta { background: linear-gradient(180deg, var(--papel) 0%, var(--papel-2) 100%); }
+  html[data-tema="oscuro"] .juego-cta-txt { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-ley-chip { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-ley-chip:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-ley-abrev { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-ley-tag { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-ley-tag.abierta { color: var(--verde-txt); }
+  html[data-tema="oscuro"] .juego-ley-elegida { border: 1px solid var(--acento-claro); }
+  html[data-tema="oscuro"] .juego-ley-elegida-txt { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-cambiar-ley { background: var(--papel); border: 1px solid var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .juego-nivel-panel { background: linear-gradient(135deg, var(--papel) 0%, var(--guinda-tenue) 100%); }
+  html[data-tema="oscuro"] .juego-nivel-nombre { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-dato { background: linear-gradient(135deg, #2e2213 0%, #383117 100%); border: 1px solid #5d4a28; color: #efb39f; }
+  html[data-tema="oscuro"] .juego-dato-tit { color: var(--ambar-txt); }
+  html[data-tema="oscuro"] .juego-dato-link a { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-home-grid .juego-modo { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-home-grid .juego-modo:hover { border-color: var(--mc, var(--acento)); }
+  html[data-tema="oscuro"] .juego-modo-ico-wrap { background: color-mix(in srgb, var(--mc, var(--guinda)) 13%, var(--papel)); }
+  html[data-tema="oscuro"] .juego-modo-arrow { color: var(--mc, var(--acento)); }
+  html[data-tema="oscuro"] .juego-perfil { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-meta-barra { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-dia { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-dia.algo { background: #193d25; }
+  html[data-tema="oscuro"] .juego-insignia { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-insignia.ganada { border-color: var(--ambar-txt); background: linear-gradient(180deg, #2f2913, var(--papel)); }
+  html[data-tema="oscuro"] .juego-insignia.ganada .juego-insignia-nom { color: #efbd9f; }
+  html[data-tema="oscuro"] .juego-insignia.ganada .juego-insignia-desc { color: #9fefbd; }
+  html[data-tema="oscuro"] .juego-final-medallas-tit { color: #efbd9f; }
+  html[data-tema="oscuro"] .juego-medalla-nueva { border: 2px solid var(--ambar-txt); background: #2f2913; }
+  html[data-tema="oscuro"] .jmn-txt b { color: #efbd9f; }
+  html[data-tema="oscuro"] .juego-final-nivel .juego-xp-barra { background: var(--papel-2); }
+  html[data-tema="oscuro"] .juego-final-nivel-txt b { color: var(--acento); }
+  html[data-tema="oscuro"] .juego-art-chip { background: var(--papel); color: var(--acento); }
+  html[data-tema="oscuro"] .juego-art-chip:hover { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-final-repaso-sub b { color: #9fefbd; }
+  html[data-tema="oscuro"] .juego-tema-prog.full { color: #a3ebbe; }
+  html[data-tema="oscuro"] .juego-buscar input:focus { border-color: var(--acento); }
+  html[data-tema="oscuro"] .juego-art-res { background: var(--papel); }
+  html[data-tema="oscuro"] .juego-art-tit { color: var(--acento); }
+  html[data-tema="oscuro"] .btn-exportar { background: var(--papel); color: var(--verde-txt); }
+  html[data-tema="oscuro"] .btn-exportar:hover { border-color: var(--verde-txt); }
+  @media (max-width: 640px) {
+    html[data-tema="oscuro"] .checklist-chk-tag { color: var(--acento); }
+  }
+  @media (max-width: 760px) {
+    html[data-tema="oscuro"] .bottom-nav { background: var(--papel); }
+    html[data-tema="oscuro"] .bottom-nav-item.destacado { color: var(--acento); }
+  }
+
+  /* ---------------------------------------------------------------
+     3) AJUSTES A MANO. Van al final: ganan sobre lo generado.
+     --------------------------------------------------------------- */
+
+  /* Sombras: en claro son guindas y suaves; sobre oscuro no se ven, así que
+     se cambian por sombra negra de verdad. */
+  html[data-tema="oscuro"] .kpi-card,
+  html[data-tema="oscuro"] .columna,
+  html[data-tema="oscuro"] .modal,
+  html[data-tema="oscuro"] .tarjeta,
+  html[data-tema="oscuro"] .sidebar,
+  html[data-tema="oscuro"] .acceso-card {
+    box-shadow: 0 2px 14px rgba(0,0,0,0.45);
+  }
+
+  /* Barras de scroll. OJO: hay que declarar TAMBIEN ::-webkit-scrollbar (el
+     ancho); sin esa regla Chrome no entra en modo "scrollbar a la medida" e
+     ignora track y thumb — se quedaba el pulgar casi blanco sobre el modal. */
+  html[data-tema="oscuro"] ::-webkit-scrollbar { width: 11px; height: 11px; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-corner { background: #171514; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-track { background: #171514; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-thumb { background: #3C3532; }
+  html[data-tema="oscuro"] ::-webkit-scrollbar-thumb:hover { background: #4E4643; }
+
+  /* Campos: el texto que escribe el usuario y el placeholder */
+  html[data-tema="oscuro"] input,
+  html[data-tema="oscuro"] textarea,
+  html[data-tema="oscuro"] select {
+    background: var(--papel-2);
+    color: var(--tinta);
+    border-color: var(--linea);
+  }
+  html[data-tema="oscuro"] ::placeholder { color: var(--tinta-tenue); opacity: 1; }
+  /* Los selectores de fecha/hora nativos vienen en blanco: se invierten */
+  html[data-tema="oscuro"] input[type="date"]::-webkit-calendar-picker-indicator,
+  html[data-tema="oscuro"] input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+  }
+
+  /* El header se mantiene guinda (es la marca), solo se asienta un poco */
+  html[data-tema="oscuro"] .nav {
+    background: linear-gradient(180deg, #5E1A2B 0%, #4A1424 100%);
+    border-bottom-color: #35101C;
+  }
+
+  /* Tarjetas por urgencia: el generado ya las oscurece, pero estas cuatro son
+     LA señal del tablero, así que se afinan a mano — mismo semáforo, en oscuro,
+     con el borde izquierdo grueso que las hace legibles de un vistazo. */
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-pendiente {
+    background: #3A2411; border-color: #8A4A12; border-left-color: #C2740F;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-progreso {
+    background: #3A3315; border-color: #8A7A1E; border-left-color: #C2A81A;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-avanzada {
+    background: #14301F; border-color: #1E7A45; border-left-color: #2FA85E;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-completada {
+    background: #16281E; border-color: #2A6A45; border-left-color: #3E9A63;
+  }
+  html[data-tema="oscuro"] .tarjeta.tarjeta-vencida,
+  html[data-tema="oscuro"] .tarjeta.tarjeta-color-vencida {
+    background: #3A1616; border-color: #9A2020; border-left-color: #D63333;
+  }
+
+  /* Píldora "Vencida" y demás avisos rojos: fondo oscuro, letra clara */
+  html[data-tema="oscuro"] .tarjeta-vencida-pill,
+  html[data-tema="oscuro"] .pill-vencida {
+    background: #7A1A1A; color: #FFD9D6;
+  }
+
+  /* El texto dentro de la tarjeta hereda --tinta, pero las etiquetas chicas
+     ("TEMA", "ÁREA RESPONSABLE"…) van en tinta-tenue: se suben un punto para
+     que no se pierdan sobre el fondo de color. */
+  html[data-tema="oscuro"] .tarjeta-campo-label { color: #A79C95; }
+
+  /* El logo TT se pinta con currentColor, asi que seguia al color de TEXTO y
+     salia rosa. Es la marca: se queda guinda, un punto mas clara para que no se
+     hunda en el fondo (las letras van en blanco encima). */
+  html[data-tema="oscuro"] .acceso-logo-mark { color: #9C3049; }
+
+  /* Menú lateral: el item activo se marca con la guinda clara, no con blanco */
+  html[data-tema="oscuro"] .sidebar { background: #171413; border-right-color: var(--linea); }
+  html[data-tema="oscuro"] .sidebar-item:hover { background: #262221; }
+  html[data-tema="oscuro"] .sidebar-item.activa { background: var(--guinda); color: #fff; }
+
+  /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
+  html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
+
+  /* Toast (avisos flotantes) */
+  html[data-tema="oscuro"] .toast { background: #2A2523; color: var(--tinta); border-color: var(--linea); }
+
+  /* ---------------------------------------------------------------
+     4) EL BOTÓN DE TEMA y su burbuja.
+     --------------------------------------------------------------- */
+  .nav-tema {
+    position: relative;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    overflow: visible;
+  }
+  .nav-tema:hover { background: white; color: var(--guinda); }
+  .nav-tema svg { width: 15px; height: 15px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
+  /* Sol y luna ocupan el mismo lugar: se cruzan girando */
+  .nav-tema .ico-wrap { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-tema .ico-wrap svg { position: absolute; inset: 0; }
+  .nav-tema .ico-luna { opacity: 1; transform: rotate(0deg) scale(1); }
+  .nav-tema .ico-sol  { opacity: 0; transform: rotate(-90deg) scale(0.4); }
+  html[data-tema="oscuro"] .nav-tema .ico-luna { opacity: 0; transform: rotate(90deg) scale(0.4); }
+  html[data-tema="oscuro"] .nav-tema .ico-sol  { opacity: 1; transform: rotate(0deg) scale(1); }
+
+  /* La ONDA: un aro que sale del propio botón al presionarlo */
+  .nav-tema-onda {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 10px; height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .nav-tema.pulsa .nav-tema-onda { animation: tema-onda 0.6s ease-out; }
+  @keyframes tema-onda {
+    0%   { opacity: 0.85; transform: scale(1); }
+    100% { opacity: 0;    transform: scale(9); }
+  }
+
+  /* La BURBUJA: el círculo que crece desde el botón y descubre el tema nuevo */
+  .tema-burbuja {
+    position: fixed;
+    left: var(--bx); top: var(--by);
+    width: 0; height: 0;
+    margin: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 99999;
+    pointer-events: none;
+    will-change: width, height, opacity;
+    /* 0.42s de crecida: el JS cambia el tema en 460 ms, o sea con la burbuja
+       YA tapando todo; si tardara mas, se alcanzarian a ver las esquinas
+       cambiando antes de tiempo. */
+    transition: width 0.42s cubic-bezier(.4,0,.2,1),
+                height 0.42s cubic-bezier(.4,0,.2,1),
+                opacity 0.3s ease;
+  }
+  .tema-burbuja.crece { width: var(--d); height: var(--d); }
+  .tema-burbuja.fuera { opacity: 0; }
+
+  /* Quien prefiera menos movimiento, no ve la animación (solo el cambio) */
+  @media (prefers-reduced-motion: reduce) {
+    .tema-burbuja { transition: none; display: none; }
+    .nav-tema.pulsa .nav-tema-onda { animation: none; }
+    .nav-tema svg { transition: none; }
+  }
+/* ===== FIN MODO OSCURO ===== */
+</style>
 </head>
 <body>
 
@@ -5909,6 +6645,15 @@
                clickear para cambiar la contraseña. -->
           <svg class="nav-usuario-candado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
+        <!-- Modo claro / oscuro. Va entre el usuario y Actualizar. -->
+        <button class="nav-tema" id="btnTema" onclick="alternarTema(event)" title="Cambiar a modo oscuro" aria-label="Cambiar entre modo claro y oscuro">
+          <span class="nav-tema-onda" aria-hidden="true"></span>
+          <span class="ico-wrap" aria-hidden="true">
+            <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.6v2.6M12 19.8v2.6M4.2 4.2l1.9 1.9M17.9 17.9l1.9 1.9M1.6 12h2.6M19.8 12h2.6M4.2 19.8l1.9-1.9M17.9 6.1l1.9-1.9"/></svg>
+          </span>
+          <span class="nav-tema-txt">Oscuro</span>
+        </button>
         <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Recargar la app: datos frescos y la última versión (como F5), sin cerrar tu sesión">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
           <span>Actualizar</span>
@@ -6918,6 +7663,71 @@ function ingresar(rol) {
   usuarioActual = USUARIOS[rol];
   aplicarSesion();
 }
+
+// ============== MODO CLARO / OSCURO ==============
+// El tema vive en el <html> (data-tema="oscuro") y se recuerda POR EQUIPO en
+// localStorage: es una preferencia de quien mira la pantalla, no del usuario,
+// así que no va a la base. La primera vez se respeta lo que tenga configurado
+// el sistema operativo. Todo el CSS del tema vive en el bloque de estilos
+// con id "temaOscuro" (se arma con herramientas/modo-oscuro/build_tema.py).
+const TEMA_LS = 'tt_tema';
+
+function temaActual() {
+  return document.documentElement.getAttribute('data-tema') === 'oscuro' ? 'oscuro' : 'claro';
+}
+
+function aplicarTema(t) {
+  const oscuro = (t === 'oscuro');
+  document.documentElement.setAttribute('data-tema', oscuro ? 'oscuro' : 'claro');
+  try { localStorage.setItem(TEMA_LS, oscuro ? 'oscuro' : 'claro'); } catch (e) {}
+  // Barra del navegador en el celular (PWA)
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', oscuro ? '#4A1424' : '#691C32');
+  const btn = document.getElementById('btnTema');
+  if (btn) {
+    btn.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    const txt = btn.querySelector('.nav-tema-txt');
+    if (txt) txt.textContent = oscuro ? 'Claro' : 'Oscuro';
+  }
+}
+
+// Cambia el tema con una BURBUJA que crece desde el botón: el círculo ya trae
+// el color del tema nuevo, así que cuando tapa la pantalla se hace el cambio
+// por debajo y la burbuja se desvanece — se ve como si el color se derramara.
+function alternarTema(ev) {
+  const nuevo = temaActual() === 'oscuro' ? 'claro' : 'oscuro';
+  const btn = (ev && ev.currentTarget) || document.getElementById('btnTema');
+  const quietito = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!btn || quietito) { aplicarTema(nuevo); return; }
+
+  // El aro que sale del propio botón
+  btn.classList.remove('pulsa');
+  void btn.offsetWidth;                     // reinicia la animación
+  btn.classList.add('pulsa');
+  setTimeout(function () { btn.classList.remove('pulsa'); }, 650);
+
+  const r = btn.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  // Radio hasta la esquina MÁS LEJANA: si no, la burbuja no alcanza a tapar todo.
+  const radio = Math.hypot(Math.max(cx, window.innerWidth - cx),
+                           Math.max(cy, window.innerHeight - cy));
+  const b = document.createElement('div');
+  b.className = 'tema-burbuja';
+  b.style.setProperty('--bx', cx + 'px');
+  b.style.setProperty('--by', cy + 'px');
+  b.style.setProperty('--d', (radio * 2) + 'px');
+  b.style.background = (nuevo === 'oscuro') ? '#131110' : '#FAF7F2';
+  document.body.appendChild(b);
+  requestAnimationFrame(function () { b.classList.add('crece'); });
+
+  setTimeout(function () { aplicarTema(nuevo); }, 460);   // ya tapó: se cambia debajo
+  setTimeout(function () { b.classList.add('fuera'); }, 490);
+  setTimeout(function () { if (b.parentNode) b.remove(); }, 1000);
+}
+
+// Al abrir: el <head> ya puso data-tema para que no parpadee, pero la etiqueta
+// y el título del botón se ponen al día aquí (el botón todavía no existía).
+document.addEventListener('DOMContentLoaded', function () { aplicarTema(temaActual()); });
 
 // Aplica la sesión ya cargada en usuarioActual (sea de demo o de login real)
 // y arma la vista según el rol.
