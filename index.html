@@ -6514,8 +6514,8 @@ const JEFATURAS_POR_SUB = {
     MANUALES:       'Jefatura de Departamento de Implementación de Manuales Administrativos'
   },
   SGOI: {
-    GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental',
-    GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas'
+    GESTION_AMBIENTAL: 'Jefatura de Departamento de Gestión Ambiental A',
+    GESTION_OBRAS:     'Jefatura de Departamento de Gestión de Obras Inducidas A'
   },
   // SGOI-B tiene su propia Jefatura de Gestión Ambiental (JDGA-B). Es una
   // jefatura DISTINTA de la de SGOI-A: código propio, prefijo de ID propio
@@ -8760,9 +8760,9 @@ function columnasPorRol() {
       return [
         { id: 'SGOI',  titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
           color: 'olivo', filtro: t => tareaEnObras(t, 'SGOI') },
-        { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
+        { id: 'JDGA',  titulo: 'JDGA-A',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental A',
           color: 'verdeoscuro', filtro: t => tareaEnArea(t, 'JDGA') },
-        { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
+        { id: 'JDGOI', titulo: 'JDGOI-A', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas A',
           color: 'cafe',  filtro: t => tareaEnArea(t, 'JDGOI') }
       ];
     }
@@ -8863,10 +8863,10 @@ function columnasPorRol() {
   const colsSGOI = [
     { id: 'SGOI',  titulo: 'SGOI-A', subtitulo: 'Subdirección de Gestión de Obras Inducidas A',
       color: 'olivo', filtro: t => tareaEnObras(t, 'SGOI') },
-    { id: 'JDGA',  titulo: 'JDGA',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental',
+    { id: 'JDGA',  titulo: 'JDGA-A',  subtitulo: 'Jefatura de Departamento de Gestión Ambiental A',
       color: 'verdeoscuro', jefCod: 'GESTION_AMBIENTAL',
       filtro: t => tareaEnArea(t, 'JDGA') },
-    { id: 'JDGOI', titulo: 'JDGOI', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas',
+    { id: 'JDGOI', titulo: 'JDGOI-A', subtitulo: 'Jefatura de Departamento de Gestión de Obras Inducidas A',
       color: 'cafe', jefCod: 'GESTION_OBRAS',
       filtro: t => tareaEnArea(t, 'JDGOI') }
   ];
@@ -13365,7 +13365,7 @@ function segAreasDisponibles() {
   }
   const sub = String((u && u.subdireccion) || '').toUpperCase();
   if (!sub) return [];
-  return [{ id: sub, titulo: sub, sub: sub, filtro: t => t.subdireccion === sub || tareaEnArea(t, sub) }];
+  return [{ id: sub, titulo: etiquetaArea(sub), sub: sub, filtro: t => t.subdireccion === sub || tareaEnArea(t, sub) }];
 }
 
 // El área elegida ahora mismo (objeto completo), o null si aún no se elige.
@@ -15971,9 +15971,11 @@ const ACRONIMOS_AREA = {
   'Jefatura de Departamento de Procedimientos de Construcción': 'JDPC',
   'Jefatura de Departamento de Implementación de Manuales Administrativos': 'JDIMA',
   'Jefatura de Departamento de Gestión Ambiental': 'JDGA',
+  'Jefatura de Departamento de Gestión Ambiental A': 'JDGA',
   'Jefatura de Departamento de Gestión Ambiental B': 'JDGAB',
   'Jefatura de Departamento de Gestión Ambiental C': 'JDGAC',
   'Jefatura de Departamento de Gestión de Obras Inducidas': 'JDGOI',
+  'Jefatura de Departamento de Gestión de Obras Inducidas A': 'JDGOI',
   'Staff': 'STAFF',
   // Legacy: tareas viejas pueden tener el nombre anterior; lo mapeamos al
   // mismo acrónimo STAFF para que sigan saliendo bien al mostrar.
@@ -15984,19 +15986,13 @@ function acronimoArea(nombre) {
   return ACRONIMOS_AREA[String(nombre).trim()] || '';
 }
 
-// Etiqueta del CHIP en el formulario "Áreas involucradas". Para jefaturas
-// usamos un texto más descriptivo (con la palabra "Gestión" visible) en vez
-// del acrónimo corto; para subdirecciones se usa el acrónimo.
+// Etiqueta del CHIP en el formulario "Áreas involucradas": el acrónimo del
+// área, ya con la etiqueta visible (SGOI-A, JDGA-A, JDGOI-A, JDGA-B…). Antes
+// había aquí un mapa propio nombre→acrónimo que se quedaba atrás (nunca tuvo
+// JDGA-C); ahora se pasa por el mismo etiquetaArea que el resto de la app.
 function etiquetaChip(area) {
   if (!area) return '';
-  const map = {
-    'Jefatura de Departamento de Gestión Ambiental':                        'JDGA',
-    'Jefatura de Departamento de Gestión Ambiental B':                      'JDGA-B',
-    'Jefatura de Departamento de Gestión de Obras Inducidas':               'JDGOI',
-    'Jefatura de Departamento de Procedimientos de Construcción':           'JDPC',
-    'Jefatura de Departamento de Implementación de Manuales Administrativos':'JDIMA'
-  };
-  return map[String(area).trim()] || acronimoArea(area) || area;
+  return etiquetaArea(acronimoArea(area)) || area;
 }
 // "Subdirección X, Jefatura Y" → "Subdirección X (SX), Jefatura Y (JY)".
 // Canonicaliza nombres viejos: "Enlace del Director" se muestra como "Staff".
@@ -16006,7 +16002,7 @@ function mostrarAreas(areasStr) {
     let a = s.trim();
     if (!a) return '';
     if (a === 'Enlace del Director') a = 'Staff';
-    const acr = acronimoArea(a);
+    const acr = etiquetaArea(acronimoArea(a));
     return acr ? a + ' (' + acr + ')' : a;
   }).filter(Boolean).join(', ');
 }
@@ -16037,15 +16033,19 @@ function obtenerChecklist(t) {
 // JDGOI); si es subdirección, regresa el acrónimo de la subdirección
 // (DPAC / SPAC / SA / SGOI / ENLACE).
 // Cómo se MUESTRA un código de área. Las letras de Obras Inducidas se
-// presentan con guion (SGOI-A / SGOI-B / SGOI-C); los códigos internos siguen
-// siendo SGOI, SGOIB y SGOIC para no tocar tareas, perfiles ni IDs guardados.
+// presentan con guion (SGOI-A / SGOI-B / SGOI-C) y lo mismo sus jefaturas
+// (JDGA-A / JDGOI-A de SGOI-A, JDGA-B, JDGA-C); los códigos internos siguen
+// siendo SGOI, SGOIB, SGOIC, JDGA y JDGOI para no tocar tareas, perfiles ni
+// IDs guardados (las tareas de la JDGA de SGOI-A siguen siendo JDGA-###).
 function etiquetaArea(cod) {
   const c = String(cod || '').toUpperCase();
   if (c === 'SGOI')  return 'SGOI-A';
   if (c === 'SGOIB') return 'SGOI-B';
   if (c === 'SGOIC') return 'SGOI-C';
+  if (c === 'JDGA')  return 'JDGA-A';   // jefatura ambiental de SGOI-A
   if (c === 'JDGAB') return 'JDGA-B';   // jefatura ambiental de SGOI-B
   if (c === 'JDGAC') return 'JDGA-C';   // jefatura ambiental de SGOI-C
+  if (c === 'JDGOI') return 'JDGOI-A';  // jefatura de obras inducidas de SGOI-A
   return String(cod || '');
 }
 
@@ -17571,8 +17571,8 @@ function abrirNuevaTarea(tEdit) {
     { v:'DPAC',   sub:'DPAC',   nivel:'subdireccion', jef:'',                  n:'DPAC · Dirección (mi tarea)' },
     { v:'ENLACE', sub:'ENLACE', nivel:'subdireccion', jef:'',                  n:'Staff · Dirección' },
     { v:'SGOI',  sub:'SGOI', nivel:'subdireccion', jef:'',                     n:'SGOI-A · Subdirección de Gestión de Obras Inducidas A' },
-    { v:'JDGA',  sub:'SGOI', nivel:'jefatura',     jef:'GESTION_AMBIENTAL',    n:'JDGA · Jefatura de Departamento de Gestión Ambiental' },
-    { v:'JDGOI', sub:'SGOI', nivel:'jefatura',     jef:'GESTION_OBRAS',        n:'JDGOI · Jefatura de Departamento de Gestión de Obras Inducidas' },
+    { v:'JDGA',  sub:'SGOI', nivel:'jefatura',     jef:'GESTION_AMBIENTAL',    n:'JDGA-A · Jefatura de Departamento de Gestión Ambiental A' },
+    { v:'JDGOI', sub:'SGOI', nivel:'jefatura',     jef:'GESTION_OBRAS',        n:'JDGOI-A · Jefatura de Departamento de Gestión de Obras Inducidas A' },
     { v:'SGOIB', sub:'SGOIB', nivel:'subdireccion', jef:'',                    n:'SGOI-B · Subdirección de Gestión de Obras Inducidas B' },
     { v:'JDGAB', sub:'SGOIB', nivel:'jefatura',     jef:'GESTION_AMBIENTAL_B', n:'JDGA-B · Jefatura de Departamento de Gestión Ambiental B' },
     { v:'SGOIC', sub:'SGOIC', nivel:'subdireccion', jef:'',                    n:'SGOI-C · Subdirección de Gestión de Obras Inducidas C' },
@@ -17616,7 +17616,11 @@ function abrirNuevaTarea(tEdit) {
   // La tarea aparece en el tablero de cada área marcada y el checklist tiene una
   // columna por área. El área propia del usuario va marcada y bloqueada al crear
   // (siempre participa). Al editar se pre-marcan los participantes actuales.
-  const _nombreArea = { DPAC:'DPAC', ENLACE:'STAFF', SGOI:'SGOI-A', SGOIB:'SGOI-B', SGOIC:'SGOI-C', SPAC:'SPAC', SA:'SA', JDGA:'JDGA', JDGOI:'JDGOI', JDGAB:'JDGA-B', JDGAC:'JDGA-C', JDPC:'JDPC', JDIMA:'JDIMA' };
+  // Texto del chip. Sale de etiquetaArea (la misma etiqueta que el tablero:
+  // SGOI-A, JDGA-A, JDGOI-A, JDGA-B…); aquí solo va la excepción de ENLACE,
+  // que se muestra como STAFF. Antes había un mapa completo repetido y por eso
+  // las jefaturas de SGOI-A se quedaban sin su letra.
+  const _nombreArea = { ENLACE:'STAFF' };
   const miAreaUser = areaDelUsuario(usuarioActual);
   const participantesEd = ed ? participantesDe(ed) : [];
   // Códigos asignables según el rol (orden de menú).
@@ -17644,7 +17648,7 @@ function abrirNuevaTarea(tEdit) {
     const marcado = ed ? (participantesEd.indexOf(cod) >= 0) : (fijo || (!ed && cod === miAreaUser));
     return '<label class="area-chip" title="' + escapeHtml(cod) + '">' +
       '<input type="checkbox" value="' + cod + '"' + (marcado ? ' checked' : '') + (fijo ? ' disabled data-fijo="1"' : '') + '>' +
-      escapeHtml(_nombreArea[cod] || cod) + '</label>';
+      escapeHtml(_nombreArea[cod] || etiquetaArea(cod) || cod) + '</label>';
   }).join('');
   const campoSub = `<div class="form-campo full">
          <label>${etiquetaCampoSub} <span class="req">*</span></label>
