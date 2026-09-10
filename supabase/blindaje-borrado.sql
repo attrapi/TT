@@ -42,6 +42,24 @@ create policy tareas_upd on public.tareas for update to authenticated
 -- SIN política de DELETE, a propósito. No la agregues "por si acaso".
 
 
+-- ---------- Restos de intentos viejos (revisar antes de tirar) ----------
+-- Al aplicar esto (2026-09-09) apareció en la base una política que NO está en
+-- ningún archivo del repo: `tareas_ve_todo`, de SELECT, que deja leer solo al
+-- Director o a quien tenga perfiles.ve_todo = true. Es INOFENSIVA y además
+-- inútil: las políticas permisivas se evalúan con OR, y `tareas_sel` ya dice
+-- `using (true)` para todo autenticado, así que no agrega ni quita nada. Lo
+-- malo es que engaña a quien lea la lista de políticas.
+-- La columna `perfiles.ve_todo` que menciona tampoco está en schema.sql; la app
+-- usa `acceso_completo` para ese caso. Las dos se crearon a mano en el SQL
+-- Editor y nunca se anotaron.
+--
+-- Para tirar la política (si el select de abajo confirma que nadie usa ve_todo):
+--   select nombre, rol, ve_todo, acceso_completo from public.perfiles where ve_todo is true;
+--   drop policy if exists tareas_ve_todo on public.tareas;
+--
+-- Si algún día SÍ se quiere cerrar la lectura por rol, el camino es al revés:
+-- tirar `tareas_sel` y quedarse con una política como `tareas_ve_todo`.
+
 -- ---------- Verificación ----------
 -- Deben salir 3 renglones (SELECT, INSERT, UPDATE) y NINGUNO que diga DELETE.
 select policyname, cmd
