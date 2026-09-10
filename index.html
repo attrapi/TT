@@ -2054,6 +2054,8 @@
     font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.08em;
+    /* Nunca se parte en el guion: "SGOI-A" y "JDGOI-B" van de una pieza. */
+    white-space: nowrap;
     padding: 3px 7px;
     border-radius: 5px;
     line-height: 1;
@@ -6103,17 +6105,17 @@
         <div class="kpi kpi-sub" data-sub="SGOI" onclick="filtrarPorSubdireccion('SGOI')">
           <div class="kpi-valor" id="kpiPendSGOI">0</div>
           <div class="kpi-clave">SGOI-A</div>
-          <div class="kpi-label">Obras Inducidas A</div>
+          <div class="kpi-label">Obras Inducidas&nbsp;A</div>
         </div>
         <div class="kpi kpi-sub" data-sub="SGOIB" onclick="filtrarPorSubdireccion('SGOIB')">
           <div class="kpi-valor" id="kpiPendSGOIB">0</div>
           <div class="kpi-clave">SGOI-B</div>
-          <div class="kpi-label">Obras Inducidas B</div>
+          <div class="kpi-label">Obras Inducidas&nbsp;B</div>
         </div>
         <div class="kpi kpi-sub" data-sub="SGOIC" onclick="filtrarPorSubdireccion('SGOIC')">
           <div class="kpi-valor" id="kpiPendSGOIC">0</div>
           <div class="kpi-clave">SGOI-C</div>
-          <div class="kpi-label">Obras Inducidas C</div>
+          <div class="kpi-label">Obras Inducidas&nbsp;C</div>
         </div>
         <div class="kpi kpi-sub" data-sub="SPAC" onclick="filtrarPorSubdireccion('SPAC')">
           <div class="kpi-valor" id="kpiPendSPAC">0</div>
