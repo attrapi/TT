@@ -31,14 +31,19 @@ const RESPALDO_PAGINA = 1000;         // filas por petición (tope de PostgREST)
 
 // Tablas a respaldar y su columna de orden (para paginar sin brincos).
 const RESPALDO_TABLAS = {
-  tareas:         'codigo.asc',
-  volantes:       'numero.asc',
-  bitacora:       'id.asc',
-  perfiles:       'id.asc',
-  areas_catalogo: 'id.asc',
-  juego_progreso: 'usuario_id.asc,ley.asc',
-  auditoria:      'id.asc'
+  tareas:           'codigo.asc',
+  volantes:         'numero.asc',
+  bitacora:         'id.asc',
+  perfiles:         'id.asc',
+  areas_catalogo:   'id.asc',
+  temas_sgoi:       'nombre.asc',
+  plantilla_correo: 'id.asc',
+  juego_progreso:   'usuario_id.asc,ley.asc',
+  auditoria:        'id.asc'
 };
+// Al agregar una tabla NUEVA a la base, agrégala también aquí o se queda fuera
+// del respaldo sin que nada avise. Lista actual de tablas: la de arriba es
+// TODAS las que crea supabase/*.sql.
 
 // ---- Función principal (la que corre el disparador diario) ----
 function respaldoDiario() {
