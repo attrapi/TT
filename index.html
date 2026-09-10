@@ -5793,7 +5793,12 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
-          <label class="login-recordar"><input type="checkbox" id="loginRecordar"> Recordar mi contraseña en este equipo</label>
+          <!-- Aquí estaba "Recordar mi contraseña en este equipo". Se quitó: la
+               guardaba en localStorage con btoa(), que es base64 y NO es
+               cifrado — cualquiera con el equipo la leía en texto claro desde
+               las herramientas del navegador, y con eso entra desde donde sea.
+               Para no volver a escribirla, que la guarde el navegador (su
+               gestor de contraseñas), que sí la cifra con la sesión del SO. -->
           <div class="acceso-login-error" id="loginError"></div>
           <button type="submit" class="acceso-login-btn" id="loginBtn">Entrar</button>
         </form>
@@ -7251,25 +7256,31 @@ function seleccionarUsuarioLogin(i) {
   document.getElementById('loginError').textContent = '';
   const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   const p = document.getElementById('loginContrasena'); p.type = 'password';
-  // Si en este equipo se recordó la contraseña de este perfil, pre-llénala.
-  const guardada = leerPasswordRecordada(u.usuario);
-  p.value = guardada || '';
-  const chk = document.getElementById('loginRecordar'); if (chk) chk.checked = !!guardada;
+  // El campo arranca vacío: la app ya no guarda contraseñas. Si el navegador
+  // tiene la suya en el gestor, él la autollena (y esa sí va cifrada).
+  p.value = '';
   p.focus();
 }
 
-// Lee/guarda/olvida la contraseña recordada por equipo (localStorage). Va
-// ofuscada en base64 — NO es cifrado; es una comodidad por dispositivo.
+// La app YA NO guarda contraseñas. Antes había una casilla que la metía en
+// localStorage con btoa() — base64, que se revierte con un clic en las
+// herramientas del navegador. Quien tuviera el equipo se llevaba la contraseña
+// en texto claro (peor que una sesión: no caduca y sirve desde cualquier lado).
+// Estas tres funciones se conservan para BORRAR lo que quedó guardado en los
+// equipos donde ya se había usado la casilla.
 function claveRecordada(usuario) { return 'ttpwd:' + String(usuario || '').toLowerCase(); }
-function leerPasswordRecordada(usuario) {
-  try { const v = localStorage.getItem(claveRecordada(usuario)); return v ? atob(v) : ''; } catch (e) { return ''; }
+function recordarPassword(usuario) {
+  try { localStorage.removeItem(claveRecordada(usuario)); } catch (e) {}
 }
-function recordarPassword(usuario, contrasena, recordar) {
+// Limpieza al arrancar: tira TODA contraseña que este navegador tuviera
+// guardada de la época de la casilla, sea de quien sea.
+(function olvidarPasswordsViejas() {
   try {
-    if (recordar) localStorage.setItem(claveRecordada(usuario), btoa(contrasena));
-    else localStorage.removeItem(claveRecordada(usuario));
+    Object.keys(localStorage)
+      .filter(function (k) { return k.indexOf('ttpwd:') === 0; })
+      .forEach(function (k) { localStorage.removeItem(k); });
   } catch (e) {}
-}
+})();
 
 // Regresa a las tarjetas.
 function volverLoginCards() {
@@ -7732,7 +7743,6 @@ function iniciarSesionApp(ev) {
   const manual = document.getElementById('loginUsuarioManual');
   const usuario = (usuarioLoginSel || (manual ? manual.value : '') || '').trim();
   const contrasena = document.getElementById('loginContrasena').value || '';
-  const recordar = !!(document.getElementById('loginRecordar') && document.getElementById('loginRecordar').checked);
   if (!usuario || !contrasena) { err.textContent = 'Escribe la contraseña.'; return; }
 
   err.textContent = '';
@@ -7746,8 +7756,8 @@ function iniciarSesionApp(ev) {
         btn.disabled = false; btn.textContent = 'Entrar';
         return;
       }
-      // Guarda u olvida la contraseña recordada en ESTE equipo, según la casilla.
-      recordarPassword(usuario, contrasena, recordar);
+      // Por si este equipo traía una contraseña guardada de la versión vieja.
+      recordarPassword(usuario);
       btn.disabled = false; btn.textContent = 'Entrar';   // deja el botón listo para la próxima vez
       aplicarUsuarioServidor(res);
     })
@@ -9937,7 +9947,20 @@ function restaurarTarea(idTarea) {
 }
 
 // Eliminar DEFINITIVAMENTE: borra la fila del Excel (no se puede deshacer).
+// El borrado DEFINITIVO ya no se hace desde la app. La base tampoco lo permite:
+// `tareas` no tiene política de DELETE, así que la API lo rechaza aunque alguien
+// llame a la función desde la consola del navegador con una sesión válida.
+// Motivo: los permisos y los "¿estás seguro?" viven en el front, o sea en la
+// máquina de quien ataca; una sola línea en la consola vaciaba la tabla. El
+// Historial ya es el estado final (la tarea desaparece de los tableros pero se
+// conserva). Purgar de verdad es cosa del admin, desde el SQL Editor.
+const PERMITIR_BORRADO_DEFINITIVO = false;
+
 function eliminarDefinitivo(idTarea) {
+  if (!PERMITIR_BORRADO_DEFINITIVO) {
+    toast('Las tareas ya no se borran de forma permanente: se quedan en el Historial.', 'error');
+    return;
+  }
   if (SOLO_LECTURA) return;   // vista de Dirección = solo lectura
   const t = TAREAS.find(x => x.id === idTarea);
   if (!t) return;
@@ -10262,7 +10285,9 @@ function histCrearCard(t) {
   if (puedeGestionarHistorial(t)) {
     html += '<div class="tarjeta-acciones">' +
       '<button class="btn-pildora btn-pildora-reabrir" onclick="event.stopPropagation(); restaurarTarea(\'' + idVis + '\')" title="Restaurar">↺ Restaurar</button>' +
-      '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')" title="Eliminar definitivo">🗑 Eliminar</button>' +
+      (PERMITIR_BORRADO_DEFINITIVO
+        ? '<button class="btn-pildora btn-pildora-eliminar" onclick="event.stopPropagation(); eliminarDefinitivo(\'' + idVis + '\')" title="Eliminar definitivo">🗑 Eliminar</button>'
+        : '') +
     '</div>';
   }
   card.innerHTML = html;
@@ -10497,7 +10522,9 @@ function abrirDetalle(t) {
   if (t.eliminada) {
     if (puedeGestionarHistorial(t)) {
       botones = `<button class="btn-modal" style="background:var(--ambar); color:#fff; border-color:var(--ambar);" onclick="restaurarTarea('${t.id}')">↺ Restaurar</button>`
-              + `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`;
+              + (PERMITIR_BORRADO_DEFINITIVO
+                  ? `<button class="btn-modal" style="background:var(--rojo); color:#fff; border-color:var(--rojo);" onclick="eliminarDefinitivo('${t.id}')">🗑 Eliminar definitivo</button>`
+                  : '');
     }
   } else if (todoListo) {
     if (puedeCompletar(t)) {
@@ -18689,7 +18716,7 @@ function guardarCambioContrasena() {
     .withSuccessHandler(function (res) {
       if (res && res.ok) {
         // Olvida la contraseña vieja recordada en ESTE equipo (login y, por si acaso, correo).
-        try { recordarPassword(usuarioActual.email, '', false); } catch (e) {}
+        try { recordarPassword(usuarioActual.email); } catch (e) {}
         toast('Contraseña actualizada', 'ok');
         cerrarModal();
       } else {
