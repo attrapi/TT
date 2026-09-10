@@ -84,6 +84,19 @@ create policy perfiles_sel on public.perfiles for select to authenticated using 
 create policy perfiles_admin on public.perfiles for all to authenticated
   using (public.mi_rol() = 'Director') with check (public.mi_rol() = 'Director');
 
+-- ---------- VESTIGIO: perfiles.ve_todo y la política tareas_ve_todo ----------
+-- La base trae (creados a mano en el SQL Editor, nunca anotados aquí) una
+-- columna `perfiles.ve_todo` y una política `tareas_ve_todo` de SELECT que deja
+-- leer al Director o a quien tenga ve_todo = true. Se hicieron para Mario
+-- (subdirector de SPAC) cuando la lectura estaba CERRADA por área.
+-- Hoy no hacen nada: `tareas_sel` abre la lectura a todo autenticado y las
+-- políticas permisivas se evalúan con OR. Además la app nunca lee esa columna;
+-- que Mario vea todo se resuelve en el front (esSubdirectorSPAC, index.html).
+-- La política se puede tirar sin efecto alguno:
+--   drop policy if exists tareas_ve_todo on public.tareas;
+-- La columna se conserva: es el punto de partida si algún día se cierra la
+-- lectura por área (ver supabase/blindaje-borrado.sql).
+
 -- ---------- CATÁLOGO DE ÁREAS: lectura/alta para autenticados (sin cambio) ----------
 -- (areas_catalogo se queda como estaba: todo a authenticated)
 
