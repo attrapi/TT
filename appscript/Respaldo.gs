@@ -78,6 +78,23 @@ function probarRespaldo() {
   return resumen;
 }
 
+// ---- ¿Dónde quedó la carpeta? ----
+// El respaldo se guarda en "Mi unidad" de la cuenta que EJECUTA el script, que
+// no siempre es la que uno trae abierta en Drive. Esto imprime el link directo
+// y las dos cuentas, para salir de dudas.
+function dondeQuedoElRespaldo() {
+  const carpeta = respaldoCarpetaRaiz_();
+  Logger.log('Carpeta:  ' + carpeta.getName());
+  Logger.log('Link:     ' + carpeta.getUrl());
+  try { Logger.log('Dueño:    ' + carpeta.getOwner().getEmail()); } catch (e) {}
+  try { Logger.log('Ejecuta:  ' + Session.getEffectiveUser().getEmail()); } catch (e) {}
+  const sub = carpeta.getFolders();
+  const dias = [];
+  while (sub.hasNext()) dias.push(sub.next().getName());
+  Logger.log('Días guardados: ' + (dias.sort().join(', ') || '(ninguno)'));
+  return carpeta.getUrl();
+}
+
 // ---- Programa el disparador diario (correr UNA vez) ----
 function crearDisparadorDiario() {
   // Quita disparadores previos de respaldoDiario para no duplicar.
