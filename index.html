@@ -40,6 +40,11 @@
         var m = document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content', '#4A1424');
       }
+      // El resumen (KPIs) arranca RECOGIDO en dark, salvo que la persona ya lo
+      // haya abierto. En claro siempre se ve: ahi ni el boton aparece.
+      var k = localStorage.getItem('tt_kpis_oculto');
+      document.documentElement.setAttribute('data-kpis',
+        (t === 'oscuro' && k !== '0') ? 'oculto' : 'visible');
     } catch (e) {}
   })();
 </script>
@@ -1804,6 +1809,37 @@
     grid-template-columns: 1.6fr 1fr;   /* Resumen más ancho (3 círculos + donut); Pendientes más angosto */
     gap: 18px;
   }
+
+  /* Barra de la flecha del resumen. Nace escondida: el tema oscuro la prende
+     (ver el bloque temaOscuro). En claro no se ve y nada cambia. */
+  .kpis-barra {
+    display: none;
+    max-width: 1400px;
+    margin: 14px auto -6px;
+    padding: 0 32px;
+    justify-content: flex-end;
+  }
+  .kpis-colapsar {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 9px;
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tinta-suave);
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .kpis-colapsar:hover { color: var(--tinta); border-color: var(--linea-fuerte); }
+  .kpis-chevron { width: 15px; height: 15px; transition: transform 0.25s ease; }
+  /* Recogido: la flecha apunta hacia abajo (hay algo que abrir). */
+  html[data-kpis="oculto"] .kpis-chevron { transform: rotate(180deg); }
 
   .kpi-card {
     min-width: 0;            /* clave: deja que el card se ajuste al grid sin desbordar la página */
@@ -5801,7 +5837,7 @@
 /* ===== INICIO MODO OSCURO (armado por build_tema.py) ===== */
   /* Modo oscuro. El modo claro NO se toca: todo lo de aquí vive bajo
      html[data-tema="oscuro"], que solo existe cuando se prende.
-     El bloque 2 lo genera herramientas/modo-oscuro/gen_oscuro.py leyendo el CSS
+     El bloque 2 lo genera scratchpad/gen_oscuro.py leyendo el CSS real
      y volteando cada superficie clara; por eso son tantas reglas y por
      eso no hay que mantenerlas a mano. */
 
@@ -5873,7 +5909,7 @@
   html[data-tema="oscuro"] body { background: var(--crema); color: var(--tinta); }
 
   /* ---------------------------------------------------------------
-     2) GENERADO: 438 reglas volteadas de las 1578 del CSS.
+     2) GENERADO: 438 reglas volteadas de las 1585 del CSS.
      --------------------------------------------------------------- */
   html[data-tema="oscuro"] .acceso-card { background: var(--papel); }
   html[data-tema="oscuro"] .acceso-brand { background: linear-gradient(180deg, var(--papel) 0%, #292217 100%); }
@@ -6440,6 +6476,16 @@
   /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
   html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
 
+  /* ---------------------------------------------------------------
+     EL RESUMEN PLEGABLE. Solo vive en dark: ahi arranca recogido para que las
+     tarjetas suban y se gane pantalla. En claro la barra ni se pinta, asi que
+     el modo claro queda EXACTAMENTE igual que antes.
+     --------------------------------------------------------------- */
+  html[data-tema="oscuro"] .kpis-barra { display: flex; }
+  html[data-tema="oscuro"][data-kpis="oculto"] .kpis { display: none; }
+  /* Recogido, la barra ya no tiene que morder al panel de abajo. */
+  html[data-tema="oscuro"][data-kpis="oculto"] .kpis-barra { margin-bottom: 0; }
+
   /* Toast (avisos flotantes) */
   html[data-tema="oscuro"] .toast { background: #2A2523; color: var(--tinta); border-color: var(--linea); }
 
@@ -6659,7 +6705,7 @@
             <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.6v2.6M12 19.8v2.6M4.2 4.2l1.9 1.9M17.9 17.9l1.9 1.9M1.6 12h2.6M19.8 12h2.6M4.2 19.8l1.9-1.9M17.9 6.1l1.9-1.9"/></svg>
           </span>
-          <span class="nav-tema-txt">Oscuro</span>
+          <span class="nav-tema-txt">Dark</span>
         </button>
         <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Recargar la app: datos frescos y la última versión (como F5), sin cerrar tu sesión">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
@@ -6801,6 +6847,15 @@
     </button>
 
     <main class="app-main" id="appMain" data-vista="tablero">
+
+  <!-- Flecha para recoger/abrir el resumen. Solo existe en dark: ahi arranca
+       recogido para que las tareas suban y se gane pantalla. -->
+  <div class="kpis-barra" id="kpisBarra">
+    <button class="kpis-colapsar" id="kpisColapsar" onclick="toggleKpis()" aria-expanded="true" aria-controls="kpisPanel" title="Ocultar el resumen">
+      <svg class="kpis-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 15 12 9 18 15"/></svg>
+      <span class="kpis-colapsar-txt">Ocultar resumen</span>
+    </button>
+  </div>
 
   <div class="kpis" id="kpisPanel">
     <div class="kpi-card">
@@ -7671,6 +7726,34 @@ function ingresar(rol) {
   aplicarSesion();
 }
 
+// ============== RESUMEN (KPIs) PLEGABLE — SOLO EN DARK ==============
+// En dark el tablero se lee mejor con el resumen recogido: las tarjetas suben y
+// se gana pantalla, que es justo lo que se pidió. Por eso ahí arranca
+// escondido, con una flecha para abrirlo (como la del menú lateral). En claro
+// NO cambia nada: el resumen siempre se ve y el botón ni siquiera aparece.
+const KPIS_LS = 'tt_kpis_oculto';
+
+function kpisOcultos() {
+  return document.documentElement.getAttribute('data-kpis') === 'oculto';
+}
+
+function aplicarKpis(oculto, guardar) {
+  document.documentElement.setAttribute('data-kpis', oculto ? 'oculto' : 'visible');
+  if (guardar) {
+    try { localStorage.setItem(KPIS_LS, oculto ? '1' : '0'); } catch (e) {}
+  }
+  const btn = document.getElementById('kpisColapsar');
+  if (!btn) return;
+  const txt = oculto ? 'Mostrar el resumen' : 'Ocultar el resumen';
+  btn.title = txt;
+  btn.setAttribute('aria-label', txt);
+  btn.setAttribute('aria-expanded', oculto ? 'false' : 'true');
+  const lbl = btn.querySelector('.kpis-colapsar-txt');
+  if (lbl) lbl.textContent = oculto ? 'Resumen' : 'Ocultar resumen';
+}
+
+function toggleKpis() { aplicarKpis(!kpisOcultos(), true); }
+
 // ============== MODO CLARO / OSCURO ==============
 // El tema vive en el <html> (data-tema="oscuro") y se recuerda POR EQUIPO en
 // localStorage: es una preferencia de quien mira la pantalla, no del usuario,
@@ -7697,10 +7780,16 @@ function aplicarTema(t, guardar) {
   if (meta) meta.setAttribute('content', oscuro ? '#4A1424' : '#691C32');
   const btn = document.getElementById('btnTema');
   if (btn) {
-    btn.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    // El botón dice a DÓNDE va, en inglés y a juego con su icono: luna = Dark,
+    // sol = Sun.
+    btn.title = oscuro ? 'Cambiar a modo claro (Sun)' : 'Cambiar a modo oscuro (Dark)';
     const txt = btn.querySelector('.nav-tema-txt');
-    if (txt) txt.textContent = oscuro ? 'Claro' : 'Oscuro';
+    if (txt) txt.textContent = oscuro ? 'Sun' : 'Dark';
   }
+  // El resumen se recoge solo en dark, y respeta lo que la persona haya elegido.
+  let guardado = null;
+  try { guardado = localStorage.getItem(KPIS_LS); } catch (e) {}
+  aplicarKpis(oscuro ? (guardado !== '0') : false, false);
 }
 
 // Cambia el tema con una BURBUJA que crece desde el botón: el círculo ya trae
