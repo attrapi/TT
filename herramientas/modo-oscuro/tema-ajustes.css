@@ -242,6 +242,25 @@
     100% { opacity: 0;    transform: scale(9); }
   }
 
+  /* AVISO de función nueva: mientras la persona nunca haya tocado el botón, la
+     luna late (crece y suelta un aro suave) y descansa un rato entre latidos.
+     El JS quita la clase al primer clic y ya no vuelve. Al pasar el mouse se
+     detiene para que se vea limpio el hover. */
+  .nav-tema.nav-tema-nuevo { animation: tema-aviso-aro 2.6s ease-out infinite; }
+  .nav-tema.nav-tema-nuevo .ico-luna { animation: tema-aviso-latido 2.6s ease-in-out infinite; }
+  .nav-tema.nav-tema-nuevo:hover,
+  .nav-tema.nav-tema-nuevo:hover .ico-luna { animation: none; }
+  @keyframes tema-aviso-latido {
+    0%, 36%, 100% { transform: scale(1); }
+    9%            { transform: scale(1.28); }
+    18%           { transform: scale(0.94); }
+    27%           { transform: scale(1.16); }
+  }
+  @keyframes tema-aviso-aro {
+    0%        { box-shadow: 0 0 0 0 rgba(255,255,255,0.55); }
+    45%, 100% { box-shadow: 0 0 0 9px rgba(255,255,255,0); }
+  }
+
   /* La BURBUJA: el círculo que crece desde el botón y descubre el tema nuevo */
   .tema-burbuja {
     position: fixed;
@@ -268,4 +287,5 @@
     .tema-burbuja { transition: none; display: none; }
     .nav-tema.pulsa .nav-tema-onda { animation: none; }
     .nav-tema svg { transition: none; }
+    .nav-tema.nav-tema-nuevo, .nav-tema.nav-tema-nuevo .ico-luna { animation: none; }
   }
