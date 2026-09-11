@@ -16783,6 +16783,12 @@ function tituloCapturista() {
 function tituloNavCompleto() {
   if (!usuarioActual) return 'Tablero de Tareas';
   if (usuarioActual.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
+  // Andrea (enlace de SGOI con acceso completo) NO gestiona una sola área:
+  // ve las tres letras de Obras Inducidas, SPAC, SA y Staff. Poner el nombre
+  // de UNA subdirección en su header mentía sobre lo que tiene enfrente, así
+  // que lleva el de la Dirección, igual que el Director. Solo el título: su
+  // chip de rol sigue diciendo "Enlace".
+  if (esEnlaceVeSubs()) return 'Dirección de Procesos Administrativos de Construcción';
   const nombresSubs = {
     'SA': 'Subdirección de Archivo',
     'SGOI': 'Subdirección de Gestión de Obras Inducidas A',
