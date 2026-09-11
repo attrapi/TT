@@ -1579,11 +1579,26 @@
   #brandDpac.dpac-pill:hover { background: rgba(255,255,255,0.34); }
 
   .nav-marca-sub {
-    font-size: 10.5px;
-    letter-spacing: 0.12em;
+    /* Chico a propósito: este renglón es el más ancho del header y, cuando
+       medía 10.5px con 0.12em, el bloque de marca se llevaba 405 px y el
+       título del centro se quedaba sin espacio (se veía cortado). */
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     opacity: 0.78;
     margin-top: 3px;
+    white-space: nowrap;
+  }
+
+  /* Tercer renglón de la marca. Va más chico que el de arriba a propósito:
+     así el bloque cabe en los 72 px de alto del nav y no mueve nada. */
+  .nav-marca-tt {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-top: 2px;
     white-space: nowrap;
   }
 
@@ -1612,6 +1627,13 @@
     justify-content: center;
     min-width: 0;
     overflow: hidden;
+  }
+  /* Si el título no cabe, se corta con puntos suspensivos (antes se partía a
+     media letra y parecía que algo lo tapaba). */
+  .nav-titulo #navTitulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   /* Si el título no cabe (p. ej. "Jefatura de Departamento de Procesos de
      Construcción"), se recorta con "…" en vez de encimarse. El badge TT
@@ -6668,6 +6690,7 @@
       <div class="nav-marca">
         <div class="nav-marca-titulo">ATTRAPI · <span id="brandDpac">DPAC</span></div>
         <div class="nav-marca-sub">Dirección de Procesos Administrativos de Construcción</div>
+        <div class="nav-marca-tt">TT · Tablero de Tareas</div>
       </div>
       <div class="nav-titulo">
         <span class="nav-tt-badge" aria-hidden="true">TT</span>
