@@ -6587,14 +6587,14 @@
     background: transparent;
     border: 1px solid rgba(255,255,255,0.3);
     color: white;
-    padding: 6px 12px;
+    padding: 6px 8px;
     cursor: pointer;
     font-family: var(--sans);
     font-size: 12px;
     border-radius: 2px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     transition: all 0.15s;
     overflow: visible;
   }
@@ -6636,9 +6636,9 @@
     box-shadow: 0 0 16px rgba(250,196,60,0.30);
   }
   html[data-tema="oscuro"] .nav-tema:hover .ico-wrap { transform: scale(1.14) rotate(35deg); }
-  .nav-tema svg { width: 15px; height: 15px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
+  .nav-tema svg { width: 17px; height: 17px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
   /* Sol y luna ocupan el mismo lugar: se cruzan girando */
-  .nav-tema .ico-wrap { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-tema .ico-wrap { position: relative; width: 17px; height: 17px; flex-shrink: 0; }
   .nav-tema .ico-wrap svg { position: absolute; inset: 0; }
   .nav-tema .ico-luna { opacity: 1; transform: rotate(0deg) scale(1); }
   .nav-tema .ico-sol  { opacity: 0; transform: rotate(-90deg) scale(0.4); }
@@ -6830,10 +6830,11 @@
         <button class="nav-tema" id="btnTema" onclick="alternarTema(event)" title="Cambiar a modo oscuro" aria-label="Cambiar entre modo claro y oscuro">
           <span class="nav-tema-onda" aria-hidden="true"></span>
           <span class="ico-wrap" aria-hidden="true">
-            <svg class="ico-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.6v2.6M12 19.8v2.6M4.2 4.2l1.9 1.9M17.9 17.9l1.9 1.9M1.6 12h2.6M19.8 12h2.6M4.2 19.8l1.9-1.9M17.9 6.1l1.9-1.9"/></svg>
+            <!-- Luna: media luna rellena con un destellito en el hueco -->
+            <svg class="ico-luna" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/><path d="M17 3.6l.55 1.35 1.35.55-1.35.55L17 7.4l-.55-1.35-1.35-.55 1.35-.55z"/><circle cx="20.2" cy="8.6" r=".9"/></svg>
+            <!-- Sol: núcleo relleno y rayos cortos redondeados -->
+            <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4" fill="currentColor" stroke="none"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.93 4.93l1.7 1.7M17.37 17.37l1.7 1.7M4.93 19.07l1.7-1.7M17.37 6.63l1.7-1.7"/></svg>
           </span>
-          <span class="nav-tema-txt">Dark</span>
         </button>
         <button class="nav-actualizar" id="navActualizar" onclick="actualizarDatos()" title="Recargar la app: datos frescos y la última versión (como F5), sin cerrar tu sesión">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
@@ -7908,11 +7909,8 @@ function aplicarTema(t, guardar) {
   if (meta) meta.setAttribute('content', oscuro ? '#171414' : '#691C32');
   const btn = document.getElementById('btnTema');
   if (btn) {
-    // El botón dice a DÓNDE va, en inglés y a juego con su icono: luna = Dark,
-    // sol = Sun.
-    btn.title = oscuro ? 'Cambiar a modo claro (Sun)' : 'Cambiar a modo oscuro (Dark)';
-    const txt = btn.querySelector('.nav-tema-txt');
-    if (txt) txt.textContent = oscuro ? 'Sun' : 'Dark';
+    // Solo icono: luna = ir a oscuro, sol = ir a claro. El title lo explica.
+    btn.title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
   }
   // El resumen arranca recogido en los dos modos, respetando lo que la persona
   // haya elegido. (Cambiar de tema no lo abre ni lo cierra.)

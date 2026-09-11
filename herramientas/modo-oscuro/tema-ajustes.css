@@ -167,14 +167,14 @@
     background: transparent;
     border: 1px solid rgba(255,255,255,0.3);
     color: white;
-    padding: 6px 12px;
+    padding: 6px 8px;
     cursor: pointer;
     font-family: var(--sans);
     font-size: 12px;
     border-radius: 2px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     transition: all 0.15s;
     overflow: visible;
   }
@@ -216,9 +216,9 @@
     box-shadow: 0 0 16px rgba(250,196,60,0.30);
   }
   html[data-tema="oscuro"] .nav-tema:hover .ico-wrap { transform: scale(1.14) rotate(35deg); }
-  .nav-tema svg { width: 15px; height: 15px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
+  .nav-tema svg { width: 17px; height: 17px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
   /* Sol y luna ocupan el mismo lugar: se cruzan girando */
-  .nav-tema .ico-wrap { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-tema .ico-wrap { position: relative; width: 17px; height: 17px; flex-shrink: 0; }
   .nav-tema .ico-wrap svg { position: absolute; inset: 0; }
   .nav-tema .ico-luna { opacity: 1; transform: rotate(0deg) scale(1); }
   .nav-tema .ico-sol  { opacity: 0; transform: rotate(-90deg) scale(0.4); }
