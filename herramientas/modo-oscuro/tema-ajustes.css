@@ -37,10 +37,19 @@
     filter: invert(0.85);
   }
 
-  /* El header se mantiene guinda (es la marca), solo se asienta un poco */
+  /* El header, en negro como el resto (prueba del vino -> negro en dark). */
   html[data-tema="oscuro"] .nav {
-    background: linear-gradient(180deg, #5E1A2B 0%, #4A1424 100%);
-    border-bottom-color: #35101C;
+    background: linear-gradient(180deg, #232020 0%, #171414 100%);
+    border-bottom-color: #0E0C0C;
+  }
+
+  /* El juego trae su propio vino escrito a mano (no sale de la variable):
+     el fondo de la pantalla completa y el banner de arriba. */
+  html[data-tema="oscuro"] .juego-overlay {
+    background: linear-gradient(160deg, #141211 0%, #1C1918 55%, #262220 100%);
+  }
+  html[data-tema="oscuro"] .juego-hero {
+    background: radial-gradient(140% 130% at 14% -15%, #35302C 0%, #221F1D 52%, #151312 100%);
   }
 
   /* Tarjetas por urgencia: el generado ya las oscurece, pero estas cuatro son

@@ -38,7 +38,7 @@
       if (t === 'oscuro') {
         document.documentElement.setAttribute('data-tema', 'oscuro');
         var m = document.querySelector('meta[name="theme-color"]');
-        if (m) m.setAttribute('content', '#4A1424');
+        if (m) m.setAttribute('content', '#171414');
       }
       // El resumen (KPIs) arranca RECOGIDO en los dos modos, salvo que la
       // persona ya lo haya abierto. Se decide aqui, antes de pintar, para que
@@ -54,7 +54,7 @@
 <style>
   :root {
     --guinda: #691C32;
-    --guinda-oscuro: #4A1424;
+    --guinda-oscuro: #171414;
     --guinda-claro: #8B2942;
     --guinda-tenue: #F5EBED;
     --crema: #FAF7F2;
@@ -5892,13 +5892,19 @@
     --linea:        #332E2C;
     --linea-fuerte: #4C4441;
 
-    /* Guinda institucional: se mantiene oscura (es fondo con texto blanco) */
-    --guinda:        #6E2033;
-    --guinda-oscuro: #4A1424;
-    --guinda-claro:  #8B2942;
-    --guinda-tenue:  #2C1A20;
-    --acento:        #E792A6;          /* la guinda cuando es TEXTO */
-    --acento-claro:  #F3B1C1;
+    /* PRUEBA (a pedido): en dark el vino institucional pasa a NEGRO, para que
+       no lastime la vista. En claro la guinda sigue intacta.
+       Ojo con el nivel: esta familia es el fondo de ~100 botones y barras con
+       texto BLANCO encima. Si se fuera a negro puro se perderian contra el
+       papel (#1B1817) y la pagina (#131110); por eso es un grafito calido, lo
+       bastante claro para leerse como superficie y lo bastante oscuro para no
+       brillar. El blanco encima da 12:1, de sobra. */
+    --guinda:        #332D2A;
+    --guinda-oscuro: #1E1A19;
+    --guinda-claro:  #423B37;
+    --guinda-tenue:  #242121;
+    --acento:        #D6CDC7;          /* la guinda cuando es TEXTO */
+    --acento-claro:  #EDE5DF;
 
     /* Estados */
     --azul:   #1D5FB0;  --azul-tenue:   #16243A;  --azul-txt:   #82B4FF;
@@ -6451,10 +6457,19 @@
     filter: invert(0.85);
   }
 
-  /* El header se mantiene guinda (es la marca), solo se asienta un poco */
+  /* El header, en negro como el resto (prueba del vino -> negro en dark). */
   html[data-tema="oscuro"] .nav {
-    background: linear-gradient(180deg, #5E1A2B 0%, #4A1424 100%);
-    border-bottom-color: #35101C;
+    background: linear-gradient(180deg, #232020 0%, #171414 100%);
+    border-bottom-color: #0E0C0C;
+  }
+
+  /* El juego trae su propio vino escrito a mano (no sale de la variable):
+     el fondo de la pantalla completa y el banner de arriba. */
+  html[data-tema="oscuro"] .juego-overlay {
+    background: linear-gradient(160deg, #141211 0%, #1C1918 55%, #262220 100%);
+  }
+  html[data-tema="oscuro"] .juego-hero {
+    background: radial-gradient(140% 130% at 14% -15%, #35302C 0%, #221F1D 52%, #151312 100%);
   }
 
   /* Tarjetas por urgencia: el generado ya las oscurece, pero estas cuatro son
@@ -7795,7 +7810,7 @@ function aplicarTema(t, guardar) {
   }
   // Barra del navegador en el celular (PWA)
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', oscuro ? '#4A1424' : '#691C32');
+  if (meta) meta.setAttribute('content', oscuro ? '#171414' : '#691C32');
   const btn = document.getElementById('btnTema');
   if (btn) {
     // El botón dice a DÓNDE va, en inglés y a juego con su icono: luna = Dark,
