@@ -125,6 +125,19 @@
   html[data-tema="oscuro"] .sidebar-sub[data-sub="SPAC"]::before   { background: var(--sub-spac-txt); }
   html[data-tema="oscuro"] .sidebar-sub[data-sub="SA"]::before     { background: var(--sub-sa-txt); }
   html[data-tema="oscuro"] .sidebar-sub[data-sub="ENLACE"]::before { background: var(--sub-enlace-txt); }
+  /* "Enlaces" no es un tab de subdirección (es un item de VISTA), así que no
+     entraba en la regla de arriba y se quedaba sin franja. Le toca la suya, en
+     el mismo turquesa que ya tenía de fondo. Sale igual en la vista de Andrea y
+     en la del Director: el item es el mismo, solo cambia quién lo ve. */
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces { position: relative; }
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 7px; bottom: 7px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #5EEAD4;
+  }
   html[data-tema="oscuro"] .sidebar-sub[data-sub]:hover,
   html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces:hover {
     background: #262221;
