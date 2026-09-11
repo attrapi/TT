@@ -8070,10 +8070,21 @@ function aplicarSesion() {
     navTit.textContent = tituloNav;            // nombre COMPLETO en el header (ej. "Subdirección de Procesos Administrativos de Construcción")
     navTit.title = tituloNav;                   // mismo nombre completo en el tooltip
 
-    tabActiva = usuarioActual.subdireccion;
+    // Con qué tablero abre. Andrea (enlace de SGOI con acceso completo) ve seis
+    // tableros, así que el suyo natural es la Vista Consolidada: abrirle SGOI-A
+    // —que es nada más donde cuelga su perfil— la dejaba viendo una parte y con
+    // el menú marcando otra cosa. Los demás abren en su propia subdirección.
+    tabActiva = esEnlaceVeSubs() ? 'TODAS' : usuarioActual.subdireccion;
     // Las jefaturas NO se listan en el menú: aparecen como COLUMNAS del tablero al
     // entrar a la subdirección (columnasPorRol), igual que SPAC/Mario.
   }
+
+  // El menú viene con "Vista Consolidada" marcada desde el HTML; si el tablero
+  // abre en otro tab, hay que mover la marca o el panel dice una cosa y el
+  // tablero muestra otra.
+  document.querySelectorAll('.sidebar-sub').forEach(function (b) {
+    b.classList.toggle('activa', b.dataset.sub === tabActiva);
+  });
 
   // Staff (ENLACE) tiene un panel mínimo SIN el grupo "Gestión", pero AHORA
   // SÍ tiene el botón "Historial" (igual que subdirectores y jefes). Los demás
@@ -10101,18 +10112,35 @@ function renderizarTablero() {
     // dueño de la columna (subdirectores/jefes/enlace), no en la vista
     // consolidada del Director ni en solo-lectura. Dispara una sola vez, en la
     // transición "faltaban" → "todas listas".
+    //
+    // OJO con QUÉ cuenta como transición. Antes se comparaba solo "completa
+    // sí/no", y eso festejaba cosas que nadie hizo:
+    //   · Al ENTRAR: el tablero se dibuja ANTES de que lleguen las tareas, así
+    //     que toda columna arrancaba vacía = "faltaban". Cuando los datos
+    //     llegaban con una columna ya palomeada de días atrás, se leía como
+    //     "faltaban → listas" y soltaba confeti nada más entrar. Le pasaba
+    //     sobre todo a quien ve muchas columnas (Andrea): con seis tableros,
+    //     casi siempre alguna venía completa.
+    //   · Al FILTRAR: esconder las pendientes con el buscador dejaba solo las
+    //     listas, y eso también se leía como que se habían completado.
+    // Por eso ahora se guarda TAMBIÉN qué tareas había: solo se festeja si la
+    // columna trae EXACTAMENTE las mismas y pasaron de faltar a estar listas.
+    // Si el conjunto cambió (cargaron datos, se filtró, se movió una tarea),
+    // es una base nueva, no un logro.
     const festeja = usuarioActual && !SOLO_LECTURA && usuarioActual.rol !== 'Director';
     if (festeja) {
       const key = (usuarioActual.email || usuarioActual.nombre || '') + '::' + col.id;
+      const ids = tareasCol.map(t => t.id).sort().join(',');
       const completa = tareasCol.length > 0
         && tareasCol.every(t => checklistTodoMarcado(t) || responsablesListos(t));
-      if (_confetiColEstado[key] === false && completa) {
+      const antes = _confetiColEstado[key];
+      if (antes && antes.ids === ids && antes.completa === false && completa) {
         const r = colEl.getBoundingClientRect();
         const op = { cantidad: 60, duracion: 1500 };
         if (r.width > 0) { op.x = r.left + r.width / 2; op.y = r.top + 70; }
         lanzarConfeti(op);
       }
-      _confetiColEstado[key] = completa;
+      _confetiColEstado[key] = { ids: ids, completa: completa };
     }
   });
 }
@@ -12108,7 +12136,10 @@ function lanzarConfeti(opts) {
 }
 
 // Estado por columna para disparar el confeti SOLO en la transición
-// "faltaban tareas" → "toda la columna completa". Se llena en renderizarTablero.
+// "faltaban tareas" → "toda la columna completa". Guarda { ids, completa }: los
+// ids son los de las tareas que se vieron, y sirven para no festejar cuando lo
+// que cambió fue el CONJUNTO (cargaron los datos, se filtró) en vez del avance.
+// Se llena en renderizarTablero.
 let _confetiColEstado = {};
 
 // ===================== JUEGO: RETA A LA LEY (LOPSRM) =====================
