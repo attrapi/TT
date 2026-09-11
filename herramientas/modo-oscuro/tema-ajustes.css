@@ -93,6 +93,51 @@
   html[data-tema="oscuro"] .sidebar-item:hover { background: #262221; }
   html[data-tema="oscuro"] .sidebar-item.activa { background: var(--guinda); color: #fff; }
 
+  /* El MENÚ LATERAL, en dark, con el mismo fondo neutro que "Organigrama".
+     Los bloques de color grandes (olivo, azul, café, morado) cansaban la vista
+     en oscuro: son mucha superficie encendida y pegada. El área se sigue
+     distinguiendo por su PUNTO de color, que ahora se ve más porque el fondo
+     dejó de competirle. En claro no cambia nada.
+     Va después de .sidebar-item.activa a propósito: si fuera antes, el item
+     seleccionado perdería su guinda. */
+  html[data-tema="oscuro"] .sidebar-sub[data-sub],
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces {
+    background: var(--papel);
+    color: var(--tinta);
+  }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub] .sidebar-conteo {
+    color: var(--tinta-suave);
+  }
+  /* Una franja de 3 px con el color del área: devuelve la conexión con las
+     columnas del tablero (que sí van de color) sin encender el menú entero. */
+  html[data-tema="oscuro"] .sidebar-sub[data-sub] { position: relative; }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub]::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 7px; bottom: 7px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--tinta-tenue);
+  }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOI"]::before,
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIB"]::before,
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SGOIC"]::before { background: var(--sub-sgoi-txt); }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SPAC"]::before   { background: var(--sub-spac-txt); }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="SA"]::before     { background: var(--sub-sa-txt); }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub="ENLACE"]::before { background: var(--sub-enlace-txt); }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub]:hover,
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces:hover {
+    background: #262221;
+    color: var(--tinta);
+  }
+  /* El seleccionado SÍ se marca, como cualquier otro item del menú. */
+  html[data-tema="oscuro"] .sidebar-sub[data-sub].activa,
+  html[data-tema="oscuro"] .sidebar-item.sidebar-enlaces.activa {
+    background: var(--guinda);
+    color: #fff;
+  }
+  html[data-tema="oscuro"] .sidebar-sub[data-sub].activa .sidebar-conteo { color: #fff; }
+
   /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
   html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
 
@@ -120,7 +165,44 @@
     transition: all 0.15s;
     overflow: visible;
   }
-  .nav-tema:hover { background: white; color: var(--guinda); }
+  /* Al pasar el mouse, el botón se pone del color HACIA EL QUE VA, y suelta un
+     destello que sale de él y se apaga. Es un pseudo-elemento que crece de 0.6
+     a 1 y se desvanece: se nota, pero no brinca ni distrae. Va detrás del botón
+     (z-index:-1), así que lo único que se ve es el halo de alrededor. */
+  .nav-tema::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+    border-radius: 999px;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.6);
+    background: radial-gradient(circle, rgba(18,14,13,0.65) 0%, rgba(18,14,13,0) 70%);
+    transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.22,1,.36,1);
+  }
+  .nav-tema:hover::after { opacity: 1; transform: scale(1); }
+  .nav-tema .ico-wrap { transition: transform 0.45s cubic-bezier(.34,1.56,.64,1); }
+  .nav-tema:hover .ico-wrap { transform: scale(1.14); }
+
+  /* En claro el botón va a Dark: se pone negro. */
+  .nav-tema:hover {
+    background: #16120F;
+    color: #fff;
+    border-color: #16120F;
+  }
+
+  /* En dark va a Sun: se pone amarillo sol, con el destello dorado. */
+  html[data-tema="oscuro"] .nav-tema::after {
+    background: radial-gradient(circle, rgba(250,196,60,0.55) 0%, rgba(250,196,60,0) 70%);
+  }
+  html[data-tema="oscuro"] .nav-tema:hover {
+    background: linear-gradient(180deg, #FBC54A 0%, #EFA71C 100%);
+    color: #2A2014;
+    border-color: #FBC54A;
+    box-shadow: 0 0 16px rgba(250,196,60,0.30);
+  }
+  html[data-tema="oscuro"] .nav-tema:hover .ico-wrap { transform: scale(1.14) rotate(35deg); }
   .nav-tema svg { width: 15px; height: 15px; transition: transform 0.45s cubic-bezier(.34,1.56,.64,1), opacity 0.25s; }
   /* Sol y luna ocupan el mismo lugar: se cruzan girando */
   .nav-tema .ico-wrap { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
