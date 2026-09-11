@@ -40,11 +40,11 @@
         var m = document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content', '#4A1424');
       }
-      // El resumen (KPIs) arranca RECOGIDO en dark, salvo que la persona ya lo
-      // haya abierto. En claro siempre se ve: ahi ni el boton aparece.
+      // El resumen (KPIs) arranca RECOGIDO en los dos modos, salvo que la
+      // persona ya lo haya abierto. Se decide aqui, antes de pintar, para que
+      // no aparezca y se recoja de un brinco.
       var k = localStorage.getItem('tt_kpis_oculto');
-      document.documentElement.setAttribute('data-kpis',
-        (t === 'oscuro' && k !== '0') ? 'oculto' : 'visible');
+      document.documentElement.setAttribute('data-kpis', k !== '0' ? 'oculto' : 'visible');
     } catch (e) {}
   })();
 </script>
@@ -1832,10 +1832,10 @@
     gap: 18px;
   }
 
-  /* Barra de la flecha del resumen. Nace escondida: el tema oscuro la prende
-     (ver el bloque temaOscuro). En claro no se ve y nada cambia. */
+  /* Barra de la flecha del resumen. Va en los dos modos: el resumen arranca
+     recogido para que las tarjetas suban, y esta flecha lo abre. */
   .kpis-barra {
-    display: none;
+    display: flex;
     max-width: 1400px;
     margin: 14px auto -6px;
     padding: 0 32px;
@@ -1862,6 +1862,9 @@
   .kpis-chevron { width: 15px; height: 15px; transition: transform 0.25s ease; }
   /* Recogido: la flecha apunta hacia abajo (hay algo que abrir). */
   html[data-kpis="oculto"] .kpis-chevron { transform: rotate(180deg); }
+  html[data-kpis="oculto"] .kpis { display: none; }
+  /* Recogido, la barra ya no tiene que morder al panel de abajo. */
+  html[data-kpis="oculto"] .kpis-barra { margin-bottom: 0; }
 
   .kpi-card {
     min-width: 0;            /* clave: deja que el card se ajuste al grid sin desbordar la página */
@@ -5931,7 +5934,7 @@
   html[data-tema="oscuro"] body { background: var(--crema); color: var(--tinta); }
 
   /* ---------------------------------------------------------------
-     2) GENERADO: 438 reglas volteadas de las 1585 del CSS.
+     2) GENERADO: 438 reglas volteadas de las 1589 del CSS.
      --------------------------------------------------------------- */
   html[data-tema="oscuro"] .acceso-card { background: var(--papel); }
   html[data-tema="oscuro"] .acceso-brand { background: linear-gradient(180deg, var(--papel) 0%, #292217 100%); }
@@ -6498,15 +6501,7 @@
   /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
   html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
 
-  /* ---------------------------------------------------------------
-     EL RESUMEN PLEGABLE. Solo vive en dark: ahi arranca recogido para que las
-     tarjetas suban y se gane pantalla. En claro la barra ni se pinta, asi que
-     el modo claro queda EXACTAMENTE igual que antes.
-     --------------------------------------------------------------- */
-  html[data-tema="oscuro"] .kpis-barra { display: flex; }
-  html[data-tema="oscuro"][data-kpis="oculto"] .kpis { display: none; }
-  /* Recogido, la barra ya no tiene que morder al panel de abajo. */
-  html[data-tema="oscuro"][data-kpis="oculto"] .kpis-barra { margin-bottom: 0; }
+  /* (El resumen plegable vive en el CSS base: funciona en los dos modos.) */
 
   /* Toast (avisos flotantes) */
   html[data-tema="oscuro"] .toast { background: #2A2523; color: var(--tinta); border-color: var(--linea); }
@@ -7749,11 +7744,11 @@ function ingresar(rol) {
   aplicarSesion();
 }
 
-// ============== RESUMEN (KPIs) PLEGABLE — SOLO EN DARK ==============
-// En dark el tablero se lee mejor con el resumen recogido: las tarjetas suben y
-// se gana pantalla, que es justo lo que se pidió. Por eso ahí arranca
-// escondido, con una flecha para abrirlo (como la del menú lateral). En claro
-// NO cambia nada: el resumen siempre se ve y el botón ni siquiera aparece.
+// ============== RESUMEN (KPIs) PLEGABLE ==============
+// El tablero se lee mejor con el resumen recogido: las tarjetas suben y se gana
+// pantalla. Por eso arranca escondido en los DOS modos, con una flecha para
+// abrirlo (la misma idea que la del menú lateral). La preferencia se recuerda
+// por equipo, así que quien lo abra lo encuentra abierto la próxima vez.
 const KPIS_LS = 'tt_kpis_oculto';
 
 function kpisOcultos() {
@@ -7809,10 +7804,11 @@ function aplicarTema(t, guardar) {
     const txt = btn.querySelector('.nav-tema-txt');
     if (txt) txt.textContent = oscuro ? 'Sun' : 'Dark';
   }
-  // El resumen se recoge solo en dark, y respeta lo que la persona haya elegido.
+  // El resumen arranca recogido en los dos modos, respetando lo que la persona
+  // haya elegido. (Cambiar de tema no lo abre ni lo cierra.)
   let guardado = null;
   try { guardado = localStorage.getItem(KPIS_LS); } catch (e) {}
-  aplicarKpis(oscuro ? (guardado !== '0') : false, false);
+  aplicarKpis(guardado !== '0', false);
 }
 
 // Cambia el tema con una BURBUJA que crece desde el botón: el círculo ya trae

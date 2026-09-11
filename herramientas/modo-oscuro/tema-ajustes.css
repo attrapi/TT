@@ -87,15 +87,7 @@
   /* Modal: el velo de atrás más denso para que el papel oscuro resalte */
   html[data-tema="oscuro"] .modal-fondo { background: rgba(0,0,0,0.72); }
 
-  /* ---------------------------------------------------------------
-     EL RESUMEN PLEGABLE. Solo vive en dark: ahi arranca recogido para que las
-     tarjetas suban y se gane pantalla. En claro la barra ni se pinta, asi que
-     el modo claro queda EXACTAMENTE igual que antes.
-     --------------------------------------------------------------- */
-  html[data-tema="oscuro"] .kpis-barra { display: flex; }
-  html[data-tema="oscuro"][data-kpis="oculto"] .kpis { display: none; }
-  /* Recogido, la barra ya no tiene que morder al panel de abajo. */
-  html[data-tema="oscuro"][data-kpis="oculto"] .kpis-barra { margin-bottom: 0; }
+  /* (El resumen plegable vive en el CSS base: funciona en los dos modos.) */
 
   /* Toast (avisos flotantes) */
   html[data-tema="oscuro"] .toast { background: #2A2523; color: var(--tinta); border-color: var(--linea); }
