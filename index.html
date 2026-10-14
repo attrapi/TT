@@ -843,6 +843,134 @@
   .seg-abrir { background: var(--guinda-tenue); border-color: var(--guinda); color: var(--guinda); }
   .seg-abrir:hover { background: var(--guinda); color: #fff; }
   .seg-vacio { color: var(--tinta-suave); text-align: center; padding: 40px 12px; }
+
+  /* === Gantt de seguimiento (perfil de Mario Franca, SPAC) ===
+     Mario no repasa tarjeta por tarjeta: su seguimiento es una LÍNEA DE TIEMPO
+     de las tareas de su dirección, con las últimas observaciones de la bitácora
+     pegadas a cada barra. La columna de la tarea se queda fija al desplazar en
+     horizontal y el encabezado de meses al desplazar en vertical, para que en la
+     junta nunca se pierda de vista de quién es la barra que se está viendo. */
+  .seg-g {
+    --seg-g-info: 360px;
+    --seg-g-rejilla: rgba(105,28,50,0.09);
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+    background: #fff;
+    overflow: auto;
+    max-height: 74vh;
+  }
+  .seg-g-tabla { position: relative; min-width: max-content; }
+  .seg-g-cab { display: flex; position: sticky; top: 0; z-index: 3; background: var(--crema); border-bottom: 1px solid var(--linea); }
+  .seg-g-cab-info {
+    position: sticky; left: 0; z-index: 4; box-sizing: border-box;
+    width: var(--seg-g-info); min-width: var(--seg-g-info);
+    padding: 9px 14px; background: var(--crema); border-right: 1px solid var(--linea);
+    font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-suave);
+  }
+  .seg-g-cab-meses { display: flex; flex: none; }
+  .seg-g-mes {
+    box-sizing: border-box; padding: 9px 6px; white-space: nowrap; overflow: hidden;
+    font-size: 11.5px; color: var(--tinta-suave); border-left: 1px solid var(--linea);
+  }
+  .seg-g-mes span { font-weight: 800; color: var(--tinta); text-transform: uppercase; }
+  .seg-g-cuerpo { position: relative; }
+  /* Una sola capa detrás de TODAS las filas: la rejilla semanal y la línea de
+     hoy. Así los ticks quedan parejos de arriba abajo (si fueran por fila, cada
+     fila pintaría su propio juego y se notaría el corte). */
+  .seg-g-capa { position: absolute; top: 0; bottom: 0; left: var(--seg-g-info); z-index: 0; pointer-events: none; }
+  .seg-g-hoy { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--guinda); opacity: .5; }
+  .seg-g-hoy span {
+    position: absolute; top: 3px; left: 3px; padding: 1px 5px; border-radius: 4px;
+    background: var(--guinda); color: #fff; font-size: 9.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .seg-g-fila { display: flex; position: relative; z-index: 1; border-bottom: 1px solid var(--linea); }
+  .seg-g-fila:last-child { border-bottom: 0; }
+  .seg-g-fila.hecha { background: rgba(207,224,168,0.16); }
+  .seg-g-info {
+    position: sticky; left: 0; z-index: 2; box-sizing: border-box;
+    width: var(--seg-g-info); min-width: var(--seg-g-info);
+    padding: 12px 14px; background: #fff; border-right: 1px solid var(--linea);
+  }
+  .seg-g-fila.hecha .seg-g-info { background: #f4f7ec; }
+  .seg-g-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .seg-g-id { font-family: 'SF Mono','Consolas',monospace; font-size: 11px; font-weight: 700; color: var(--tinta-suave); }
+  .seg-g-estado { padding: 2px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .seg-g-estado.proceso { background: var(--azul-tenue); color: var(--azul); }
+  .seg-g-estado.vencida { background: #FEE2E2; color: var(--rojo); }
+  .seg-g-estado.lista   { background: var(--verde-tenue); color: var(--verde); }
+  .seg-g-tema { font-weight: 700; font-size: 13.5px; color: var(--tinta); margin-top: 4px; line-height: 1.3; }
+  .seg-g-meta { color: var(--tinta-suave); font-size: 11.5px; margin-top: 3px; }
+  /* Las observaciones: el número de cada una empata con su punto en la línea de
+     tiempo, para poder decir "la 1" en voz alta y que todos vean cuál es. */
+  .seg-g-obs { margin-top: 9px; border-top: 1px dashed var(--linea); padding-top: 8px; }
+  .seg-g-obs-titulo { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-tenue); margin-bottom: 6px; }
+  .seg-g-obs-item { display: flex; gap: 7px; margin-bottom: 7px; }
+  .seg-g-obs-num {
+    flex-shrink: 0; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--guinda); color: #fff;
+    font-size: 10px; font-weight: 800; line-height: 17px; text-align: center;
+  }
+  .seg-g-obs-cuerpo { min-width: 0; }
+  .seg-g-obs-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 10.5px; color: var(--tinta-tenue); }
+  .seg-g-obs-meta .bitacora-accion { padding: 1px 7px; font-size: 9px; }
+  .seg-g-obs-txt { font-size: 12px; color: var(--tinta-suave); line-height: 1.35; margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .seg-g-obs-vacio { font-size: 11.5px; color: var(--tinta-tenue); font-style: italic; }
+  .seg-g-acciones { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+  .seg-g-acciones .seg-marcar, .seg-g-acciones .seg-abrir, .seg-g-acciones .seg-deshacer { padding: 6px 12px; font-size: 12px; }
+  .seg-g-acuerdo { margin-top: 8px; }
+  .seg-g-acuerdo textarea {
+    width: 100%; box-sizing: border-box; min-height: 34px; resize: vertical;
+    border: 1px solid var(--linea); border-radius: 8px; padding: 6px 9px;
+    font-size: 12px; font-family: var(--sans);
+  }
+  .seg-g-acuerdo textarea:focus { outline: none; border-color: var(--guinda); box-shadow: 0 0 0 3px var(--guinda-tenue); }
+  /* La pista: la barra va arriba (a la altura del título de la tarea) y los
+     puntos de las observaciones justo abajo. */
+  .seg-g-pista { position: relative; flex: none; min-height: 112px; }
+  .seg-g-barra {
+    position: absolute; top: 15px; height: 18px; border-radius: 5px; overflow: hidden;
+    background: var(--azul); box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+  .seg-g-barra.vencida { background: var(--rojo); }
+  .seg-g-barra.lista   { background: var(--verde); }
+  /* Permanente: rayado, porque no tiene inicio ni fin que medir. */
+  .seg-g-barra.permanente {
+    background: repeating-linear-gradient(135deg, var(--grafito-tenue) 0 7px, #fff 7px 14px);
+    box-shadow: inset 0 0 0 1px var(--linea-fuerte);
+  }
+  /* Lo avanzado del checklist se aclara dentro de la propia barra. */
+  .seg-g-barra-fill { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(255,255,255,.40); border-right: 1px solid rgba(255,255,255,.65); }
+  .seg-g-barra-etq { position: absolute; top: 2px; left: 8px; font-size: 10.5px; font-weight: 700; color: var(--tinta-suave); }
+  /* Retraso: del compromiso vencido a hoy. Rayado para que no se confunda con
+     trabajo planeado. */
+  .seg-g-retraso { position: absolute; top: 15px; height: 18px; border-radius: 0 5px 5px 0; background: repeating-linear-gradient(135deg, var(--rojo) 0 5px, rgba(185,28,28,.35) 5px 10px); }
+  /* Rombo: solo se conoce la fecha compromiso, no se inventa duración. */
+  .seg-g-hito { position: absolute; top: 16px; width: 15px; height: 15px; margin-left: -7px; border-radius: 3px; transform: rotate(45deg); background: var(--azul); }
+  .seg-g-hito.vencida { background: var(--rojo); }
+  .seg-g-hito.lista   { background: var(--verde); }
+  .seg-g-etq { position: absolute; top: 17px; white-space: nowrap; font-size: 11px; font-weight: 700; color: var(--tinta-suave); }
+  .seg-g-nofecha { position: absolute; top: 17px; left: 12px; font-size: 11.5px; font-style: italic; color: var(--tinta-tenue); }
+  .seg-g-marcas { position: absolute; top: 44px; left: 0; right: 0; height: 19px; }
+  .seg-g-marca {
+    position: absolute; transform: translateX(-50%); box-sizing: border-box;
+    width: 19px; height: 19px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--guinda); color: var(--guinda);
+    font-size: 10px; font-weight: 800; line-height: 15px; text-align: center; cursor: help;
+  }
+  .seg-g-leyenda { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 12px 2px 0; font-size: 11.5px; color: var(--tinta-suave); }
+  .seg-g-leyenda b { font-weight: 800; color: var(--tinta); }
+  .seg-g-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .seg-g-ley-muestra { display: inline-block; width: 22px; height: 11px; border-radius: 3px; }
+  .seg-g-ley-muestra.proceso { background: var(--azul); }
+  .seg-g-ley-muestra.vencida { background: var(--rojo); }
+  .seg-g-ley-muestra.lista   { background: var(--verde); }
+  @media (max-width: 900px) {
+    /* En celular la columna de la tarea se angosta: la línea de tiempo es lo
+       que necesita el ancho. */
+    .seg-g { --seg-g-info: 215px; max-height: none; }
+    .seg-g-info, .seg-g-cab-info { padding: 10px; }
+  }
   .volantes-wrap { padding: 16px 24px 26px; }
   .volantes-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
   .volantes-toolbar .filtros-buscar { flex: 1; min-width: 220px; }
@@ -5997,6 +6125,35 @@
   html[data-tema="oscuro"] .seg-hecha-info { color: #d4e4aa; }
   html[data-tema="oscuro"] .seg-deshacer { background: var(--papel); }
   html[data-tema="oscuro"] .seg-abrir { border-color: var(--acento); color: var(--acento); }
+  /* Gantt de seguimiento en oscuro: el papel del panel, la rejilla apenas
+     insinuada y los estados con los tonos de TEXTO (los planos de color se
+     encienden demasiado en dark). */
+  html[data-tema="oscuro"] .seg-g { background: var(--papel); --seg-g-rejilla: rgba(255,255,255,0.07); }
+  html[data-tema="oscuro"] .seg-g-cab, html[data-tema="oscuro"] .seg-g-cab-info { background: #211d1c; }
+  html[data-tema="oscuro"] .seg-g-info { background: var(--papel); }
+  html[data-tema="oscuro"] .seg-g-fila.hecha { background: rgba(74,85,47,0.18); }
+  html[data-tema="oscuro"] .seg-g-fila.hecha .seg-g-info { background: #262a1a; }
+  html[data-tema="oscuro"] .seg-g-estado.proceso { background: var(--azul-tenue); color: var(--azul-txt); }
+  html[data-tema="oscuro"] .seg-g-estado.vencida { background: #3a1d1d; color: var(--rojo-txt); }
+  html[data-tema="oscuro"] .seg-g-estado.lista   { background: var(--verde-tenue); color: var(--verde-txt); }
+  html[data-tema="oscuro"] .seg-g-barra { background: var(--azul-txt); }
+  html[data-tema="oscuro"] .seg-g-barra.vencida { background: var(--rojo-txt); }
+  html[data-tema="oscuro"] .seg-g-barra.lista { background: var(--verde-txt); }
+  html[data-tema="oscuro"] .seg-g-barra-fill { background: rgba(0,0,0,.34); border-right-color: rgba(0,0,0,.5); }
+  html[data-tema="oscuro"] .seg-g-barra.permanente { background: repeating-linear-gradient(135deg, #2d2924 0 7px, var(--papel) 7px 14px); }
+  html[data-tema="oscuro"] .seg-g-retraso { background: repeating-linear-gradient(135deg, var(--rojo-txt) 0 5px, rgba(255,143,135,.3) 5px 10px); }
+  html[data-tema="oscuro"] .seg-g-hito { background: var(--azul-txt); }
+  html[data-tema="oscuro"] .seg-g-hito.vencida { background: var(--rojo-txt); }
+  html[data-tema="oscuro"] .seg-g-hito.lista { background: var(--verde-txt); }
+  html[data-tema="oscuro"] .seg-g-hoy { background: var(--acento); }
+  html[data-tema="oscuro"] .seg-g-hoy span { background: var(--acento); color: #1B1817; }
+  html[data-tema="oscuro"] .seg-g-marca { background: var(--papel); border-color: var(--acento); color: var(--acento); }
+  html[data-tema="oscuro"] .seg-g-obs-num { background: var(--acento); color: #1B1817; }
+  html[data-tema="oscuro"] .seg-g-acuerdo textarea:focus { border-color: var(--acento); }
+  /* La leyenda usa los MISMOS tonos que las barras en cada tema. */
+  html[data-tema="oscuro"] .seg-g-ley-muestra.proceso { background: var(--azul-txt); }
+  html[data-tema="oscuro"] .seg-g-ley-muestra.vencida { background: var(--rojo-txt); }
+  html[data-tema="oscuro"] .seg-g-ley-muestra.lista   { background: var(--verde-txt); }
   html[data-tema="oscuro"] .vol-card { background: var(--papel); }
   html[data-tema="oscuro"] .vol-card:hover { border-color: var(--acento); }
   html[data-tema="oscuro"] .vol-tipo { color: #a3b6eb; }
@@ -14761,6 +14918,13 @@ function renderizarSeguimiento() {
   if (!cont) return;
   const fechaEl = document.getElementById('segFecha');
   if (fechaEl) fechaEl.textContent = formatearFechaLarga(hoyISO());
+  // El perfil de Mario repasa su dirección en una línea de tiempo, no tarjeta
+  // por tarjeta: el encabezado lo dice para que nadie crea que es otra vista.
+  const gantt = esSeguimientoGantt();
+  const kickerEl = document.querySelector('#seguimientoWrap .seg-panel-kicker');
+  const tituloEl = document.querySelector('#seguimientoWrap .seg-panel-txt h2');
+  if (kickerEl) kickerEl.textContent = gantt ? 'Seguimiento de la Subdirección' : 'Repaso en junta';
+  if (tituloEl) tituloEl.textContent = gantt ? 'Gantt de seguimiento' : 'Sesión de seguimiento';
 
   // Acuerdos que alguien esté escribiendo: se guardan y se reponen después de
   // repintar, para que un refresco en vivo no borre lo tecleado en la junta.
@@ -14826,7 +14990,7 @@ function renderizarSeguimiento() {
   const visibles = segVerHechas ? ordenadas : ordenadas.filter(t => !seguimientoHecho(t));
 
   cont.innerHTML = visibles.length
-    ? '<div class="seg-area">' + visibles.map(segCardHTML).join('') + '</div>'
+    ? (gantt ? segGanttHTML(visibles) : '<div class="seg-area">' + visibles.map(segCardHTML).join('') + '</div>')
     : '<div class="seg-vacio">Ya revisaron todo en ' + escapeHtml(area.titulo) + '. Toca “Mostrar revisadas” para verlas.</div>';
 
   // Repone los acuerdos a medio escribir.
@@ -14845,7 +15009,9 @@ function segRepintarCard(id) {
   // Si está oculto el bloque de revisadas y esta acaba de marcarse, desaparece.
   if (!t || (!segVerHechas && seguimientoHecho(t))) { nodo.remove(); return; }
   const tmp = document.createElement('div');
-  tmp.innerHTML = segCardHTML(t);
+  // En el Gantt se repinta la FILA, y con el MISMO rango con el que se dibujó:
+  // si se recalculara, esa fila quedaría con otra escala que sus vecinas.
+  tmp.innerHTML = (esSeguimientoGantt() && segGRango) ? segGFilaHTML(t, segGRango) : segCardHTML(t);
   if (tmp.firstElementChild) nodo.replaceWith(tmp.firstElementChild);
 }
 
@@ -14895,6 +15061,303 @@ function segCardHTML(t) {
     pillsHTML +
     cuerpo +
   '</div>';
+}
+
+// ===================== GANTT DE SEGUIMIENTO (perfil de Mario Franca) =====================
+// Mario (subdirector de SPAC) pidió que SU seguimiento no fuera tarjeta por
+// tarjeta, sino un GANTT de las tareas de su dirección con las últimas tres
+// observaciones de la bitácora pegadas a cada una: así la junta ve en una sola
+// pantalla qué se encima, qué viene y qué se dijo la última vez.
+// Lo único que cambia es la PINTURA. Los filtros (área/proyecto), el ✓ "Con
+// seguimiento", el acuerdo y la barra de avance son los mismos: cada fila lleva
+// el id "seg-card-<id>" y la misma caja "seg-acuerdo-<id>" justo para que
+// segMarcar y segRepintarCard sigan sirviendo sin cambios. Los demás perfiles
+// conservan las tarjetas de siempre (segCardHTML).
+const SEG_G_OBS = 3;     // observaciones de bitácora que se muestran por tarea
+let segGRango = null;    // rango con el que se dibujó; lo reusa el repintado de una fila
+
+function esSeguimientoGantt() { return esSubdirectorSPAC(); }
+
+// 'DD/MM/AAAA HH:MM' (bitácora, fecha_creacion) o 'AAAA-MM-DD' → 'AAAA-MM-DD'.
+function segGFechaISO(valor) {
+  const t = String(valor || '').trim();
+  if (!t) return '';
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+  return '';
+}
+
+// Día absoluto de una fecha ISO (entero, en UTC) para medir distancias en días
+// sin que el horario de verano mueva medio día las barras.
+function segGDia(iso) {
+  if (!iso) return null;
+  const ms = Date.parse(iso + 'T00:00:00Z');
+  return isNaN(ms) ? null : Math.round(ms / 86400000);
+}
+
+// Las últimas observaciones de la bitácora de una tarea: los movimientos que
+// DEJARON TEXTO (observación, comentario, acuerdo de junta, devolución…). Los
+// "visto" no son observaciones, y de un comentario editado o borrado solo
+// cuenta el original (igual que en la Bitácora, ver bitacoraVisible).
+function segGObs(id, n) {
+  return (BITACORA || []).filter(function (b) {
+    if (!b || b.id_tarea !== id) return false;
+    if (b.accion === 'visto') return false;
+    if (b.accion === 'comentario' && String(b.estatus_anterior || '').trim()) return false;
+    return !!String(b.comentario || '').trim();
+  }).slice(0, n || SEG_G_OBS);
+}
+
+// El acuerdo se guarda con el prefijo "Seguimiento (junta): "; se quita para que
+// la observación se lea limpia.
+function segGObsTexto(b) {
+  return String((b && b.comentario) || '').replace(/^Seguimiento \(junta\):\s*/i, '').trim();
+}
+
+// Primer movimiento registrado de la tarea. Es el arranque REAL cuando la tarea
+// no trae fecha de creación: las de SPAC vienen del Sheet sin ella.
+function segGPrimerMovISO(id) {
+  let min = '';
+  (BITACORA || []).forEach(function (b) {
+    if (!b || b.id_tarea !== id || b.accion === 'visto') return;
+    const iso = segGFechaISO(b.fecha);
+    if (iso && (!min || iso < min)) min = iso;
+  });
+  return min;
+}
+
+// Qué se dibuja para una tarea. NO se inventan duraciones: si solo se conoce la
+// fecha compromiso, va un rombo (hito) y no una barra de la nada.
+//   'barra'      arranque conocido → compromiso.
+//   'hito'       solo el compromiso.
+//   'abierta'    arranque conocido y sin compromiso: corre hasta hoy.
+//   'permanente' tarea sin fecha por definición: banda rayada en todo el rango.
+//   'sinfecha'   no hay de dónde: se dice con letras, no se dibuja.
+function segGTramo(t) {
+  const hoy = hoyISO();
+  const fin = t.permanente ? '' : (t.fecha_atencion || t.fecha_limite || '');
+  let ini = segGFechaISO(t.fecha_creacion) || segGFechaISO(CREACION_LOCAL[t.id]) || segGPrimerMovISO(t.id);
+  // Si la tarea se registró DESPUÉS de su compromiso, la barra no se dibuja al
+  // revés: arranca en el compromiso y lo que sobra se ve como retraso.
+  if (ini && fin && ini > fin) ini = fin;
+  const cerrada = t.estatus === 'Archivada' || tareaEsLista(t);
+  // Retraso: del compromiso vencido a hoy, mientras la tarea no se cierre.
+  const retraso = (fin && !cerrada && esVencida(fin)) ? hoy : '';
+  if (t.permanente) return { tipo: 'permanente', ini: '',  fin: '',  retraso: '',      cerrada: cerrada };
+  if (ini && fin)   return { tipo: 'barra',      ini: ini, fin: fin, retraso: retraso, cerrada: cerrada };
+  if (fin)          return { tipo: 'hito',       ini: '',  fin: fin, retraso: retraso, cerrada: cerrada };
+  if (ini)          return { tipo: 'abierta',    ini: ini, fin: hoy, retraso: '',      cerrada: cerrada };
+  return              { tipo: 'sinfecha',   ini: '',  fin: '',  retraso: '',      cerrada: cerrada };
+}
+
+// Rango de la línea de tiempo: de la fecha más vieja a la más nueva de todo lo
+// que se va a dibujar (observaciones incluidas), con HOY siempre dentro y un
+// margen para que nada quede pegado al borde.
+function segGCalcularRango(lista) {
+  const dias = [segGDia(hoyISO())];
+  (lista || []).forEach(function (t) {
+    const tr = segGTramo(t);
+    [tr.ini, tr.fin, tr.retraso].forEach(function (f) {
+      const d = segGDia(f); if (d !== null) dias.push(d);
+    });
+    segGObs(t.id, SEG_G_OBS).forEach(function (b) {
+      const d = segGDia(segGFechaISO(b.fecha)); if (d !== null) dias.push(d);
+    });
+  });
+  const ini = Math.min.apply(null, dias) - 4;
+  let fin = Math.max.apply(null, dias) + 10;
+  // Mínimo tres semanas de ancho: con dos tareas del mismo día la línea de
+  // tiempo se quedaba comprimida en un dedo.
+  if (fin - ini < 21) fin = ini + 21;
+  const total = fin - ini + 1;
+  // Escala: días anchos cuando el rango es corto, apretados cuando son años.
+  const px = total <= 45 ? 22 : total <= 100 ? 11 : total <= 220 ? 6 : total <= 450 ? 3.4 : 2;
+  return { ini: ini, fin: fin, total: total, px: px, ancho: Math.round(total * px) };
+}
+
+// Posición en píxeles de una fecha dentro del rango (recortada a sus extremos).
+function segGx(iso, r) {
+  const d = segGDia(iso);
+  if (d === null) return null;
+  return Math.round((Math.min(Math.max(d, r.ini), r.fin) - r.ini) * r.px);
+}
+
+// Encabezado: una banda por mes, del ancho de los días que le toquen.
+function segGCabMeses(r) {
+  let html = '';
+  let d = r.ini;
+  while (d <= r.fin) {
+    const f = new Date(d * 86400000);
+    // Día 0 del mes siguiente = último día de este mes.
+    const finMes = Math.round(Date.UTC(f.getUTCFullYear(), f.getUTCMonth() + 1, 0) / 86400000);
+    const hasta = Math.min(finMes, r.fin);
+    const ancho = Math.round((hasta - d + 1) * r.px);
+    // Al mes que apenas asoma por la orilla se le deja la banda sin rótulo: un
+    // "ju" cortado a la mitad no dice nada y ensucia el encabezado.
+    const etq = ancho >= 46 ? ('<span>' + MESES[f.getUTCMonth()] + '</span> ' + f.getUTCFullYear()) : '';
+    html += '<div class="seg-g-mes" style="width:' + ancho + 'px" title="' +
+      MESES[f.getUTCMonth()] + ' ' + f.getUTCFullYear() + '">' + etq + '</div>';
+    d = hasta + 1;
+  }
+  return html;
+}
+
+// Rejilla semanal (alineada a LUNES) y línea de HOY, en UNA capa detrás de todas
+// las filas: así los ticks quedan parejos de arriba abajo.
+function segGCapa(r) {
+  const paso = Math.round(r.px * 7) || 7;
+  // El día 0 absoluto (1/ene/1970) fue jueves, así que los lunes son los días
+  // con residuo 4 al dividir entre 7.
+  const desde = ((r.ini - 4) % 7 + 7) % 7;          // días que pasaron del último lunes
+  const off = Math.round(((7 - desde) % 7) * r.px); // píxeles hasta el próximo lunes
+  const hoy = segGx(hoyISO(), r);
+  return '<div class="seg-g-capa" style="width:' + r.ancho + 'px;' +
+      'background-image:repeating-linear-gradient(to right, var(--seg-g-rejilla) 0 1px, transparent 1px ' + paso + 'px);' +
+      'background-position:' + off + 'px 0">' +
+    (hoy === null ? '' : '<div class="seg-g-hoy" style="left:' + hoy + 'px"><span>hoy</span></div>') +
+  '</div>';
+}
+
+// Una fila: a la izquierda la tarea con sus últimas observaciones, a la derecha
+// su barra y los puntos numerados de esas mismas observaciones en su fecha.
+function segGFilaHTML(t, r) {
+  const tr = segGTramo(t);
+  const hecho = seguimientoHecho(t);
+  const obs = segGObs(t.id, SEG_G_OBS);
+  const vencida = !!tr.retraso;
+  const clase = tr.cerrada ? 'lista' : (vencida ? 'vencida' : 'proceso');
+  const estado = t.estatus === 'Archivada' ? 'Validada'
+    : (tr.cerrada ? 'Para validar' : (vencida ? 'Vencida' : 'En proceso'));
+  // El avance de la barra: el del checklist si lo tiene; si no, el que traiga la
+  // tarea (las del Sheet llegan con 0 o 100).
+  const avance = obtenerChecklist(t).length ? checklistAvance(t) : (Number(t.avance) || 0);
+
+  // ---- La pista (derecha) ----
+  let pista = '';
+  if (tr.tipo === 'permanente') {
+    pista = '<div class="seg-g-barra permanente" style="left:0;width:' + r.ancho + 'px" title="Tarea permanente: sin fecha límite"></div>' +
+      '<div class="seg-g-barra-etq" style="left:10px">Permanente</div>';
+  } else if (tr.tipo === 'sinfecha') {
+    pista = '<div class="seg-g-nofecha">Sin fecha registrada</div>';
+  } else if (tr.tipo === 'hito') {
+    const x = segGx(tr.fin, r);
+    pista = '<div class="seg-g-hito ' + clase + '" style="left:' + x + 'px" title="' +
+        escapeHtml('Compromiso: ' + formatearFechaCorta(tr.fin) + ' (no hay fecha de arranque registrada)') + '"></div>' +
+      '<div class="seg-g-etq" style="left:' + (x + 12) + 'px">' + formatearFechaCorta(tr.fin) + '</div>';
+  } else {
+    const x1 = segGx(tr.ini, r);
+    const x2 = segGx(tr.fin, r);
+    const ancho = Math.max(x2 - x1, 6);
+    const tope = tr.tipo === 'abierta' ? 'hoy (sin fecha compromiso)' : formatearFechaCorta(tr.fin);
+    pista = '<div class="seg-g-barra ' + clase + '" style="left:' + x1 + 'px;width:' + ancho + 'px" title="' +
+        escapeHtml('De ' + formatearFechaCorta(tr.ini) + ' a ' + tope + (avance ? ' · ' + avance + '% de avance' : '')) + '">' +
+        (avance ? '<div class="seg-g-barra-fill" style="width:' + avance + '%"></div>' : '') +
+      '</div>';
+    let derecha = x1 + ancho;
+    if (tr.retraso) {
+      const xr = segGx(tr.retraso, r);
+      if (xr > x2) {
+        const dias = segGDia(tr.retraso) - segGDia(tr.fin);
+        pista += '<div class="seg-g-retraso" style="left:' + x2 + 'px;width:' + (xr - x2) + 'px" title="' +
+          escapeHtml('Retraso: ' + dias + ' día' + (dias === 1 ? '' : 's') + ' desde el compromiso') + '"></div>';
+        derecha = xr;
+      }
+    }
+    pista += '<div class="seg-g-etq" style="left:' + (derecha + 8) + 'px">' +
+      (tr.tipo === 'abierta' ? 'Sin fecha compromiso' : formatearFechaCorta(tr.fin)) + '</div>';
+  }
+
+  // Puntos de las observaciones, en su fecha. El número empata con la lista de
+  // la izquierda: 1 es la más reciente.
+  const marcas = obs.map(function (b, i) {
+    const x = segGx(segGFechaISO(b.fecha), r);
+    if (x === null) return '';
+    return '<span class="seg-g-marca" style="left:' + x + 'px" title="' +
+      escapeHtml((i + 1) + '. ' + etiquetaAccionBita(b) + ' · ' + (b.fecha || '') +
+        (b.usuario ? ' · ' + b.usuario : '') + '\n' + segGObsTexto(b)) + '">' + (i + 1) + '</span>';
+  }).join('');
+
+  // ---- La info (izquierda) ----
+  const resp = t.responsable ? escapeHtml(nombreNiceResp(t.responsable)) : '—';
+  const obsHTML = obs.length
+    ? obs.map(function (b, i) {
+        return '<div class="seg-g-obs-item">' +
+          '<span class="seg-g-obs-num">' + (i + 1) + '</span>' +
+          '<div class="seg-g-obs-cuerpo">' +
+            '<div class="seg-g-obs-meta">' +
+              '<span class="bitacora-accion ' + escapeHtml(String(b.accion || '').toLowerCase()) + '">' +
+                escapeHtml(etiquetaAccionBita(b)) + '</span>' +
+              '<span>' + escapeHtml(b.fecha || '') + '</span>' +
+              (b.usuario ? '<span>· ' + escapeHtml(b.usuario) + '</span>' : '') +
+            '</div>' +
+            '<div class="seg-g-obs-txt">' + formatoAcuerdo(segGObsTexto(b)) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('')
+    : '<div class="seg-g-obs-vacio">Sin observaciones en la bitácora todavía.</div>';
+
+  const cierre = hecho
+    ? '<div class="seg-hecha-info">✓ Con seguimiento — ' + escapeHtml(formatearNombre(t.seguimiento_por || '')) + '</div>' +
+      (t.seguimiento_acuerdo ? '<div class="seg-hecha-acuerdo">“' + formatoAcuerdo(t.seguimiento_acuerdo) + '”</div>' : '') +
+      '<div class="seg-g-acciones">' +
+        '<button class="seg-deshacer" onclick="segQuitar(\'' + t.id + '\')" title="Quitar el ✓ para volver a repasarla">Deshacer</button>' +
+        '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
+      '</div>'
+    : '<div class="seg-g-acuerdo">' +
+        '<textarea id="seg-acuerdo-' + t.id + '" placeholder="Acuerdo de la junta (opcional)…"></textarea>' +
+      '</div>' +
+      '<div class="seg-g-acciones">' +
+        '<button class="seg-marcar" onclick="segMarcar(\'' + t.id + '\')">✓ Con seguimiento</button>' +
+        '<button class="seg-abrir" onclick="segAbrirTarea(\'' + t.id + '\')">Abrir tarea</button>' +
+      '</div>';
+
+  return '<div class="seg-g-fila' + (hecho ? ' hecha' : '') + '" id="seg-card-' + escapeHtml(t.id) + '">' +
+    '<div class="seg-g-info">' +
+      '<div class="seg-g-top">' +
+        '<span class="seg-g-id">' + escapeHtml(t.id) + '</span>' +
+        '<span class="seg-g-estado ' + clase + '">' + estado + '</span>' +
+      '</div>' +
+      '<div class="seg-g-tema">' + escapeHtml(t.tema || t.titulo || '') + '</div>' +
+      '<div class="seg-g-meta">' + resp + '</div>' +
+      '<div class="seg-g-obs">' +
+        '<div class="seg-g-obs-titulo">Últimas ' + SEG_G_OBS + ' observaciones · bitácora</div>' +
+        obsHTML +
+      '</div>' +
+      cierre +
+    '</div>' +
+    '<div class="seg-g-pista" style="width:' + r.ancho + 'px">' + pista +
+      '<div class="seg-g-marcas">' + marcas + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function segGLeyenda() {
+  return '<div class="seg-g-leyenda">' +
+    '<span><b>Barra</b> del registro al compromiso</span>' +
+    '<span><i class="seg-g-ley-muestra proceso"></i> En proceso</span>' +
+    '<span><i class="seg-g-ley-muestra vencida"></i> Vencida (rayado = retraso)</span>' +
+    '<span><i class="seg-g-ley-muestra lista"></i> Para validar</span>' +
+    '<span><b>◆</b> solo fecha compromiso</span>' +
+    '<span><b>1 2 3</b> observaciones de la bitácora, de la más reciente a la más vieja</span>' +
+  '</div>';
+}
+
+function segGanttHTML(lista) {
+  const r = segGCalcularRango(lista);
+  segGRango = r;
+  return '<div class="seg-g">' +
+      '<div class="seg-g-tabla">' +
+        '<div class="seg-g-cab">' +
+          '<div class="seg-g-cab-info">Tarea y últimas ' + SEG_G_OBS + ' observaciones</div>' +
+          '<div class="seg-g-cab-meses" style="width:' + r.ancho + 'px">' + segGCabMeses(r) + '</div>' +
+        '</div>' +
+        '<div class="seg-g-cuerpo">' + segGCapa(r) +
+          lista.map(function (t) { return segGFilaHTML(t, r); }).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>' + segGLeyenda();
 }
 
 function segAbrirTarea(id) {
