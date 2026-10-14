@@ -474,6 +474,22 @@
     color: white;
   }
 
+  /* Agendar sala: acompaña al botón Inicio (va justo debajo, en todos los
+     perfiles). Mismo acento guinda pero en versión tenue, para que Inicio siga
+     siendo el principal y éste se lea como su compañero. Abre en pestaña nueva. */
+  .sidebar-item.sidebar-sala {
+    background: var(--guinda-tenue);
+    color: var(--guinda);
+    border-color: var(--guinda);
+    font-weight: 600;
+  }
+  .sidebar-item.sidebar-sala svg { opacity: 1; }
+  .sidebar-item.sidebar-sala:hover {
+    background: var(--guinda);
+    color: white;
+  }
+  .sidebar-item.sidebar-sala:hover svg { opacity: 1; }
+
   /* Los puntos de color se ocultan: el panel se ve más limpio y el texto
      aprovecha todo el ancho. La identidad de color se conserva en el estado
      activo (franja izquierda y fondo tenue). */
@@ -6512,6 +6528,16 @@
   html[data-tema="oscuro"] .sidebar { background: #171413; border-right-color: var(--linea); }
   html[data-tema="oscuro"] .sidebar-item:hover { background: #262221; }
   html[data-tema="oscuro"] .sidebar-item.activa { background: var(--guinda); color: #fff; }
+  html[data-tema="oscuro"] .sidebar-item.sidebar-sala {
+    background: var(--papel);
+    color: var(--acento);
+    border-color: var(--guinda-claro);
+  }
+  html[data-tema="oscuro"] .sidebar-item.sidebar-sala:hover {
+    background: #262221;
+    color: var(--acento-claro);
+    border-color: var(--acento);
+  }
 
   /* El MENÚ LATERAL, en dark, con el mismo fondo neutro que "Organigrama".
      Los bloques de color grandes (olivo, azul, café, morado) cansaban la vista
@@ -6872,6 +6898,12 @@
       <button class="sidebar-item sidebar-inicio" onclick="irInicio()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 L12 3 L21 12"/><path d="M5 10 V21 H10 V14 H14 V21 H19 V10"/></svg>
         <span class="sidebar-label">Inicio</span>
+      </button>
+      <!-- Agendar sala: va en TODOS los perfiles, pegado a Inicio. Abre el
+           sistema de solicitud de salas en pestaña nueva. -->
+      <button class="sidebar-item sidebar-sala" onclick="window.open('https://attrapi.github.io/solicitud-de-salas/', '_blank', 'noopener')" title="Agendar sala (nueva pestaña)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h3M8 18h6"/></svg>
+        <span class="sidebar-label">Agendar sala</span>
       </button>
 
       <div class="sidebar-grupo" id="sidebarGrupoSubs">
