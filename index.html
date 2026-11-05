@@ -9129,6 +9129,24 @@ function aplicarUsuarioServidor(res) {
   // se piden las frescas y al llegar se reemplazan + re-renderizan.
   let pintoDesdeCache = false;
   try {
+    // La bitácora va PRIMERO, antes de pintar nada. Tres cosas de la tarjeta
+    // salen de ella y no de la tarea: el chip "Reprogramada" (esReprogramada),
+    // el chip "Hilo" (tieneHilo) y el renglón de "Visto por" (vistosDeTarea).
+    //
+    // Como la bitácora se pedía 250ms después y tardaba lo suyo, el tablero se
+    // pintaba DOS veces con distinto contenido: primero sin esas tres cosas y
+    // un segundo después con ellas. Se veía como que faltaban reprogramadas y
+    // de pronto las píldoras cambiaban solas y todo se recorría. Con la copia
+    // de la sesión anterior el primer pintado ya sale completo, y cuando llega
+    // la fresca solo corrige lo que de verdad cambió.
+    const bitaCache = localStorage.getItem('tt_bitacora_cache_v1');
+    if (bitaCache) {
+      const bs = JSON.parse(bitaCache);
+      if (Array.isArray(bs) && bs.length) {
+        BITACORA.length = 0;
+        BITACORA.push(...bs);
+      }
+    }
     const cached = localStorage.getItem('tt_tareas_cache_v2');
     if (cached) {
       const arr = JSON.parse(cached);
@@ -9582,6 +9600,16 @@ function cargarBitacora() {
       if (res && res.ok && res.bitacora) {
         BITACORA.length = 0;
         res.bitacora.forEach(function (b) { BITACORA.push(b); });
+        // Copia para que la PRÓXIMA carga pinte las tarjetas completas desde el
+        // primer cuadro (ver dónde se restaura, en la sesión). Con tope: la
+        // bitácora crece sin parar y no vale la pena que se coma el espacio del
+        // caché de tareas, que importa más. Si no cabe, no se guarda y la carga
+        // siguiente se comporta como antes — nada se rompe.
+        try {
+          const txt = JSON.stringify(BITACORA);
+          if (txt.length <= 1500000) localStorage.setItem('tt_bitacora_cache_v1', txt);
+          else localStorage.removeItem('tt_bitacora_cache_v1');
+        } catch (e) { /* cuota llena: mejor sin caché que reventar la carga */ }
         // Repinta el hilo de la tarea abierta para ver comentarios nuevos de otra
         // persona en vivo — salvo que justo estés escribiendo (no mover el cursor).
         const _tAb = (typeof tareaAbierta !== 'undefined' && tareaAbierta) || null;
