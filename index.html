@@ -7137,18 +7137,30 @@
        se quedó donde el elemento nace de verdad una vez (el modal, los
        chips, las cards del resumen al desplegarlo) y en los <details>.
 
-   La solución es tt-quieto: durante los dos cuadros que tarda en resolverse
-   el carril se fuerza el estado final con !important. Y sí, !important le
-   gana a una animación: en la cascada las declaraciones importantes del autor
-   van por encima de las animaciones. La animación sigue puesta —solo está
-   tapada—, así que cuando se quita la clase ya tiene el carril resuelto y
-   toma su valor correcto sin brincar.
+   La solución son dos cuadros con el aspecto CONGELADO, vía estilo en línea
+   con !important (que en la cascada le gana a una animación). La animación
+   sigue puesta, solo tapada; al destaparla ya tiene el carril resuelto y toma
+   su valor correcto sin brincar.
+
+   Lo que se congela es el valor que esa MISMA tarjeta tenía antes del
+   repintado, no un "1" a lo bruto. La diferencia importa y se midió: con el
+   1 forzado, la última tarjeta visible de cada columna —la que está a medio
+   revelar en el borde de abajo— hacía 0.7 → 1 → 0.7 en cada repintado. O sea
+   que la regla que existía para TAPAR el parpadeo era la que lo causaba, y se
+   notaba cada 60 s con el auto-refresh. Congelando el valor previo la tarjeta
+   atraviesa el repintado sin inmutarse.
+
+   Para una tarjeta que no existía antes (tarea nueva, o el primer pintado del
+   tablero) no hay valor previo que copiar: esas sí se congelan en el estado
+   final, que es lo que se quiere — aparecen enteras en vez de dejar el cuadro
+   en blanco.
+
+   Se intentó antes algo más simple: forzar una maquetación síncrona
+   (offsetHeight) después de armar el tablero, a ver si con eso bastaba para
+   resolver el carril y no hacía falta congelar nada. No basta: Chrome lo
+   resuelve hasta el siguiente cuadro pintado de verdad, no en un reflujo
+   forzado. Medido, no supuesto.
    ===================================================================== */
-html.tt-quieto .tarjeta {
-  opacity: 1 !important;
-  translate: none !important;
-  scale: 1 !important;
-}
 /* Durante el cambio de sección, lo mismo: si no, la foto de "lo nuevo" se
    tomaría con las tarjetas todavía invisibles y la sección entraría vacía. */
 html.tt-vt .tarjeta,
@@ -9396,6 +9408,8 @@ function aplicarUsuarioServidor(res) {
       if (Array.isArray(bs) && bs.length) {
         BITACORA.length = 0;
         BITACORA.push(...bs);
+        // Misma idea: si la bitácora fresca llega igual a esta, no se repinta.
+        _ttFirmaBitacora = ttFirma(bs);
       }
     }
     const cached = localStorage.getItem('tt_tareas_cache_v2');
@@ -9406,6 +9420,10 @@ function aplicarUsuarioServidor(res) {
         arr.forEach(asegurarCamposChecklist);
         TAREAS.push(...arr);
         renderizar();
+        // Deja la firma de lo que se acaba de pintar. Si el servidor contesta
+        // con lo mismo (lo normal), cargarTareasAppScript ya no repinta: el
+        // arranque se ahorra uno de sus tres repintados.
+        _ttFirmaTareas = ttFirma(arr);
         pintoDesdeCache = true;
       }
     }
@@ -9844,11 +9862,46 @@ function registrarEnBitacora(entrada) {
 }
 
 // Carga la bitácora persistida desde el servidor (al iniciar sesión).
+// ===== NO REPINTAR SI NO CAMBIÓ NADA =====
+// El tablero se repinta entero (renderizarTablero vacía el contenedor y recrea
+// todas las tarjetas) cada vez que llegan datos. Y llegan muy seguido: al abrir
+// (caé → tareas frescas → bitácora), cada 60 s por el auto-refresh, y en cada
+// evento de tiempo real de Supabase — incluido el "visto" que se graba cuando
+// CUALQUIERA abre una tarea.
+//
+// Lo normal, con mucho, es que esos datos lleguen idénticos a los que ya están
+// en pantalla: nadie tocó nada en ese minuto. Repintar entonces no cambia un
+// solo pixel, pero sí tira y recrea todas las tarjetas, con su costo y su
+// riesgo de parpadeo. Así que se compara contra lo último pintado y, si es lo
+// mismo, no se repinta.
+//
+// La comparación es el JSON completo, no un resumen: así cualquier cambio real
+// —por chico que sea— cambia la firma y sí se repinta. Si algo fallara, la
+// firma sale distinta y se repinta de más, que es el lado seguro del error.
+//
+// La fecha va dentro de la firma a propósito: "Vencida" y "Hoy" se calculan
+// contra el día de hoy, no contra los datos. Sin eso, un tablero abierto toda
+// la noche nunca se enteraría de que ya cambió el día.
+let _ttFirmaTareas = null;
+let _ttFirmaBitacora = null;
+function ttFirma(lista) {
+  const h = new Date();
+  const dia = h.getFullYear() + '-' + (h.getMonth() + 1) + '-' + h.getDate();
+  try { return dia + '|' + JSON.stringify(lista); }
+  catch (e) { return 'x' + Math.random(); }   // ilegible → que repinte
+}
+
 function cargarBitacora() {
   if (!enAppScript() || !SESION_TOKEN) return;
   google.script.run
     .withSuccessHandler(function (res) {
       if (res && res.ok && res.bitacora) {
+        // ¿Llegó igual a la que ya está pintada? Entonces ni repintar ni
+        // reguardar el caché: no hay nada nuevo que mostrar. Esto es lo que
+        // quita uno de los dos repintados de cada minuto.
+        const firma = ttFirma(res.bitacora);
+        if (firma === _ttFirmaBitacora) return;
+        _ttFirmaBitacora = firma;
         BITACORA.length = 0;
         res.bitacora.forEach(function (b) { BITACORA.push(b); });
         // Copia para que la PRÓXIMA carga pinte las tarjetas completas desde el
@@ -10000,6 +10053,12 @@ function cargarTareasAppScript(preservar, onListo) {
       nuevas.forEach(n => { if (n.nivel === 'jefatura' && n.estatus !== 'Archivada') { n.estatus = 'En Proceso'; n.validada = false; n.en_validadas = false; n.confirmada = false; } });
       // Inicializa los campos del modelo nuevo (checklist + observaciones duales).
       nuevas.forEach(asegurarCamposChecklist);
+      // La firma se calcula AQUÍ, ya normalizadas: es exactamente lo que se iría
+      // a pintar. (También es lo que se guarda en el caché, así que la firma del
+      // pintado desde caché es comparable con esta.)
+      const firma = ttFirma(nuevas);
+      const sinCambios = (firma === _ttFirmaTareas);
+      _ttFirmaTareas = firma;
       TAREAS.length = 0;
       TAREAS.push(...nuevas);
       // Cache para render instantáneo en la próxima carga (best-effort: si
@@ -10007,6 +10066,9 @@ function cargarTareasAppScript(preservar, onListo) {
       try { localStorage.setItem('tt_tareas_cache_v2', JSON.stringify(nuevas)); } catch (e) {}
       // Datos frescos en pantalla → quitamos el chip "Actualizando…".
       ocultarActualizando();
+      // Llegaron idénticas a las que ya están pintadas: no hay nada que repintar.
+      // Este es el caso normal del auto-refresh de 60 s.
+      if (sinCambios) { if (typeof onListo === 'function') onListo(); return; }
       renderizar();
       if (vistaActiva === 'calendario') renderizarCalendario();
       if (vistaActiva === 'carga') renderizarCarga();
@@ -11027,6 +11089,7 @@ function renderizarTablero() {
   }
   const cols = columnasPorRol();
   const tablero = document.getElementById('tablero');
+  ttGuardarAspecto();        // antes de borrar: cómo se ve cada tarjeta ahora mismo
   tablero.innerHTML = '';
   tablero.style.setProperty('--tablero-cols', cols.length);
   // Cuando hay UNA sola columna (SA, jefatura sola, Staff de Samanta), la
@@ -11153,6 +11216,7 @@ function renderizarEnlaces() {
     return (nombreCortoResp(a) || a.nombreCompleto || '')
       .localeCompare(nombreCortoResp(b) || b.nombreCompleto || '', 'es');
   });
+  ttGuardarAspecto();        // antes de borrar: cómo se ve cada tarjeta ahora mismo
   wrap.innerHTML = '';
   if (!enlaces.length) {
     wrap.style.gridTemplateColumns = 'minmax(0, 1fr)';
@@ -11363,15 +11427,30 @@ function asignarPorArrastre(idTarea, col) {
 }
 
 // Tapa el parpadeo de un cuadro que deja una tarjeta recién creada mientras
-// su carril de scroll (animation-timeline: view()) termina de resolverse. Ver
-// la regla html.tt-quieto en <style id="pulido">, que explica el porqué.
+// su carril de scroll (animation-timeline: view()) termina de resolverse. El
+// porqué largo está en <style id="pulido">, en la sección ANTIPARPADEO.
 //
 // Dos requestAnimationFrame y no uno: el callback del primero corre ANTES de
-// que el navegador calcule estilos de ese cuadro, así que quitar la clase ahí
-// la quitaría demasiado pronto y el parpadeo seguiría. Con el segundo, el
-// cuadro ya se pintó con la clase puesta.
+// que el navegador calcule estilos de ese cuadro, así que destapar ahí sería
+// demasiado pronto y el parpadeo seguiría. Con el segundo, el cuadro ya se
+// pintó con el aspecto congelado.
 let _ttQuietoRaf = 0;
-function ttSinParpadeo() {
+let _ttPrevio = new Map();    // id de tarea -> [opacity, scale, translate] antes del repintado
+let _ttCongeladas = [];       // tarjetas con estilo en línea pendiente de soltar
+
+// Se llama JUSTO ANTES de vaciar un contenedor de tarjetas. Apunta cómo se ve
+// cada una ahora, para que su reemplazo nazca exáctamente igual y el cambiazo
+// no se vea. Sin esto, las tarjetas a medio revelar daban un tirón a opacidad
+// 1 y de regreso en cada repintado.
+function ttGuardarAspecto() {
+  _ttPrevio = new Map();
+  document.querySelectorAll('.tarjeta[data-id]').forEach(function (c) {
+    const e = getComputedStyle(c);
+    _ttPrevio.set(c.getAttribute('data-id'), [e.opacity, e.scale, e.translate]);
+  });
+}
+
+function ttSinParpadeo(card, id) {
   const raiz = document.documentElement;
   // En qué punto de su ciclo van los latidos de los chips, para que los que
   // están a punto de nacer arranquen ahí y no desde cero. Ver la pieza 7 del
@@ -11384,12 +11463,29 @@ function ttSinParpadeo() {
   raiz.style.setProperty('--tt-fase-12', '-' + ((ahora % 1200) / 1000).toFixed(3) + 's');
   raiz.style.setProperty('--tt-fase-14', '-' + ((ahora % 1400) / 1000).toFixed(3) + 's');
   raiz.style.setProperty('--tt-fase-16', '-' + ((ahora % 1600) / 1000).toFixed(3) + 's');
-  raiz.classList.add('tt-quieto');
+
+  if (card) {
+    // El aspecto que tenía su antecesora; si no había (tarea nueva, o primer
+    // pintado del tablero), el estado final — que aparezca entera.
+    const v = _ttPrevio.get(String(id)) || ['1', '1', 'none'];
+    card.style.setProperty('opacity', v[0], 'important');
+    card.style.setProperty('scale', v[1], 'important');
+    card.style.setProperty('translate', v[2], 'important');
+    _ttCongeladas.push(card);
+  }
+
   if (_ttQuietoRaf) cancelAnimationFrame(_ttQuietoRaf);
   _ttQuietoRaf = requestAnimationFrame(function () {
     _ttQuietoRaf = requestAnimationFrame(function () {
       _ttQuietoRaf = 0;
-      raiz.classList.remove('tt-quieto');
+      const sueltas = _ttCongeladas;
+      _ttCongeladas = [];
+      _ttPrevio = new Map();   // la instantánea ya se usó; que no la herede otro repintado
+      sueltas.forEach(function (c) {
+        c.style.removeProperty('opacity');
+        c.style.removeProperty('scale');
+        c.style.removeProperty('translate');
+      });
     });
   });
 }
@@ -11400,13 +11496,13 @@ function ttSinParpadeo() {
 // que la app palpitaba. El movimiento de las tarjetas ahora lo manda el
 // scroll, no el momento en que se crean.
 function crearTarjeta(t, _idx) {
-  ttSinParpadeo();
   const card = document.createElement('div');
   card.className = 'tarjeta';
   if (typeof _idx === 'number') card.style.setProperty('--i', _idx);
   card.setAttribute('data-sub', subVisualDe(t));
   card.setAttribute('data-pre', (String(t.id).split('-')[0] || '').toUpperCase());   // JDPC / JDIMA / SPAC / DPAC
   card.setAttribute('data-id', t.id);
+  ttSinParpadeo(card, t.id);
   card.onclick = () => abrirDetalle(t);
 
   // Arrastre de tarjetas:
@@ -18272,6 +18368,7 @@ function renderizarValidadas() {
   }
   if (meta) meta.textContent = lista.length + ' tarea' + (lista.length === 1 ? '' : 's');
 
+  ttGuardarAspecto();        // antes de borrar: cómo se ve cada tarjeta ahora mismo
   grid.innerHTML = '';
   if (lista.length === 0) {
     grid.innerHTML = '<div class="validadas-vacio">' +
