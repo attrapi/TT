@@ -7477,6 +7477,144 @@ html[data-tema="oscuro"] {
 }
 
 /* =====================================================================
+   9) LA BARRA DE ARRIBA Y LA FLECHA: MISMO CUERPO QUE EL MENÚ
+
+   Lo mismo que la pieza 8, pero estos botones viven sobre la barra guinda,
+   no sobre el fondo crema, así que piden sus propios tonos: sobre un fondo
+   oscuro el filo iluminado tiene que subir (de .55 a .22) y la sombra
+   oscurecerse. Por eso hay un segundo juego de variables en vez de reusar
+   las del menú.
+
+   De paso se moderniza la forma: Actualizar, Salir, el botón de tema y el
+   bloque del usuario tenían border-radius de 2px —esquinas casi rectas, que
+   es lo que los hacía ver viejos— y pasan a 8px, el mismo redondeo que ya
+   usan los items del menú y la insignia TT. Y los tres primeros estaban con
+   fondo transparente y solo un borde blanco; ahora llevan un relleno
+   translúcido, porque un contorno sin cuerpo no se lee como botón.
+
+   Qué entra: la campanita, el bloque del usuario (con su avatar), el botón
+   de tema, Actualizar, Salir, la píldora DPAC de la marca (que sí es un
+   botón: lleva al portal), la insignia TT, el botón ☰ del celular y la
+   flecha flotante de subir.
+   ===================================================================== */
+:root {
+  --tt-nav-luz:  rgba(255,255,255,.22);
+  --tt-nav-filo: rgba(0,0,0,.16);
+  --tt-nav-s1:   rgba(0,0,0,.20);
+  --tt-nav-s2:   rgba(0,0,0,.26);
+}
+html[data-tema="oscuro"] {
+  --tt-nav-luz:  rgba(255,255,255,.15);
+  --tt-nav-filo: rgba(0,0,0,.40);
+  --tt-nav-s1:   rgba(0,0,0,.45);
+  --tt-nav-s2:   rgba(0,0,0,.55);
+}
+
+.nav-actualizar,
+.nav-salir,
+.nav-tema,
+.notif-btn,
+.nav-usuario,
+.nav-hamburguesa,
+#brandDpac.dpac-pill {
+  box-shadow:
+    inset 0 1px 0 var(--tt-nav-luz),
+    inset 0 -1px 0 var(--tt-nav-filo),
+    0 1px 2px var(--tt-nav-s1),
+    0 3px 6px -2px var(--tt-nav-s2);
+  transition:
+    all .15s,
+    box-shadow .18s var(--tt-firme),
+    translate .14s var(--tt-firme);
+}
+
+.nav-actualizar:hover,
+.nav-salir:hover,
+.nav-tema:hover,
+.notif-btn:hover,
+.nav-usuario:hover,
+.nav-hamburguesa:hover,
+#brandDpac.dpac-pill:hover {
+  box-shadow:
+    inset 0 1px 0 var(--tt-nav-luz),
+    0 3px 6px var(--tt-nav-s1),
+    0 10px 20px -8px var(--tt-nav-s2);
+}
+
+.nav-actualizar:active,
+.nav-salir:active,
+.nav-tema:active,
+.notif-btn:active,
+.nav-usuario:active,
+.nav-hamburguesa:active,
+#brandDpac.dpac-pill:active {
+  box-shadow:
+    inset 0 2px 5px var(--tt-nav-filo),
+    0 1px 1px var(--tt-nav-s1);
+}
+
+/* Cuerpo y esquinas: de contorno transparente de 2px a botón relleno de 8px. */
+.nav-actualizar,
+.nav-salir,
+.nav-tema {
+  background: rgba(255,255,255,.10);
+  border-radius: 8px;
+}
+.nav-usuario { border-radius: 10px; }
+.notif-btn   { background: rgba(255,255,255,.10); }
+
+/* El avatar y la insignia TT son discos/placas, no botones: solo relieve. */
+.nav-usuario-avatar {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    0 2px 5px rgba(0,0,0,.28);
+}
+.nav-tt-badge {
+  box-shadow:
+    inset 0 -1px 0 rgba(0,0,0,.10),
+    0 2px 4px rgba(0,0,0,.22),
+    0 6px 12px -4px rgba(0,0,0,.20);
+}
+/* El globito rojo del contador, despegado de la campana. */
+.notif-badge {
+  box-shadow: 0 1px 3px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+/* La flecha de subir. Aquí el movimiento va en transform y no en translate
+   porque su :hover ya usaba transform: translateY(-2px); mezclar las dos
+   propiedades dejaría una peleando con la otra. */
+.btn-arriba {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 4px 10px rgba(0,0,0,.22),
+    0 10px 22px -6px rgba(0,0,0,.26);
+}
+.btn-arriba:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    0 7px 14px rgba(0,0,0,.26),
+    0 16px 30px -8px rgba(0,0,0,.30);
+}
+.btn-arriba:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.30),
+    0 2px 4px rgba(0,0,0,.22);
+}
+
+/* Igual que en el menú: el relieve se queda siempre, el brinco solo si no
+   pidieron "menos animación". */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-actualizar:hover, .nav-salir:hover, .nav-tema:hover,
+  .notif-btn:hover, .nav-usuario:hover, .nav-hamburguesa:hover,
+  #brandDpac.dpac-pill:hover { translate: 0 -1px; }
+
+  .nav-actualizar:active, .nav-salir:active, .nav-tema:active,
+  .notif-btn:active, .nav-usuario:active, .nav-hamburguesa:active,
+  #brandDpac.dpac-pill:active { translate: 0 1px; }
+}
+
+/* =====================================================================
    6) EL TABLERO: COLUMNA RECORTADA (no "scrolleable") Y ENCABEZADO PEGADO
 
    .columna traía overflow:hidden, nada más para que el contenido respetara
