@@ -3154,20 +3154,20 @@
     display: inline-block;
     background: #ea580c;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 8px;
+    padding: 1px 6px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     animation: pulso-hoy 1.6s ease-in-out infinite;
   }
 
   /* Fila del ID + chips de Vencida/Hoy a la derecha (en la misma línea). */
   .tarjeta-id-fila {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 7px;
     padding-right: 30px;   /* aire para que el ID + "visto" no se encimen con la papelera (esquina sup. der.) */
   }
   .tarjeta-id-fila .tarjeta-id { margin-bottom: 0; }
@@ -3176,7 +3176,7 @@
 
   /* Chips de Vencida/Hoy en su PROPIO renglón (debajo del ID) para que el botón
      de eliminar (arriba a la derecha) no se les encime. */
-  .tarjeta-chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 10px; }
+  .tarjeta-chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 5px; margin: 0 0 7px; }
   .tarjeta-chips .vencida-chip,
   .tarjeta-chips .vence-hoy-chip,
   .tarjeta-chips .nueva-chip,
@@ -3190,13 +3190,13 @@
     display: inline-block;
     background: #0d9488;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   /* El emoji 💬 se dibuja más alto que las letras y agrandaba el chip; lo
      achicamos y centramos para que el "Hilo" mida igual que los demás. */
@@ -3212,11 +3212,11 @@
     display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px;
     margin: 0;
   }
-  .tarjeta-vistos-ojo { font-size: 11px; opacity: 0.65; }
+  .tarjeta-vistos-ojo { font-size: 10px; opacity: 0.65; }
   .tarjeta-vistos .vto-acron {
-    font-size: 9px; font-weight: 800; letter-spacing: 0.03em;
+    font-size: 8.5px; font-weight: 800; letter-spacing: 0.02em;
     background: var(--grafito-tenue); color: var(--grafito);
-    padding: 1px 5px; border-radius: 99px;
+    padding: 0 4px; border-radius: 99px;
   }
   .tarjeta-vistos .vto-acron.vto-creador {
     background: var(--guinda-tenue); color: var(--guinda);
@@ -3233,13 +3233,13 @@
     display: inline-block;
     background: var(--rojo);
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     animation: pulso-vencida 1.2s ease-in-out infinite;
   }
   /* Chip "Concluida": responsables listos, solo falta validar (verde). */
@@ -3247,13 +3247,13 @@
     display: inline-block;
     background: var(--verde, #166534);
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   /* Chip "Nueva": morado-vino (ciruela), ANÁLOGO al guinda institucional para
@@ -3267,13 +3267,13 @@
     display: inline-block;
     background: #7B2D5E;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     animation: pulso-nueva 1.4s ease-in-out infinite;
   }
 
@@ -3283,13 +3283,13 @@
     display: inline-block;
     background: #ea580c;
     color: white;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 2px 9px;
+    padding: 1px 7px;
     border-radius: 999px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   /* === Lista de campos en la tarjeta ===
@@ -3445,12 +3445,12 @@
      subdirección viene cada tarea, no solo por el prefijo del ID. */
   .tarjeta-id {
     font-family: 'SF Mono', 'Consolas', monospace;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
     display: inline-block;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 999px;            /* píldora, misma forma que el chip "Concluida" */
     background: var(--grafito-tenue);
     color: var(--tinta-suave);
@@ -3637,8 +3637,8 @@
   .btn-pildora {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 15px;
+    gap: 5px;
+    padding: 5px 12px;
     border: none;
     border-radius: 999px;
     font-family: var(--sans);
@@ -5336,8 +5336,8 @@
 
   /* Indicador de avance del checklist en la tarjeta (compacto). */
   .tarjeta-progreso {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 10px; padding: 6px 10px;
+    display: flex; align-items: center; gap: 7px;
+    margin-top: 7px; padding: 4px 8px;
     background: #f9fafb; border-radius: 6px;
     font-size: 11px; color: var(--tinta-suave);
   }
