@@ -7502,6 +7502,40 @@ html[data-tema="oscuro"] {
 
 /* El subir y bajar se apaga con "menos animación": el relieve se queda (es
    información: dice qué se puede apretar), el movimiento no. */
+/* Vista Consolidada: que el FONDO cambie al pasar el mouse, como Agendar
+   sala. Hasta ahora no cambiaba porque .sidebar-item.activa (que es como
+   nace en el HTML) le gana en la cascada a .sidebar-item:hover, y ese
+   empate lo resolvía el activo. Con el selector de atributo
+   [data-sub="TODAS"]:hover la cuenta sube a tres y pasa por encima, esté
+   activa o no.
+
+   Se copia el gesto exacto de Agendar sala, incluido su modo oscuro: en
+   claro se va a guinda pleno con texto blanco; en oscuro NO —ahí el guinda
+   ya es un grafito y se perdería— sino a la superficie un punto más clara
+   con el texto en acento, que es justo lo que hace sala.
+
+   El globito del conteo necesita su propia línea: en reposo es gris sobre
+   claro, y sobre el guinda pleno se volvería ilegible. */
+.sidebar-item[data-sub="TODAS"]:hover {
+  background: var(--guinda);
+  color: #fff;
+  border-color: var(--guinda);
+}
+.sidebar-item[data-sub="TODAS"]:hover svg { opacity: 1; }
+.sidebar-item[data-sub="TODAS"]:hover .sidebar-conteo {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+html[data-tema="oscuro"] .sidebar-item[data-sub="TODAS"]:hover {
+  background: #262221;
+  color: var(--acento-claro);
+  border-color: var(--acento);
+}
+html[data-tema="oscuro"] .sidebar-item[data-sub="TODAS"]:hover .sidebar-conteo {
+  background: rgba(255,255,255,.12);
+  color: var(--acento-claro);
+}
+
 /* Sin excepciones: el activo sube y baja igual que el resto. (Antes había
    una regla .sidebar-item.activa { translate: 0 0 } que lo dejaba clavado;
    quitarla basta, porque sin ella mandan estas dos de aquí abajo.) */
