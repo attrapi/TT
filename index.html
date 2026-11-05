@@ -7342,6 +7342,141 @@ html[data-tema="oscuro"] .tt-det > summary:hover { background: var(--guinda-clar
 .vence-hoy-chip { animation-delay: var(--tt-fase-16, 0s); }
 
 /* =====================================================================
+   8) EL MENÚ: BOTONES CON CUERPO
+
+   Los items del menú eran rectángulos planos con borde. La idea aquí es que
+   se lean como botones de verdad: que tengan canto, que suban al pasar el
+   mouse y que se HUNDAN al apretarlos. Ese hundido es lo que más vende la
+   sensación de botón; sin él, una sombra sola es solo decoración.
+
+   Todo se hace con box-shadow, sin tocar el background, y eso no es
+   casualidad: los items del menú NO comparten color de fondo. Los hay
+   blancos, guinda pleno (Inicio), guinda tenue (Agendar sala), teal
+   (Enlaces) y uno por área con su pastel (SGOI-A verde, SPAC azul, SA
+   naranja…). Si el volumen viniera de un degradado de fondo habría que
+   escribir una variante por color y se perdería la identidad de cada área.
+   Una sombra interior clara arriba y una oscura abajo dan el relieve encima
+   de CUALQUIER color.
+
+   Los cuatro tonos van en variables porque en modo oscuro se invierten: la
+   luz de arriba baja de .55 a .07 (sobre una superficie oscura, un filo
+   blanco fuerte se ve como un error) y las sombras suben, porque sobre
+   fondo oscuro una sombra tenue sencillamente no existe.
+
+   El estado ACTIVO va al revés que el hover: en vez de levantarse, se hunde
+   (sombra interior). Así el botón en el que estás parado se distingue del
+   que solo está disponible, sin depender únicamente del color — que aquí ya
+   está ocupado identificando el área.
+   ===================================================================== */
+:root {
+  --tt-btn-luz:   rgba(255,255,255,.55);   /* filo iluminado de arriba */
+  --tt-btn-filo:  rgba(0,0,0,.05);         /* filo en sombra de abajo */
+  --tt-btn-s1:    rgba(26,26,26,.09);      /* sombra de contacto */
+  --tt-btn-s2:    rgba(26,26,26,.11);      /* sombra difusa */
+  --tt-btn-dentro: rgba(105,28,50,.16);    /* hundido del item activo */
+}
+/* En oscuro el relieve NO puede venir de la sombra: una sombra negra sobre un
+   fondo casi negro (--crema es #131110) no se ve. El volumen lo carga el filo
+   iluminado de arriba, que sube de .07 a .13, y el filo oscuro de abajo, que
+   se marca más para separar un botón del siguiente. Las sombras se dejan
+   igual porque todavía ayudan un poco en el hueco entre botones. */
+html[data-tema="oscuro"] {
+  --tt-btn-luz:   rgba(255,255,255,.13);
+  --tt-btn-filo:  rgba(0,0,0,.45);
+  --tt-btn-s1:    rgba(0,0,0,.50);
+  --tt-btn-s2:    rgba(0,0,0,.60);
+  --tt-btn-dentro: rgba(0,0,0,.55);
+}
+
+.sidebar-item {
+  box-shadow:
+    inset 0 1px 0 var(--tt-btn-luz),
+    inset 0 -1px 0 var(--tt-btn-filo),
+    0 1px 2px var(--tt-btn-s1),
+    0 3px 6px -2px var(--tt-btn-s2);
+  transition:
+    background .14s, color .14s, border-color .14s,
+    box-shadow .18s var(--tt-firme),
+    translate .14s var(--tt-firme);
+}
+
+/* Encima: sube y la sombra se abre. */
+.sidebar-item:hover {
+  box-shadow:
+    inset 0 1px 0 var(--tt-btn-luz),
+    0 3px 5px var(--tt-btn-s1),
+    0 10px 18px -7px var(--tt-btn-s2);
+}
+
+/* Apretado: se hunde y la sombra se cierra, como un botón físico. */
+.sidebar-item:active {
+  box-shadow:
+    inset 0 2px 4px var(--tt-btn-filo),
+    0 1px 1px var(--tt-btn-s1);
+}
+
+/* Donde estás parado: hundido y quieto. Va DESPUÉS del :hover a propósito —
+   misma especificidad, así que gana el último y el item activo no se levanta
+   al pasarle el mouse. */
+.sidebar-item.activa {
+  box-shadow:
+    inset 0 1px 3px var(--tt-btn-dentro),
+    0 1px 1px var(--tt-btn-s1);
+}
+.sidebar-item.activa:hover {
+  box-shadow:
+    inset 0 1px 2px var(--tt-btn-dentro),
+    0 2px 4px var(--tt-btn-s1);
+}
+
+/* Inicio es la acción principal del menú: va un escalón más arriba que el
+   resto, para que se note cuál es el botón "grande" de aquí. */
+.sidebar-inicio {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    0 2px 4px var(--tt-btn-s1),
+    0 6px 12px -4px var(--tt-btn-s2);
+}
+.sidebar-inicio:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    0 4px 7px var(--tt-btn-s1),
+    0 12px 22px -8px var(--tt-btn-s2);
+}
+
+/* El encabezado guinda de cada grupo: una placa apoyada sobre sus botones,
+   no un botón más (no se levanta ni se hunde: no se puede apretar). */
+.sidebar-grupo-titulo {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.17),
+    0 2px 5px -1px var(--tt-btn-s2);
+}
+
+/* El número va al revés: grabado hacia adentro del botón. */
+.sidebar-conteo {
+  box-shadow: inset 0 1px 2px var(--tt-btn-filo);
+}
+
+/* La flecha de ocultar el menú. Ojo: su transform ya la usa para centrarse
+   (translate -50%,-50%), así que aquí solo se le toca la sombra. */
+@media (min-width: 861px) {
+  .sidebar-colapsar {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.20),
+      0 2px 5px var(--tt-btn-s1),
+      0 6px 14px -4px var(--tt-btn-s2);
+  }
+}
+
+/* El subir y bajar se apaga con "menos animación": el relieve se queda (es
+   información: dice qué se puede apretar), el movimiento no. */
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-item:hover  { translate: 0 -1px; }
+  .sidebar-item:active { translate: 0 1px; }
+  .sidebar-item.activa { translate: 0 0; }
+}
+
+/* =====================================================================
    6) EL TABLERO: COLUMNA RECORTADA (no "scrolleable") Y ENCABEZADO PEGADO
 
    .columna traía overflow:hidden, nada más para que el contenido respetara
