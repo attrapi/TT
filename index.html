@@ -6998,7 +6998,7 @@
   to   { opacity: 1; translate: 0 0; }
 }
 @keyframes tt-revelar-tarjeta {
-  from { opacity: 0; translate: 0 34px; scale: .94; }
+  from { opacity: 0; translate: 0 56px; scale: .90; }
   to   { opacity: 1; translate: 0 0;    scale: 1;   }
 }
 @keyframes tt-despedir {
@@ -7027,7 +7027,15 @@
     .tarjeta {
       animation: tt-revelar-tarjeta linear both;
       animation-timeline: view(block 76px 0);
-      animation-range: entry 0% entry 60%;
+      /* El carril empieza en 15% (la tarjeta aguanta escondida un poco más al
+         asomarse) y termina en 95%, casi cuando acaba de entrar del todo: así
+         el recorrido dura lo suficiente para apreciarse.
+         El 95% no es capricho: el tope seguro es 100%, porque .tablero deja
+         48px de margen abajo y eso garantiza que hasta la última tarjeta de la
+         columna más larga llegue al final del carril al tocar fondo la página.
+         Pasarse de ahí (p. ej. a 'cover 32%') dejaría esa última a medio
+         revelar para siempre. */
+      animation-range: entry 15% entry 95%;
     }
 
     /* El resumen (KPIs) se despide: al salir por arriba se atenúa y se
@@ -7088,11 +7096,43 @@
   }
 }
 
-/* Mientras dura el cambio de sección se APAGAN las entradas de la pieza 4.
-   Si no, la foto de "lo nuevo" se tomaría con las tarjetas todavía en
-   opacidad 0 (apenas insertadas) y la sección entraría vacía. */
+/* =====================================================================
+   ANTIPARPADEO — por qué existe esta regla
+
+   El tablero NO se actualiza por partes: renderizarTablero() vacía el
+   contenedor y vuelve a crear todas las tarjetas. Y eso pasa seguido:
+   en cada tecla del buscador, en cada filtro, cada 60s por el
+   auto-refresh y en cada evento del tiempo real de Supabase (que incluye
+   el "visto" que se graba cuando CUALQUIERA abre una tarea).
+
+   Con elementos recién creados eso tiene dos efectos feos:
+
+     · Una tarjeta con animation-timeline: view() necesita un cuadro de
+       maquetación antes de poder resolver su carril. En ese primer cuadro
+       se queda en el estado inicial — opacidad 0 — y el tablero entero
+       pega un parpadeo. Pasa aunque la tarjeta esté a media pantalla.
+
+     · Cualquier entrada con @starting-style se vuelve a tocar completa.
+       Por eso .columna y .tarjeta ya NO la llevan: no se alcanzaba a ver
+       como "entrada", se veía como que la app palpitaba sola. @starting-style
+       se quedó donde el elemento nace de verdad una vez (el modal, los
+       chips, las cards del resumen al desplegarlo) y en los <details>.
+
+   La solución es tt-quieto: durante los dos cuadros que tarda en resolverse
+   el carril se fuerza el estado final con !important. Y sí, !important le
+   gana a una animación: en la cascada las declaraciones importantes del autor
+   van por encima de las animaciones. La animación sigue puesta —solo está
+   tapada—, así que cuando se quita la clase ya tiene el carril resuelto y
+   toma su valor correcto sin brincar.
+   ===================================================================== */
+html.tt-quieto .tarjeta {
+  opacity: 1 !important;
+  translate: none !important;
+  scale: 1 !important;
+}
+/* Durante el cambio de sección, lo mismo: si no, la foto de "lo nuevo" se
+   tomaría con las tarjetas todavía invisibles y la sección entraría vacía. */
 html.tt-vt .tarjeta,
-html.tt-vt .columna,
 html.tt-vt .kpi-card { transition: none !important; }
 
 /* =====================================================================
@@ -7102,42 +7142,6 @@ html.tt-vt .kpi-card { transition: none !important; }
    clase extra y un requestAnimationFrame en JS; ahora es puro CSS.
    ===================================================================== */
 @media (prefers-reduced-motion: no-preference) {
-
-  /* --- Tarjetas del tablero -----------------------------------------
-     Se usan translate/scale (propiedades independientes) y NO transform,
-     porque transform ya lo ocupan el :hover (-1px), el arrastre y el
-     pulso de "tarjeta recién editada". Así no se pisan.
-
-     El transition de .tarjeta sigue siendo "all .15s" para el hover; lo
-     que va DESPUÉS en la lista solo reemplaza esas tres propiedades
-     (en el shorthand, la última mención de una propiedad gana).
-
-     El retraso en cascada (--i, lo pone crearTarjeta) se topa en 400 ms:
-     con 60 tarjetas a 30 ms cada una, la última tardaría casi dos
-     segundos en aparecer. */
-  .tarjeta {
-    --tt-paso: min(calc(var(--i, 0) * 30ms), 400ms);
-    scale: 1;
-    transition:
-      all       .15s ease,
-      opacity   var(--tt-dur) var(--tt-entrada) var(--tt-paso),
-      translate var(--tt-dur) var(--tt-entrada) var(--tt-paso),
-      scale     var(--tt-dur) var(--tt-entrada) var(--tt-paso);
-  }
-  @starting-style {
-    .tarjeta { opacity: 0; translate: 0 22px; scale: .94; }
-  }
-
-  /* --- Columnas del tablero ----------------------------------------- */
-  .columna {
-    transition:
-      box-shadow .18s ease,
-      opacity    .5s var(--tt-entrada),
-      translate  .5s var(--tt-entrada);
-  }
-  @starting-style {
-    .columna { opacity: 0; translate: 0 30px; }
-  }
 
   /* --- Cards del resumen (también al abrir el resumen recogido) ------ */
   .kpi-card {
@@ -11021,10 +11025,34 @@ function asignarPorArrastre(idTarea, col) {
   toast('Tarea ' + t.id + ' → ' + (col.titulo || ''), 'ok');
 }
 
-// _idx = posición de la tarjeta en su columna. Solo sirve para el retraso en
-// cascada de la entrada (--i en el CSS: cada tarjeta aparece 30 ms después de
-// la anterior, topado a 400 ms). Si no se pasa, entran todas juntas.
+// Tapa el parpadeo de un cuadro que deja una tarjeta recién creada mientras
+// su carril de scroll (animation-timeline: view()) termina de resolverse. Ver
+// la regla html.tt-quieto en <style id="pulido">, que explica el porqué.
+//
+// Dos requestAnimationFrame y no uno: el callback del primero corre ANTES de
+// que el navegador calcule estilos de ese cuadro, así que quitar la clase ahí
+// la quitaría demasiado pronto y el parpadeo seguiría. Con el segundo, el
+// cuadro ya se pintó con la clase puesta.
+let _ttQuietoRaf = 0;
+function ttSinParpadeo() {
+  const raiz = document.documentElement;
+  raiz.classList.add('tt-quieto');
+  if (_ttQuietoRaf) cancelAnimationFrame(_ttQuietoRaf);
+  _ttQuietoRaf = requestAnimationFrame(function () {
+    _ttQuietoRaf = requestAnimationFrame(function () {
+      _ttQuietoRaf = 0;
+      raiz.classList.remove('tt-quieto');
+    });
+  });
+}
+
+// _idx = posición de la tarjeta en su columna. Hoy solo queda como dato
+// (data-i) por si vuelve a hacer falta un retraso en cascada: la entrada
+// escalonada se quitó porque se repetía en cada re-render y se sentía como
+// que la app palpitaba. El movimiento de las tarjetas ahora lo manda el
+// scroll, no el momento en que se crean.
 function crearTarjeta(t, _idx) {
+  ttSinParpadeo();
   const card = document.createElement('div');
   card.className = 'tarjeta';
   if (typeof _idx === 'number') card.style.setProperty('--i', _idx);
