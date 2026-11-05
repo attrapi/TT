@@ -7183,15 +7183,22 @@ html.tt-vt .kpi-card { transition: none !important; }
     .modal-fondo.activo > .modal { opacity: 0; translate: 0 20px; scale: .975; }
   }
 
-  /* --- Chips que nacen dentro de una tarjeta ------------------------ */
-  .vencida-chip, .vence-hoy-chip, .concluida-chip,
-  .nueva-chip, .reprog-chip, .hilo-chip {
-    transition: opacity .35s var(--tt-entrada), scale .35s var(--tt-entrada);
-  }
-  @starting-style {
-    .vencida-chip, .vence-hoy-chip, .concluida-chip,
-    .nueva-chip, .reprog-chip, .hilo-chip { opacity: 0; scale: .8; }
-  }
+  /* --- Chips: NO llevan entrada, y la razón vale la pena anotarla ----
+     Tenían @starting-style (opacidad 0 → 1, escala .8 → 1). El error fue el
+     mismo que con .columna: un chip no "nace" una vez — vive DENTRO de una
+     tarjeta, y renderizarTablero() recrea todas las tarjetas en cada tecla
+     del buscador, cada filtro y cada 60s del auto-refresh. Medido en un
+     tablero de 24 tareas, cada refresco disparaba 34 entradas de golpe
+     (24 "Nueva", 9 "Vencida", 1 "Hoy"): eso no se lee como que los chips
+     aparecen, se lee como que el tablero entero palpita.
+
+     Aparte, los chips YA traen su propio latido a propósito (pulso-vencida,
+     pulso-nueva, pulso-hoy, infinitos, de antes de todo esto). Montarles una
+     entrada encima era ruido sobre ruido.
+
+     html.tt-quieto no los cubría porque solo alcanza a .tarjeta, no a lo que
+     lleva adentro; se podría haber extendido, pero no hay nada que salvar:
+     la entrada aquí nunca se vio como entrada. */
 }
 
 /* =====================================================================
@@ -7282,6 +7289,30 @@ html.tt-vt .kpi-card { transition: none !important; }
 /* En oscuro el summary se apoya en papel-2, que ya es oscuro; solo hay que
    cambiar el hover para que no reviente de contraste. */
 html[data-tema="oscuro"] .tt-det > summary:hover { background: var(--guinda-claro); }
+
+/* =====================================================================
+   7) LOS LATIDOS DE LOS CHIPS NO SE REINICIAN EN CADA RE-RENDER
+
+   "Vencida", "Nueva" y "Hoy" llevan un latido infinito de antes de todo
+   esto (pulso-vencida 1.2s, pulso-nueva 1.4s, pulso-hoy 1.6s) y está bien
+   que lo lleven: es lo que hace que saltes a la tarea urgente.
+
+   El problema es que una animación empieza en cero cuando el elemento
+   nace, y estos chips nacen de nuevo cada vez que se repinta el tablero
+   (cada tecla del buscador, cada filtro, cada 60s del auto-refresh). Como
+   todos nacen en el mismo instante, los 24 ó 34 chips están SIEMPRE en la
+   misma fase, así que el reinicio no es un chip volviendo a empezar: es el
+   tablero entero dando un brinco al unísono. Medido: justo antes de un
+   repintado iban en 25130ms de su ciclo, justo después en 0.
+
+   El desfase negativo lo arregla sin tocar los latidos: crearTarjeta()
+   guarda en --tt-fase-* en qué punto del ciclo va el reloj, y un chip
+   recién nacido arranca ya avanzado hasta ahí. Retoma donde iban los
+   anteriores en vez de volver a empezar.
+   ===================================================================== */
+.vencida-chip   { animation-delay: var(--tt-fase-12, 0s); }
+.nueva-chip     { animation-delay: var(--tt-fase-14, 0s); }
+.vence-hoy-chip { animation-delay: var(--tt-fase-16, 0s); }
 
 /* =====================================================================
    6) EL TABLERO: COLUMNA RECORTADA (no "scrolleable") Y ENCABEZADO PEGADO
@@ -11036,6 +11067,17 @@ function asignarPorArrastre(idTarea, col) {
 let _ttQuietoRaf = 0;
 function ttSinParpadeo() {
   const raiz = document.documentElement;
+  // En qué punto de su ciclo van los latidos de los chips, para que los que
+  // están a punto de nacer arranquen ahí y no desde cero. Ver la pieza 7 del
+  // CSS. Se recalcula SIEMPRE, sin reutilizar la bandera de _ttQuietoRaf: esa
+  // sigue viva durante dos cuadros, y un repintado que cayera dentro de esa
+  // ventana (pasa al teclear en el buscador) se habría quedado con la fase
+  // vieja y habría dado justo el brinco que esto evita. Las 24 llamadas de un
+  // mismo repintado caen en el mismo milisegundo, así que todas coinciden.
+  const ahora = performance.now();
+  raiz.style.setProperty('--tt-fase-12', '-' + ((ahora % 1200) / 1000).toFixed(3) + 's');
+  raiz.style.setProperty('--tt-fase-14', '-' + ((ahora % 1400) / 1000).toFixed(3) + 's');
+  raiz.style.setProperty('--tt-fase-16', '-' + ((ahora % 1600) / 1000).toFixed(3) + 's');
   raiz.classList.add('tt-quieto');
   if (_ttQuietoRaf) cancelAnimationFrame(_ttQuietoRaf);
   _ttQuietoRaf = requestAnimationFrame(function () {
