@@ -7374,6 +7374,8 @@ html[data-tema="oscuro"] .tt-det > summary:hover { background: var(--guinda-clar
   --tt-btn-s1:    rgba(26,26,26,.09);      /* sombra de contacto */
   --tt-btn-s2:    rgba(26,26,26,.11);      /* sombra difusa */
   --tt-btn-dentro: rgba(105,28,50,.16);    /* hundido del item activo */
+  --tt-btn-aro:    rgba(105,28,50,.30);    /* aro del activo al pasar el mouse */
+  --tt-btn-tinte:  rgba(26,26,26,.055);    /* oscurecido del activo al pasar */
 }
 /* En oscuro el relieve NO puede venir de la sombra: una sombra negra sobre un
    fondo casi negro (--crema es #131110) no se ve. El volumen lo carga el filo
@@ -7386,6 +7388,8 @@ html[data-tema="oscuro"] {
   --tt-btn-s1:    rgba(0,0,0,.50);
   --tt-btn-s2:    rgba(0,0,0,.60);
   --tt-btn-dentro: rgba(0,0,0,.55);
+  --tt-btn-aro:    rgba(255,255,255,.26);
+  --tt-btn-tinte:  rgba(255,255,255,.07);  /* en oscuro se ACLARA, no se oscurece */
 }
 
 .sidebar-item {
@@ -7423,10 +7427,39 @@ html[data-tema="oscuro"] {
     inset 0 1px 3px var(--tt-btn-dentro),
     0 1px 1px var(--tt-btn-s1);
 }
+/* El item ACTIVO también tiene que responder. Antes no lo hacía y se sentía
+   muerto: como no se levanta (está "sentado", eso es lo que lo distingue), lo
+   único que cambiaba era el desenfoque de la sombra interior de 3px a 2px —
+   literalmente invisible. Y el fondo tampoco cambiaba, porque .sidebar-item.activa
+   le gana en la cascada a .sidebar-item:hover.
+
+   Ahora responde con tres cosas que NO necesitan moverlo ni cambiarle el color
+   de fondo:
+     · un aro alrededor,
+     · un tinte encima, y
+     · la sombra interior más marcada.
+
+   El tinte se hace con una sombra interior de 100px de ancho, que cubre el
+   botón entero. Es la única manera de oscurecerlo sin tocar background: estos
+   items NO comparten fondo (blanco, guinda tenue, y un pastel por área), así
+   que cualquier color fijo rompería la identidad de alguno. En oscuro el tinte
+   ACLARA en vez de oscurecer, porque sobre un fondo casi negro oscurecer más
+   no se ve. */
 .sidebar-item.activa:hover {
   box-shadow:
-    inset 0 1px 2px var(--tt-btn-dentro),
-    0 2px 4px var(--tt-btn-s1);
+    inset 0 2px 5px var(--tt-btn-dentro),
+    inset 0 0 0 100px var(--tt-btn-tinte),
+    0 0 0 2px var(--tt-btn-aro),
+    0 2px 5px var(--tt-btn-s1);
+}
+
+/* Y al apretarlo se hunde más, para que se sienta que sí se puede volver a
+   picar aunque ya estés parado ahí. */
+.sidebar-item.activa:active {
+  box-shadow:
+    inset 0 3px 7px var(--tt-btn-dentro),
+    inset 0 0 0 100px var(--tt-btn-tinte),
+    0 1px 1px var(--tt-btn-s1);
 }
 
 /* Inicio es la acción principal del menú: va un escalón más arriba que el
@@ -7473,7 +7506,11 @@ html[data-tema="oscuro"] {
 @media (prefers-reduced-motion: no-preference) {
   .sidebar-item:hover  { translate: 0 -1px; }
   .sidebar-item:active { translate: 0 1px; }
+  /* El activo no se levanta al pasarle el mouse (sigue sentado)… */
   .sidebar-item.activa { translate: 0 0; }
+  /* …pero sí se hunde al apretarlo. Lleva :active para ganarle por
+     especificidad a la línea de arriba, que si no lo dejaría clavado. */
+  .sidebar-item.activa:active { translate: 0 1px; }
 }
 
 /* =====================================================================
