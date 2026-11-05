@@ -6934,11 +6934,14 @@
    ===================================================================== */
 .nav-progreso {
   position: absolute;
-  left: 0; right: 0; bottom: -4px;   /* encima del borde guinda-oscuro del nav */
-  height: 4px;
+  left: 0; right: 0; bottom: -5px;   /* encima del borde guinda-oscuro del nav */
+  height: 5px;
   overflow: hidden;
   pointer-events: none;
   z-index: 2;
+  /* El carril oscuro es lo que hace que se LEA como barra de avance. Sin él
+     solo se veía una franja clara sobre el guinda y no se entendía qué era. */
+  background: rgba(0, 0, 0, .28);
 }
 .nav-progreso > i {
   display: block;
@@ -6950,7 +6953,8 @@
   scale: 0 1;
   /* Arranca translúcida y termina en blanco sólido: así se lee contra el
      guinda del header sin convertirse en una franja que compita con la marca. */
-  background: linear-gradient(90deg, rgba(255,255,255,.42), rgba(255,255,255,.92) 55%, #fff);
+  background: linear-gradient(90deg, #E8C9A0, #FFF6E8 60%, #fff);
+  box-shadow: 0 0 10px rgba(255, 246, 232, .55);
 }
 @keyframes tt-avance { from { scale: 0 1; } to { scale: 1 1; } }
 
@@ -6974,14 +6978,28 @@
    entrar y se quedaría a medio aparecer. A 55% basta con que medio
    elemento se vea para que ya esté completo.
 
-   Ojo: NO se usa para las tarjetas del tablero. Viven dentro de .columna,
-   que tiene overflow:hidden y por eso cuenta como contenedor de scroll
-   SIN recorrido — el reloj no avanzaría nunca y se quedarían invisibles.
-   Las tarjetas entran con @starting-style (pieza 4).
+   Las TARJETAS del tablero también entran aquí, y eso pide una nota: antes
+   no podían. Viven dentro de .columna, que usaba overflow:hidden, y eso la
+   convierte en contenedor de scroll; el carril de la tarjeta se medía contra
+   la columna, que no tiene recorrido, y las tarjetas se habrían quedado
+   invisibles. Se cambió a overflow:clip (recorta igual, pero NO es contenedor
+   de scroll), así que ahora el carril es la página — que es lo que se mueve.
+   De paso eso permitió pegar el encabezado de cada columna (pieza 6).
+
+   Entre el revelado y la entrada con @starting-style (pieza 4) no hay pleito,
+   se reparten solas: una animación le gana a una transición en la cascada, así
+   que mientras haya scroll manda el revelado; cuando el tablero cabe entero en
+   la pantalla el carril queda inactivo, la animación no se aplica y entonces
+   sí corre la entrada en cascada. Tablero largo → revelado; tablero corto →
+   entrada. Las dos cosas, sin una línea de JS.
    ===================================================================== */
 @keyframes tt-revelar {
   from { opacity: 0; translate: 0 26px; }
   to   { opacity: 1; translate: 0 0; }
+}
+@keyframes tt-revelar-tarjeta {
+  from { opacity: 0; translate: 0 34px; scale: .94; }
+  to   { opacity: 1; translate: 0 0;    scale: 1;   }
 }
 @keyframes tt-despedir {
   from { opacity: 1;   scale: 1;    }
@@ -6999,6 +7017,17 @@
       animation: tt-revelar linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 55%;
+    }
+
+    /* Las tarjetas del tablero: el movimiento que más se ve, porque es donde
+       se pasa el día. Sube un poco más (34px) y arranca más chica que el
+       resto — una tarjeta es un objeto, no un renglón, y aguanta más gesto.
+       El carril se recorta 76px arriba (la altura del header fijo) para que
+       el revelado no ocurra detrás de la barra guinda. */
+    .tarjeta {
+      animation: tt-revelar-tarjeta linear both;
+      animation-timeline: view(block 76px 0);
+      animation-range: entry 0% entry 60%;
     }
 
     /* El resumen (KPIs) se despide: al salir por arriba se atenúa y se
@@ -7027,8 +7056,8 @@
    Sin eso, el nombre "root" captura toda la página (menú incluido) y se
    siente como si se recargara.
    ===================================================================== */
-@keyframes tt-vt-sale  { to   { opacity: 0; translate: 0 -14px; } }
-@keyframes tt-vt-entra { from { opacity: 0; translate: 0 22px;  } }
+@keyframes tt-vt-sale  { to   { opacity: 0; translate: 0 -26px; } }
+@keyframes tt-vt-entra { from { opacity: 0; translate: 0 40px;  } }
 
 @supports (view-transition-name: tt-main) {
   @media (prefers-reduced-motion: no-preference) {
@@ -7049,8 +7078,8 @@
     }
     ::view-transition-image-pair(tt-main) { isolation: auto; }
 
-    ::view-transition-old(tt-main) { animation: tt-vt-sale  .20s var(--tt-firme) both; }
-    ::view-transition-new(tt-main) { animation: tt-vt-entra .34s var(--tt-entrada) both; }
+    ::view-transition-old(tt-main) { animation: tt-vt-sale  .22s var(--tt-firme) both; }
+    ::view-transition-new(tt-main) { animation: tt-vt-entra .42s var(--tt-entrada) both; }
 
     /* El header y el menú no se mueven: duración casi nula para que el
        navegador no los interpole. */
@@ -7096,7 +7125,7 @@ html.tt-vt .kpi-card { transition: none !important; }
       scale     var(--tt-dur) var(--tt-entrada) var(--tt-paso);
   }
   @starting-style {
-    .tarjeta { opacity: 0; translate: 0 14px; scale: .97; }
+    .tarjeta { opacity: 0; translate: 0 22px; scale: .94; }
   }
 
   /* --- Columnas del tablero ----------------------------------------- */
@@ -7107,7 +7136,7 @@ html.tt-vt .kpi-card { transition: none !important; }
       translate  .5s var(--tt-entrada);
   }
   @starting-style {
-    .columna { opacity: 0; translate: 0 18px; }
+    .columna { opacity: 0; translate: 0 30px; }
   }
 
   /* --- Cards del resumen (también al abrir el resumen recogido) ------ */
@@ -7249,6 +7278,51 @@ html.tt-vt .kpi-card { transition: none !important; }
 /* En oscuro el summary se apoya en papel-2, que ya es oscuro; solo hay que
    cambiar el hover para que no reviente de contraste. */
 html[data-tema="oscuro"] .tt-det > summary:hover { background: var(--guinda-claro); }
+
+/* =====================================================================
+   6) EL TABLERO: COLUMNA RECORTADA (no "scrolleable") Y ENCABEZADO PEGADO
+
+   .columna traía overflow:hidden, nada más para que el contenido respetara
+   la esquina redondeada. El efecto secundario era caro: overflow:hidden
+   convierte al elemento en CONTENEDOR DE SCROLL, y eso significaba que
+     · position:sticky adentro se medía contra la columna (inútil), y
+     · animation-timeline: view() de las tarjetas también (carril muerto).
+
+   overflow:clip recorta exactamente igual y NO es contenedor de scroll. Con
+   ese cambio de una palabra el encabezado de cada columna se puede pegar
+   bajo el header y las tarjetas pueden revelarse con el scroll de la página.
+   ===================================================================== */
+:root { --tt-header: 76px; }          /* alto del header fijo + su borde */
+@media (max-width: 860px) { :root { --tt-header: 62px; } }
+
+.columna { overflow: clip; }
+
+.col-header {
+  position: sticky;
+  top: var(--tt-header);
+  z-index: 4;
+  /* Los .col-color-* ya le ponen fondo opaco a cada encabezado; sin eso las
+     tarjetas se verían pasar por detrás. Este es el respaldo para una columna
+     sin color asignado. */
+  background: var(--papel, #fff);
+}
+
+/* La sombra del encabezado pegado aparece con el scroll, no de golpe: a
+   página arriba no hay nada que separar, y a los 180px ya está despegado.
+   Otro carril de scroll, esta vez para una sola propiedad. */
+@keyframes tt-sombra-cab {
+  from { box-shadow: 0 0 0 rgba(0,0,0,0); }
+  to   { box-shadow: 0 6px 14px rgba(0,0,0,.13); }
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .col-header {
+      animation: tt-sombra-cab linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 180px;
+    }
+  }
+}
 </style>
 </head>
 <body>
