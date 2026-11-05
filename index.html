@@ -6894,6 +6894,362 @@
   }
 /* ===== FIN MODO OSCURO ===== */
 </style>
+<style id="pulido">
+/* =====================================================================
+   PULIDO — el movimiento de la página (CSS moderno)
+
+   Vive en un bloque APARTE y DESPUÉS del modo oscuro a propósito:
+     · El bloque de arriba (temaOscuro) lo regenera un script; si esto
+       estuviera dentro, se perdería en la próxima corrida.
+     · Al ir después, estas reglas mandan sin pelear por especificidad.
+     · Solo usa tokens que existen en los DOS temas (--papel, --acento,
+       --linea, --tinta…), así no hay que mantener una copia oscura.
+
+   Cinco piezas. TODAS con red de seguridad (@supports y
+   prefers-reduced-motion): en un navegador que no las soporte, o para
+   quien pidió "menos animación" en su sistema, la página se ve y se
+   comporta EXACTAMENTE como antes.
+
+     1) Barra de avance del scroll   → animation-timeline: scroll()
+     2) Bloques que se revelan       → animation-timeline: view()
+     3) Cambio de sección            → View Transitions API
+     4) Entradas (tarjetas, modal)   → @starting-style
+     5) Detalle plegable             → <details> + ::details-content
+   ===================================================================== */
+
+:root {
+  /* Una sola curva para todo lo que ENTRA (arranca rápido, frena suave) y
+     otra para lo que solo se mueve. Tenerlas como variables evita que cada
+     regla invente la suya y que el conjunto se sienta disparejo. */
+  --tt-entrada: cubic-bezier(.22, .78, .26, 1);
+  --tt-firme:   cubic-bezier(.40, 0, .20, 1);
+  --tt-dur:     .42s;
+}
+
+/* =====================================================================
+   1) BARRA DE AVANCE DEL SCROLL
+   Una línea que se llena conforme bajas, pegada al borde inferior del
+   header (que ya es sticky). Sin JS: el reloj de la animación ES el
+   scroll de la página (animation-timeline: scroll(root block)).
+   ===================================================================== */
+.nav-progreso {
+  position: absolute;
+  left: 0; right: 0; bottom: -4px;   /* encima del borde guinda-oscuro del nav */
+  height: 4px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.nav-progreso > i {
+  display: block;
+  height: 100%;
+  /* Se dibuja a todo lo ancho y se ESCALA desde la izquierda: escalar es
+     mucho más barato para el navegador que animar el ancho. */
+  width: 100%;
+  transform-origin: 0 50%;
+  scale: 0 1;
+  /* Arranca translúcida y termina en blanco sólido: así se lee contra el
+     guinda del header sin convertirse en una franja que compita con la marca. */
+  background: linear-gradient(90deg, rgba(255,255,255,.42), rgba(255,255,255,.92) 55%, #fff);
+}
+@keyframes tt-avance { from { scale: 0 1; } to { scale: 1 1; } }
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .nav-progreso > i {
+      animation: tt-avance linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+}
+
+/* =====================================================================
+   2) BLOQUES QUE SE REVELAN AL SCROLL
+   Las listas largas (volantes, seguimiento, reportes, carga, indicadores
+   y la bitácora dentro del detalle) suben y se aclaran al entrar a la
+   pantalla.
+
+   El rango se corta en "entry 55%" a propósito: con 100% el ÚLTIMO
+   elemento de una página que casi no hace scroll nunca terminaría de
+   entrar y se quedaría a medio aparecer. A 55% basta con que medio
+   elemento se vea para que ya esté completo.
+
+   Ojo: NO se usa para las tarjetas del tablero. Viven dentro de .columna,
+   que tiene overflow:hidden y por eso cuenta como contenedor de scroll
+   SIN recorrido — el reloj no avanzaría nunca y se quedarían invisibles.
+   Las tarjetas entran con @starting-style (pieza 4).
+   ===================================================================== */
+@keyframes tt-revelar {
+  from { opacity: 0; translate: 0 26px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+@keyframes tt-despedir {
+  from { opacity: 1;   scale: 1;    }
+  to   { opacity: .38; scale: .985; }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .vol-card,
+    .seg-card,
+    .reporte-card,
+    .carga-card,
+    .dash-card,
+    .modal-bitacora .bitacora-item {
+      animation: tt-revelar linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    /* El resumen (KPIs) se despide: al salir por arriba se atenúa y se
+       encoge un pelo, en lugar de cortarse seco contra el header. Nunca
+       llega a desaparecer (se queda en .38) para que siga leyéndose si
+       te detienes a medio camino. */
+    .kpis {
+      animation: tt-despedir linear both;
+      /* El "76px 0" recorta el inicio del carril por la altura del header, que
+         es fijo: sin eso el resumen contaría como "ya salió" cuando en realidad
+         sigue a la vista, tapado por el header, y el fundido pasaría escondido. */
+      animation-timeline: view(block 76px 0);
+      animation-range: exit 0% exit 100%;
+    }
+  }
+}
+
+/* =====================================================================
+   3) CAMBIO DE SECCIÓN (View Transitions)
+   Al pasar de Tablero a Bitácora, Indicadores, Volantes… el contenido ya
+   no parpadea: lo viejo se va hacia arriba y lo nuevo entra desde abajo.
+   Quien dispara esto es conTransicion() (JS).
+
+   El header y el menú llevan su propio view-transition-name para quedar
+   FUERA del cambio: así se quedan quietos y solo se mueve el contenido.
+   Sin eso, el nombre "root" captura toda la página (menú incluido) y se
+   siente como si se recargara.
+   ===================================================================== */
+@keyframes tt-vt-sale  { to   { opacity: 0; translate: 0 -14px; } }
+@keyframes tt-vt-entra { from { opacity: 0; translate: 0 22px;  } }
+
+@supports (view-transition-name: tt-main) {
+  @media (prefers-reduced-motion: no-preference) {
+    .nav      { view-transition-name: tt-nav; }
+    .sidebar  { view-transition-name: tt-menu; }
+    .app-main { view-transition-name: tt-main; }
+
+    /* El grupo NO debe animar su tamaño: las secciones tienen alturas muy
+       distintas y el navegador estiraría la foto de la vieja hasta la
+       altura de la nueva (se ve derretida). Con height:auto cada foto
+       conserva su proporción y solo se cruzan opacidad y posición. */
+    ::view-transition-old(tt-main),
+    ::view-transition-new(tt-main) {
+      height: auto;
+      width: 100%;
+      overflow: clip;
+      mix-blend-mode: normal;
+    }
+    ::view-transition-image-pair(tt-main) { isolation: auto; }
+
+    ::view-transition-old(tt-main) { animation: tt-vt-sale  .20s var(--tt-firme) both; }
+    ::view-transition-new(tt-main) { animation: tt-vt-entra .34s var(--tt-entrada) both; }
+
+    /* El header y el menú no se mueven: duración casi nula para que el
+       navegador no los interpole. */
+    ::view-transition-group(tt-nav),
+    ::view-transition-group(tt-menu) { animation-duration: .01s; }
+  }
+}
+
+/* Mientras dura el cambio de sección se APAGAN las entradas de la pieza 4.
+   Si no, la foto de "lo nuevo" se tomaría con las tarjetas todavía en
+   opacidad 0 (apenas insertadas) y la sección entraría vacía. */
+html.tt-vt .tarjeta,
+html.tt-vt .columna,
+html.tt-vt .kpi-card { transition: none !important; }
+
+/* =====================================================================
+   4) ENTRADAS CON @starting-style
+   @starting-style es el estado "de dónde viene" un elemento que acaba de
+   nacer (o que pasó de display:none a visible). Antes esto pedía una
+   clase extra y un requestAnimationFrame en JS; ahora es puro CSS.
+   ===================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* --- Tarjetas del tablero -----------------------------------------
+     Se usan translate/scale (propiedades independientes) y NO transform,
+     porque transform ya lo ocupan el :hover (-1px), el arrastre y el
+     pulso de "tarjeta recién editada". Así no se pisan.
+
+     El transition de .tarjeta sigue siendo "all .15s" para el hover; lo
+     que va DESPUÉS en la lista solo reemplaza esas tres propiedades
+     (en el shorthand, la última mención de una propiedad gana).
+
+     El retraso en cascada (--i, lo pone crearTarjeta) se topa en 400 ms:
+     con 60 tarjetas a 30 ms cada una, la última tardaría casi dos
+     segundos en aparecer. */
+  .tarjeta {
+    --tt-paso: min(calc(var(--i, 0) * 30ms), 400ms);
+    scale: 1;
+    transition:
+      all       .15s ease,
+      opacity   var(--tt-dur) var(--tt-entrada) var(--tt-paso),
+      translate var(--tt-dur) var(--tt-entrada) var(--tt-paso),
+      scale     var(--tt-dur) var(--tt-entrada) var(--tt-paso);
+  }
+  @starting-style {
+    .tarjeta { opacity: 0; translate: 0 14px; scale: .97; }
+  }
+
+  /* --- Columnas del tablero ----------------------------------------- */
+  .columna {
+    transition:
+      box-shadow .18s ease,
+      opacity    .5s var(--tt-entrada),
+      translate  .5s var(--tt-entrada);
+  }
+  @starting-style {
+    .columna { opacity: 0; translate: 0 18px; }
+  }
+
+  /* --- Cards del resumen (también al abrir el resumen recogido) ------ */
+  .kpi-card {
+    transition:
+      opacity   .45s var(--tt-entrada) var(--tt-paso, 0ms),
+      translate .45s var(--tt-entrada) var(--tt-paso, 0ms);
+  }
+  .kpi-card:nth-child(2) { --tt-paso: 80ms; }
+  @starting-style {
+    .kpi-card { opacity: 0; translate: 0 16px; }
+  }
+
+  /* --- Modal del detalle -------------------------------------------
+     El fondo pasa de display:none a flex. "display .22s allow-discrete"
+     es lo que permite que el display espere a que termine el fundido al
+     CERRAR (antes desaparecía de golpe). */
+  .modal-fondo {
+    opacity: 0;
+    transition:
+      opacity .22s var(--tt-firme),
+      display .22s allow-discrete;
+  }
+  .modal-fondo.activo { opacity: 1; }
+  /* Al cerrar, el fondo sigue existiendo esos .22s mientras se desvanece
+     (eso hace allow-discrete). Sin esto seguiría comiéndose los clics de la
+     página de atrás durante ese rato. */
+  .modal-fondo:not(.activo) { pointer-events: none; }
+  @starting-style {
+    .modal-fondo.activo { opacity: 0; }
+  }
+
+  .modal-fondo > .modal {
+    transition:
+      opacity   .26s var(--tt-entrada),
+      translate .30s var(--tt-entrada),
+      scale     .30s var(--tt-entrada);
+  }
+  @starting-style {
+    .modal-fondo.activo > .modal { opacity: 0; translate: 0 20px; scale: .975; }
+  }
+
+  /* --- Chips que nacen dentro de una tarjeta ------------------------ */
+  .vencida-chip, .vence-hoy-chip, .concluida-chip,
+  .nueva-chip, .reprog-chip, .hilo-chip {
+    transition: opacity .35s var(--tt-entrada), scale .35s var(--tt-entrada);
+  }
+  @starting-style {
+    .vencida-chip, .vence-hoy-chip, .concluida-chip,
+    .nueva-chip, .reprog-chip, .hilo-chip { opacity: 0; scale: .8; }
+  }
+}
+
+/* =====================================================================
+   5) DETALLE PLEGABLE (<details> nativo, con apertura animada)
+   Acciones / Hilo / Bitácora dentro del detalle de la tarea. Antes eran
+   tres bloques fijos y el modal se volvía larguísimo; ahora se abren y
+   cierran, recuerdan cómo los dejaste y traen su conteo en el título.
+
+   Se usa <details> de verdad (no divs con JS) porque trae gratis el
+   teclado, el buscador del navegador (Ctrl+F abre la sección) y el
+   lector de pantalla.
+
+   La animación necesita dos cosas nuevas:
+     · interpolate-size: allow-keywords → deja animar hacia "auto".
+     · ::details-content → el contenedor implícito del contenido.
+   Donde no existan, el <details> simplemente abre y cierra de golpe:
+   mismo funcionamiento, sin la animación.
+   ===================================================================== */
+.tt-det {
+  margin-bottom: 20px;
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  background: var(--papel, #fff);
+  overflow: hidden;   /* para que el fondo del summary respete el radio */
+}
+.tt-det > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;          /* quita el triangulito nativo */
+  user-select: none;
+  background: var(--papel-2, #FAF9F7);
+  border-bottom: 1px solid transparent;
+  transition: background .16s, border-color .2s;
+}
+.tt-det > summary::-webkit-details-marker { display: none; }   /* Safari */
+.tt-det > summary::marker { content: ''; }
+.tt-det > summary:hover { background: var(--guinda-tenue); }
+.tt-det > summary:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+}
+.tt-det[open] > summary { border-bottom-color: var(--linea); }
+
+/* El título reusa el estilo de siempre (.modal-seccion-titulo) pero sin
+   el margen de abajo, que aquí sobra. */
+.tt-det > summary .modal-seccion-titulo { margin: 0; }
+
+.tt-det-conteo {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tinta-suave);
+  background: var(--grafito-tenue);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.tt-det-conteo.ok { background: var(--verde-tenue); color: var(--verde-txt, var(--verde)); }
+.tt-det-espaciador { flex: 1; }
+.tt-det-flecha {
+  width: 16px; height: 16px;
+  flex: none;
+  color: var(--tinta-tenue);
+  transition: rotate .28s var(--tt-firme), color .16s;
+}
+.tt-det[open] > summary .tt-det-flecha { rotate: 180deg; }
+.tt-det > summary:hover .tt-det-flecha { color: var(--acento); }
+.tt-det-cuerpo { padding: 14px 16px 16px; }
+
+@supports selector(::details-content) {
+  @media (prefers-reduced-motion: no-preference) {
+    .tt-det { interpolate-size: allow-keywords; }
+    .tt-det::details-content {
+      block-size: 0;
+      opacity: 0;
+      overflow: clip;
+      transition:
+        block-size .34s var(--tt-entrada),
+        opacity    .26s var(--tt-firme),
+        content-visibility .34s allow-discrete;
+    }
+    .tt-det[open]::details-content { block-size: auto; opacity: 1; }
+  }
+}
+
+/* En oscuro el summary se apoya en papel-2, que ya es oscuro; solo hay que
+   cambiar el hover para que no reviente de contraste. */
+html[data-tema="oscuro"] .tt-det > summary:hover { background: var(--guinda-claro); }
+</style>
 </head>
 <body>
 
@@ -6991,6 +7347,10 @@
 <div class="app" id="app">
 
   <nav class="nav">
+    <!-- Barra de avance del scroll. No lleva JS: el reloj de su animación es
+         el scroll de la página (animation-timeline, ver <style id="pulido">).
+         Es decorativa, por eso aria-hidden. -->
+    <div class="nav-progreso" aria-hidden="true"><i></i></div>
     <div class="nav-inner">
       <button class="nav-hamburguesa" onclick="toggleSidebar()" aria-label="Abrir menú">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -10323,7 +10683,7 @@ function renderizarTablero() {
     if (tareasCol.length === 0) {
       cuerpo.innerHTML = '<div class="vacio">Sin tareas en esta columna</div>';
     } else {
-      tareasCol.forEach(t => cuerpo.appendChild(crearTarjeta(t)));
+      tareasCol.forEach((t, i) => cuerpo.appendChild(crearTarjeta(t, i)));
     }
 
     // Confeti (estilo Trello) al palomear TODA una columna propia. Solo para el
@@ -10420,7 +10780,7 @@ function renderizarEnlaces() {
     if (!tareasCol.length) {
       cuerpo.innerHTML = '<div class="vacio">Sin tareas asignadas</div>';
     } else {
-      tareasCol.forEach(function (t) { cuerpo.appendChild(crearTarjeta(t)); });
+      tareasCol.forEach(function (t, i) { cuerpo.appendChild(crearTarjeta(t, i)); });
     }
   });
 }
@@ -10587,9 +10947,13 @@ function asignarPorArrastre(idTarea, col) {
   toast('Tarea ' + t.id + ' → ' + (col.titulo || ''), 'ok');
 }
 
-function crearTarjeta(t) {
+// _idx = posición de la tarjeta en su columna. Solo sirve para el retraso en
+// cascada de la entrada (--i en el CSS: cada tarjeta aparece 30 ms después de
+// la anterior, topado a 400 ms). Si no se pasa, entran todas juntas.
+function crearTarjeta(t, _idx) {
   const card = document.createElement('div');
   card.className = 'tarjeta';
+  if (typeof _idx === 'number') card.style.setProperty('--i', _idx);
   card.setAttribute('data-sub', subVisualDe(t));
   card.setAttribute('data-pre', (String(t.id).split('-')[0] || '').toUpperCase());   // JDPC / JDIMA / SPAC / DPAC
   card.setAttribute('data-id', t.id);
@@ -10737,7 +11101,7 @@ function crearTarjeta(t) {
 
 // ============== ACCIONES ==============
 
-function cambiarTab(sub) {
+function cambiarTabAhora(sub) {
   tabActiva = sub;
   jefaturaActiva = null;   // volver a una subdirección sale del modo Jefatura
   enlaceActivo = null;     // y limpia los filtros del Resumen general
@@ -10755,7 +11119,7 @@ function cambiarTab(sub) {
   // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
   const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes', 'seguimiento'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
-    cambiarVista('tablero');
+    cambiarVistaAhora('tablero');
   }
 
   // Renderiza el tablero con el nuevo filtro (siempre, aunque no esté
@@ -10765,7 +11129,7 @@ function cambiarTab(sub) {
 }
 
 // Selecciona una de las dos Jefaturas de SPAC: filtra el tablero a sus tareas.
-function cambiarJefatura(codigo) {
+function cambiarJefaturaAhora(codigo) {
   jefaturaActiva = codigo;
   // El tab de subdirección deja de estar activo mientras se ve una Jefatura.
   document.querySelectorAll('.sidebar-sub').forEach(b => b.classList.remove('activa'));
@@ -10779,7 +11143,7 @@ function cambiarJefatura(codigo) {
     return;
   }
 
-  if (vistaActiva !== 'tablero' && vistaActiva !== 'calendario') cambiarVista('tablero');
+  if (vistaActiva !== 'tablero' && vistaActiva !== 'calendario') cambiarVistaAhora('tablero');
   renderizar();
   if (vistaActiva === 'calendario') renderizarCalendario();
 }
@@ -11795,6 +12159,53 @@ function guardarCambiosDetalle(idTarea) {
   cerrarModal();
 }
 
+// ===================== BLOQUES PLEGABLES DEL DETALLE =====================
+// Devuelve un <details> nativo con el título, su conteo y el cuerpo.
+//
+// Por qué <details> y no un div con JS: trae gratis el teclado (Enter/Espacio),
+// el buscador del navegador (Ctrl+F sobre texto escondido ABRE la sección) y el
+// anuncio correcto en lector de pantalla. Lo único que se pone a mano es la
+// flecha, porque el triangulito nativo no se puede estilar.
+//
+// La animación de apertura es puro CSS (::details-content en <style id="pulido">);
+// donde el navegador no la soporte, abre y cierra de golpe — mismo resultado.
+//
+//   clave   → nombre corto para recordar el estado ('acciones', 'hilo'…)
+//   conteo  → { txt: '3/7', ok: true } o null; la píldora del título
+//   abierto → cómo arranca la PRIMERA vez (después manda lo que el usuario dejó)
+function ttDetBloque(clave, titulo, conteo, cuerpo, abierto) {
+  let abrir = !!abierto;
+  try {
+    const guardado = localStorage.getItem('tt_det_' + clave);
+    if (guardado === '1') abrir = true;
+    else if (guardado === '0') abrir = false;
+  } catch (e) {}
+  // Flecha apuntando ABAJO (cerrado); el CSS la gira 180° cuando [open].
+  const flecha = '<svg class="tt-det-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<polyline points="6 9 12 15 18 9"/></svg>';
+  const pildora = (conteo && conteo.txt)
+    ? '<span class="tt-det-conteo' + (conteo.ok ? ' ok' : '') + '">' + escapeHtml(String(conteo.txt)) + '</span>'
+    : '';
+  return '<details class="tt-det" data-det="' + escapeHtml(clave) + '"' + (abrir ? ' open' : '')
+       +   ' ontoggle="ttDetRecordar(this)">'
+       +   '<summary>'
+       +     '<span class="modal-seccion-titulo">' + escapeHtml(titulo) + '</span>'
+       +     pildora
+       +     '<span class="tt-det-espaciador"></span>'
+       +     flecha
+       +   '</summary>'
+       +   '<div class="tt-det-cuerpo">' + cuerpo + '</div>'
+       + '</details>';
+}
+
+// Guarda cómo quedó el bloque. Se llama desde el ontoggle del <details>, que
+// dispara tanto al abrir como al cerrar.
+function ttDetRecordar(el) {
+  if (!el || !el.dataset) return;
+  try { localStorage.setItem('tt_det_' + el.dataset.det, el.open ? '1' : '0'); } catch (e) {}
+}
+
 function abrirDetalle(t) {
   tareaAbierta = t;
   const modal = document.getElementById('modal');
@@ -11895,6 +12306,23 @@ function abrirDetalle(t) {
 
   // "Visto por": quién ha abierto la tarea (ya incluye al usuario actual, porque
   // marcarVisto corrió arriba). El creador va primero (en guinda).
+  // Conteos que van en el título de cada bloque plegable. Con el bloque
+  // cerrado, el número es lo único que se ve: tiene que decir si falta algo
+  // sin tener que abrirlo.
+  const _detItems = obtenerChecklist(t);
+  const _detParts = columnasChecklist(t);
+  const _detHechas = _detItems.filter(function (it) {
+    return _detParts.length > 0 && _detParts.every(function (cod) { return marcadoDeArea(it, t, cod); });
+  }).length;
+  const _detConteoAcciones = _detItems.length
+    ? { txt: _detHechas + '/' + _detItems.length, ok: _detHechas === _detItems.length }
+    : { txt: 'sin acciones' };
+  const _detNumHilo = (function () {
+    try { return comentariosDeTarea(t).length; } catch (e) { return 0; }
+  })();
+  const _detConteoHilo = { txt: _detNumHilo === 0 ? 'sin mensajes'
+    : (_detNumHilo + (_detNumHilo === 1 ? ' mensaje' : ' mensajes')) };
+
   const _vistosDet = vistosDeTarea(t);
   const vistosDetHTML = _vistosDet.length
     ? '<div class="modal-vistos" title="Visto por: ' + escapeHtml(_vistosDet.map(v => v.nombre + (v.creador ? ' (creador)' : '')).join(', ')) + '">' +
@@ -11985,25 +12413,22 @@ function abrirDetalle(t) {
         })()}
       </dl>
 
-      <!-- Checklist y Observaciones a TODO el ancho del modal (no caben bien
-           dentro del dl de dos columnas). Mismas secciones, más espacio. -->
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Acciones</div>
-        ${(function(){
+      <!-- Acciones, Hilo y Bitácora a TODO el ancho del modal (no caben bien
+           dentro del dl de dos columnas) y PLEGABLES: el detalle de una tarea
+           con muchas acciones y mucha bitácora se volvía larguísimo, y lo que
+           se venía a ver quedaba tres pantallazos abajo. Cada bloque recuerda
+           cómo lo dejaste (ver ttDetBloque). -->
+      ${ttDetBloque('acciones', 'Acciones', _detConteoAcciones, (function(){
           try { return renderChecklistHTML(t); }
           catch (err) {
             console.warn('No se pudo renderizar el checklist', err);
             return '<div class="checklist-vacio">No se pudo cargar el checklist. Cierra y vuelve a abrir la tarea.</div>';
           }
-        })()}
-      </div>
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Hilo</div>
-        <div id="hiloBox">${(function(){
+        })(), true)}
+      ${ttDetBloque('hilo', 'Hilo', _detConteoHilo, '<div id="hiloBox">' + (function(){
           try { return renderComentariosHTML(t); }
           catch (err) { return ''; }
-        })()}</div>
-      </div>
+        })() + '</div>', _detNumHilo > 0)}
 
       ${false /* "Devuelta para corrección" eliminado: el flujo ya no usa Devolver/Reenviar (la validación es por checklist). */ ? `
         <div class="modal-seccion">
@@ -12014,9 +12439,9 @@ function abrirDetalle(t) {
         </div>
       ` : ''}
 
-      ${bitacoraTarea.length > 0 ? `
-        <div class="modal-seccion">
-          <div class="modal-seccion-titulo">Bitácora</div>
+      ${bitacoraTarea.length === 0 ? '' : ttDetBloque('bitacora', 'Bitácora',
+        { txt: String(bitacoraTarea.length) + (bitacoraTarea.length === 1 ? ' movimiento' : ' movimientos') },
+        `
           <div class="modal-bitacora">
             ${(function () {
               // Deduplicamos eventos 'validar' con el mismo comentario para esta
@@ -12047,8 +12472,7 @@ function abrirDetalle(t) {
               }).join('');
             })()}
           </div>
-        </div>
-      ` : ''}
+        `, false)}
     </div>
     ${acciones}
   `;
@@ -12067,8 +12491,13 @@ function cerrarModal() {
   document.getElementById('modalFondo').classList.remove('activo');
   if (typeof segBlocCerrar === 'function') segBlocCerrar();   // el bloc de la junta se va con el detalle
   // Reinicia el scroll y el estado "compacto" del header para el próximo modal.
+  // Va con retraso a propósito: el modal tarda ~.22s en desvanecerse (ver
+  // .modal-fondo en <style id="pulido">) y si se reinicia de inmediato, el
+  // contenido pega un brinco hasta arriba mientras todavía se ve. Si en ese
+  // rato se abre otra tarea, el reinicio la encuentra ya pintada y la deja
+  // arriba, que es justo lo que se busca.
   const _m = document.getElementById('modal');
-  if (_m) { _m.scrollTop = 0; _m.classList.remove('scrolled'); }
+  if (_m) setTimeout(function () { _m.scrollTop = 0; _m.classList.remove('scrolled'); }, 240);
   COMENTARIO_EDITANDO = null;
   tareaAbierta = null;
   tareaEditando = null;
@@ -14099,13 +14528,80 @@ function irInicio() {
   const tabInicio = (usuarioActual && usuarioActual.rol === 'Director')
     ? 'TODAS'
     : ((usuarioActual && usuarioActual.subdireccion) || 'TODAS');
-  cambiarTab(tabInicio);
-  cambiarVista('tablero');
+  conTransicion(function () {
+    cambiarTabAhora(tabInicio);
+    cambiarVistaAhora('tablero');
+  });
   cerrarSidebar();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function cambiarVista(v) {
+// ===================== CAMBIO DE SECCIÓN (View Transitions) =====================
+// document.startViewTransition saca una foto de la página, deja que el callback
+// cambie el DOM, saca otra foto y cruza las dos. El CSS de <style id="pulido">
+// decide cómo se cruzan (lo viejo sube y se va, lo nuevo entra desde abajo).
+//
+// Tres cosas que importan y no son obvias:
+//
+//   · El callback NO corre de inmediato (el navegador lo agenda para el
+//     siguiente cuadro). Por eso cada función de navegación se envolvió
+//     COMPLETA: si se partiera, la mitad de abajo correría antes que la de
+//     arriba. Las llamadas internas usan las versiones "Ahora" para quedar
+//     dentro de la misma transición.
+//
+//   · _enCurso evita transiciones anidadas. El navegador tira error si se
+//     pide una mientras otra corre; aquí simplemente se hace el cambio sin
+//     animar, que es lo correcto para un clic encima de otro.
+//
+//   · html.tt-vt apaga las entradas con @starting-style mientras dura la
+//     transición. Si no, la foto de "lo nuevo" se tomaría con las tarjetas
+//     todavía invisibles (acaban de nacer) y la sección entraría vacía.
+// var (no let) a propósito: así queda izado y no truena si algo llama a
+// cambiarVista() antes de que el navegador llegue a esta línea.
+var _vtEnCurso = false;
+function conTransicion(fn) {
+  const quietito = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const app = document.querySelector('.app');
+  // Sin soporte, con "menos animación" pedida, ya dentro de una transición, o
+  // con la app todavía escondida (pantalla de acceso): cambio directo.
+  if (!document.startViewTransition || quietito || _vtEnCurso
+      || !app || !app.classList.contains('activa')) {
+    fn();
+    return;
+  }
+  _vtEnCurso = true;
+  const raiz = document.documentElement;
+  raiz.classList.add('tt-vt');
+  const limpiar = function () {
+    _vtEnCurso = false;
+    raiz.classList.remove('tt-vt');
+  };
+  let vt;
+  try {
+    vt = document.startViewTransition(fn);
+  } catch (e) {
+    // Si el navegador se niega (p. ej. pestaña en segundo plano), el cambio
+    // tiene que pasar de todos modos: la animación es lo prescindible.
+    limpiar();
+    fn();
+    return;
+  }
+  // Las dos promesas se atrapan: updateCallbackDone revienta si fn lanza, y
+  // finished revienta si la transición se cancela (otro cambio encima). Sin
+  // el catch quedarían como "unhandled rejection" en la consola.
+  if (vt.updateCallbackDone) vt.updateCallbackDone.catch(function () {});
+  if (vt.finished) vt.finished.then(limpiar, limpiar);
+  else limpiar();
+}
+
+// Envoltorios: todo lo que ya llamaba a estas tres funciones (menú, botones,
+// onclick del HTML) sigue igual; lo único que cambió es que ahora el cambio
+// pasa por una transición.
+function cambiarVista(v)        { conTransicion(function () { cambiarVistaAhora(v); }); }
+function cambiarTab(sub)        { conTransicion(function () { cambiarTabAhora(sub); }); }
+function cambiarJefatura(cod)   { conTransicion(function () { cambiarJefaturaAhora(cod); }); }
+
+function cambiarVistaAhora(v) {
   vistaActiva = v;
   estatusFiltro = null;             // el filtro por estatus es del tablero; al cambiar de vista se limpia
   if (v !== 'enlaces') enlaceActivo = null;   // el filtro por enlace solo vive en la vista Enlaces
@@ -15869,6 +16365,24 @@ function pintarDetalleVolante() {
   // le cambia el estatus; Andrea, el Director o Jacobo lo regresan con Restaurar.
   const enHist = volEnHistorial(v);
   if (enHist && v.hist_por) campos.push([v.hist === 'eliminado' ? 'Eliminado por' : 'Enviado al historial por', v.hist_por]);
+  // Conteos de los bloques plegables (ver ttDetBloque): con el bloque cerrado
+  // el número es lo único que se alcanza a ver.
+  const _volItems = Array.isArray(v.checklist) ? v.checklist : [];
+  const _volHechas = _volItems.filter(function (it) { return it && it.hecho; }).length;
+  const _volConteoAcc = _volItems.length
+    ? { txt: _volHechas + '/' + _volItems.length, ok: _volHechas === _volItems.length }
+    : { txt: 'sin acciones' };
+  const _volNumHilo = (VOL_BITACORA || []).filter(function (b) {
+    return (b.accion || '').toLowerCase() === 'comentario';
+  }).length;
+  const _volConteoHilo = { txt: _volNumHilo === 0 ? 'sin mensajes'
+    : (_volNumHilo + (_volNumHilo === 1 ? ' mensaje' : ' mensajes')) };
+  const _volNumBita = (VOL_BITACORA || []).filter(function (b) {
+    return (b.accion || '').toLowerCase() !== 'comentario';
+  }).length;
+  const _volConteoBita = { txt: _volNumBita === 0 ? 'sin movimientos'
+    : (_volNumBita + (_volNumBita === 1 ? ' movimiento' : ' movimientos')) };
+
   let botonesPie = '';
   if (enHist) {
     if (volPuedeHistorial()) botonesPie = `<button class="btn-modal" onclick="volRestaurarHistorial('${v.id}')" title="Regresar el volante a la lista de Volantes">↩ Restaurar</button>`;
@@ -15928,18 +16442,13 @@ function pintarDetalleVolante() {
         </div>
         <div class="form-hint">El PDF de la respuesta que se dio al volante.${hintPesoMax()}</div>
       </div>
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Acciones</div>
-        <div id="volChkBox">${volChkHTML(v)}</div>
-      </div>
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Hilo</div>
-        <div id="volHiloBox">${volHiloHTML()}</div>
-      </div>
-      <div class="modal-seccion modal-seccion-ancha">
-        <div class="modal-seccion-titulo">Bitácora</div>
-        <div id="volBitaBox">${volBitacoraHTML()}</div>
-      </div>
+      <!-- Mismos tres bloques plegables que el detalle de una tarea, para que
+           los dos detalles se abran igual. Llaves propias ('vol_…') porque el
+           volante es otra cosa: dejar cerrada la bitácora aquí no tiene por qué
+           cerrarla allá. -->
+      ${ttDetBloque('vol_acciones', 'Acciones', _volConteoAcc, '<div id="volChkBox">' + volChkHTML(v) + '</div>', true)}
+      ${ttDetBloque('vol_hilo', 'Hilo', _volConteoHilo, '<div id="volHiloBox">' + volHiloHTML() + '</div>', _volNumHilo > 0)}
+      ${ttDetBloque('vol_bitacora', 'Bitácora', _volConteoBita, '<div id="volBitaBox">' + volBitacoraHTML() + '</div>', false)}
     </div>
     <div class="modal-acciones">
       ${botonesPie}
@@ -17320,7 +17829,7 @@ function renderizarValidadas() {
       '</div>';
     return;
   }
-  lista.forEach(t => grid.appendChild(crearTarjeta(t)));
+  lista.forEach((t, i) => grid.appendChild(crearTarjeta(t, i)));
 }
 
 function tituloCapturista() {
