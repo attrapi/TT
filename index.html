@@ -4912,13 +4912,6 @@
   }
   .acceso-login-btn:hover { background: var(--guinda-oscuro); }
   .acceso-login-btn:disabled { opacity: .6; cursor: default; }
-  .login-volver {
-    align-self: flex-start;
-    background: none; border: none; padding: 0 0 10px;
-    color: var(--guinda); font-size: 12.5px; font-weight: 600;
-    cursor: pointer; font-family: var(--sans);
-  }
-  .login-volver:hover { text-decoration: underline; }
 
   /* Historial: SIN caja con borde. Solo columnas y tarjetas con look apagado
      para que se sientan "muertas / pueden revivir" pero sin parecerse al
@@ -6504,7 +6497,6 @@
   html[data-tema="oscuro"] .acceso-login input:focus { border-color: var(--acento); }
   html[data-tema="oscuro"] .login-ojo:hover { color: var(--acento); }
   html[data-tema="oscuro"] .acceso-login-error { color: var(--rojo-txt); }
-  html[data-tema="oscuro"] .login-volver { color: var(--acento); }
   html[data-tema="oscuro"] .historial-col { background: var(--papel); }
   html[data-tema="oscuro"] .historial-col-body { background: var(--papel-2); }
   html[data-tema="oscuro"] .hist-chip { background: var(--papel); }
@@ -7753,19 +7745,22 @@ html[data-tema="oscuro"] {
     <div class="acceso-form">
       <!-- Login real (Supabase). Visible por defecto; el demo de abajo queda oculto. -->
       <div id="loginAppScript">
-        <!-- Paso 1: elegir usuario (tarjetas, como el demo) -->
-        <div id="loginPaso1">
-          <label>Ingresar como</label>
-          <div class="acceso-roles" id="loginCards">
-            <div class="acceso-desc" style="padding:8px 0;">Cargando usuarios…</div>
-          </div>
-        </div>
-        <!-- Paso 2: contraseña del usuario elegido -->
-        <form class="acceso-login" id="loginPaso2" style="display:none" onsubmit="iniciarSesionApp(event)">
-          <button type="button" class="login-volver" onclick="volverLoginCards()">← Cambiar usuario</button>
+        <!-- Correo + contraseña. Un solo paso, y el marcado ya nace en su
+             estado final: esto es exactamente lo que se pinta en el primer
+             cuadro, así que la tarjeta no se reacomoda después.
+
+             Hubo un paso previo de "tarjetas" (una por usuario: elegías la tuya
+             y solo tecleabas la contraseña). Se retiró en junio de 2026 — commit
+             c765e8c — porque le mostraba el directorio completo de la Dirección,
+             nombre y cargo, a cualquiera que abriera la página sin haber entrado.
+             Quedó el marcado huérfano y el navegador lo seguía pintando primero:
+             una tarjeta corta de 197px con un "Cargando usuarios…" que ya nadie
+             cargaba, y al contestar el servidor saltaba a 413px. Ese era el
+             brinco al abrir. Borrado aquí junto con sus funciones. -->
+        <form class="acceso-login" id="loginPaso2" onsubmit="iniciarSesionApp(event)">
           <h1 id="loginNombreSel">Iniciar sesión</h1>
-          <label for="loginUsuarioManual" id="loginUsuarioManualLbl" style="display:none">Correo</label>
-          <input type="email" id="loginUsuarioManual" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="tu.correo@institucion.gob.mx" style="display:none">
+          <label for="loginUsuarioManual" id="loginUsuarioManualLbl">Correo</label>
+          <input type="email" id="loginUsuarioManual" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="tu.correo@institucion.gob.mx">
           <label for="loginContrasena">Contraseña</label>
           <div class="login-pass-wrap">
             <input type="password" id="loginContrasena" autocomplete="current-password" placeholder="••••••••" required>
@@ -9316,83 +9311,6 @@ function formatearNombre(nombre) {
     .replace(/tavarez/gi, 'Tavares');   // corrige el apellido (dato con typo)
 }
 
-// Lista de usuarios cargada del servidor para las tarjetas, y el usuario
-// elegido (su "usuario" de login).
-let LOGIN_USUARIOS = [];
-let usuarioLoginSel = null;
-
-// Trae los usuarios y pinta las tarjetas "Ingresar como".
-function cargarTarjetasLogin() {
-  google.script.run
-    .withSuccessHandler(function (res) {
-      if (!res || !res.ok || !res.usuarios || !res.usuarios.length) { loginModoManual(); return; }
-      LOGIN_USUARIOS = res.usuarios;
-      const cont = document.getElementById('loginCards');
-      cont.innerHTML = LOGIN_USUARIOS.map(function (u, i) {
-        return '<button type="button" class="acceso-rol" onclick="seleccionarUsuarioLogin(' + i + ')">' +
-          '<div class="acceso-rol-icon" style="' + estiloIconoLogin(u) + '">' + inicialesDe(u.nombre) + '</div>' +
-          '<div class="acceso-rol-info">' +
-            '<div class="acceso-rol-nombre">' + escapeHtml(formatearNombre(u.nombre || u.usuario)) + '</div>' +
-            '<div class="acceso-rol-cargo">' + escapeHtml(cargoLogin(u)) + '</div>' +
-          '</div></button>';
-      }).join('');
-    })
-    .withFailureHandler(function () { loginModoManual(); })
-    .listarUsuarios();
-}
-
-function estiloIconoLogin(u) {
-  if (u.rol === 'Director' || u.subdireccion === 'TODAS') return 'background:var(--guinda-tenue);color:var(--guinda);';
-  const k = { SA: 'sa', SGOI: 'sgoi', SGOIB: 'sgoib', SGOIC: 'sgoic', SPAC: 'spac', ENLACE: 'enlace' }[u.subdireccion];
-  return k ? ('background:var(--sub-' + k + '-tenue);color:var(--sub-' + k + ');') : 'background:var(--guinda-tenue);color:var(--guinda);';
-}
-function cargoLogin(u) {
-  if (u.rol === 'Director') return 'Dirección de Procesos Administrativos de Construcción';
-  // Si tiene jefatura asignada, su "cargo" es la jefatura, no la subdirección.
-  const codJef = jefaturaCodigo(u.jefatura);
-  if (codJef) {
-    return ({
-      PROCEDIMIENTOS:    'Jefatura de Departamento de Procesos de Construcción',
-      MANUALES:          'Jefatura de Departamento de Implementación de Manuales Administrativos',
-      GESTION_AMBIENTAL:   'Jefatura de Departamento de Gestión Ambiental',
-      GESTION_AMBIENTAL_B: 'Jefatura de Departamento de Gestión Ambiental B',
-      GESTION_AMBIENTAL_C: 'Jefatura de Departamento de Gestión Ambiental C',
-      GESTION_OBRAS:       'Jefatura de Departamento de Gestión de Obras Inducidas'
-    })[codJef] || 'Jefatura';
-  }
-  return ({
-    SA: 'Subdirección de Archivo',
-    SGOI: 'Subdirección de Gestión de Obras Inducidas A',
-    SGOIB: 'Subdirección de Gestión de Obras Inducidas B',
-    SGOIC: 'Subdirección de Gestión de Obras Inducidas C',
-    SPAC: 'Subdirección de Procesos Administrativos de Construcción',
-    ENLACE: 'Staff del Director'
-  })[u.subdireccion] || 'Subdirector';
-}
-
-// Al elegir una tarjeta: pasa al paso de contraseña.
-function seleccionarUsuarioLogin(i) {
-  const u = LOGIN_USUARIOS[i];
-  if (!u) return;
-  usuarioLoginSel = u.usuario;
-  document.getElementById('loginPaso1').style.display = 'none';
-  document.getElementById('loginPaso2').style.display = '';
-  document.getElementById('loginUsuarioManual').style.display = 'none';
-  document.getElementById('loginUsuarioManualLbl').style.display = 'none';
-  // Llena el campo usuario (aunque esté oculto) para que el navegador pueda
-  // ofrecer guardar/autocompletar la contraseña asociada a ese usuario.
-  const mu = document.getElementById('loginUsuarioManual'); if (mu) mu.value = u.usuario;
-  document.getElementById('loginNombreSel').textContent = formatearNombre(u.nombre || u.usuario);
-  document.getElementById('loginError').textContent = '';
-  const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-  const p = document.getElementById('loginContrasena'); p.type = 'password';
-  // Si en este equipo se recordó la contraseña de este perfil, pre-llénala.
-  const guardada = leerPasswordRecordada(u.usuario);
-  p.value = guardada || '';
-  const chk = document.getElementById('loginRecordar'); if (chk) chk.checked = !!guardada;
-  p.focus();
-}
-
 // Lee/guarda/olvida la contraseña recordada por equipo (localStorage). Va
 // ofuscada en base64 — NO es cifrado; es una comodidad por dispositivo, y quien
 // tenga acceso físico al equipo puede leerla en claro. Se mantiene a pedido.
@@ -9405,15 +9323,6 @@ function recordarPassword(usuario, contrasena, recordar) {
     if (recordar) localStorage.setItem(claveRecordada(usuario), btoa(contrasena));
     else localStorage.removeItem(claveRecordada(usuario));
   } catch (e) {}
-}
-
-// Regresa a las tarjetas.
-function volverLoginCards() {
-  usuarioLoginSel = null;
-  document.getElementById('loginPaso2').style.display = 'none';
-  document.getElementById('loginPaso1').style.display = '';
-  document.getElementById('loginContrasena').value = '';
-  document.getElementById('loginError').textContent = '';
 }
 
 // Muestra/oculta la contraseña del login (botón "ojo").
@@ -9431,18 +9340,16 @@ function verContrasena() {
   inp.focus();
 }
 
-// Respaldo: si no se pudieron cargar las tarjetas, muestra usuario+contraseña.
+// Deja la pantalla de acceso lista para teclear. El marcado YA nace así, o sea
+// que al abrir la página esto no cambia nada (ahí estaba el brinco). Sigue
+// haciendo falta para los otros caminos que regresan al login con la página ya
+// cargada: token vencido, o rechazado por reanudarSesion.
 function loginModoManual() {
-  usuarioLoginSel = null;
-  document.getElementById('loginPaso1').style.display = 'none';
   document.getElementById('loginPaso2').style.display = '';
   const mu = document.getElementById('loginUsuarioManual');
   if (mu) mu.style.display = '';
   document.getElementById('loginUsuarioManualLbl').style.display = '';
   document.getElementById('loginNombreSel').textContent = 'Iniciar sesión';
-  // Sin botón de volver: no hay lista de usuarios a la cual regresar.
-  const volver = document.querySelector('#loginPaso2 .login-volver');
-  if (volver) volver.style.display = 'none';
   const err = document.getElementById('loginError'); if (err) err.textContent = '';
   const btn = document.getElementById('loginBtn'); if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   // Enfoca el correo para escribir de inmediato (en escritorio).
@@ -9884,7 +9791,7 @@ function iniciarSesionApp(ev) {
   const btn = document.getElementById('loginBtn');
   const err = document.getElementById('loginError');
   const manual = document.getElementById('loginUsuarioManual');
-  const usuario = (usuarioLoginSel || (manual ? manual.value : '') || '').trim();
+  const usuario = ((manual ? manual.value : '') || '').trim();
   const contrasena = document.getElementById('loginContrasena').value || '';
   const recordar = !!(document.getElementById('loginRecordar') && document.getElementById('loginRecordar').checked);
   if (!usuario || !contrasena) { err.textContent = 'Escribe la contraseña.'; return; }
