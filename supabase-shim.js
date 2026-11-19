@@ -1038,6 +1038,48 @@
       return { ok: true };
     },
 
+    // ---- MATRIZ DE CUMPLIMIENTO (prototipo; ver supabase/matriz.sql) ----
+    // Tablas aparte de `tareas` a propósito: son ~113 celdas y no deben
+    // aparecer en el tablero ni en los conteos de nadie mientras esto se
+    // evalúa. Si no se aprueba, se tiran las 3 tablas y no quedó rastro.
+    obtenerMatriz: async function () {
+      var r = await Promise.all([
+        sb.from('matriz_segmentos').select('*').order('proyecto').order('orden'),
+        sb.from('matriz_requisitos').select('*').order('proyecto').order('orden'),
+        sb.from('matriz_celdas').select('*')
+      ]);
+      var err = r.filter(function (x) { return x.error; })[0];
+      if (err) {
+        // La causa normal: todavía no se corrió supabase/matriz.sql.
+        var m = err.error.message || '';
+        if (/matriz_/i.test(m) && /(does not exist|schema cache)/i.test(m)) {
+          return { ok: false, sinTablas: true,
+                   error: 'La matriz aún no está creada en la base. Correr supabase/matriz.sql, matriz-seed.local.sql y matriz-celdas.local.sql.' };
+        }
+        return { ok: false, error: m };
+      }
+      return { ok: true, segmentos: r[0].data || [], requisitos: r[1].data || [], celdas: r[2].data || [] };
+    },
+    // Guarda UNA celda. Si el cruce no existía (hueco en la hoja), la crea.
+    guardarCeldaMatriz: async function (token, d) {
+      d = d || {};
+      if (!d.requisito || !d.segmento) return { ok: false, error: 'Falta el requisito o el segmento.' };
+      var fila = {
+        requisito: String(d.requisito),
+        segmento:  String(d.segmento),
+        estatus:   String(d.estatus || 'pendiente'),
+        nota:      String(d.nota == null ? '' : d.nota),
+        actualizado_por: USUARIO_ACTUAL ? USUARIO_ACTUAL.nombre : ''
+      };
+      if (Array.isArray(d.oficios))  fila.oficios  = d.oficios;
+      if (Array.isArray(d.adjuntos)) fila.adjuntos = d.adjuntos;
+      var r = await sb.from('matriz_celdas')
+        .upsert(fila, { onConflict: 'requisito,segmento' })
+        .select('*').single();
+      if (r.error) return { ok: false, error: r.error.message };
+      return { ok: true, celda: r.data };
+    },
+
     vaciarCacheHtml: async function () { return { ok: true }; }
   };
 

@@ -701,6 +701,128 @@
   .app-main[data-vista="asistencia"] #enlacesWrap { display: none; }
   .app-main[data-vista="asistencia"] #asistenciaWrap { display: block; }
 
+  /* === Matriz de Cumplimiento (PROTOTIPO · equipo SGOI + Dirección) ===
+       El seguimiento ambiental no es una lista, es una reja: renglón = la
+       obligación (Condicionante 3, ETJ, Informe Mensual), columna = el
+       segmento (15-B, 16-17, 18-20…), celda = en qué va esa obligación EN
+       ESE segmento. Una tarea de TT tiene UN estatus y no puede decir
+       "cumplida en 16-17, pendiente en 18-20"; de ahí esta vista. */
+  #matrizWrap { display: none; }
+  .app-main[data-vista="matriz"] .kpis,
+  .app-main[data-vista="matriz"] .tabs-wrap,
+  .app-main[data-vista="matriz"] .filtros,
+  .app-main[data-vista="matriz"] .filtros-acciones,
+  .app-main[data-vista="matriz"] #tablero,
+  .app-main[data-vista="matriz"] #calendarioWrap,
+  .app-main[data-vista="matriz"] #bitacoraWrap,
+  .app-main[data-vista="matriz"] #cargaWrap,
+  .app-main[data-vista="matriz"] #reportesWrap { display: none; }
+  .app-main[data-vista="matriz"] #matrizWrap { display: block; }
+
+  .matriz-wrap { padding: 16px 24px 26px; }
+
+  /* Aviso de que todavía no se corrió el SQL en la base. */
+  .matriz-sintablas {
+    margin: 10px 0 0; padding: 14px 16px; border-radius: 10px;
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+    font-size: 13px; line-height: 1.55; max-width: 760px;
+  }
+  .matriz-sintablas code {
+    background: #fef3c7; padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  }
+
+  /* Encabezado de cada proyecto + su resumen de semáforo. */
+  .matriz-proy { margin: 0 0 26px; }
+  .matriz-proy-cab {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin: 0 0 8px; padding-bottom: 7px; border-bottom: 2px solid var(--linea);
+  }
+  .matriz-proy-nombre { font-size: 16px; font-weight: 700; color: var(--tinta); }
+  .matriz-proy-mia { font-size: 12px; color: var(--tinta-tenue); }
+  .matriz-proy-resumen { margin-left: auto; display: flex; gap: 6px; }
+  .matriz-resumen-pill {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid transparent;
+  }
+
+  /* La reja. La primera columna se queda fija al hacer scroll horizontal:
+     sin eso, con 5 segmentos ya no se sabe qué renglón se está leyendo. */
+  .matriz-scroll { overflow-x: auto; border: 1px solid var(--linea); border-radius: 10px; }
+  .matriz-tabla { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; }
+  .matriz-tabla th, .matriz-tabla td {
+    border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
+    padding: 7px 9px; vertical-align: top; text-align: left;
+  }
+  .matriz-tabla td { background: var(--papel); }
+  .matriz-tabla th:last-child, .matriz-tabla td:last-child { border-right: none; }
+  .matriz-tabla tr:last-child td { border-bottom: none; }
+
+  .matriz-tabla thead th {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--papel-2); font-weight: 700; color: var(--tinta);
+    white-space: nowrap;
+  }
+  .matriz-th-seg { font-size: 12px; }
+  .matriz-th-consorcio { display: block; font-size: 10px; font-weight: 600; color: var(--tinta-tenue); margin-top: 2px; }
+  .matriz-th-cad { display: block; font-size: 10px; font-weight: 500; color: var(--tinta-tenue); }
+
+  /* Columna 1 (el requisito): fija a la izquierda. */
+  .matriz-col-req { position: sticky; left: 0; z-index: 2; background: var(--papel); min-width: 240px; max-width: 300px; }
+  .matriz-tabla thead .matriz-col-req { z-index: 4; background: var(--papel-2); }
+  .matriz-req-clave { font-size: 10px; font-weight: 700; color: var(--tinta-tenue); letter-spacing: .02em; }
+  .matriz-req-titulo { font-weight: 600; color: var(--tinta); line-height: 1.35; }
+  .matriz-req-fund { font-size: 10px; color: var(--tinta-tenue); margin-top: 1px; }
+  /* Sub-entregable: colgado de su condicionante. */
+  .matriz-fila-hija .matriz-col-req { padding-left: 24px; }
+  .matriz-fila-hija .matriz-req-titulo { font-weight: 500; font-size: 11.5px; }
+  /* Renglón de nota (modificaciones, acuerdos): no pide dato por segmento. */
+  .matriz-fila-nota td { background: var(--papel-2); }
+  .matriz-fila-nota .matriz-req-titulo { font-weight: 700; font-size: 11px; letter-spacing: .04em; color: var(--tinta-suave); }
+
+  /* La celda: el chip de semáforo y, debajo, el dato corto que la explica. */
+  .matriz-celda { cursor: pointer; min-width: 150px; max-width: 220px; }
+  .matriz-celda:hover { background: var(--papel-2); }
+  .matriz-celda-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+    white-space: nowrap;
+  }
+  .matriz-celda-txt {
+    margin-top: 3px; color: var(--tinta-suave); line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .matriz-celda-clip { font-size: 10px; color: var(--tinta-tenue); margin-top: 2px; }
+  /* Hueco: el cruce ni se ha capturado. Distinto de "no aplica". */
+  .matriz-celda-hueco { color: var(--tinta-tenue); font-size: 18px; line-height: 1; opacity: .35; }
+  .matriz-celda:hover .matriz-celda-hueco { opacity: .8; }
+
+  /* Semáforo. Los cuatro estados se distinguen por texto además del color,
+     para que se lean igual sin depender de ver bien el color. */
+  .mz-al_dia    { background: #dcfce7; color: #14532d; }
+  .mz-proceso   { background: #fef3c7; color: #92400e; }
+  .mz-pendiente { background: #fee2e2; color: #7f1d1d; }
+  .mz-na        { background: #e5e7eb; color: #4b5563; }
+
+  /* "También aplica a": las celdas hermanas de la misma familia en OTROS
+     proyectos. Es la respuesta a lo que no se podía ver en TT. */
+  .matriz-familia { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--linea); }
+  .matriz-familia-tit { font-size: 11px; font-weight: 700; color: var(--tinta-tenue); margin-bottom: 7px; letter-spacing: .03em; }
+  .matriz-familia-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+  .matriz-familia-item {
+    display: inline-flex; flex-direction: column; gap: 2px;
+    padding: 5px 9px; border-radius: 8px; border: 1px solid var(--linea);
+    background: var(--papel-2); font-size: 11px;
+  }
+  .matriz-familia-donde { font-weight: 600; color: var(--tinta-suave); }
+
+  html[data-tema="oscuro"] .matriz-sintablas { background: #2e2213; border-color: #5d4428; color: #f0c88a; }
+  html[data-tema="oscuro"] .matriz-sintablas code { background: #3b2c17; }
+  html[data-tema="oscuro"] .mz-al_dia    { background: #14361f; color: #86efac; }
+  html[data-tema="oscuro"] .mz-proceso   { background: #3b2c17; color: #fcd34d; }
+  html[data-tema="oscuro"] .mz-pendiente { background: #3f1d1d; color: #fca5a5; }
+  html[data-tema="oscuro"] .mz-na        { background: #2c3035; color: #9ca3af; }
+
   /* === Volantes (equipo SGOI + Dirección): registro de volantes === */
   #volantesWrap { display: none; }
   .app-main[data-vista="volantes"] .kpis,
@@ -7994,6 +8116,13 @@ html[data-tema="oscuro"] {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span class="sidebar-label">Biblioteca</span>
         </button>
+        <!-- Matriz de Cumplimiento (PROTOTIPO): mismo público que Acuses y
+             Biblioteca (equipo SGOI + Staff de la Dirección). La reja del
+             seguimiento ambiental: condicionante x segmento. -->
+        <button class="sidebar-item" id="sidebarMatriz" style="display:none" data-vista="matriz" onclick="cambiarVista('matriz')" title="Matriz de Cumplimiento — condicionantes por segmento">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <span class="sidebar-label">Matriz</span>
+        </button>
         <!-- Volantes: registro de volantes (todo el equipo). -->
         <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes por área">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -8210,6 +8339,10 @@ html[data-tema="oscuro"] {
   <div class="asistencia-wrap" id="asistenciaWrap"></div>
 
   <!-- Vista: Volantes (registro de SGOI). La lista se llena en JS. -->
+  <!-- Matriz de Cumplimiento (PROTOTIPO). Se pinta completa desde JS
+       (renderizarMatriz): un bloque por proyecto, con su reja. -->
+  <div class="matriz-wrap" id="matrizWrap"></div>
+
   <div class="volantes-wrap" id="volantesWrap">
     <div class="bitacora-titulo-fila">
       <h2>Volantes</h2>
@@ -9263,6 +9396,9 @@ function aplicarSesion() {
   if (acusesBtn) acusesBtn.style.display = veAcusesBiblio ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
   if (bibliotecaBtn) bibliotecaBtn.style.display = veAcusesBiblio ? '' : 'none';
+  // Matriz de Cumplimiento (prototipo): mismo público que Acuses/Biblioteca.
+  const matrizBtn = document.getElementById('sidebarMatriz');
+  if (matrizBtn) matrizBtn.style.display = veAcusesBiblio ? '' : 'none';
   // Volantes: lo ve TODO el equipo (SGOI, SA, SPAC… y la Dirección).
   const volantesBtn = document.getElementById('sidebarVolantes');
   if (volantesBtn) volantesBtn.style.display = '';
@@ -15169,6 +15305,7 @@ function cambiarVistaAhora(v) {
     papelera:   'Historial',
     asistencia: 'Asistencia',
     volantes:   'Volantes',
+    matriz:     'Matriz de Cumplimiento',
     seguimiento:'Sesión de seguimiento'
   };
   document.getElementById('navTitulo').textContent = tituloPorVista[v] || '';
@@ -15184,6 +15321,7 @@ function cambiarVistaAhora(v) {
   if (v === 'papelera')   renderizarPapelera();
   if (v === 'asistencia') renderizarAsistencia();
   if (v === 'volantes')   renderizarVolantes();
+  if (v === 'matriz')     renderizarMatriz();
   // Al ENTRAR a la sesión se toma una foto nueva del orden (pendientes primero).
   // De ahí en adelante ya no se reordena hasta cambiar de área/tema.
   if (v === 'seguimiento') { segRecalcularOrden(); renderizarSeguimiento(); }
@@ -16597,6 +16735,322 @@ function segReiniciar() {
 // propia estructura, ej. VOL-001-2026-001) y se convierte solo a MAYÚSCULAS.
 // Sin KPIs: solo la lista de volantes con sus datos. Viven en la tabla
 // `volantes` de Supabase (correr supabase/volantes.sql).
+// ================= MATRIZ DE CUMPLIMIENTO (PROTOTIPO) =================
+// La reja del seguimiento ambiental de SGOI-A: renglón = la obligación
+// (Condicionante 3, ETJ, Informe Mensual), columna = el segmento (15-B,
+// 16-17, 18-20, Estaciones, Ed. Auxiliares), celda = en qué va esa
+// obligación EN ESE segmento.
+//
+// Por qué existe esta vista y no se resolvió con tareas: una tarea de TT
+// tiene UN solo `estatus`, así que no puede decir "cumplida en 16-17,
+// pendiente en 18-20". Por eso el seguimiento se estaba migrando a una
+// hoja de cálculo. Los datos viven en matriz_segmentos / matriz_requisitos
+// / matriz_celdas (ver supabase/matriz.sql), APARTE de `tareas`: son ~113
+// celdas y no deben aparecer en el tablero ni en los conteos de nadie
+// mientras esto se evalúa. `matriz_celdas.tarea_id` queda listo para
+// amarrar cada celda con su tarea real de TT cuando se apruebe.
+let MZ_SEG = [], MZ_REQ = [], MZ_CEL = [];
+let mzCargada = false, mzCargando = false, mzError = '', mzSinTablas = false;
+
+// Los cuatro estados de una celda. Cada uno se distingue por TEXTO además
+// de por color, para que la reja se lea igual sin depender de ver bien el
+// color (y para que un pantallazo en blanco y negro siga sirviendo).
+const MZ_ESTATUS = {
+  al_dia:    { texto: 'Al día',    icono: '●' },
+  proceso:   { texto: 'En proceso', icono: '◐' },
+  pendiente: { texto: 'Pendiente',  icono: '○' },
+  na:        { texto: 'No aplica',  icono: '▪' }
+};
+const MZ_ORDEN_EST = ['al_dia', 'proceso', 'pendiente', 'na'];
+
+// Mismo público que Acuses y Biblioteca (equipo SGOI + Staff de Dirección).
+function mzPuedeVer() {
+  return !!usuarioActual && (usuarioActual.subdireccion === 'SGOI' || esEnlace());
+}
+
+function mzClave(req, seg) { return req + '||' + seg; }
+function mzCeldaDe(req, seg) {
+  const k = mzClave(req, seg);
+  for (let i = 0; i < MZ_CEL.length; i++) {
+    if (mzClave(MZ_CEL[i].requisito, MZ_CEL[i].segmento) === k) return MZ_CEL[i];
+  }
+  return null;
+}
+function mzReqDe(clave) { return MZ_REQ.filter(r => r.clave === clave)[0] || null; }
+function mzSegDe(clave) { return MZ_SEG.filter(s => s.clave === clave)[0] || null; }
+
+function renderizarMatriz() {
+  if (!mzCargada && !mzCargando) cargarMatriz();
+  pintarMatriz();
+}
+
+function cargarMatriz() {
+  mzCargando = true;
+  google.script.run
+    .withSuccessHandler(function (res) {
+      mzCargando = false;
+      if (!res || !res.ok) {
+        mzError = (res && res.error) || 'No se pudo cargar la matriz.';
+        mzSinTablas = !!(res && res.sinTablas);
+        pintarMatriz(); return;
+      }
+      MZ_SEG = res.segmentos || []; MZ_REQ = res.requisitos || []; MZ_CEL = res.celdas || [];
+      mzCargada = true; mzError = ''; mzSinTablas = false;
+      pintarMatriz();
+    })
+    .withFailureHandler(function (e) {
+      mzCargando = false;
+      mzError = String((e && e.message) || e);
+      pintarMatriz();
+    })
+    .obtenerMatriz();
+}
+
+function pintarMatriz() {
+  const cont = document.getElementById('matrizWrap');
+  if (!cont) return;
+  if (!mzPuedeVer()) { cont.innerHTML = ''; return; }
+
+  if (mzError) {
+    cont.innerHTML = '<div class="matriz-sintablas">' +
+      (mzSinTablas
+        ? '<b>La matriz todavía no está creada en la base.</b><br>' +
+          'Correr en Supabase → SQL Editor, en este orden: ' +
+          '<code>supabase/matriz.sql</code>, <code>supabase/matriz-seed.local.sql</code> y ' +
+          '<code>supabase/matriz-celdas.local.sql</code>. Después, volver a entrar aquí.'
+        : '<b>No se pudo cargar la matriz.</b><br>' + escapeHtml(mzError)) +
+      '</div>';
+    return;
+  }
+  if (!mzCargada) { cont.innerHTML = '<div class="matriz-sintablas">Cargando la matriz…</div>'; return; }
+
+  // Un bloque por proyecto, en el orden en que vienen los segmentos.
+  const proyectos = [];
+  MZ_SEG.forEach(s => { if (proyectos.indexOf(s.proyecto) < 0) proyectos.push(s.proyecto); });
+
+  let html = '';
+  proyectos.forEach(proy => {
+    const segs = MZ_SEG.filter(s => s.proyecto === proy);
+    const reqs = MZ_REQ.filter(r => r.proyecto === proy);
+    if (!segs.length || !reqs.length) return;
+
+    // Resumen del semáforo + cuántos cruces siguen sin capturar.
+    const cuenta = { al_dia: 0, proceso: 0, pendiente: 0, na: 0 };
+    let huecos = 0;
+    reqs.forEach(r => {
+      if (r.tipo === 'nota') return;
+      segs.forEach(s => {
+        const c = mzCeldaDe(r.clave, s.clave);
+        if (c) { if (cuenta[c.estatus] != null) cuenta[c.estatus]++; }
+        else huecos++;
+      });
+    });
+
+    const mia = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
+    html += '<section class="matriz-proy">';
+    html += '<div class="matriz-proy-cab">' +
+              '<span class="matriz-proy-nombre">' + escapeHtml(proy) + '</span>' +
+              (mia ? '<span class="matriz-proy-mia">MIA ' + escapeHtml(mia) + '</span>' : '') +
+              '<span class="matriz-proy-resumen">' +
+                MZ_ORDEN_EST.map(e =>
+                  '<span class="matriz-resumen-pill mz-' + e + '" title="' + escapeHtml(MZ_ESTATUS[e].texto) + '">' +
+                  MZ_ESTATUS[e].icono + ' ' + cuenta[e] + '</span>').join('') +
+                (huecos ? '<span class="matriz-resumen-pill mz-na" title="Cruces que la hoja tiene en blanco: ni capturados">' +
+                          '+ ' + huecos + ' sin capturar</span>' : '') +
+              '</span>' +
+            '</div>';
+
+    html += '<div class="matriz-scroll"><table class="matriz-tabla"><thead><tr>';
+    html += '<th class="matriz-col-req">Obligación</th>';
+    segs.forEach(s => {
+      html += '<th class="matriz-th-seg">' + escapeHtml(s.nombre) +
+              (s.consorcio ? '<span class="matriz-th-consorcio">' + escapeHtml(s.consorcio) + '</span>' : '') +
+              (s.cadenamiento ? '<span class="matriz-th-cad">' + escapeHtml(s.cadenamiento) + '</span>' : '') +
+              '</th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    reqs.forEach(r => {
+      const tieneCeldas = segs.some(s => !!mzCeldaDe(r.clave, s.clave));
+      // Una nota sin celdas (una modificación, un acuerdo) es un renglón de
+      // sección: no pide dato por segmento, así que va a todo lo ancho.
+      if (r.tipo === 'nota' && !tieneCeldas) {
+        html += '<tr class="matriz-fila-nota"><td class="matriz-col-req" colspan="' + (segs.length + 1) + '">' +
+                  '<span class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</span>' +
+                  (r.texto ? '<div class="matriz-req-fund">' + escapeHtml(r.texto) + '</div>' : '') +
+                '</td></tr>';
+        return;
+      }
+      html += '<tr class="' + (r.padre ? 'matriz-fila-hija' : '') + '">';
+      html += '<td class="matriz-col-req">' +
+                '<div class="matriz-req-clave">' + escapeHtml(r.clave) + '</div>' +
+                '<div class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</div>' +
+                (r.fundamento ? '<div class="matriz-req-fund">' + escapeHtml(r.fundamento) + '</div>' : '') +
+              '</td>';
+      segs.forEach(s => {
+        const c = mzCeldaDe(r.clave, s.clave);
+        const onclick = ' onclick="mzAbrirCelda(\'' + r.clave + '\',\'' + s.clave + '\')"';
+        if (!c) {
+          html += '<td class="matriz-celda"' + onclick +
+                  ' title="Sin capturar — clic para llenarlo">' +
+                  '<span class="matriz-celda-hueco">+</span></td>';
+          return;
+        }
+        const est = MZ_ESTATUS[c.estatus] || MZ_ESTATUS.pendiente;
+        const nAdj = (c.adjuntos || []).length, nOf = (c.oficios || []).length;
+        html += '<td class="matriz-celda"' + onclick + '>' +
+                  '<span class="matriz-celda-chip mz-' + escapeHtml(c.estatus) + '">' +
+                    est.icono + ' ' + escapeHtml(est.texto) + '</span>' +
+                  (c.nota ? '<div class="matriz-celda-txt">' + escapeHtml(c.nota) + '</div>' : '') +
+                  (nAdj || nOf
+                    ? '<div class="matriz-celda-clip">' +
+                        (nAdj ? '📎 ' + nAdj : '') + (nAdj && nOf ? ' · ' : '') +
+                        (nOf ? nOf + ' oficio' + (nOf > 1 ? 's' : '') : '') +
+                      '</div>'
+                    : '') +
+                '</td>';
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div></section>';
+  });
+
+  cont.innerHTML = html ||
+    '<div class="matriz-sintablas">La matriz está vacía: no hay segmentos ni obligaciones cargadas.</div>';
+}
+
+// ---- Detalle de una celda ----
+// Aquí está la pieza que no se podía ver en TT: "esta obligación también
+// aplica a", que sale de matriz_requisitos.familia (la MISMA obligación en
+// otros proyectos, cada MIA con su propia numeración).
+function mzAbrirCelda(reqClave, segClave) {
+  const r = mzReqDe(reqClave), s = mzSegDe(segClave);
+  if (!r || !s) { toast('No se encontró ese cruce.', 'error'); return; }
+  const c = mzCeldaDe(reqClave, segClave);
+  const padre = r.padre ? mzReqDe(r.padre) : null;
+
+  // Hermanas: la misma familia en OTROS proyectos.
+  let fam = '';
+  if (r.familia) {
+    const otras = MZ_REQ.filter(x => x.familia === r.familia && x.proyecto !== r.proyecto);
+    if (otras.length) {
+      fam = '<div class="matriz-familia">' +
+              '<div class="matriz-familia-tit">ESTA MISMA OBLIGACIÓN TAMBIÉN APLICA A</div>' +
+              '<div class="matriz-familia-lista">' +
+              otras.map(o => {
+                const chips = MZ_SEG.filter(x => x.proyecto === o.proyecto).map(sg => {
+                  const cc = mzCeldaDe(o.clave, sg.clave);
+                  const e = cc ? (MZ_ESTATUS[cc.estatus] || MZ_ESTATUS.pendiente) : null;
+                  return '<span class="matriz-celda-chip ' + (cc ? 'mz-' + cc.estatus : 'mz-na') + '" ' +
+                         'title="' + escapeHtml(sg.nombre + ' — ' + (e ? e.texto : 'sin capturar')) + '">' +
+                         (e ? e.icono : '+') + ' ' + escapeHtml(sg.nombre) + '</span>';
+                }).join(' ');
+                return '<span class="matriz-familia-item">' +
+                         '<span class="matriz-familia-donde">' + escapeHtml(o.proyecto) +
+                           ' · ' + escapeHtml(o.clave) + '</span>' +
+                         '<span>' + chips + '</span>' +
+                       '</span>';
+              }).join('') +
+              '</div></div>';
+    }
+  }
+
+  const estActual = c ? c.estatus : 'pendiente';
+  const oficios = (c && c.oficios) || [], adjuntos = (c && c.adjuntos) || [];
+
+  document.getElementById('modal').innerHTML =
+    '<div class="modal-header"><div class="modal-header-info">' +
+      '<h2>' + escapeHtml(r.titulo) + '</h2>' +
+      '<p>' + escapeHtml(r.clave) + ' · ' + escapeHtml(s.nombre) +
+        (s.consorcio ? ' · ' + escapeHtml(s.consorcio) : '') +
+        ' · ' + escapeHtml(r.proyecto) + '</p>' +
+    '</div></div>' +
+    '<div class="modal-body" style="padding:16px 20px 20px">' +
+      (padre ? '<p style="font-size:12px;color:var(--tinta-tenue);margin:0 0 8px">' +
+               'Sub-entregable de ' + escapeHtml(padre.clave) + ' · ' + escapeHtml(padre.titulo) + '</p>' : '') +
+      (r.fundamento ? '<p style="font-size:12px;color:var(--tinta-suave);margin:0 0 6px"><b>' +
+                      escapeHtml(r.fundamento) + '</b></p>' : '') +
+      (r.texto ? '<p style="font-size:12.5px;line-height:1.55;margin:0 0 14px">' +
+                 escapeHtml(r.texto) + '</p>' : '') +
+      (r.resolucion ? '<p style="font-size:11px;color:var(--tinta-tenue);margin:0 0 14px">Resolución ' +
+                      escapeHtml(r.resolucion) + '</p>' : '') +
+
+      '<label style="display:block;font-size:11px;font-weight:700;color:var(--tinta-tenue);margin-bottom:5px">ESTADO EN ESTE SEGMENTO</label>' +
+      '<div id="mzEstBotones" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
+        MZ_ORDEN_EST.map(e =>
+          '<button type="button" class="matriz-celda-chip mz-' + e + '" data-est="' + e + '" ' +
+          'onclick="mzElegirEstatus(\'' + e + '\')" ' +
+          'style="cursor:pointer;border:2px solid ' + (e === estActual ? 'currentColor' : 'transparent') +
+          ';padding:5px 11px;font-size:11px">' +
+          MZ_ESTATUS[e].icono + ' ' + MZ_ESTATUS[e].texto + '</button>').join('') +
+      '</div>' +
+
+      '<label style="display:block;font-size:11px;font-weight:700;color:var(--tinta-tenue);margin-bottom:5px">' +
+        'NOTA (el texto tal cual venía de la hoja)</label>' +
+      '<textarea id="mzNota" rows="5" style="width:100%;font-size:12.5px;line-height:1.5;padding:9px 11px;' +
+        'border:1px solid var(--linea);border-radius:8px;background:var(--papel);color:var(--tinta);resize:vertical">' +
+        escapeHtml((c && c.nota) || '') + '</textarea>' +
+
+      (oficios.length
+        ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--tinta-tenue);margin-bottom:5px">OFICIOS</div>' +
+          oficios.map(o => '<div style="font-size:12px;color:var(--tinta-suave)">' + escapeHtml(String(o)) + '</div>').join('') +
+          '</div>' : '') +
+      (adjuntos.length
+        ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--tinta-tenue);margin-bottom:5px">ADJUNTOS DE LA HOJA</div>' +
+          adjuntos.map(a => '<div style="font-size:12px;color:var(--tinta-suave)">📎 ' +
+            escapeHtml((a && a.nombre) || String(a)) + '</div>').join('') +
+          '<div style="font-size:11px;color:var(--tinta-tenue);margin-top:4px">' +
+          'Son los nombres que traía la hoja: el archivo todavía no está ligado.</div>' +
+          '</div>' : '') +
+
+      fam +
+
+      '<div class="modal-acciones" style="margin-top:18px">' +
+        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarCelda()">Guardar</button>' +
+        '<button class="btn-pildora btn-pildora-archivar" onclick="cerrarModal()">Cerrar</button>' +
+      '</div>' +
+    '</div>';
+
+  MZ_EDITANDO = { requisito: reqClave, segmento: segClave, estatus: estActual };
+  document.getElementById('modalFondo').classList.add('activo');
+}
+
+let MZ_EDITANDO = null;
+
+function mzElegirEstatus(e) {
+  if (!MZ_EDITANDO) return;
+  MZ_EDITANDO.estatus = e;
+  document.querySelectorAll('#mzEstBotones [data-est]').forEach(b => {
+    b.style.borderColor = (b.dataset.est === e) ? 'currentColor' : 'transparent';
+  });
+}
+
+function mzGuardarCelda() {
+  if (!MZ_EDITANDO) return;
+  const txt = document.getElementById('mzNota');
+  const d = {
+    requisito: MZ_EDITANDO.requisito,
+    segmento:  MZ_EDITANDO.segmento,
+    estatus:   MZ_EDITANDO.estatus,
+    nota:      txt ? txt.value : ''
+  };
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar.', 'error'); return; }
+      // Reemplaza la celda en memoria (o la agrega, si era un hueco).
+      const k = mzClave(d.requisito, d.segmento);
+      const i = MZ_CEL.findIndex(x => mzClave(x.requisito, x.segmento) === k);
+      if (i >= 0) MZ_CEL[i] = res.celda; else MZ_CEL.push(res.celda);
+      MZ_EDITANDO = null;
+      cerrarModal();
+      pintarMatriz();
+      toast('Celda guardada', 'ok');
+    })
+    .withFailureHandler(function (e) { toast(String((e && e.message) || e), 'error'); })
+    .guardarCeldaMatriz(null, d);
+}
+
 let VOLANTES = [];             // filas tal cual vienen de la base
 let volBuscarTxt = '';
 let volCargados = false;       // ya se pidieron a la base al menos una vez
