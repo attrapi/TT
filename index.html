@@ -3333,6 +3333,41 @@
     align-content: start;
   }
 
+  /* === "HAY MÁS ABAJO" ===
+     Todas las columnas van en UN renglón (--tablero-cols) y estiradas a la
+     altura de la más alta, así que con tarjetas altas caben dos en pantalla y
+     la orilla de abajo se lee como "aquí se acabó la columna". Pasaba en
+     SGOI-C con JDA-C. Esta píldora dice cuántas tarjetas quedan fuera de
+     vista en ESA columna y baja a la siguiente al tocarla.
+     Va en un contenedor `fixed` aparte porque `.columna` tiene
+     overflow: hidden, y un `sticky` ahí dentro no se pega a nada. */
+  .mas-abajo-caja {
+    position: fixed; left: 0; right: 0; bottom: 18px; height: 0;
+    pointer-events: none; z-index: 40;
+  }
+  .mas-abajo {
+    position: absolute; bottom: 0; transform: translateX(-50%);
+    pointer-events: auto; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 13px; border-radius: 999px;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 800;
+    letter-spacing: 0.04em; white-space: nowrap;
+    color: white; background: var(--guinda);
+    border: 1px solid var(--guinda-oscuro);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+    transition: background 0.15s;
+  }
+  .mas-abajo:hover { background: var(--guinda-oscuro); }
+  /* La flecha late despacio: llama la atención sin marear. */
+  .mas-abajo-flecha { animation: masAbajoLatido 1.8s ease-in-out infinite; }
+  @keyframes masAbajoLatido {
+    0%, 100% { transform: translateY(0);   opacity: 0.8; }
+    50%      { transform: translateY(2px); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mas-abajo-flecha { animation: none; }
+  }
+
   /* Tarjetas que vencen HOY: borde rojo y un pulso sutil para llamar la
      atención. Si el usuario abre la app el día del vencimiento, los pendientes
      palpitan. La animación se desactiva cuando la tarea está Atendida. */
@@ -10769,8 +10804,15 @@ function ordenarPorFechaAtencion(lista) {
 function renderizar() {
   actualizarConteosTabs();
   actualizarKPIs();   // detecta el modo "enlaces" por vistaActiva
-  if (vistaActiva === 'enlaces') { renderizarEnlaces(); return; }
+  if (vistaActiva === 'enlaces') { renderizarEnlaces(); ttTrasPintar(); return; }
   renderizarTablero();
+  ttTrasPintar();
+}
+
+// Las píldoras de "hay más abajo" se recalculan con el tablero ya pintado.
+function ttTrasPintar() {
+  ttVigilarAvisos();
+  ttMasAbajo();
 }
 
 function actualizarKPIs() {
@@ -11265,6 +11307,87 @@ function columnasPorRol() {
             filtro: t => (sub === 'SGOI' || sub === 'SGOIB' || sub === 'SGOIC')
               ? tareaEnTableroObras(t, sub)
               : (t.subdireccion === sub || tareaEnArea(t, sub)) }];
+}
+
+// ================= "HAY MÁS ABAJO" =================
+// Una columna del tablero puede ser mucho más alta que la pantalla, y la
+// última tarjeta visible queda justo en la orilla: parece que ahí se acabó la
+// columna. Esto cuenta, por columna, las tarjetas que empiezan DEBAJO del
+// borde de la pantalla (las que el usuario no puede saber que existen) y pone
+// una píldora con ese número. Al tocarla baja a la primera de ellas.
+let TT_AVISOS_LISTO = false, ttAvisoPedido = false;
+
+function ttCajaAvisos() {
+  let caja = document.getElementById('ttMasAbajo');
+  if (!caja) {
+    caja = document.createElement('div');
+    caja.id = 'ttMasAbajo';
+    caja.className = 'mas-abajo-caja';
+    document.body.appendChild(caja);
+  }
+  return caja;
+}
+
+// El scroll dispara decenas de eventos por segundo: se mide UNA vez por
+// fotograma, no una vez por evento.
+function ttMasAbajo() {
+  if (ttAvisoPedido) return;
+  ttAvisoPedido = true;
+  requestAnimationFrame(function () { ttAvisoPedido = false; ttPintarAvisos(); });
+}
+
+function ttPintarAvisos() {
+  const caja = ttCajaAvisos();
+  // Con un modal abierto la píldora sale por detrás del velo: mejor nada.
+  const modalAbierto = [].slice.call(document.querySelectorAll('.modal-fondo'))
+    .some(function (m) { return getComputedStyle(m).display !== 'none'; });
+  if (modalAbierto) { caja.innerHTML = ''; return; }
+
+  const alto = window.innerHeight;
+  let html = '';
+  document.querySelectorAll('.columna').forEach(function (col, i) {
+    // offsetParent null = la columna está en una vista escondida (Matriz,
+    // Volantes, Bitácora…). Ahí no hay nada que avisar.
+    if (!col.offsetParent) return;
+    const r = col.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > alto) return;      // columna fuera de pantalla
+
+    const tarjetas = col.querySelectorAll('.tarjeta');
+    let fuera = 0, primera = -1;
+    tarjetas.forEach(function (t, j) {
+      // -24px: una tarjeta que apenas se asoma sí se ve; no cuenta como oculta.
+      if (t.getBoundingClientRect().top >= alto - 24) {
+        fuera++;
+        if (primera < 0) primera = j;
+      }
+    });
+    if (!fuera) return;
+
+    const centro = r.left + r.width / 2;
+    const x = Math.round(Math.min(Math.max(centro, 72), window.innerWidth - 72));
+    html += '<button class="mas-abajo" style="left:' + x + 'px"' +
+            ' onclick="ttBajarA(' + i + ',' + primera + ')"' +
+            ' title="' + fuera + (fuera > 1 ? ' tareas más abajo' : ' tarea más abajo') +
+            ' en esta columna — clic para ir">' +
+            '<span class="mas-abajo-flecha">&#8595;</span>' + fuera + ' más</button>';
+  });
+  caja.innerHTML = html;
+}
+
+function ttBajarA(iCol, iTarjeta) {
+  const col = document.querySelectorAll('.columna')[iCol];
+  if (!col) return;
+  const t = col.querySelectorAll('.tarjeta')[iTarjeta];
+  if (!t) return;
+  t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Se engancha una sola vez (renderizar() corre en cada cambio de tarjeta).
+function ttVigilarAvisos() {
+  if (TT_AVISOS_LISTO) return;
+  TT_AVISOS_LISTO = true;
+  window.addEventListener('scroll', ttMasAbajo, { passive: true });
+  window.addEventListener('resize', ttMasAbajo);
 }
 
 function renderizarTablero() {
