@@ -11343,6 +11343,13 @@ function ttPintarAvisos() {
     .some(function (m) { return getComputedStyle(m).display !== 'none'; });
   if (modalAbierto) { caja.innerHTML = ''; return; }
 
+  // SOLO en el tablero, o sea en las pestanas de area (TODAS/consolidada,
+  // SGOI, SGOIB, SGOIC, SPAC, SA, ENLACE). En Matriz, Volantes, Bitacora,
+  // Calendario, Carga, Seguimiento o Historial no hay nada que avisar: ahi la
+  // pildora no significa nada y ademas tapa contenido.
+  const main = document.getElementById('appMain');
+  if (!main || !main.dataset || main.dataset.vista !== 'tablero') { caja.innerHTML = ''; return; }
+
   const alto = window.innerHeight;
   let html = '';
   document.querySelectorAll('.columna').forEach(function (col, i) {
@@ -15521,6 +15528,10 @@ function cambiarVistaAhora(v) {
   // Al ENTRAR a la sesión se toma una foto nueva del orden (pendientes primero).
   // De ahí en adelante ya no se reordena hasta cambiar de área/tema.
   if (v === 'seguimiento') { segRecalcularOrden(); renderizarSeguimiento(); }
+  // Las pildoras de "hay mas abajo" son del tablero. Solo se recalculaban al
+  // hacer scroll o al repintar el tablero, y cambiar de vista no dispara
+  // ninguna de las dos: se quedaban colgadas encima de Matriz o Volantes.
+  ttMasAbajo();
 }
 
 // ===================== NOTIFICACIONES (campanita) =====================
