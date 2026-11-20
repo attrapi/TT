@@ -9396,9 +9396,12 @@ function aplicarSesion() {
   if (acusesBtn) acusesBtn.style.display = veAcusesBiblio ? '' : 'none';
   const bibliotecaBtn = document.getElementById('sidebarBibliotecaSgoi');
   if (bibliotecaBtn) bibliotecaBtn.style.display = veAcusesBiblio ? '' : 'none';
-  // Matriz de Cumplimiento (prototipo): mismo público que Acuses/Biblioteca.
+  // Matriz de Cumplimiento (prototipo): el público de Acuses/Biblioteca MÁS el
+  // Director (Adrián). Andrea ya entraba por SGOI (es enlace de SGOI con acceso
+  // completo), pero el Director no cae ni en `esSgoi` ni en `esEnlace()`.
+  const veMatriz = veAcusesBiblio || usuarioActual.rol === 'Director';
   const matrizBtn = document.getElementById('sidebarMatriz');
-  if (matrizBtn) matrizBtn.style.display = veAcusesBiblio ? '' : 'none';
+  if (matrizBtn) matrizBtn.style.display = veMatriz ? '' : 'none';
   // Volantes: lo ve TODO el equipo (SGOI, SA, SPAC… y la Dirección).
   const volantesBtn = document.getElementById('sidebarVolantes');
   if (volantesBtn) volantesBtn.style.display = '';
@@ -16765,7 +16768,15 @@ const MZ_ORDEN_EST = ['al_dia', 'proceso', 'pendiente', 'na'];
 
 // Mismo público que Acuses y Biblioteca (equipo SGOI + Staff de Dirección).
 function mzPuedeVer() {
-  return !!usuarioActual && (usuarioActual.subdireccion === 'SGOI' || esEnlace());
+  if (!usuarioActual) return false;
+  // Equipo de SGOI (ahi entra Andrea, enlace de SGOI con acceso completo), el
+  // Staff de la Direccion y el Director (Adrian). Ojo: `esEnlace()` en TT NO
+  // quiere decir "jefe", quiere decir Capturista de la subdireccion ENLACE.
+  // En "Ver como Direccion" se entra por el rol prestado: se ve la reja, pero
+  // no se guarda (ver mzGuardarCelda).
+  return usuarioActual.subdireccion === 'SGOI'
+      || esEnlace()
+      || usuarioActual.rol === 'Director';
 }
 
 function mzClave(req, seg) { return req + '||' + seg; }
@@ -17028,6 +17039,9 @@ function mzElegirEstatus(e) {
 
 function mzGuardarCelda() {
   if (!MZ_EDITANDO) return;
+  // "Ver como Dirección" es el rol de Adrián prestado a Mario, y ahí nada se
+  // escribe (igual que crear/validar/borrar tareas): la reja se lee, no se toca.
+  if (SOLO_LECTURA) { toast('Vista de solo lectura: la celda no se guarda.', 'error'); return; }
   const txt = document.getElementById('mzNota');
   const d = {
     requisito: MZ_EDITANDO.requisito,
