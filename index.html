@@ -822,6 +822,23 @@
   }
   .matriz-btn-nueva:hover { background: var(--guinda-oscuro); }
 
+  /* Lapiz para editar el renglon. Aparece al pasar el mouse por encima para
+     no ensuciar la reja; en pantalla tactil no hay hover, asi que ahi se queda
+     visible. La celda del requisito es `sticky`, que ya sirve de ancla para
+     posicionarlo absoluto. */
+  .matriz-req-editar {
+    position: absolute; top: 5px; right: 5px;
+    width: 21px; height: 21px; padding: 0;
+    border-radius: 5px; cursor: pointer;
+    font-size: 11px; line-height: 1; font-family: inherit;
+    color: var(--tinta-tenue); background: var(--papel-2);
+    border: 1px solid var(--linea);
+    opacity: 0; transition: opacity 0.12s;
+  }
+  .matriz-tabla tr:hover .matriz-req-editar { opacity: 1; }
+  .matriz-req-editar:hover { color: var(--guinda); border-color: var(--guinda); }
+  @media (hover: none) { .matriz-req-editar { opacity: 1; } }
+
   /* Formulario de alta dentro del modal. */
   .mz-campo { margin-bottom: 12px; }
   .mz-campo > label {
@@ -8236,15 +8253,32 @@ html[data-tema="oscuro"] {
 
       <div class="sidebar-grupo" id="sidebarGrupoDirector">
         <div class="sidebar-grupo-titulo">Gestión</div>
-        <!-- Organigrama: hasta arriba en todos los perfiles (abre en pestaña nueva). -->
+        <!-- Matriz de Cumplimiento (PROTOTIPO): mismo público que Acuses y
+             Biblioteca (equipo SGOI + Staff de la Dirección). La reja del
+             seguimiento ambiental: condicionante x segmento. -->
+        <button class="sidebar-item" id="sidebarMatriz" style="display:none" data-vista="matriz" onclick="cambiarVista('matriz')" title="Matriz de Cumplimiento — condicionantes por segmento">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <span class="sidebar-label">Matriz</span>
+        </button>
+        <!-- Organigrama: lo ven TODOS los perfiles (abre en pestaña nueva). Para el
+             Staff de la Dirección es lo único que ve de este grupo. -->
         <button class="sidebar-item" id="sidebarOrganigrama" onclick="window.open('https://attrapi.github.io/organigramaATTRAPI/', '_blank', 'noopener')" title="Abrir el organigrama (nueva pestaña)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="3" y="17" width="6" height="5" rx="1"/><rect x="15" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M6 17v-2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2"/></svg>
           <span class="sidebar-label">Organigrama</span>
         </button>
-        <button class="sidebar-item" data-vista="bitacora" onclick="cambiarVista('bitacora')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-          <span class="sidebar-label">Bitácora</span>
-          <span class="sidebar-conteo" id="sidebarConteoBitacora">0</span>
+        <!-- Volantes: registro de volantes (todo el equipo). -->
+        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes por área">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span class="sidebar-label">Volantes</span>
+        </button>
+        <!-- Biblioteca y Acuses: SOLO el equipo de SGOI. Abren en pestaña nueva. -->
+        <button class="sidebar-item" id="sidebarBibliotecaSgoi" style="display:none" onclick="window.open('https://drive.google.com/drive/folders/1s3j6_GchAz6aVgzYU51eiICcoy_LcWg3', '_blank', 'noopener')" title="Biblioteca (Google Drive, nueva pestaña)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span class="sidebar-label">Biblioteca</span>
+        </button>
+        <button class="sidebar-item" id="sidebarAcusesSgoi" style="display:none" onclick="window.open('https://docs.google.com/spreadsheets/d/1H3G9aHG_A5iRdREf8A1_NcXJPrn0_gPonmvY6H3Z7M0/edit?gid=57439242#gid=57439242', '_blank', 'noopener')" title="Acuses (Google Sheets, nueva pestaña)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+          <span class="sidebar-label">Acuses</span>
         </button>
         <!-- Carga e Indicadores (Dashboard) se retiraron del menú en TODOS los
              perfiles; las vistas (#cargaWrap / #dashboardWrap) siguen en el
@@ -8257,27 +8291,6 @@ html[data-tema="oscuro"] {
         <button class="sidebar-item" id="sidebarAsistencia" style="display:none" data-vista="asistencia" onclick="cambiarVista('asistencia')" title="Asistencia — tardanzas de la semana">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>
           <span class="sidebar-label">Asistencia</span>
-        </button>
-        <!-- Acuses y Biblioteca: SOLO el equipo de SGOI. Abren en pestaña nueva. -->
-        <button class="sidebar-item" id="sidebarAcusesSgoi" style="display:none" onclick="window.open('https://docs.google.com/spreadsheets/d/1H3G9aHG_A5iRdREf8A1_NcXJPrn0_gPonmvY6H3Z7M0/edit?gid=57439242#gid=57439242', '_blank', 'noopener')" title="Acuses (Google Sheets, nueva pestaña)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
-          <span class="sidebar-label">Acuses</span>
-        </button>
-        <button class="sidebar-item" id="sidebarBibliotecaSgoi" style="display:none" onclick="window.open('https://drive.google.com/drive/folders/1s3j6_GchAz6aVgzYU51eiICcoy_LcWg3', '_blank', 'noopener')" title="Biblioteca (Google Drive, nueva pestaña)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span class="sidebar-label">Biblioteca</span>
-        </button>
-        <!-- Matriz de Cumplimiento (PROTOTIPO): mismo público que Acuses y
-             Biblioteca (equipo SGOI + Staff de la Dirección). La reja del
-             seguimiento ambiental: condicionante x segmento. -->
-        <button class="sidebar-item" id="sidebarMatriz" style="display:none" data-vista="matriz" onclick="cambiarVista('matriz')" title="Matriz de Cumplimiento — condicionantes por segmento">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-          <span class="sidebar-label">Matriz</span>
-        </button>
-        <!-- Volantes: registro de volantes (todo el equipo). -->
-        <button class="sidebar-item" id="sidebarVolantes" style="display:none" data-vista="volantes" onclick="cambiarVista('volantes')" title="Volantes — registro de volantes por área">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          <span class="sidebar-label">Volantes</span>
         </button>
         <!-- Seguimiento: repaso de tareas en junta (Director + 3 subdirectores). -->
         <button class="sidebar-item" id="sidebarSeguimiento" style="display:none" data-vista="seguimiento" onclick="cambiarVista('seguimiento')" title="Sesión de seguimiento — repaso de tareas en la junta">
@@ -8293,6 +8306,13 @@ html[data-tema="oscuro"] {
         <button class="sidebar-item" id="sidebarAjustesCorreo" style="display:none" onclick="abrirAjustesCorreo()" title="Editar la plantilla del correo de aviso al crear una tarea">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6 12 13 2 6"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
           <span class="sidebar-label">Correo de aviso</span>
+        </button>
+        <!-- Bitácora: al final del grupo por decisión de la Dirección (19-nov-2026):
+             es consulta, no trabajo del día. -->
+        <button class="sidebar-item" data-vista="bitacora" onclick="cambiarVista('bitacora')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+          <span class="sidebar-label">Bitácora</span>
+          <span class="sidebar-conteo" id="sidebarConteoBitacora">0</span>
         </button>
       </div>
 
@@ -17341,6 +17361,7 @@ function pintarMatriz() {
         html += '<tr class="matriz-fila-nota"><td class="matriz-col-req" colspan="' + (segs.length + 1) + '">' +
                   '<span class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</span>' +
                   (r.texto ? '<div class="matriz-req-fund">' + escapeHtml(r.texto) + '</div>' : '') +
+                  mzLapiz(r.clave) +
                 '</td></tr>';
         return;
       }
@@ -17349,6 +17370,7 @@ function pintarMatriz() {
                 '<div class="matriz-req-clave">' + escapeHtml(r.clave) + '</div>' +
                 '<div class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</div>' +
                 (r.fundamento ? '<div class="matriz-req-fund">' + escapeHtml(r.fundamento) + '</div>' : '') +
+                mzLapiz(r.clave) +
               '</td>';
       segs.forEach(s => {
         const c = mzCeldaDe(r.clave, s.clave);
@@ -17512,83 +17534,134 @@ function mzClaveSugerida(proy) {
   return pre + '-C' + (n < 10 ? '0' + n : String(n));
 }
 
-function mzNuevaObligacion() {
+// El lapiz del renglon. Solo para quien puede escribir.
+function mzLapiz(clave) {
+  if (!mzPuedeEditar()) return '';
+  return '<button class="matriz-req-editar" onclick="mzEditarObligacion(\'' + clave + '\')"' +
+         ' title="Editar esta obligación">&#9998;</button>';
+}
+
+// Alta y edicion comparten el MISMO formulario: lo unico que cambia es si
+// viene con una obligacion cargada o en blanco. Asi no hay dos pantallas que
+// se puedan ir separando con el tiempo.
+function mzNuevaObligacion() { mzFormObligacion(null); }
+
+function mzEditarObligacion(clave) {
+  const r = mzReqDe(clave);
+  if (!r) { toast('No se encontró esa obligación.', 'error'); return; }
+  mzFormObligacion(r);
+}
+
+function mzFormObligacion(req) {
   if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
-  const proy = MZ_PROY;
+  const editando = !!req;
+  const proy = editando ? req.proyecto : MZ_PROY;
   if (!proy) { toast('Primero abre un proyecto.', 'error'); return; }
 
   const reqs = MZ_REQ.filter(r => r.proyecto === proy);
   // La resolucion de la MIA se hereda: es la misma para todo el proyecto.
   const resolucion = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
   const ordenMax = reqs.reduce(function (a, r) { return Math.max(a, Number(r.orden) || 0); }, 0);
-  // Padres posibles: las obligaciones propias del proyecto (no los
-  // sub-entregables, para no armar nietos).
-  const padres = reqs.filter(r => !r.padre);
-  // Familias que ya existen, para que "tambien aplica a" siga funcionando.
+  // Lo que cuelga de esta obligacion, y lo que ya tiene capturado: son las dos
+  // razones por las que su clave no se renombra aqui.
+  const hijos  = editando ? MZ_REQ.filter(r => r.padre === req.clave) : [];
+  const celdas = editando ? MZ_CEL.filter(c => c.requisito === req.clave).length : 0;
+  // Padres posibles: obligaciones propias del proyecto. Nunca ella misma, y
+  // sus hijas quedan fuera solas (tienen padre), asi que no se arman ciclos.
+  const padres = reqs.filter(r => !r.padre && (!editando || r.clave !== req.clave));
   const familias = [];
   MZ_REQ.forEach(function (r) { if (r.familia && familias.indexOf(r.familia) < 0) familias.push(r.familia); });
   familias.sort();
 
+  const val  = function (x) { return escapeHtml(x == null ? '' : String(x)); };
+  const tipo = editando ? (req.tipo || 'condicionante') : 'condicionante';
+  const sel  = function (a, b) { return a === b ? ' selected' : ''; };
+
   document.getElementById('modal').innerHTML =
     '<div class="modal-header"><div class="modal-header-info">' +
-      '<h2>Nueva obligación</h2>' +
-      '<p>' + escapeHtml(proy) + (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') + '</p>' +
+      '<h2>' + (editando ? 'Editar obligación' : 'Nueva obligación') + '</h2>' +
+      '<p>' + (editando ? val(req.clave) + ' · ' : '') + escapeHtml(proy) +
+        (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') + '</p>' +
     '</div></div>' +
     '<div class="modal-body" style="padding:16px 20px 20px">' +
       '<div class="mz-fila2">' +
         '<div class="mz-campo"><label>CLAVE</label>' +
-          '<input id="mzNvClave" value="' + escapeHtml(mzClaveSugerida(proy)) + '" placeholder="MN-C10">' +
-          '<div class="mz-ayuda">Como la numera la resolución. Tiene que ser única.</div>' +
+          '<input id="mzNvClave" value="' + (editando ? val(req.clave) : escapeHtml(mzClaveSugerida(proy))) + '"' +
+            (editando ? ' disabled' : ' placeholder="MN-C10"') + '>' +
+          '<div class="mz-ayuda">' +
+            (editando
+              ? 'La clave no se cambia aquí: de ella cuelgan ' + celdas +
+                (celdas === 1 ? ' celda capturada' : ' celdas capturadas') +
+                (hijos.length ? ' y ' + hijos.length + (hijos.length === 1 ? ' sub-entregable' : ' sub-entregables') : '') +
+                '. Renumerarla es mover todo eso con ella.'
+              : 'Como la numera la resolución. Tiene que ser única.') +
+          '</div>' +
         '</div>' +
         '<div class="mz-campo"><label>TIPO</label>' +
           '<select id="mzNvTipo">' +
-            '<option value="condicionante">Condicionante</option>' +
-            '<option value="termino">Término</option>' +
-            '<option value="nota">Nota / modificación</option>' +
+            '<option value="condicionante"' + sel(tipo, 'condicionante') + '>Condicionante</option>' +
+            '<option value="termino"' + sel(tipo, 'termino') + '>Término</option>' +
+            '<option value="nota"' + sel(tipo, 'nota') + '>Nota / modificación</option>' +
           '</select>' +
           '<div class="mz-ayuda">Una nota no pide estado por segmento: va a todo lo ancho.</div>' +
         '</div>' +
       '</div>' +
 
       '<div class="mz-campo"><label>TÍTULO</label>' +
-        '<input id="mzNvTitulo" placeholder="Reforestación y rescate de flora">' +
+        '<input id="mzNvTitulo" value="' + (editando ? val(req.titulo) : '') + '"' +
+          ' placeholder="Reforestación y rescate de flora">' +
         '<div class="mz-ayuda">Corto: es lo que se lee en el renglón.</div>' +
       '</div>' +
 
       '<div class="mz-campo"><label>CUELGA DE</label>' +
-        '<select id="mzNvPadre">' +
-          '<option value="">— Obligación propia (renglón normal)</option>' +
+        '<select id="mzNvPadre"' + (hijos.length ? ' disabled' : '') + '>' +
+          '<option value=""' + (editando ? sel(req.padre || '', '') : '') + '>— Obligación propia (renglón normal)</option>' +
           padres.map(function (r) {
-            return '<option value="' + escapeHtml(r.clave) + '">' +
-                   escapeHtml(r.clave + ' · ' + r.titulo) + '</option>';
+            return '<option value="' + val(r.clave) + '"' + (editando ? sel(req.padre || '', r.clave) : '') + '>' +
+                   val(r.clave + ' · ' + r.titulo) + '</option>';
           }).join('') +
         '</select>' +
-        '<div class="mz-ayuda">Para un sub-entregable (una póliza, un informe semestral): ' +
-        'queda indentado bajo su obligación, con su propio estado por segmento.</div>' +
+        '<div class="mz-ayuda">' +
+          (hijos.length
+            ? 'Esta obligación ya tiene ' + hijos.length +
+              (hijos.length === 1 ? ' sub-entregable colgando' : ' sub-entregables colgando') +
+              ', así que no puede volverse sub-entregable de otra.'
+            : 'Para un sub-entregable (una póliza, un informe semestral): queda indentado ' +
+              'bajo su obligación, con su propio estado por segmento.') +
+        '</div>' +
       '</div>' +
 
       '<div class="mz-campo"><label>FAMILIA (OPCIONAL)</label>' +
-        '<input id="mzNvFamilia" list="mzFamilias" placeholder="F-FLORA">' +
+        '<input id="mzNvFamilia" list="mzFamilias" value="' + (editando ? val(req.familia) : '') + '"' +
+          ' placeholder="F-FLORA">' +
         '<datalist id="mzFamilias">' +
-          familias.map(function (f) { return '<option value="' + escapeHtml(f) + '">'; }).join('') +
+          familias.map(function (f) { return '<option value="' + val(f) + '">'; }).join('') +
         '</datalist>' +
         '<div class="mz-ayuda">Si esta misma obligación también aplica en otro proyecto, ponle ' +
         'la familia de allá: es lo que hace aparecer el bloque "también aplica a".</div>' +
       '</div>' +
 
       '<div class="mz-campo"><label>FUNDAMENTO (OPCIONAL)</label>' +
-        '<input id="mzNvFund" placeholder="Considerando 2, 3, 6 y 8">' +
+        '<input id="mzNvFund" value="' + (editando ? val(req.fundamento) : '') + '"' +
+          ' placeholder="Considerando 2, 3, 6 y 8">' +
       '</div>' +
 
       '<div class="mz-campo"><label>TEXTO DE LA RESOLUCIÓN (OPCIONAL)</label>' +
-        '<textarea id="mzNvTexto" rows="4" placeholder="El texto completo, tal como lo dice la MIA."></textarea>' +
+        '<textarea id="mzNvTexto" rows="4" placeholder="El texto completo, tal como lo dice la MIA.">' +
+          (editando ? val(req.texto) : '') + '</textarea>' +
       '</div>' +
 
-      '<div class="mz-ayuda" style="margin-bottom:4px">Al agregarla, el renglón aparece con todos ' +
-      'sus segmentos en blanco (+): de ahí se va llenando segmento por segmento.</div>' +
+      '<div class="mz-ayuda" style="margin-bottom:4px">' +
+        (editando
+          ? 'Los estados por segmento no se tocan aquí: eso se edita celda por celda en la reja.'
+          : 'Al agregarla, el renglón aparece con todos sus segmentos en blanco (+): de ahí se ' +
+            'va llenando segmento por segmento.') +
+      '</div>' +
 
       '<div class="modal-acciones" style="margin-top:14px">' +
-        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarObligacion(' + ordenMax + ')">Agregar</button>' +
+        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarObligacion(' + ordenMax +
+          (editando ? ",'" + req.clave + "'" : '') + ')">' +
+          (editando ? 'Guardar cambios' : 'Agregar') + '</button>' +
         '<button class="btn-pildora btn-pildora-archivar" onclick="cerrarModal()">Cancelar</button>' +
       '</div>' +
     '</div>';
@@ -17596,7 +17669,9 @@ function mzNuevaObligacion() {
   document.getElementById('modalFondo').classList.add('activo');
 }
 
-function mzGuardarObligacion(ordenMax) {
+// `claveOriginal` llega solo al editar: es la que manda, porque la clave no se
+// renombra (de ella cuelgan las celdas y los sub-entregables).
+function mzGuardarObligacion(ordenMax, claveOriginal) {
   if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
   // Puente viejo en la cache del navegador: sin esto la llamada truena sin
   // tocar ningun handler y el modal se queda como si nada hubiera pasado.
@@ -17604,45 +17679,69 @@ function mzGuardarObligacion(ordenMax) {
     toast('Tu navegador tiene una version vieja de la plataforma. Recarga con Ctrl+F5.', 'error');
     return;
   }
-  const val = function (id) {
+  const editando = !!claveOriginal;
+  const previo = editando ? mzReqDe(claveOriginal) : null;
+  if (editando && !previo) { toast('Esa obligación ya no existe.', 'error'); return; }
+
+  const campo = function (id) {
     const e = document.getElementById(id);
     return e ? String(e.value || '').trim() : '';
   };
-  const clave = val('mzNvClave').toUpperCase(), titulo = val('mzNvTitulo');
+  const clave = editando ? claveOriginal : campo('mzNvClave').toUpperCase();
+  const titulo = campo('mzNvTitulo');
   if (!clave)  { toast('Ponle una clave a la obligación.', 'error'); return; }
   if (!titulo) { toast('Ponle un título: es lo que se lee en el renglón.', 'error'); return; }
-  if (!/^[A-Z0-9.\-]+$/.test(clave)) {
-    toast('La clave solo puede llevar letras, números, punto y guion.', 'error'); return;
-  }
-  if (MZ_REQ.filter(r => (r.clave || '').toUpperCase() === clave).length) {
-    toast('Ya existe la obligación ' + clave + '. Cámbiale la clave.', 'error'); return;
+  if (!editando) {
+    if (!/^[A-Z0-9.\-]+$/.test(clave)) {
+      toast('La clave solo puede llevar letras, números, punto y guion.', 'error'); return;
+    }
+    if (MZ_REQ.filter(r => (r.clave || '').toUpperCase() === clave).length) {
+      toast('Ya existe la obligación ' + clave + '. Cámbiale la clave.', 'error'); return;
+    }
   }
 
-  const reqs = MZ_REQ.filter(r => r.proyecto === MZ_PROY);
+  const proy = editando ? previo.proyecto : MZ_PROY;
+  const reqs = MZ_REQ.filter(r => r.proyecto === proy);
+  const padreClave = campo('mzNvPadre') || null;
+  if (padreClave === clave) { toast('Una obligación no puede colgar de sí misma.', 'error'); return; }
+
   const d = {
-    nuevo: true,
+    nuevo: !editando,
     clave: clave,
-    proyecto: MZ_PROY,
+    proyecto: proy,
     titulo: titulo,
-    tipo: val('mzNvTipo') || 'condicionante',
-    padre: val('mzNvPadre') || null,
-    familia: val('mzNvFamilia').toUpperCase(),
-    fundamento: val('mzNvFund'),
-    texto: val('mzNvTexto'),
-    resolucion: (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '',
-    // Al final de su proyecto; si cuelga de alguien, justo debajo de el.
-    orden: (Number(ordenMax) || 0) + 10
+    tipo: campo('mzNvTipo') || 'condicionante',
+    padre: padreClave,
+    familia: campo('mzNvFamilia').toUpperCase(),
+    fundamento: campo('mzNvFund'),
+    texto: campo('mzNvTexto'),
+    resolucion: editando
+      ? (previo.resolucion || '')
+      : ((reqs.filter(r => r.resolucion)[0] || {}).resolucion || '')
   };
-  const padre = d.padre ? mzReqDe(d.padre) : null;
-  if (padre) d.orden = (Number(padre.orden) || 0) + 1;
+
+  // El orden: al editar se respeta el que tenia, salvo que cambie de quien
+  // cuelga (ahi se va junto a su nuevo padre). Al dar de alta, al final del
+  // proyecto, o pegado a su padre si cuelga de alguien.
+  const padre = padreClave ? mzReqDe(padreClave) : null;
+  if (editando && (previo.padre || null) === padreClave) {
+    d.orden = Number(previo.orden) || 0;
+  } else if (padre) {
+    d.orden = (Number(padre.orden) || 0) + 1;
+  } else {
+    d.orden = (Number(ordenMax) || 0) + 10;
+  }
 
   google.script.run
     .withSuccessHandler(function (res) {
-      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo agregar.', 'error'); return; }
-      MZ_REQ.push(res.requisito);
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo guardar.', 'error'); return; }
+      const i = MZ_REQ.findIndex(r => r.clave === res.requisito.clave);
+      if (i >= 0) MZ_REQ[i] = res.requisito; else MZ_REQ.push(res.requisito);
       cerrarModal();
       pintarMatriz();
-      toast('Obligación ' + res.requisito.clave + ' agregada', 'ok');
+      toast(editando
+        ? 'Obligación ' + res.requisito.clave + ' actualizada'
+        : 'Obligación ' + res.requisito.clave + ' agregada', 'ok');
     })
     .withFailureHandler(function (e) { toast(String((e && e.message) || e), 'error'); })
     .guardarRequisitoMatriz(null, d);
