@@ -62,6 +62,12 @@ create index if not exists matriz_segmentos_sub_idx
   on public.matriz_segmentos (subdireccion, proyecto, orden);
 
 -- ---------- 2) REQUISITOS (los renglones de la reja) ----------
+-- La hoja llama TRAMITE a esta columna, y los agrupa en bloques:
+-- CONDICIONANTES (1 a 9), TERMINOS, y las notas/modificaciones. Eso es
+-- exactamente `tipo`, y la interfaz usa esa palabra: tramite el generico,
+-- condicionante / termino / nota el bloque. El numero con que la resolucion lo
+-- nombra ("Condicionante 7") se lee de la clave (MN-C07); no se guarda aparte
+-- para que no haya dos versiones del mismo numero.
 -- `padre`   : un sub-entregable cuelga de su condicionante. En la hoja esto
 --             son los renglones de abajo sin etiqueta propia ("Primer
 --             informe semestral", "Poliza", "2. Analisis posterior").

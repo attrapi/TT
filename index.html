@@ -808,6 +808,53 @@
     border: 1px solid var(--linea);
   }
   .matriz-busca-limpiar:hover { color: var(--guinda); border-color: var(--guinda); }
+  /* Subtitulo de bloque: CONDICIONANTES, TERMINOS, NOTAS. En la hoja estan
+     escritos con un espacio entre cada letra ("C O N D I C I O N A N T E S");
+     aqui se hace con letter-spacing, que se ve igual pero deja el texto
+     buscable y sin basura en el dato. */
+  .matriz-fila-bloque td {
+    background: var(--crema) !important;
+    padding: 8px 11px !important;
+    font-size: 10.5px; font-weight: 800;
+    letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--tinta-suave);
+    border-top: 2px solid var(--linea-fuerte) !important;
+  }
+  /* El numero del tramite tal como lo nombra la resolucion
+     ("Condicionante 7"), que es como lo busca la gente. La clave interna
+     (MN-C07) se queda en el tooltip y en el detalle. */
+  .matriz-req-num {
+    font-size: 10px; font-weight: 800; color: var(--guinda);
+    letter-spacing: 0.02em; text-transform: uppercase;
+  }
+
+  /* Renglon de filtros, debajo de las pestañas y dentro de la barra pegada. */
+  .matriz-filtros {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    margin: 0 0 10px;
+  }
+  .matriz-filtro-campo { display: flex; align-items: center; gap: 5px; }
+  .matriz-filtro-campo > label {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--tinta-tenue);
+  }
+  .matriz-filtros select {
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    padding: 4px 8px; border-radius: 7px;
+    border: 1px solid var(--linea); background: var(--papel); color: var(--tinta);
+  }
+  /* Un filtro puesto se nota: si no, se busca por que "faltan" renglones. */
+  .matriz-filtros select.puesto {
+    border-color: var(--guinda); color: var(--guinda); font-weight: 800;
+    background: var(--guinda-tenue);
+  }
+  .matriz-filtro-limpiar {
+    font: inherit; font-size: 11px; font-weight: 800; cursor: pointer;
+    padding: 5px 12px; border-radius: 999px;
+    color: white; background: var(--guinda); border: 1px solid var(--guinda-oscuro);
+  }
+  .matriz-filtro-nota { font-size: 11px; color: var(--tinta-tenue); }
+
   /* Renglon que solo esta para no dejar huerfano a un hijo que si coincidio. */
   .matriz-fila-contexto .matriz-req-titulo,
   .matriz-fila-contexto .matriz-req-clave { opacity: 0.45; }
@@ -17112,6 +17159,75 @@ try {
 // un filtro guardado es la receta para creer que faltan renglones.
 let MZ_FILTRO = '';
 
+// Los filtros, separados por EJE, que es lo que la hoja mezclaba:
+//   tipo / resolucion / familia -> son del RENGLON  (esconden renglones)
+//   consorcio                   -> es del SEGMENTO (esconde COLUMNAS)
+//   estado                      -> es de la CELDA  (deja los renglones que
+//                                  tengan al menos un cruce asi)
+// Por eso "consorcio" no puede ser lo mismo que "tipo": uno recorta a lo
+// ancho y el otro a lo alto.
+let MZ_F = { tipo: '', resolucion: '', familia: '', consorcio: '', estado: '' };
+
+function mzHayFiltro() {
+  return !!(MZ_FILTRO.trim() || MZ_F.tipo || MZ_F.resolucion || MZ_F.familia ||
+            MZ_F.consorcio || MZ_F.estado);
+}
+
+function mzSetFiltro(cual, valor) {
+  if (!(cual in MZ_F)) return;
+  MZ_F[cual] = valor || '';
+  pintarMatriz();
+}
+
+function mzLimpiarFiltros() {
+  MZ_F = { tipo: '', resolucion: '', familia: '', consorcio: '', estado: '' };
+  MZ_FILTRO = '';
+  pintarMatriz();
+}
+
+// Los segmentos que se ven: todos, o solo los del consorcio elegido.
+function mzSegsVisibles(proy) {
+  const segs = MZ_SEG.filter(s => s.proyecto === proy);
+  return MZ_F.consorcio ? segs.filter(s => s.consorcio === MZ_F.consorcio) : segs;
+}
+
+// ¿El renglon pasa los filtros de su propio eje (tipo/resolucion/familia) y el
+// de estado (que mira sus celdas, solo en los segmentos visibles)?
+function mzPasaFiltros(r, segs) {
+  if (MZ_F.tipo && (r.tipo || 'condicionante') !== MZ_F.tipo) return false;
+  if (MZ_F.resolucion && (r.resolucion || '') !== MZ_F.resolucion) return false;
+  if (MZ_F.familia && (r.familia || '') !== MZ_F.familia) return false;
+  if (MZ_F.estado) {
+    // Una nota no tiene estado por segmento: filtrar por estado la deja fuera.
+    if ((r.tipo || '') === 'nota') return false;
+    const hay = segs.some(function (sg) {
+      const c = mzCeldaDe(r.clave, sg.clave);
+      return MZ_F.estado === 'hueco' ? !c : (c && c.estatus === MZ_F.estado);
+    });
+    if (!hay) return false;
+  }
+  return true;
+}
+
+// Las opciones de cada filtro se GENERAN de lo que hay cargado: si un proyecto
+// no tiene terminos, no se ofrece "Termino" y no se puede filtrar a la nada.
+function mzOpciones(proy) {
+  const segs = MZ_SEG.filter(s => s.proyecto === proy);
+  const reqs = MZ_REQ.filter(r => r.proyecto === proy);
+  const unicos = function (lista) {
+    const r = [];
+    lista.forEach(function (x) { if (x && r.indexOf(x) < 0) r.push(x); });
+    return r.sort();
+  };
+  return {
+    tipos:       unicos(reqs.map(r => r.tipo || 'condicionante')),
+    resoluciones: unicos(reqs.map(r => r.resolucion)),
+    familias:    unicos(reqs.map(r => r.familia)),
+    consorcios:  unicos(segs.map(s => s.consorcio))
+  };
+}
+
+
 // Indice de celdas por cruce. mzCeldaDe() recorria MZ_CEL entero en cada
 // cruce; con 66 renglones x 14 segmentos eso son ~60 mil pasadas por pintada,
 // y el buscador repinta en CADA tecla. Se arma al pintar.
@@ -17165,11 +17281,12 @@ function mzBuscar(inp) {
   }
 }
 
-function mzLimpiarBusqueda() {
-  MZ_FILTRO = '';
-  pintarMatriz();
-  const inp = document.getElementById('mzFiltro');
-  if (inp) inp.focus();
+// Cuantos renglones se estan viendo de verdad (sin los de contexto), para el
+// contador de la barra.
+function mzCuantosPasan(proy) {
+  const segs = mzSegsVisibles(proy);
+  const t = sinAcentos(MZ_FILTRO.trim());
+  return MZ_REQ.filter(r => r.proyecto === proy && mzPasaFiltros(r, segs) && mzCoincide(r, t)).length;
 }
 
 // Los proyectos de una subdirección, en el orden en que vienen los segmentos.
@@ -17368,6 +17485,44 @@ function pintarMatriz() {
 
   // Un proyecto a la vez, de los de ESTA subdirección.
   MZ_PROYS = mzProyectosDe(MZ_SUB);
+  const mzFiltrosHtml = function (proy) {
+    const op = mzOpciones(proy);
+    const uno = function (etiqueta, cual, opciones, todos) {
+      // Un select de una sola opcion no filtra nada: se ahorra el estorbo.
+      if (opciones.length < 2 && !MZ_F[cual]) return '';
+      return '<span class="matriz-filtro-campo"><label>' + etiqueta + '</label>' +
+             '<select class="' + (MZ_F[cual] ? 'puesto' : '') + '"' +
+               ' onchange="mzSetFiltro(\'' + cual + '\', this.value)">' +
+               '<option value="">' + todos + '</option>' +
+               opciones.map(function (o) {
+                 const txt = (cual === 'tipo') ? ((MZ_BLOQUE[o.valor] || {}).titulo || o.valor) : o.texto;
+                 return '<option value="' + escapeHtml(o.valor) + '"' +
+                        (MZ_F[cual] === o.valor ? ' selected' : '') + '>' +
+                        escapeHtml(txt) + '</option>';
+               }).join('') +
+             '</select></span>';
+    };
+    const comoOps = function (lista) { return lista.map(function (x) { return { valor: x, texto: x }; }); };
+    let h = '<div class="matriz-filtros">';
+    h += uno('Tipo', 'tipo', comoOps(op.tipos), 'Todos');
+    h += uno('Estado', 'estado', [
+      { valor: 'al_dia', texto: 'Al día' }, { valor: 'proceso', texto: 'En proceso' },
+      { valor: 'pendiente', texto: 'Pendiente' }, { valor: 'na', texto: 'No aplica' },
+      { valor: 'hueco', texto: 'Sin capturar' }
+    ], 'Cualquiera');
+    h += uno('Consorcio', 'consorcio', comoOps(op.consorcios), 'Todos');
+    h += uno('Resolución', 'resolucion', comoOps(op.resoluciones), 'Todas');
+    h += uno('Familia', 'familia', comoOps(op.familias), 'Todas');
+    if (mzHayFiltro()) {
+      h += '<button class="matriz-filtro-limpiar" onclick="mzLimpiarFiltros()">Quitar filtros</button>';
+    }
+    if (MZ_F.consorcio) {
+      h += '<span class="matriz-filtro-nota">El consorcio recorta las COLUMNAS: se ven ' +
+           mzSegsVisibles(proy).length + ' de ' +
+           MZ_SEG.filter(s => s.proyecto === proy).length + ' segmentos.</span>';
+    }
+    return h + '</div>';
+  };
   if (MZ_PROYS.indexOf(MZ_PROY) < 0) MZ_PROY = MZ_PROYS[0] || '';
 
   // Subdirección sin nada cargado: se dejan las pestañas (para poder salir) y
@@ -17399,17 +17554,14 @@ function pintarMatriz() {
               '</button>';
     });
     // El buscador va a la derecha, en el mismo renglon de las pestañas.
-    const t = sinAcentos(MZ_FILTRO.trim());
     tabs += '<span class="matriz-busca-caja">' +
-              (t ? '<span class="matriz-busca-cuenta">' +
-                     mzCuantosCoinciden(MZ_PROY, t) + ' de ' +
+              (mzHayFiltro() ? '<span class="matriz-busca-cuenta">' +
+                     mzCuantosPasan(MZ_PROY) + ' de ' +
                      MZ_REQ.filter(r => r.proyecto === MZ_PROY).length +
-                   '</span>' +
-                   '<button class="matriz-busca-limpiar" onclick="mzLimpiarBusqueda()">Limpiar</button>'
-                 : '') +
+                   '</span>' : '') +
               '<input type="search" class="filtros-buscar" id="mzFiltro"' +
                 ' value="' + escapeHtml(MZ_FILTRO) + '"' +
-                ' placeholder="🔎 Buscar condicionante, oficio, nota…"' +
+                ' placeholder="🔎 Buscar trámite, oficio, nota…"' +
                 ' oninput="mzBuscar(this)">' +
             '</span>';
     tabs += '</div>';
@@ -17418,11 +17570,13 @@ function pintarMatriz() {
   let html = '';
 
   [MZ_PROY].forEach(proy => {
-    const segs = MZ_SEG.filter(s => s.proyecto === proy);
+    const todosSegs = MZ_SEG.filter(s => s.proyecto === proy);
+    const segs = mzSegsVisibles(proy);     // el consorcio recorta columnas
     const reqs = MZ_REQ.filter(r => r.proyecto === proy);
-    if (!segs.length || !reqs.length) return;
+    if (!todosSegs.length || !reqs.length) return;
 
-    // Resumen del semáforo + cuántos cruces siguen sin capturar.
+    // Resumen del semáforo sobre las columnas QUE SE VEN: si el consorcio
+    // recorto segmentos, un semaforo de todos no cuadraria con la pantalla.
     const cuenta = { al_dia: 0, proceso: 0, pendiente: 0, na: 0 };
     let huecos = 0;
     reqs.forEach(r => {
@@ -17435,7 +17589,7 @@ function pintarMatriz() {
     });
 
     const mia = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
-    html += '<div class="matriz-barra" id="mzBarra">' + subs + tabs +
+    html += '<div class="matriz-barra" id="mzBarra">' + subs + tabs + mzFiltrosHtml(proy) +
             '<div class="matriz-proy-cab">' +
               '<span class="matriz-proy-nombre">' + escapeHtml(proy) + '</span>' +
               (mia ? '<span class="matriz-proy-mia">MIA ' + escapeHtml(mia) + '</span>' : '') +
@@ -17448,8 +17602,8 @@ function pintarMatriz() {
               '</span>' +
               (mzPuedeEditar()
                 ? '<button class="matriz-btn-nueva" onclick="mzNuevaObligacion()"' +
-                  ' title="Agregar un renglon a la reja de ' + escapeHtml(proy) + '">' +
-                  '+ Obligación</button>'
+                  ' title="Agregar un tramite a la reja de ' + escapeHtml(proy) + '">' +
+                  '+ Trámite</button>'
                 : '') +
               '<span class="matriz-flechas">' +
                 '<button class="matriz-flecha" id="mzFlechaIzq" onclick="mzScrollSeg(-1)"' +
@@ -17464,7 +17618,7 @@ function pintarMatriz() {
 
     html += '<div class="matriz-scroll" id="mzScroll" onscroll="mzActualizarFlechas()">' +
             '<table class="matriz-tabla"><thead><tr>';
-    html += '<th class="matriz-col-req">Obligación</th>';
+    html += '<th class="matriz-col-req">Trámite</th>';
     segs.forEach(s => {
       html += '<th class="matriz-th-seg">' + escapeHtml(s.nombre) +
               (s.consorcio ? '<span class="matriz-th-consorcio">' + escapeHtml(s.consorcio) + '</span>' : '') +
@@ -17473,15 +17627,17 @@ function pintarMatriz() {
     });
     html += '</tr></thead><tbody>';
 
-    // Con filtro se muestran los que coinciden, mas su familia: el padre de
-    // un hijo que coincidio (si no, el renglon indentado queda huerfano) y los
-    // hijos de un padre que coincidio (una condicionante se lee con sus
-    // sub-entregables). Los que solo estan de contexto van atenuados.
+    // Con filtro se muestran los que pasan, mas su familia: el padre de un
+    // hijo que paso (si no, el renglon indentado queda huerfano) y los hijos
+    // de un padre que paso (una condicionante se lee con sus sub-entregables).
+    // Los que solo estan de contexto van atenuados.
     const filtro = sinAcentos(MZ_FILTRO.trim());
     let visibles = reqs, deContexto = {};
-    if (filtro) {
+    if (mzHayFiltro()) {
       const pega = {};
-      reqs.forEach(function (r) { if (mzCoincide(r, filtro)) pega[r.clave] = true; });
+      reqs.forEach(function (r) {
+        if (mzPasaFiltros(r, segs) && mzCoincide(r, filtro)) pega[r.clave] = true;
+      });
       visibles = reqs.filter(function (r) {
         if (pega[r.clave]) return true;
         if (r.padre && pega[r.padre]) { deContexto[r.clave] = true; return true; }
@@ -17491,23 +17647,41 @@ function pintarMatriz() {
       });
       if (!visibles.length) {
         // Puede estar en OTRO proyecto de la misma subdireccion: decirlo ahorra
-        // el paseo por las pestañas.
-        const otros = MZ_PROYS.filter(function (x) { return x !== proy && mzCuantosCoinciden(x, filtro); })
-                              .map(function (x) { return x + ' (' + mzCuantosCoinciden(x, filtro) + ')'; });
+        // el paseo por las pestañas. (Solo cuando se busco texto; con los
+        // selects, las opciones son de ESTE proyecto y comparar no dice nada.)
+        const otros = filtro
+          ? MZ_PROYS.filter(function (x) { return x !== proy && mzCuantosCoinciden(x, filtro); })
+                    .map(function (x) { return x + ' (' + mzCuantosCoinciden(x, filtro) + ')'; })
+          : [];
         html += '<tr class="matriz-sin-coincidencias"><td colspan="' + (segs.length + 1) + '">' +
-                  'Ningún renglón de ' + escapeHtml(proy) + ' coincide con <b>' +
-                  escapeHtml(MZ_FILTRO.trim()) + '</b>.' +
+                  'Ningún renglón de ' + escapeHtml(proy) + ' cumple ' +
+                  (filtro ? 'con <b>' + escapeHtml(MZ_FILTRO.trim()) + '</b>' : 'los filtros puestos') + '.' +
                   (otros.length ? '<br>Sí hay en: ' + escapeHtml(otros.join(', ')) + '.' : '') +
                 '</td></tr>';
       }
     }
 
+    // Los bloques de la hoja (CONDICIONANTES, TERMINOS, ...) se vuelven a
+    // dibujar aqui: salen del `tipo`, no de un renglon de datos. Asi la reja
+    // se lee como el documento del que vino.
+    let bloqueActual = '';
     visibles.forEach(r => {
+      const tipoR = r.tipo || 'condicionante';
+      if (!r.padre && tipoR !== bloqueActual) {
+        bloqueActual = tipoR;
+        const b = MZ_BLOQUE[tipoR];
+        html += '<tr class="matriz-fila-bloque"><td colspan="' + (segs.length + 1) + '">' +
+                  escapeHtml(b ? b.titulo : tipoR) +
+                '</td></tr>';
+      }
       const tieneCeldas = segs.some(s => !!mzCeldaDe(r.clave, s.clave));
       // Una nota sin celdas (una modificación, un acuerdo) es un renglón de
       // sección: no pide dato por segmento, así que va a todo lo ancho.
       if (r.tipo === 'nota' && !tieneCeldas) {
-        html += '<tr class="matriz-fila-nota"><td class="matriz-col-req" colspan="' + (segs.length + 1) + '">' +
+        html += '<tr class="matriz-fila-nota"><td class="matriz-col-req" colspan="' + (segs.length + 1) +
+                  '" title="' + escapeHtml(r.clave) + '">' +
+                  '<span class="matriz-req-num" style="margin-right:8px">' +
+                    escapeHtml(mzNumeroDe(r)) + '</span>' +
                   '<span class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</span>' +
                   (r.texto ? '<div class="matriz-req-fund">' + escapeHtml(r.texto) + '</div>' : '') +
                   mzLapiz(r.clave) +
@@ -17516,8 +17690,8 @@ function pintarMatriz() {
       }
       html += '<tr class="' + (r.padre ? 'matriz-fila-hija' : '') +
                 (deContexto[r.clave] ? ' matriz-fila-contexto' : '') + '">';
-      html += '<td class="matriz-col-req">' +
-                '<div class="matriz-req-clave">' + escapeHtml(r.clave) + '</div>' +
+      html += '<td class="matriz-col-req" title="' + escapeHtml(r.clave) + '">' +
+                '<div class="matriz-req-num">' + escapeHtml(mzNumeroDe(r)) + '</div>' +
                 '<div class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</div>' +
                 (r.fundamento ? '<div class="matriz-req-fund">' + escapeHtml(r.fundamento) + '</div>' : '') +
                 mzLapiz(r.clave) +
@@ -17550,10 +17724,10 @@ function pintarMatriz() {
 
     // Ultimo renglon: agregar al final sin subir a la barra. Filtrando no, que
     // ahi la reja esta recortada y "al final" no quiere decir nada.
-    if (mzPuedeEditar() && !filtro) {
+    if (mzPuedeEditar() && !mzHayFiltro()) {
       html += '<tr class="matriz-fila-agregar"><td colspan="' + (segs.length + 1) + '">' +
                 '<button class="matriz-agregar-abajo" onclick="mzNuevaObligacion()">' +
-                '+ Agregar obligación al final de ' + escapeHtml(proy) + '</button>' +
+                '+ Agregar trámite al final de ' + escapeHtml(proy) + '</button>' +
               '</td></tr>';
     }
 
@@ -17561,7 +17735,7 @@ function pintarMatriz() {
   });
 
   cont.innerHTML = html ||
-    '<div class="matriz-sintablas">La matriz está vacía: no hay segmentos ni obligaciones cargadas.</div>';
+    '<div class="matriz-sintablas">La matriz está vacía: no hay segmentos ni trámites cargados.</div>';
   // Hasta aquí el navegador ya midió la tabla: ahora sí se sabe cuánto alto
   // libre queda y si sobra ancho.
   mzAjustarAlto();
@@ -17585,7 +17759,7 @@ function mzAbrirCelda(reqClave, segClave) {
     const otras = MZ_REQ.filter(x => x.familia === r.familia && x.proyecto !== r.proyecto);
     if (otras.length) {
       fam = '<div class="matriz-familia">' +
-              '<div class="matriz-familia-tit">ESTA MISMA OBLIGACIÓN TAMBIÉN APLICA A</div>' +
+              '<div class="matriz-familia-tit">ESTE MISMO TRÁMITE TAMBIÉN APLICA A</div>' +
               '<div class="matriz-familia-lista">' +
               otras.map(o => {
                 const chips = MZ_SEG.filter(x => x.proyecto === o.proyecto).map(sg => {
@@ -17693,6 +17867,22 @@ function mzClaveSugerida(proy) {
   return pre + '-C' + (n < 10 ? '0' + n : String(n));
 }
 
+// Como nombra la RESOLUCION a este tramite: "Condicionante 7", "Termino 3".
+// El numero vive en la clave (MN-C07 -> 7, MN-C03.2 -> 3.2), que es la llave
+// de la base; aqui solo se lee para mostrarlo como en la hoja.
+const MZ_BLOQUE = {
+  condicionante: { singular: 'Condicionante', titulo: 'Condicionantes' },
+  termino:       { singular: 'Término',       titulo: 'Términos' },
+  nota:          { singular: 'Nota',          titulo: 'Notas y modificaciones' }
+};
+function mzNumeroDe(r) {
+  const b = MZ_BLOQUE[r.tipo || 'condicionante'];
+  if (!b) return r.clave || '';
+  // XX-C07 / XX-T01 / XX-N01.2  ->  el numero despues de la letra
+  const m = /-[A-Za-z]0*([0-9.]+)$/.exec(r.clave || '');
+  return m ? (b.singular + ' ' + m[1]) : b.singular;
+}
+
 // Las dos acciones del renglon: editarlo, o colgar uno nuevo justo debajo.
 // Agregar DESDE el renglon es lo rapido: no hay que subir a la barra ni
 // acordarse de en que orden iba.
@@ -17700,9 +17890,9 @@ function mzLapiz(clave) {
   if (!mzPuedeEditar()) return '';
   return '<span class="matriz-req-acciones">' +
            '<button class="matriz-req-editar" onclick="mzEditarObligacion(\'' + clave + '\')"' +
-           ' title="Editar esta obligación">&#9998;</button>' +
+           ' title="Editar este trámite">&#9998;</button>' +
            '<button class="matriz-req-editar" onclick="mzAgregarDespues(\'' + clave + '\')"' +
-           ' title="Agregar una obligación debajo de esta">+</button>' +
+           ' title="Agregar un trámite debajo de este">+</button>' +
          '</span>';
 }
 
@@ -17727,13 +17917,13 @@ function mzNuevaObligacion() { mzFormObligacion(null, ''); }
 // Alta "pegada" a un renglon: el formulario es el mismo, pero el nuevo cae
 // debajo de ese en lugar de al final.
 function mzAgregarDespues(clave) {
-  if (!mzReqDe(clave)) { toast('No se encontró esa obligación.', 'error'); return; }
+  if (!mzReqDe(clave)) { toast('No se encontró ese trámite.', 'error'); return; }
   mzFormObligacion(null, clave);
 }
 
 function mzEditarObligacion(clave) {
   const r = mzReqDe(clave);
-  if (!r) { toast('No se encontró esa obligación.', 'error'); return; }
+  if (!r) { toast('No se encontró ese trámite.', 'error'); return; }
   mzFormObligacion(r);
 }
 
@@ -17771,7 +17961,7 @@ function mzFormObligacion(req, despuesDeClave) {
 
   document.getElementById('modal').innerHTML =
     '<div class="modal-header"><div class="modal-header-info">' +
-      '<h2>' + (editando ? 'Editar obligación' : 'Nueva obligación') + '</h2>' +
+      '<h2>' + (editando ? 'Editar trámite' : 'Nuevo trámite') + '</h2>' +
       '<p>' + (editando ? val(req.clave) + ' · ' : '') + escapeHtml(proy) +
         (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') +
         (despues ? ' · debajo de ' + val(despues.clave) + ' ' + val(despues.titulo) : '') + '</p>' +
@@ -17808,7 +17998,7 @@ function mzFormObligacion(req, despuesDeClave) {
 
       '<div class="mz-campo"><label>CUELGA DE</label>' +
         '<select id="mzNvPadre"' + (hijos.length ? ' disabled' : '') + '>' +
-          '<option value=""' + (editando ? sel(req.padre || '', '') : '') + '>— Obligación propia (renglón normal)</option>' +
+          '<option value=""' + (editando ? sel(req.padre || '', '') : '') + '>— Trámite propio (renglón normal)</option>' +
           padres.map(function (r) {
             return '<option value="' + val(r.clave) + '"' + (editando ? sel(req.padre || '', r.clave) : '') + '>' +
                    val(r.clave + ' · ' + r.titulo) + '</option>';
@@ -17816,11 +18006,11 @@ function mzFormObligacion(req, despuesDeClave) {
         '</select>' +
         '<div class="mz-ayuda">' +
           (hijos.length
-            ? 'Esta obligación ya tiene ' + hijos.length +
+            ? 'Este trámite ya tiene ' + hijos.length +
               (hijos.length === 1 ? ' sub-entregable colgando' : ' sub-entregables colgando') +
               ', así que no puede volverse sub-entregable de otra.'
             : 'Para un sub-entregable (una póliza, un informe semestral): queda indentado ' +
-              'bajo su obligación, con su propio estado por segmento.') +
+              'bajo su trámite, con su propio estado por segmento.') +
         '</div>' +
       '</div>' +
 
@@ -17830,7 +18020,7 @@ function mzFormObligacion(req, despuesDeClave) {
         '<datalist id="mzFamilias">' +
           familias.map(function (f) { return '<option value="' + val(f) + '">'; }).join('') +
         '</datalist>' +
-        '<div class="mz-ayuda">Si esta misma obligación también aplica en otro proyecto, ponle ' +
+        '<div class="mz-ayuda">Si este mismo trámite también aplica en otro proyecto, ponle ' +
         'la familia de allá: es lo que hace aparecer el bloque "también aplica a".</div>' +
       '</div>' +
 
@@ -17847,7 +18037,7 @@ function mzFormObligacion(req, despuesDeClave) {
       '<div class="mz-ayuda" style="margin-bottom:4px">' +
         (editando
           ? 'Los estados por segmento no se tocan aquí: eso se edita celda por celda en la reja.'
-          : 'Al agregarla, el renglón aparece con todos sus segmentos en blanco (+): de ahí se ' +
+          : 'Al agregarlo, el renglón aparece con todos sus segmentos en blanco (+): de ahí se ' +
             'va llenando segmento por segmento.') +
       '</div>' +
 
@@ -17876,7 +18066,7 @@ function mzGuardarObligacion(ordenSugerido, claveOriginal) {
   }
   const editando = !!claveOriginal;
   const previo = editando ? mzReqDe(claveOriginal) : null;
-  if (editando && !previo) { toast('Esa obligación ya no existe.', 'error'); return; }
+  if (editando && !previo) { toast('Ese trámite ya no existe.', 'error'); return; }
 
   const campo = function (id) {
     const e = document.getElementById(id);
@@ -17884,21 +18074,21 @@ function mzGuardarObligacion(ordenSugerido, claveOriginal) {
   };
   const clave = editando ? claveOriginal : campo('mzNvClave').toUpperCase();
   const titulo = campo('mzNvTitulo');
-  if (!clave)  { toast('Ponle una clave a la obligación.', 'error'); return; }
+  if (!clave)  { toast('Ponle una clave al trámite.', 'error'); return; }
   if (!titulo) { toast('Ponle un título: es lo que se lee en el renglón.', 'error'); return; }
   if (!editando) {
     if (!/^[A-Z0-9.\-]+$/.test(clave)) {
       toast('La clave solo puede llevar letras, números, punto y guion.', 'error'); return;
     }
     if (MZ_REQ.filter(r => (r.clave || '').toUpperCase() === clave).length) {
-      toast('Ya existe la obligación ' + clave + '. Cámbiale la clave.', 'error'); return;
+      toast('Ya existe el trámite ' + clave + '. Cámbiale la clave.', 'error'); return;
     }
   }
 
   const proy = editando ? previo.proyecto : MZ_PROY;
   const reqs = MZ_REQ.filter(r => r.proyecto === proy);
   const padreClave = campo('mzNvPadre') || null;
-  if (padreClave === clave) { toast('Una obligación no puede colgar de sí misma.', 'error'); return; }
+  if (padreClave === clave) { toast('Un trámite no puede colgar de sí mismo.', 'error'); return; }
 
   const d = {
     nuevo: !editando,
@@ -17936,8 +18126,8 @@ function mzGuardarObligacion(ordenSugerido, claveOriginal) {
       cerrarModal();
       pintarMatriz();
       toast(editando
-        ? 'Obligación ' + res.requisito.clave + ' actualizada'
-        : 'Obligación ' + res.requisito.clave + ' agregada', 'ok');
+        ? 'Trámite ' + res.requisito.clave + ' actualizado'
+        : 'Trámite ' + res.requisito.clave + ' agregado', 'ok');
     })
     .withFailureHandler(function (e) { toast(String((e && e.message) || e), 'error'); })
     .guardarRequisitoMatriz(null, d);
