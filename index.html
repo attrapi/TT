@@ -11349,6 +11349,11 @@ function ttPintarAvisos() {
   // pildora no significa nada y ademas tapa contenido.
   const main = document.getElementById('appMain');
   if (!main || !main.dataset || main.dataset.vista !== 'tablero') { caja.innerHTML = ''; return; }
+  // Y tampoco en la Vista Consolidada (la pestana TODAS): ahi cada columna es
+  // una subdireccion entera y lo que se busca es el panorama, no ir tarjeta
+  // por tarjeta. La pildora es para el tablero de un area: SGOI-A, SGOIB,
+  // SGOIC, SPAC, SA, Staff.
+  if (typeof tabActiva !== 'undefined' && tabActiva === 'TODAS') { caja.innerHTML = ''; return; }
 
   const alto = window.innerHeight;
   let html = '';
@@ -12002,7 +12007,7 @@ function cambiarTabAhora(sub) {
   // subdirección, lo regresamos al Tablero (inicio) ANTES de renderizar. Así
   // los KPIs ("Pendientes por…") se pintan en el modo correcto y NO se quedan
   // en el de Enlaces (que mostraba Nora/César/Daniel hasta dar un 2º clic).
-  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes', 'seguimiento'];
+  const vistasQueRegresanAlTablero = ['bitacora', 'carga', 'reportes', 'validadas', 'dashboard', 'enlaces', 'papelera', 'asistencia', 'volantes', 'matriz', 'seguimiento'];
   if (vistasQueRegresanAlTablero.includes(vistaActiva)) {
     cambiarVistaAhora('tablero');
   }
