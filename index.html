@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- ?v= versión del shim: súbela cada vez que cambie supabase-shim.js para que
      el navegador NO sirva una copia vieja en caché (cache-busting). -->
-<script src="supabase-shim.js?v=20261119a"></script>
+<script src="supabase-shim.js?v=20261120a"></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Crect x='2' y='2' width='48' height='48' rx='10' fill='%23691C32'/%3E%3Cpath d='M9 14 H43' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M19 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M33 14 V42' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <!-- === PWA: instalable en el celular (Agregar a pantalla de inicio) === -->
 <link rel="manifest" href="manifest.json">
@@ -811,6 +811,32 @@
   /* Flechas para correr la reja de columna en columna. Van en el encabezado
      del proyecto porque la barra de scroll de la tabla queda hasta ABAJO: para
      moverse de segmento había que bajar toda la reja primero. */
+  /* Agregar una obligacion al proyecto abierto. Va junto a las flechas, en la
+     barra pegada, para que se alcance desde cualquier punto de la reja. */
+  .matriz-btn-nueva {
+    font: inherit; font-size: 11.5px; font-weight: 800; cursor: pointer;
+    letter-spacing: 0.04em; white-space: nowrap;
+    margin-left: 10px; padding: 6px 13px; border-radius: 999px;
+    color: white; background: var(--guinda);
+    border: 1px solid var(--guinda-oscuro);
+  }
+  .matriz-btn-nueva:hover { background: var(--guinda-oscuro); }
+
+  /* Formulario de alta dentro del modal. */
+  .mz-campo { margin-bottom: 12px; }
+  .mz-campo > label {
+    display: block; font-size: 11px; font-weight: 700;
+    color: var(--tinta-tenue); margin-bottom: 4px; letter-spacing: 0.03em;
+  }
+  .mz-campo input, .mz-campo select, .mz-campo textarea {
+    width: 100%; font-family: var(--sans); font-size: 12.5px;
+    padding: 8px 10px; border: 1px solid var(--linea); border-radius: 8px;
+    background: var(--papel); color: var(--tinta);
+  }
+  .mz-campo textarea { line-height: 1.5; resize: vertical; }
+  .mz-ayuda { font-size: 10.5px; color: var(--tinta-tenue); margin-top: 3px; line-height: 1.4; }
+  .mz-fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
   .matriz-flechas { display: flex; gap: 4px; margin-left: 10px; }
   .matriz-flecha {
     width: 27px; height: 27px; border-radius: 7px; cursor: pointer;
@@ -17280,6 +17306,11 @@ function pintarMatriz() {
                 (huecos ? '<span class="matriz-resumen-pill mz-na" title="Cruces que la hoja tiene en blanco: ni capturados">' +
                           '+ ' + huecos + ' sin capturar</span>' : '') +
               '</span>' +
+              (mzPuedeEditar()
+                ? '<button class="matriz-btn-nueva" onclick="mzNuevaObligacion()"' +
+                  ' title="Agregar un renglon a la reja de ' + escapeHtml(proy) + '">' +
+                  '+ Obligación</button>'
+                : '') +
               '<span class="matriz-flechas">' +
                 '<button class="matriz-flecha" id="mzFlechaIzq" onclick="mzScrollSeg(-1)"' +
                 ' title="Segmento anterior (también sirve Shift + rueda del ratón)"' +
@@ -17454,6 +17485,168 @@ function mzAbrirCelda(reqClave, segClave) {
 }
 
 let MZ_EDITANDO = null;
+
+// ---- Alta de una obligacion (un renglon nuevo de la reja) ----
+// Quien puede ESCRIBIR en la reja. Ver es otra cosa (mzPuedeVer): en "Ver como
+// Direccion" el rol de Adrian anda prestado y ahi no se escribe nada.
+function mzPuedeEditar() { return mzPuedeVer() && !SOLO_LECTURA; }
+
+// Propone la siguiente clave del proyecto: toma el prefijo que ya usan sus
+// obligaciones (MN-, SM-, QI-) y le suma uno al numero mas alto. Es una
+// propuesta, no una imposicion: el campo se puede cambiar.
+function mzClaveSugerida(proy) {
+  const reqs = MZ_REQ.filter(r => r.proyecto === proy);
+  let pre = '';
+  for (let i = 0; i < reqs.length && !pre; i++) {
+    const m = /^([A-Za-z]+)-/.exec(reqs[i].clave || '');
+    if (m) pre = m[1];
+  }
+  if (!pre) return '';
+  let max = 0;
+  const re = new RegExp('^' + pre + '-C0*(\\d+)$');
+  reqs.forEach(function (r) {
+    const m = re.exec(r.clave || '');
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  const n = max + 1;
+  return pre + '-C' + (n < 10 ? '0' + n : String(n));
+}
+
+function mzNuevaObligacion() {
+  if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
+  const proy = MZ_PROY;
+  if (!proy) { toast('Primero abre un proyecto.', 'error'); return; }
+
+  const reqs = MZ_REQ.filter(r => r.proyecto === proy);
+  // La resolucion de la MIA se hereda: es la misma para todo el proyecto.
+  const resolucion = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
+  const ordenMax = reqs.reduce(function (a, r) { return Math.max(a, Number(r.orden) || 0); }, 0);
+  // Padres posibles: las obligaciones propias del proyecto (no los
+  // sub-entregables, para no armar nietos).
+  const padres = reqs.filter(r => !r.padre);
+  // Familias que ya existen, para que "tambien aplica a" siga funcionando.
+  const familias = [];
+  MZ_REQ.forEach(function (r) { if (r.familia && familias.indexOf(r.familia) < 0) familias.push(r.familia); });
+  familias.sort();
+
+  document.getElementById('modal').innerHTML =
+    '<div class="modal-header"><div class="modal-header-info">' +
+      '<h2>Nueva obligación</h2>' +
+      '<p>' + escapeHtml(proy) + (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') + '</p>' +
+    '</div></div>' +
+    '<div class="modal-body" style="padding:16px 20px 20px">' +
+      '<div class="mz-fila2">' +
+        '<div class="mz-campo"><label>CLAVE</label>' +
+          '<input id="mzNvClave" value="' + escapeHtml(mzClaveSugerida(proy)) + '" placeholder="MN-C10">' +
+          '<div class="mz-ayuda">Como la numera la resolución. Tiene que ser única.</div>' +
+        '</div>' +
+        '<div class="mz-campo"><label>TIPO</label>' +
+          '<select id="mzNvTipo">' +
+            '<option value="condicionante">Condicionante</option>' +
+            '<option value="termino">Término</option>' +
+            '<option value="nota">Nota / modificación</option>' +
+          '</select>' +
+          '<div class="mz-ayuda">Una nota no pide estado por segmento: va a todo lo ancho.</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="mz-campo"><label>TÍTULO</label>' +
+        '<input id="mzNvTitulo" placeholder="Reforestación y rescate de flora">' +
+        '<div class="mz-ayuda">Corto: es lo que se lee en el renglón.</div>' +
+      '</div>' +
+
+      '<div class="mz-campo"><label>CUELGA DE</label>' +
+        '<select id="mzNvPadre">' +
+          '<option value="">— Obligación propia (renglón normal)</option>' +
+          padres.map(function (r) {
+            return '<option value="' + escapeHtml(r.clave) + '">' +
+                   escapeHtml(r.clave + ' · ' + r.titulo) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<div class="mz-ayuda">Para un sub-entregable (una póliza, un informe semestral): ' +
+        'queda indentado bajo su obligación, con su propio estado por segmento.</div>' +
+      '</div>' +
+
+      '<div class="mz-campo"><label>FAMILIA (OPCIONAL)</label>' +
+        '<input id="mzNvFamilia" list="mzFamilias" placeholder="F-FLORA">' +
+        '<datalist id="mzFamilias">' +
+          familias.map(function (f) { return '<option value="' + escapeHtml(f) + '">'; }).join('') +
+        '</datalist>' +
+        '<div class="mz-ayuda">Si esta misma obligación también aplica en otro proyecto, ponle ' +
+        'la familia de allá: es lo que hace aparecer el bloque "también aplica a".</div>' +
+      '</div>' +
+
+      '<div class="mz-campo"><label>FUNDAMENTO (OPCIONAL)</label>' +
+        '<input id="mzNvFund" placeholder="Considerando 2, 3, 6 y 8">' +
+      '</div>' +
+
+      '<div class="mz-campo"><label>TEXTO DE LA RESOLUCIÓN (OPCIONAL)</label>' +
+        '<textarea id="mzNvTexto" rows="4" placeholder="El texto completo, tal como lo dice la MIA."></textarea>' +
+      '</div>' +
+
+      '<div class="mz-ayuda" style="margin-bottom:4px">Al agregarla, el renglón aparece con todos ' +
+      'sus segmentos en blanco (+): de ahí se va llenando segmento por segmento.</div>' +
+
+      '<div class="modal-acciones" style="margin-top:14px">' +
+        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarObligacion(' + ordenMax + ')">Agregar</button>' +
+        '<button class="btn-pildora btn-pildora-archivar" onclick="cerrarModal()">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('modalFondo').classList.add('activo');
+}
+
+function mzGuardarObligacion(ordenMax) {
+  if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
+  // Puente viejo en la cache del navegador: sin esto la llamada truena sin
+  // tocar ningun handler y el modal se queda como si nada hubiera pasado.
+  if (!google.script.run || typeof google.script.run.guardarRequisitoMatriz !== 'function') {
+    toast('Tu navegador tiene una version vieja de la plataforma. Recarga con Ctrl+F5.', 'error');
+    return;
+  }
+  const val = function (id) {
+    const e = document.getElementById(id);
+    return e ? String(e.value || '').trim() : '';
+  };
+  const clave = val('mzNvClave').toUpperCase(), titulo = val('mzNvTitulo');
+  if (!clave)  { toast('Ponle una clave a la obligación.', 'error'); return; }
+  if (!titulo) { toast('Ponle un título: es lo que se lee en el renglón.', 'error'); return; }
+  if (!/^[A-Z0-9.\-]+$/.test(clave)) {
+    toast('La clave solo puede llevar letras, números, punto y guion.', 'error'); return;
+  }
+  if (MZ_REQ.filter(r => (r.clave || '').toUpperCase() === clave).length) {
+    toast('Ya existe la obligación ' + clave + '. Cámbiale la clave.', 'error'); return;
+  }
+
+  const reqs = MZ_REQ.filter(r => r.proyecto === MZ_PROY);
+  const d = {
+    nuevo: true,
+    clave: clave,
+    proyecto: MZ_PROY,
+    titulo: titulo,
+    tipo: val('mzNvTipo') || 'condicionante',
+    padre: val('mzNvPadre') || null,
+    familia: val('mzNvFamilia').toUpperCase(),
+    fundamento: val('mzNvFund'),
+    texto: val('mzNvTexto'),
+    resolucion: (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '',
+    // Al final de su proyecto; si cuelga de alguien, justo debajo de el.
+    orden: (Number(ordenMax) || 0) + 10
+  };
+  const padre = d.padre ? mzReqDe(d.padre) : null;
+  if (padre) d.orden = (Number(padre.orden) || 0) + 1;
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (!res || !res.ok) { toast((res && res.error) || 'No se pudo agregar.', 'error'); return; }
+      MZ_REQ.push(res.requisito);
+      cerrarModal();
+      pintarMatriz();
+      toast('Obligación ' + res.requisito.clave + ' agregada', 'ok');
+    })
+    .withFailureHandler(function (e) { toast(String((e && e.message) || e), 'error'); })
+    .guardarRequisitoMatriz(null, d);
+}
 
 function mzElegirEstatus(e) {
   if (!MZ_EDITANDO) return;

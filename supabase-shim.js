@@ -1080,6 +1080,46 @@
       return { ok: true, celda: r.data };
     },
 
+    // Agrega (o reemplaza) un RENGLON de la reja: una obligacion. La clave es
+    // la llave primaria, asi que `nuevo` decide si se inserta o se actualiza:
+    // con insert la base rechaza una clave repetida en lugar de pisar en
+    // silencio el renglon de alguien mas.
+    guardarRequisitoMatriz: async function (token, d) {
+      d = d || {};
+      var clave = String(d.clave == null ? '' : d.clave).trim();
+      var proyecto = String(d.proyecto == null ? '' : d.proyecto).trim();
+      var titulo = String(d.titulo == null ? '' : d.titulo).trim();
+      if (!clave)    return { ok: false, error: 'Falta la clave de la obligacion.' };
+      if (!proyecto) return { ok: false, error: 'Falta el proyecto.' };
+      if (!titulo)   return { ok: false, error: 'Falta el titulo.' };
+      var fila = {
+        clave: clave,
+        proyecto: proyecto,
+        titulo: titulo,
+        tipo:       String(d.tipo || 'condicionante'),
+        resolucion: String(d.resolucion == null ? '' : d.resolucion),
+        familia:    String(d.familia == null ? '' : d.familia),
+        texto:      String(d.texto == null ? '' : d.texto),
+        fundamento: String(d.fundamento == null ? '' : d.fundamento),
+        padre: d.padre ? String(d.padre) : null,
+        orden: Number(d.orden) || 0
+      };
+      var r = d.nuevo
+        ? await sb.from('matriz_requisitos').insert(fila).select('*').single()
+        : await sb.from('matriz_requisitos').upsert(fila, { onConflict: 'clave' }).select('*').single();
+      if (r.error) {
+        var m = r.error.message || '';
+        if (r.error.code === '23505' || /duplicate key|already exists/i.test(m)) {
+          return { ok: false, error: 'Ya existe una obligacion con la clave ' + clave + '.' };
+        }
+        if (r.error.code === '23503' || /foreign key/i.test(m)) {
+          return { ok: false, error: 'La obligacion de la que cuelga ya no existe.' };
+        }
+        return { ok: false, error: m };
+      }
+      return { ok: true, requisito: r.data };
+    },
+
     vaciarCacheHtml: async function () { return { ok: true }; }
   };
 
