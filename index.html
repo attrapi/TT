@@ -747,12 +747,27 @@
     border: 1px solid transparent;
   }
 
+  /* La barra de arriba (pestañas + semáforo + flechas) se queda PEGADA al
+     hacer scroll vertical. Sin esto, con 66 renglones se va de la pantalla y
+     ya no se puede cambiar de proyecto ni correr las columnas sin regresar
+     hasta arriba. `sticky` y no `fixed`: fixed se sale del flujo y perdería
+     el ancho de la reja (y se montaría encima al cambiar de vista).
+     76px = el alto del header fijo (72 + 4 del borde), el mismo número que
+     usa el sidebar. El sangrado negativo lleva el fondo hasta las orillas
+     del wrap para que la reja no se asome por los lados al pasar debajo. */
+  .matriz-barra {
+    position: sticky; top: 76px; z-index: 6;
+    background: var(--crema);
+    margin: -16px -24px 0; padding: 16px 24px 8px;
+  }
+  .matriz-barra .matriz-proy-cab { margin-bottom: 0; }
+
   /* Pestañas de proyecto: como las hojas del Excel, pero ARRIBA. Antes los
      tres proyectos se pintaban uno debajo del otro y para ver Saltillo había
      que pasar los 66 renglones de Monterrey. */
   .matriz-tabs {
     display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end;
-    margin: 0 0 16px; border-bottom: 2px solid var(--linea-fuerte);
+    margin: 0 0 12px; border-bottom: 2px solid var(--linea-fuerte);
   }
   .matriz-tab {
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -16943,12 +16958,15 @@ function pintarMatriz() {
   MZ_SEG.forEach(s => { if (MZ_PROYS.indexOf(s.proyecto) < 0) MZ_PROYS.push(s.proyecto); });
   if (MZ_PROYS.indexOf(MZ_PROY) < 0) MZ_PROY = MZ_PROYS[0] || '';
 
-  let html = '';
+  // Las pestañas se arman aparte porque van DENTRO de la barra pegada, junto
+  // con el semáforo y las flechas: los tres tienen que seguir a la vista
+  // cuando la reja se va hacia arriba.
+  let tabs = '';
   if (MZ_PROYS.length > 1) {
-    html += '<div class="matriz-tabs" role="tablist">';
+    tabs += '<div class="matriz-tabs" role="tablist">';
     MZ_PROYS.forEach(function (p, i) {
       const falta = mzFaltantesDe(p);
-      html += '<button class="matriz-tab' + (p === MZ_PROY ? ' activa' : '') + '"' +
+      tabs += '<button class="matriz-tab' + (p === MZ_PROY ? ' activa' : '') + '"' +
                 ' role="tab" aria-selected="' + (p === MZ_PROY ? 'true' : 'false') + '"' +
                 ' onclick="mzCambiarProy(' + i + ')">' +
                 escapeHtml(p) +
@@ -16956,8 +16974,10 @@ function pintarMatriz() {
                          ' cruces pendientes o sin capturar">' + falta + '</span>' : '') +
               '</button>';
     });
-    html += '</div>';
+    tabs += '</div>';
   }
+
+  let html = '';
 
   [MZ_PROY].forEach(proy => {
     const segs = MZ_SEG.filter(s => s.proyecto === proy);
@@ -16977,8 +16997,8 @@ function pintarMatriz() {
     });
 
     const mia = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
-    html += '<section class="matriz-proy">';
-    html += '<div class="matriz-proy-cab">' +
+    html += '<div class="matriz-barra">' + tabs +
+            '<div class="matriz-proy-cab">' +
               '<span class="matriz-proy-nombre">' + escapeHtml(proy) + '</span>' +
               (mia ? '<span class="matriz-proy-mia">MIA ' + escapeHtml(mia) + '</span>' : '') +
               '<span class="matriz-proy-resumen">' +
@@ -16995,7 +17015,9 @@ function pintarMatriz() {
                 '<button class="matriz-flecha" id="mzFlechaDer" onclick="mzScrollSeg(1)"' +
                 ' title="Segmento siguiente" aria-label="Segmento siguiente">&#8250;</button>' +
               '</span>' +
-            '</div>';
+            '</div></div>';
+
+    html += '<section class="matriz-proy">';
 
     html += '<div class="matriz-scroll" id="mzScroll" onscroll="mzActualizarFlechas()">' +
             '<table class="matriz-tabla"><thead><tr>';
