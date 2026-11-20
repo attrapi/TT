@@ -806,7 +806,19 @@
 
   /* La reja. La primera columna se queda fija al hacer scroll horizontal:
      sin eso, con 5 segmentos ya no se sabe qué renglón se está leyendo. */
-  .matriz-scroll { overflow-x: auto; border: 1px solid var(--linea); border-radius: 10px; }
+  /* La reja hace su PROPIO scroll, en los dos ejes. Es lo que permite
+     congelar los dos encabezados a la vez ("inmovilizar paneles" del Excel):
+     el de arriba con los segmentos y el de la izquierda con la obligación.
+     Un `sticky` dentro de un contenedor que no scrollea no se pega a nada, y
+     por eso el encabezado de segmentos se iba al bajar.
+     El max-height de aquí es solo el arranque, para que no aparezca una tabla
+     larguísima antes de que corra el JS; mzAjustarAlto() lo calcula bien con
+     el alto real de la barra pegada. */
+  .matriz-scroll {
+    overflow: auto;
+    max-height: calc(100vh - 250px); min-height: 320px;
+    border: 1px solid var(--linea); border-radius: 10px;
+  }
   .matriz-tabla { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; }
   .matriz-tabla th, .matriz-tabla td {
     border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
@@ -16862,6 +16874,31 @@ function mzScrollSeg(dir) {
   sc.scrollBy({ left: dir * paso, behavior: 'smooth' });
 }
 
+// Le da a la reja el alto que queda libre de pantalla, para que scrollee por
+// dentro y los dos encabezados se queden congelados. Se calcula a mano porque
+// la barra pegada cambia de alto: las pestañas se van a dos renglones en
+// pantallas angostas, y ahí un número fijo en el CSS dejaría la reja cortada.
+//   76 = el header fijo (72 + 4 del borde), el mismo que usa el sidebar.
+//   34 = aire abajo, para que se vea dónde termina la reja.
+function mzAjustarAlto() {
+  const sc = document.getElementById('mzScroll');
+  if (!sc) return;
+  // Fuera del navegador (la prueba en node) no hay nada que medir.
+  if (typeof window === 'undefined' || !window.innerHeight) return;
+  const barra = document.getElementById('mzBarra');
+  const alto = (barra && barra.getBoundingClientRect) ? barra.getBoundingClientRect().height : 0;
+  sc.style.maxHeight = Math.max(320, Math.round(window.innerHeight - 76 - alto - 34)) + 'px';
+}
+
+// Al cambiar el tamaño de la ventana hay que volver a medir. Se engancha una
+// sola vez: pintarMatriz() corre en cada clic de pestaña y de celda.
+let mzResizeListo = false;
+function mzVigilarResize() {
+  if (mzResizeListo || typeof window === 'undefined' || !window.addEventListener) return;
+  mzResizeListo = true;
+  window.addEventListener('resize', function () { mzAjustarAlto(); mzActualizarFlechas(); });
+}
+
 // Apaga la flecha que ya no lleva a ningún lado, y esconde las dos si la reja
 // cabe completa (con pocos segmentos no hay nada que correr).
 function mzActualizarFlechas() {
@@ -16997,7 +17034,7 @@ function pintarMatriz() {
     });
 
     const mia = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
-    html += '<div class="matriz-barra">' + tabs +
+    html += '<div class="matriz-barra" id="mzBarra">' + tabs +
             '<div class="matriz-proy-cab">' +
               '<span class="matriz-proy-nombre">' + escapeHtml(proy) + '</span>' +
               (mia ? '<span class="matriz-proy-mia">MIA ' + escapeHtml(mia) + '</span>' : '') +
@@ -17078,8 +17115,11 @@ function pintarMatriz() {
 
   cont.innerHTML = html ||
     '<div class="matriz-sintablas">La matriz está vacía: no hay segmentos ni obligaciones cargadas.</div>';
-  // Hasta aquí el navegador ya midió la tabla: ahora sí se sabe si sobra ancho.
+  // Hasta aquí el navegador ya midió la tabla: ahora sí se sabe cuánto alto
+  // libre queda y si sobra ancho.
+  mzAjustarAlto();
   mzActualizarFlechas();
+  mzVigilarResize();
 }
 
 // ---- Detalle de una celda ----
