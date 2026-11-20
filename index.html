@@ -746,6 +746,48 @@
     border: 1px solid transparent;
   }
 
+  /* Pestañas de proyecto: como las hojas del Excel, pero ARRIBA. Antes los
+     tres proyectos se pintaban uno debajo del otro y para ver Saltillo había
+     que pasar los 66 renglones de Monterrey. */
+  .matriz-tabs {
+    display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end;
+    margin: 0 0 16px; border-bottom: 2px solid var(--linea-fuerte);
+  }
+  .matriz-tab {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    padding: 8px 14px; margin-bottom: -2px;
+    color: var(--tinta-suave); background: var(--papel-2);
+    border: 1px solid var(--linea); border-bottom: 2px solid var(--linea-fuerte);
+    border-radius: 9px 9px 0 0;
+  }
+  .matriz-tab:hover { color: var(--tinta); background: var(--papel); }
+  .matriz-tab.activa {
+    color: var(--guinda); background: var(--papel);
+    border-color: var(--linea-fuerte); border-bottom-color: var(--papel);
+    cursor: default;
+  }
+  .matriz-tab-badge {
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+    background: var(--ambar-tenue); color: var(--ambar-txt);
+  }
+
+  /* Flechas para correr la reja de columna en columna. Van en el encabezado
+     del proyecto porque la barra de scroll de la tabla queda hasta ABAJO: para
+     moverse de segmento había que bajar toda la reja primero. */
+  .matriz-flechas { display: flex; gap: 4px; margin-left: 10px; }
+  .matriz-flecha {
+    width: 27px; height: 27px; border-radius: 7px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; line-height: 1; font-family: inherit;
+    color: var(--tinta-suave); background: var(--papel);
+    border: 1px solid var(--linea);
+  }
+  .matriz-flecha:hover:not(:disabled) {
+    color: var(--guinda); border-color: var(--guinda); background: var(--guinda-tenue);
+  }
+  .matriz-flecha:disabled { opacity: .3; cursor: default; }
+
   /* La reja. La primera columna se queda fija al hacer scroll horizontal:
      sin eso, con 5 segmentos ya no se sabe qué renglón se está leyendo. */
   .matriz-scroll { overflow-x: auto; border: 1px solid var(--linea); border-radius: 10px; }
@@ -16766,6 +16808,57 @@ const MZ_ESTATUS = {
 };
 const MZ_ORDEN_EST = ['al_dia', 'proceso', 'pendiente', 'na'];
 
+// Proyecto abierto (la pestaña de arriba). Se recuerda en el navegador para
+// volver a abrir donde se quedó, que es como se porta el Excel.
+let MZ_PROYS = [], MZ_PROY = '';
+try { MZ_PROY = localStorage.getItem('tt_matriz_proy') || ''; } catch (e) { MZ_PROY = ''; }
+
+// Cuántos cruces de un proyecto están pendientes o sin capturar. Es el número
+// de la pestaña: sirve para ver sin entrar dónde está el trabajo (Querétaro -
+// Irapuato se delata solo).
+function mzFaltantesDe(proy) {
+  const segs = MZ_SEG.filter(s => s.proyecto === proy);
+  const reqs = MZ_REQ.filter(r => r.proyecto === proy && r.tipo !== 'nota');
+  let n = 0;
+  reqs.forEach(r => segs.forEach(s => {
+    const c = mzCeldaDe(r.clave, s.clave);
+    if (!c || c.estatus === 'pendiente') n++;
+  }));
+  return n;
+}
+
+function mzCambiarProy(i) {
+  const p = MZ_PROYS[i];
+  if (!p || p === MZ_PROY) return;
+  MZ_PROY = p;
+  try { localStorage.setItem('tt_matriz_proy', p); } catch (e) {}
+  pintarMatriz();
+}
+
+// Corre la reja una columna de segmento. El paso es el ancho REAL de una
+// columna (no un número inventado), así queda alineada; si no alcanza a
+// medirla, media pantalla.
+function mzScrollSeg(dir) {
+  const sc = document.getElementById('mzScroll');
+  if (!sc) return;
+  const th = sc.querySelector('th.matriz-th-seg');
+  const paso = (th && th.offsetWidth) || Math.round(sc.clientWidth / 2);
+  sc.scrollBy({ left: dir * paso, behavior: 'smooth' });
+}
+
+// Apaga la flecha que ya no lleva a ningún lado, y esconde las dos si la reja
+// cabe completa (con pocos segmentos no hay nada que correr).
+function mzActualizarFlechas() {
+  const sc  = document.getElementById('mzScroll');
+  const izq = document.getElementById('mzFlechaIzq');
+  const der = document.getElementById('mzFlechaDer');
+  if (!sc || !izq || !der) return;
+  const sobra = sc.scrollWidth - sc.clientWidth;
+  izq.parentNode.style.display = (sobra <= 2) ? 'none' : '';
+  izq.disabled = sc.scrollLeft <= 1;
+  der.disabled = sc.scrollLeft >= sobra - 1;
+}
+
 // Mismo público que Acuses y Biblioteca (equipo SGOI + Staff de Dirección).
 function mzPuedeVer() {
   if (!usuarioActual) return false;
@@ -16844,12 +16937,28 @@ function pintarMatriz() {
   }
   if (!mzCargada) { cont.innerHTML = '<div class="matriz-sintablas">Cargando la matriz…</div>'; return; }
 
-  // Un bloque por proyecto, en el orden en que vienen los segmentos.
-  const proyectos = [];
-  MZ_SEG.forEach(s => { if (proyectos.indexOf(s.proyecto) < 0) proyectos.push(s.proyecto); });
+  // Un proyecto a la vez, elegido con las pestañas de arriba.
+  MZ_PROYS = [];
+  MZ_SEG.forEach(s => { if (MZ_PROYS.indexOf(s.proyecto) < 0) MZ_PROYS.push(s.proyecto); });
+  if (MZ_PROYS.indexOf(MZ_PROY) < 0) MZ_PROY = MZ_PROYS[0] || '';
 
   let html = '';
-  proyectos.forEach(proy => {
+  if (MZ_PROYS.length > 1) {
+    html += '<div class="matriz-tabs" role="tablist">';
+    MZ_PROYS.forEach(function (p, i) {
+      const falta = mzFaltantesDe(p);
+      html += '<button class="matriz-tab' + (p === MZ_PROY ? ' activa' : '') + '"' +
+                ' role="tab" aria-selected="' + (p === MZ_PROY ? 'true' : 'false') + '"' +
+                ' onclick="mzCambiarProy(' + i + ')">' +
+                escapeHtml(p) +
+                (falta ? '<span class="matriz-tab-badge" title="' + falta +
+                         ' cruces pendientes o sin capturar">' + falta + '</span>' : '') +
+              '</button>';
+    });
+    html += '</div>';
+  }
+
+  [MZ_PROY].forEach(proy => {
     const segs = MZ_SEG.filter(s => s.proyecto === proy);
     const reqs = MZ_REQ.filter(r => r.proyecto === proy);
     if (!segs.length || !reqs.length) return;
@@ -16878,9 +16987,17 @@ function pintarMatriz() {
                 (huecos ? '<span class="matriz-resumen-pill mz-na" title="Cruces que la hoja tiene en blanco: ni capturados">' +
                           '+ ' + huecos + ' sin capturar</span>' : '') +
               '</span>' +
+              '<span class="matriz-flechas">' +
+                '<button class="matriz-flecha" id="mzFlechaIzq" onclick="mzScrollSeg(-1)"' +
+                ' title="Segmento anterior (también sirve Shift + rueda del ratón)"' +
+                ' aria-label="Segmento anterior">&#8249;</button>' +
+                '<button class="matriz-flecha" id="mzFlechaDer" onclick="mzScrollSeg(1)"' +
+                ' title="Segmento siguiente" aria-label="Segmento siguiente">&#8250;</button>' +
+              '</span>' +
             '</div>';
 
-    html += '<div class="matriz-scroll"><table class="matriz-tabla"><thead><tr>';
+    html += '<div class="matriz-scroll" id="mzScroll" onscroll="mzActualizarFlechas()">' +
+            '<table class="matriz-tabla"><thead><tr>';
     html += '<th class="matriz-col-req">Obligación</th>';
     segs.forEach(s => {
       html += '<th class="matriz-th-seg">' + escapeHtml(s.nombre) +
@@ -16938,6 +17055,8 @@ function pintarMatriz() {
 
   cont.innerHTML = html ||
     '<div class="matriz-sintablas">La matriz está vacía: no hay segmentos ni obligaciones cargadas.</div>';
+  // Hasta aquí el navegador ya midió la tabla: ahora sí se sabe si sobra ancho.
+  mzActualizarFlechas();
 }
 
 // ---- Detalle de una celda ----
