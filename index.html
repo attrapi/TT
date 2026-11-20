@@ -17876,9 +17876,15 @@ const MZ_BLOQUE = {
   nota:          { singular: 'Nota',          titulo: 'Notas y modificaciones' }
 };
 function mzNumeroDe(r) {
-  const b = MZ_BLOQUE[r.tipo || 'condicionante'];
+  const tipo = r.tipo || 'condicionante';
+  const b = MZ_BLOQUE[tipo];
   if (!b) return r.clave || '';
-  // XX-C07 / XX-T01 / XX-N01.2  ->  el numero despues de la letra
+  // SOLO las condicionantes traen numero propio: la hoja las nombra
+  // "CONDICIONANTE 7" y la clave (MN-C07) lo conserva. Los terminos NO: la
+  // resolucion los llama por su nombre ("Cuarto y Quinto Valoracion
+  // Economica", "ETJ"), y el 01..07 de sus claves es numeracion de la carga,
+  // no del documento. Ponerles "Termino 1" seria inventar un dato.
+  if (tipo !== 'condicionante') return b.singular;
   const m = /-[A-Za-z]0*([0-9.]+)$/.exec(r.clave || '');
   return m ? (b.singular + ' ' + m[1]) : b.singular;
 }
