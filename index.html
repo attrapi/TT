@@ -789,6 +789,31 @@
     display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end;
     margin: 0 0 12px; border-bottom: 2px solid var(--linea-fuerte);
   }
+  /* Buscador, a la derecha de las pestañas. Reusa el look del buscador del
+     tablero (.filtros-buscar) pero mas angosto: aqui comparte renglon. */
+  .matriz-busca-caja {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    padding-bottom: 6px;
+  }
+  .matriz-busca-caja .filtros-buscar {
+    min-width: 230px; flex: 0 1 260px; padding: 6px 13px; font-size: 12.5px;
+  }
+  .matriz-busca-cuenta {
+    font-size: 11px; font-weight: 700; color: var(--tinta-tenue); white-space: nowrap;
+  }
+  .matriz-busca-limpiar {
+    font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    padding: 4px 10px; border-radius: 999px;
+    color: var(--tinta-suave); background: var(--papel-2);
+    border: 1px solid var(--linea);
+  }
+  .matriz-busca-limpiar:hover { color: var(--guinda); border-color: var(--guinda); }
+  /* Renglon que solo esta para no dejar huerfano a un hijo que si coincidio. */
+  .matriz-fila-contexto .matriz-req-titulo,
+  .matriz-fila-contexto .matriz-req-clave { opacity: 0.45; }
+  .matriz-sin-coincidencias td {
+    padding: 18px 14px !important; font-size: 12.5px; color: var(--tinta-suave);
+  }
   .matriz-tab {
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
     display: flex; align-items: center; gap: 7px;
@@ -17083,6 +17108,70 @@ try {
   MZ_PROY = localStorage.getItem('tt_matriz_proy') || '';
 } catch (e) { MZ_SUB = 'SGOI'; MZ_PROY = ''; }
 
+// Lo que se escribio en el buscador de la reja. No se recuerda entre sesiones:
+// un filtro guardado es la receta para creer que faltan renglones.
+let MZ_FILTRO = '';
+
+// Indice de celdas por cruce. mzCeldaDe() recorria MZ_CEL entero en cada
+// cruce; con 66 renglones x 14 segmentos eso son ~60 mil pasadas por pintada,
+// y el buscador repinta en CADA tecla. Se arma al pintar.
+let MZ_CEL_IDX = null;
+function mzArmarIndice() {
+  MZ_CEL_IDX = {};
+  MZ_CEL.forEach(function (c) { MZ_CEL_IDX[mzClave(c.requisito, c.segmento)] = c; });
+}
+
+// ¿Este renglón coincide con lo buscado? Busca en lo que la gente recuerda:
+// la clave, el titulo, el fundamento, la familia, el texto de la resolucion
+// y -lo importante- lo capturado en sus celdas, incluidos los numeros de
+// oficio. Buscar "0274" tiene que encontrar el renglon donde se ingreso.
+function mzCoincide(r, t) {
+  if (!t) return true;
+  const campos = [r.clave, r.titulo, r.fundamento, r.familia, r.texto, r.tipo, r.resolucion];
+  for (let i = 0; i < campos.length; i++) {
+    if (sinAcentos(campos[i] || '').indexOf(t) >= 0) return true;
+  }
+  const celdas = MZ_CEL.filter(c => c.requisito === r.clave);
+  for (let i = 0; i < celdas.length; i++) {
+    const c = celdas[i];
+    if (sinAcentos(c.nota || '').indexOf(t) >= 0) return true;
+    const ofs = c.oficios || [];
+    for (let j = 0; j < ofs.length; j++) {
+      if (sinAcentos(String(ofs[j])).indexOf(t) >= 0) return true;
+    }
+    const adj = c.adjuntos || [];
+    for (let j = 0; j < adj.length; j++) {
+      if (sinAcentos((adj[j] && adj[j].nombre) || String(adj[j])).indexOf(t) >= 0) return true;
+    }
+  }
+  return false;
+}
+
+// Cuantos renglones de un proyecto coinciden (sin contar los de contexto).
+function mzCuantosCoinciden(proy, t) {
+  return MZ_REQ.filter(r => r.proyecto === proy && mzCoincide(r, t)).length;
+}
+
+function mzBuscar(inp) {
+  MZ_FILTRO = inp.value || '';
+  // Repintar recrea el input, asi que hay que devolverle el foco Y el cursor,
+  // o escribir se vuelve imposible (el caret se iria al final en cada tecla).
+  const pos = inp.selectionStart;
+  pintarMatriz();
+  const nuevo = document.getElementById('mzFiltro');
+  if (nuevo) {
+    nuevo.focus();
+    try { nuevo.setSelectionRange(pos, pos); } catch (e) {}
+  }
+}
+
+function mzLimpiarBusqueda() {
+  MZ_FILTRO = '';
+  pintarMatriz();
+  const inp = document.getElementById('mzFiltro');
+  if (inp) inp.focus();
+}
+
 // Los proyectos de una subdirección, en el orden en que vienen los segmentos.
 function mzProyectosDe(sub) {
   const r = [];
@@ -17192,6 +17281,7 @@ function mzPuedeVer() {
 function mzClave(req, seg) { return req + '||' + seg; }
 function mzCeldaDe(req, seg) {
   const k = mzClave(req, seg);
+  if (MZ_CEL_IDX) return MZ_CEL_IDX[k] || null;
   for (let i = 0; i < MZ_CEL.length; i++) {
     if (mzClave(MZ_CEL[i].requisito, MZ_CEL[i].segmento) === k) return MZ_CEL[i];
   }
@@ -17253,6 +17343,7 @@ function pintarMatriz() {
     return;
   }
   if (!mzCargada) { cont.innerHTML = '<div class="matriz-sintablas">Cargando la matriz…</div>'; return; }
+  mzArmarIndice();
 
   // Dos niveles de pestañas: primero de quién es la reja (SGOI-A/B/C) y luego
   // cuál de sus proyectos. Se arman aparte porque van DENTRO de la barra
@@ -17307,6 +17398,20 @@ function pintarMatriz() {
                          ' cruces pendientes o sin capturar">' + falta + '</span>' : '') +
               '</button>';
     });
+    // El buscador va a la derecha, en el mismo renglon de las pestañas.
+    const t = sinAcentos(MZ_FILTRO.trim());
+    tabs += '<span class="matriz-busca-caja">' +
+              (t ? '<span class="matriz-busca-cuenta">' +
+                     mzCuantosCoinciden(MZ_PROY, t) + ' de ' +
+                     MZ_REQ.filter(r => r.proyecto === MZ_PROY).length +
+                   '</span>' +
+                   '<button class="matriz-busca-limpiar" onclick="mzLimpiarBusqueda()">Limpiar</button>'
+                 : '') +
+              '<input type="search" class="filtros-buscar" id="mzFiltro"' +
+                ' value="' + escapeHtml(MZ_FILTRO) + '"' +
+                ' placeholder="🔎 Buscar condicionante, oficio, nota…"' +
+                ' oninput="mzBuscar(this)">' +
+            '</span>';
     tabs += '</div>';
   }
 
@@ -17368,7 +17473,36 @@ function pintarMatriz() {
     });
     html += '</tr></thead><tbody>';
 
-    reqs.forEach(r => {
+    // Con filtro se muestran los que coinciden, mas su familia: el padre de
+    // un hijo que coincidio (si no, el renglon indentado queda huerfano) y los
+    // hijos de un padre que coincidio (una condicionante se lee con sus
+    // sub-entregables). Los que solo estan de contexto van atenuados.
+    const filtro = sinAcentos(MZ_FILTRO.trim());
+    let visibles = reqs, deContexto = {};
+    if (filtro) {
+      const pega = {};
+      reqs.forEach(function (r) { if (mzCoincide(r, filtro)) pega[r.clave] = true; });
+      visibles = reqs.filter(function (r) {
+        if (pega[r.clave]) return true;
+        if (r.padre && pega[r.padre]) { deContexto[r.clave] = true; return true; }
+        const hijoPega = reqs.some(function (h) { return h.padre === r.clave && pega[h.clave]; });
+        if (hijoPega) { deContexto[r.clave] = true; return true; }
+        return false;
+      });
+      if (!visibles.length) {
+        // Puede estar en OTRO proyecto de la misma subdireccion: decirlo ahorra
+        // el paseo por las pestañas.
+        const otros = MZ_PROYS.filter(function (x) { return x !== proy && mzCuantosCoinciden(x, filtro); })
+                              .map(function (x) { return x + ' (' + mzCuantosCoinciden(x, filtro) + ')'; });
+        html += '<tr class="matriz-sin-coincidencias"><td colspan="' + (segs.length + 1) + '">' +
+                  'Ningún renglón de ' + escapeHtml(proy) + ' coincide con <b>' +
+                  escapeHtml(MZ_FILTRO.trim()) + '</b>.' +
+                  (otros.length ? '<br>Sí hay en: ' + escapeHtml(otros.join(', ')) + '.' : '') +
+                '</td></tr>';
+      }
+    }
+
+    visibles.forEach(r => {
       const tieneCeldas = segs.some(s => !!mzCeldaDe(r.clave, s.clave));
       // Una nota sin celdas (una modificación, un acuerdo) es un renglón de
       // sección: no pide dato por segmento, así que va a todo lo ancho.
@@ -17380,7 +17514,8 @@ function pintarMatriz() {
                 '</td></tr>';
         return;
       }
-      html += '<tr class="' + (r.padre ? 'matriz-fila-hija' : '') + '">';
+      html += '<tr class="' + (r.padre ? 'matriz-fila-hija' : '') +
+                (deContexto[r.clave] ? ' matriz-fila-contexto' : '') + '">';
       html += '<td class="matriz-col-req">' +
                 '<div class="matriz-req-clave">' + escapeHtml(r.clave) + '</div>' +
                 '<div class="matriz-req-titulo">' + escapeHtml(r.titulo) + '</div>' +
@@ -17413,8 +17548,9 @@ function pintarMatriz() {
       html += '</tr>';
     });
 
-    // Ultimo renglon: agregar al final sin subir a la barra.
-    if (mzPuedeEditar()) {
+    // Ultimo renglon: agregar al final sin subir a la barra. Filtrando no, que
+    // ahi la reja esta recortada y "al final" no quiere decir nada.
+    if (mzPuedeEditar() && !filtro) {
       html += '<tr class="matriz-fila-agregar"><td colspan="' + (segs.length + 1) + '">' +
                 '<button class="matriz-agregar-abajo" onclick="mzNuevaObligacion()">' +
                 '+ Agregar obligación al final de ' + escapeHtml(proy) + '</button>' +
