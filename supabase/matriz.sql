@@ -49,6 +49,18 @@ create table if not exists public.matriz_segmentos (
 create index if not exists matriz_segmentos_proy_idx
   on public.matriz_segmentos (proyecto, orden);
 
+-- De quien es el segmento: 'SGOI' (SGOI-A), 'SGOIB' o 'SGOIC'. Son las mismas
+-- claves que usa el resto de TT (perfiles.subdireccion y los tabs del
+-- tablero), para no inventar un segundo vocabulario para lo mismo.
+-- Va como ALTER y no dentro del CREATE porque `create table if not exists` no
+-- toca una tabla que ya existe: asi el archivo sigue sirviendo para actualizar
+-- una base que ya tiene la matriz cargada. El default deja en SGOI-A todo lo
+-- que ya estaba, que es de donde salio.
+alter table public.matriz_segmentos
+  add column if not exists subdireccion text not null default 'SGOI';
+create index if not exists matriz_segmentos_sub_idx
+  on public.matriz_segmentos (subdireccion, proyecto, orden);
+
 -- ---------- 2) REQUISITOS (los renglones de la reja) ----------
 -- `padre`   : un sub-entregable cuelga de su condicionante. En la hoja esto
 --             son los renglones de abajo sin etiqueta propia ("Primer

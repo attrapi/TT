@@ -762,6 +762,26 @@
   }
   .matriz-barra .matriz-proy-cab { margin-bottom: 0; }
 
+  /* Primer nivel: la subdirección dueña de la reja. Se ve distinto de las
+     pestañas de proyecto a propósito: son dos niveles (área → proyecto), no
+     seis pestañas sueltas. */
+  .matriz-subs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+  .matriz-sub {
+    font: inherit; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+    padding: 7px 15px; border-radius: 999px;
+    color: var(--tinta-suave); background: var(--papel-2);
+    border: 1px solid var(--linea);
+  }
+  .matriz-sub:hover { color: var(--tinta); border-color: var(--linea-fuerte); }
+  .matriz-sub.activa {
+    color: white; background: var(--guinda);
+    border-color: var(--guinda-oscuro); cursor: default;
+  }
+  /* Subdirección que todavía no tiene nada cargado: se ve apagada, para que
+     se sepa antes de entrar. */
+  .matriz-sub-vacia { opacity: 0.5; }
+
   /* Pestañas de proyecto: como las hojas del Excel, pero ARRIBA. Antes los
      tres proyectos se pintaban uno debajo del otro y para ver Saltillo había
      que pasar los 66 renglones de Monterrey. */
@@ -16975,10 +16995,54 @@ const MZ_ESTATUS = {
 };
 const MZ_ORDEN_EST = ['al_dia', 'proceso', 'pendiente', 'na'];
 
-// Proyecto abierto (la pestaña de arriba). Se recuerda en el navegador para
-// volver a abrir donde se quedó, que es como se porta el Excel.
-let MZ_PROYS = [], MZ_PROY = '';
-try { MZ_PROY = localStorage.getItem('tt_matriz_proy') || ''; } catch (e) { MZ_PROY = ''; }
+// Las tres subdirecciones de Obras Inducidas, en el orden que pidió la
+// Dirección. La clave es la misma que usa el resto de TT (usuarioActual
+// .subdireccion y los tabs del tablero), para no inventar un segundo
+// vocabulario para lo mismo.
+const MZ_SUBS = [
+  { clave: 'SGOI',  nombre: 'SGOI-A' },
+  { clave: 'SGOIB', nombre: 'SGOI-B' },
+  { clave: 'SGOIC', nombre: 'SGOI-C' }
+];
+
+// De quién es un segmento. Las filas cargadas en noviembre son todas de
+// SGOI-A y se guardaron sin esta columna, así que la falta de dato ES SGOI-A;
+// `matriz.sql` la agrega con ese mismo default.
+function mzSubDe(seg) { return (seg && seg.subdireccion) || 'SGOI'; }
+function mzNombreSub(clave) {
+  const s = MZ_SUBS.filter(x => x.clave === clave)[0];
+  return s ? s.nombre : clave;
+}
+
+// Subdirección y proyecto abiertos. Se recuerdan en el navegador para volver a
+// abrir donde se quedó, que es como se porta el Excel.
+let MZ_SUB = 'SGOI', MZ_PROYS = [], MZ_PROY = '';
+try {
+  MZ_SUB  = localStorage.getItem('tt_matriz_sub')  || 'SGOI';
+  MZ_PROY = localStorage.getItem('tt_matriz_proy') || '';
+} catch (e) { MZ_SUB = 'SGOI'; MZ_PROY = ''; }
+
+// Los proyectos de una subdirección, en el orden en que vienen los segmentos.
+function mzProyectosDe(sub) {
+  const r = [];
+  MZ_SEG.forEach(function (s) {
+    if (mzSubDe(s) === sub && r.indexOf(s.proyecto) < 0) r.push(s.proyecto);
+  });
+  return r;
+}
+
+function mzCambiarSub(i) {
+  const sub = MZ_SUBS[i];
+  if (!sub || sub.clave === MZ_SUB) return;
+  MZ_SUB = sub.clave;
+  // El proyecto recordado es de la otra subdirección: que lo reelija solo.
+  MZ_PROY = '';
+  try {
+    localStorage.setItem('tt_matriz_sub', MZ_SUB);
+    localStorage.removeItem('tt_matriz_proy');
+  } catch (e) {}
+  pintarMatriz();
+}
 
 // Cuántos cruces de un proyecto están pendientes o sin capturar. Es el número
 // de la pestaña: sirve para ver sin entrar dónde está el trabajo (Querétaro -
@@ -17129,16 +17193,48 @@ function pintarMatriz() {
   }
   if (!mzCargada) { cont.innerHTML = '<div class="matriz-sintablas">Cargando la matriz…</div>'; return; }
 
-  // Un proyecto a la vez, elegido con las pestañas de arriba.
-  MZ_PROYS = [];
-  MZ_SEG.forEach(s => { if (MZ_PROYS.indexOf(s.proyecto) < 0) MZ_PROYS.push(s.proyecto); });
+  // Dos niveles de pestañas: primero de quién es la reja (SGOI-A/B/C) y luego
+  // cuál de sus proyectos. Se arman aparte porque van DENTRO de la barra
+  // pegada, junto con el semáforo y las flechas: todo eso tiene que seguir a
+  // la vista cuando la reja se va hacia arriba.
+  if (MZ_SUBS.filter(x => x.clave === MZ_SUB).length === 0) MZ_SUB = 'SGOI';
+
+  let subs = '<div class="matriz-subs" role="tablist">';
+  MZ_SUBS.forEach(function (sub, i) {
+    const cuantos = mzProyectosDe(sub.clave).length;
+    subs += '<button class="matriz-sub' + (sub.clave === MZ_SUB ? ' activa' : '') +
+              (cuantos ? '' : ' matriz-sub-vacia') + '"' +
+              ' role="tab" aria-selected="' + (sub.clave === MZ_SUB ? 'true' : 'false') + '"' +
+              ' onclick="mzCambiarSub(' + i + ')"' +
+              ' title="' + (cuantos
+                ? cuantos + (cuantos > 1 ? ' proyectos' : ' proyecto') + ' en la matriz'
+                : 'Todavía no tiene nada cargado en la matriz') + '">' +
+              escapeHtml(sub.nombre) +
+            '</button>';
+  });
+  subs += '</div>';
+
+  // Un proyecto a la vez, de los de ESTA subdirección.
+  MZ_PROYS = mzProyectosDe(MZ_SUB);
   if (MZ_PROYS.indexOf(MZ_PROY) < 0) MZ_PROY = MZ_PROYS[0] || '';
 
-  // Las pestañas se arman aparte porque van DENTRO de la barra pegada, junto
-  // con el semáforo y las flechas: los tres tienen que seguir a la vista
-  // cuando la reja se va hacia arriba.
+  // Subdirección sin nada cargado: se dejan las pestañas (para poder salir) y
+  // se dice por qué está vacía, en vez de pintar una reja fantasma.
+  if (!MZ_PROY) {
+    cont.innerHTML = '<div class="matriz-barra" id="mzBarra">' + subs + '</div>' +
+      '<div class="matriz-sintablas">' +
+        '<b>' + escapeHtml(mzNombreSub(MZ_SUB)) + ' todavía no tiene nada en la matriz.</b><br>' +
+        'La reja de SGOI-A se cargó de su hoja de seguimiento ambiental. Para ' +
+        'que ' + escapeHtml(mzNombreSub(MZ_SUB)) + ' tenga la suya hacen falta sus ' +
+        'segmentos y sus condicionantes; cuando los haya, aparecen aquí con sus ' +
+        'propias pestañas de proyecto.' +
+      '</div>';
+    mzActualizarFlechas();
+    return;
+  }
+
   let tabs = '';
-  if (MZ_PROYS.length > 1) {
+  if (MZ_PROYS.length) {
     tabs += '<div class="matriz-tabs" role="tablist">';
     MZ_PROYS.forEach(function (p, i) {
       const falta = mzFaltantesDe(p);
@@ -17173,7 +17269,7 @@ function pintarMatriz() {
     });
 
     const mia = (reqs.filter(r => r.resolucion)[0] || {}).resolucion || '';
-    html += '<div class="matriz-barra" id="mzBarra">' + tabs +
+    html += '<div class="matriz-barra" id="mzBarra">' + subs + tabs +
             '<div class="matriz-proy-cab">' +
               '<span class="matriz-proy-nombre">' + escapeHtml(proy) + '</span>' +
               (mia ? '<span class="matriz-proy-mia">MIA ' + escapeHtml(mia) + '</span>' : '') +
