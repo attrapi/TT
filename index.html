@@ -826,18 +826,33 @@
      no ensuciar la reja; en pantalla tactil no hay hover, asi que ahi se queda
      visible. La celda del requisito es `sticky`, que ya sirve de ancla para
      posicionarlo absoluto. */
-  .matriz-req-editar {
+  .matriz-req-acciones {
     position: absolute; top: 5px; right: 5px;
+    display: flex; gap: 3px;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  .matriz-tabla tr:hover .matriz-req-acciones { opacity: 1; }
+  @media (hover: none) { .matriz-req-acciones { opacity: 1; } }
+  .matriz-req-editar {
     width: 21px; height: 21px; padding: 0;
     border-radius: 5px; cursor: pointer;
     font-size: 11px; line-height: 1; font-family: inherit;
     color: var(--tinta-tenue); background: var(--papel-2);
     border: 1px solid var(--linea);
-    opacity: 0; transition: opacity 0.12s;
   }
-  .matriz-tabla tr:hover .matriz-req-editar { opacity: 1; }
   .matriz-req-editar:hover { color: var(--guinda); border-color: var(--guinda); }
-  @media (hover: none) { .matriz-req-editar { opacity: 1; } }
+
+  /* Ultimo renglon de la reja: agregar sin subir a la barra. Es el gesto del
+     Excel (escribir en el renglon de abajo) y el de un tablero de tarjetas. */
+  .matriz-fila-agregar td { background: var(--papel-2) !important; padding: 0 !important; }
+  .matriz-agregar-abajo {
+    width: 100%; text-align: left; cursor: pointer;
+    font-family: var(--sans); font-size: 11.5px; font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 9px 11px; border: 0; background: transparent;
+    color: var(--tinta-tenue);
+  }
+  .matriz-agregar-abajo:hover { color: var(--guinda); background: var(--guinda-tenue); }
 
   /* Formulario de alta dentro del modal. */
   .mz-campo { margin-bottom: 12px; }
@@ -17398,6 +17413,14 @@ function pintarMatriz() {
       html += '</tr>';
     });
 
+    // Ultimo renglon: agregar al final sin subir a la barra.
+    if (mzPuedeEditar()) {
+      html += '<tr class="matriz-fila-agregar"><td colspan="' + (segs.length + 1) + '">' +
+                '<button class="matriz-agregar-abajo" onclick="mzNuevaObligacion()">' +
+                '+ Agregar obligación al final de ' + escapeHtml(proy) + '</button>' +
+              '</td></tr>';
+    }
+
     html += '</tbody></table></div></section>';
   });
 
@@ -17534,17 +17557,43 @@ function mzClaveSugerida(proy) {
   return pre + '-C' + (n < 10 ? '0' + n : String(n));
 }
 
-// El lapiz del renglon. Solo para quien puede escribir.
+// Las dos acciones del renglon: editarlo, o colgar uno nuevo justo debajo.
+// Agregar DESDE el renglon es lo rapido: no hay que subir a la barra ni
+// acordarse de en que orden iba.
 function mzLapiz(clave) {
   if (!mzPuedeEditar()) return '';
-  return '<button class="matriz-req-editar" onclick="mzEditarObligacion(\'' + clave + '\')"' +
-         ' title="Editar esta obligación">&#9998;</button>';
+  return '<span class="matriz-req-acciones">' +
+           '<button class="matriz-req-editar" onclick="mzEditarObligacion(\'' + clave + '\')"' +
+           ' title="Editar esta obligación">&#9998;</button>' +
+           '<button class="matriz-req-editar" onclick="mzAgregarDespues(\'' + clave + '\')"' +
+           ' title="Agregar una obligación debajo de esta">+</button>' +
+         '</span>';
+}
+
+// El `orden` que le toca a un renglon nuevo para caer justo debajo de otro: el
+// punto medio con el siguiente, si hay hueco. Si no hay (ordenes pegados),
+// queda empatado con el siguiente, que en la pantalla es lo mismo: adyacente.
+function mzOrdenDespuesDe(req) {
+  const o = Number(req.orden) || 0;
+  const sig = MZ_REQ.filter(r => r.proyecto === req.proyecto)
+                    .map(r => Number(r.orden) || 0)
+                    .filter(x => x > o)
+                    .sort(function (a, b) { return a - b; })[0];
+  if (sig == null) return o + 10;
+  return (sig - o >= 2) ? Math.floor((o + sig) / 2) : o + 1;
 }
 
 // Alta y edicion comparten el MISMO formulario: lo unico que cambia es si
 // viene con una obligacion cargada o en blanco. Asi no hay dos pantallas que
 // se puedan ir separando con el tiempo.
-function mzNuevaObligacion() { mzFormObligacion(null); }
+function mzNuevaObligacion() { mzFormObligacion(null, ''); }
+
+// Alta "pegada" a un renglon: el formulario es el mismo, pero el nuevo cae
+// debajo de ese en lugar de al final.
+function mzAgregarDespues(clave) {
+  if (!mzReqDe(clave)) { toast('No se encontró esa obligación.', 'error'); return; }
+  mzFormObligacion(null, clave);
+}
 
 function mzEditarObligacion(clave) {
   const r = mzReqDe(clave);
@@ -17552,10 +17601,12 @@ function mzEditarObligacion(clave) {
   mzFormObligacion(r);
 }
 
-function mzFormObligacion(req) {
+function mzFormObligacion(req, despuesDeClave) {
   if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
   const editando = !!req;
-  const proy = editando ? req.proyecto : MZ_PROY;
+  // De cual renglon viene el "+": el nuevo cae debajo de ese.
+  const despues = (!editando && despuesDeClave) ? mzReqDe(despuesDeClave) : null;
+  const proy = editando ? req.proyecto : (despues ? despues.proyecto : MZ_PROY);
   if (!proy) { toast('Primero abre un proyecto.', 'error'); return; }
 
   const reqs = MZ_REQ.filter(r => r.proyecto === proy);
@@ -17576,12 +17627,18 @@ function mzFormObligacion(req) {
   const val  = function (x) { return escapeHtml(x == null ? '' : String(x)); };
   const tipo = editando ? (req.tipo || 'condicionante') : 'condicionante';
   const sel  = function (a, b) { return a === b ? ' selected' : ''; };
+  // Donde va a caer. Si se eligiera un "cuelga de", ese manda sobre esto (se
+  // resuelve al guardar): un sub-entregable va pegado a su obligacion.
+  const ordenSugerido = editando ? (ordenMax + 10)
+                      : despues  ? mzOrdenDespuesDe(despues)
+                                 : (ordenMax + 10);
 
   document.getElementById('modal').innerHTML =
     '<div class="modal-header"><div class="modal-header-info">' +
       '<h2>' + (editando ? 'Editar obligación' : 'Nueva obligación') + '</h2>' +
       '<p>' + (editando ? val(req.clave) + ' · ' : '') + escapeHtml(proy) +
-        (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') + '</p>' +
+        (resolucion ? ' · Resolución ' + escapeHtml(resolucion) : '') +
+        (despues ? ' · debajo de ' + val(despues.clave) + ' ' + val(despues.titulo) : '') + '</p>' +
     '</div></div>' +
     '<div class="modal-body" style="padding:16px 20px 20px">' +
       '<div class="mz-fila2">' +
@@ -17659,7 +17716,7 @@ function mzFormObligacion(req) {
       '</div>' +
 
       '<div class="modal-acciones" style="margin-top:14px">' +
-        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarObligacion(' + ordenMax +
+        '<button class="btn-pildora btn-pildora-ok" onclick="mzGuardarObligacion(' + ordenSugerido +
           (editando ? ",'" + req.clave + "'" : '') + ')">' +
           (editando ? 'Guardar cambios' : 'Agregar') + '</button>' +
         '<button class="btn-pildora btn-pildora-archivar" onclick="cerrarModal()">Cancelar</button>' +
@@ -17669,9 +17726,11 @@ function mzFormObligacion(req) {
   document.getElementById('modalFondo').classList.add('activo');
 }
 
+// `ordenSugerido` es el lugar que le toca al renglon nuevo (al final del
+// proyecto, o justo debajo del renglon desde donde se toco el "+").
 // `claveOriginal` llega solo al editar: es la que manda, porque la clave no se
 // renombra (de ella cuelgan las celdas y los sub-entregables).
-function mzGuardarObligacion(ordenMax, claveOriginal) {
+function mzGuardarObligacion(ordenSugerido, claveOriginal) {
   if (!mzPuedeEditar()) { toast('No tienes permiso para editar la matriz.', 'error'); return; }
   // Puente viejo en la cache del navegador: sin esto la llamada truena sin
   // tocar ningun handler y el modal se queda como si nada hubiera pasado.
@@ -17721,15 +17780,16 @@ function mzGuardarObligacion(ordenMax, claveOriginal) {
   };
 
   // El orden: al editar se respeta el que tenia, salvo que cambie de quien
-  // cuelga (ahi se va junto a su nuevo padre). Al dar de alta, al final del
-  // proyecto, o pegado a su padre si cuelga de alguien.
+  // cuelga (ahi se va junto a su nuevo padre). Si cuelga de alguien, pegado a
+  // ese. Y si no, donde lo pidio quien lo abrio (el final del proyecto, o
+  // debajo del renglon del "+").
   const padre = padreClave ? mzReqDe(padreClave) : null;
   if (editando && (previo.padre || null) === padreClave) {
     d.orden = Number(previo.orden) || 0;
   } else if (padre) {
     d.orden = (Number(padre.orden) || 0) + 1;
   } else {
-    d.orden = (Number(ordenMax) || 0) + 10;
+    d.orden = Number(ordenSugerido) || 0;
   }
 
   google.script.run
